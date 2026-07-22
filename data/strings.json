@@ -117,7 +117,12 @@
     "item.fish": "Fish",
     "item.carrot": "Carrot",
     "item.blanket": "Blanket",
-    "item.scarf": "Scarf"
+    "item.scarf": "Scarf",
+    "collect.instruction": "Tap the light orbs!",
+    "collect.instruction_avoid": "Collect the orbs, leave the rocks!",
+    "collect.match_tower": "Collect this colour!",
+    "collect.not_that": "Not the rocks!",
+    "collect.wrong_color": "Look at the tower colour!"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -237,6 +242,11 @@
     "item.fish": "小鱼",
     "item.carrot": "胡萝卜",
     "item.blanket": "毯子",
-    "item.scarf": "围巾"
+    "item.scarf": "围巾",
+    "collect.instruction": "点击光能球！",
+    "collect.instruction_avoid": "收集光球，别碰石头！",
+    "collect.match_tower": "收集这个颜色！",
+    "collect.not_that": "不要碰石头！",
+    "collect.wrong_color": "看看塔的颜色！"
   }
 }

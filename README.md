@@ -40,19 +40,23 @@ progress saved.
 | Save, audio, scene flow, rewards, growth stats | `scripts/core/`, `scripts/reward/` |
 | Level config, 2 languages | `data/` |
 
-**Playable levels right now: 3 of 14** — all three traffic-crossing levels.
-They are three different levels built from *one* template with no extra code,
-which is the whole point of the data-driven design:
+**Playable levels right now: 11 of 14**, from three templates:
 
-- `safety_traffic_01` — one lane, slow cars, red/green only
-- `safety_traffic_02` — two lanes, faster, cars that run a late green
-- `safety_traffic_03` — rain, tighter gaps
+| Template | Levels | Mechanic |
+|---|---|---|
+| `traffic_crossing` | 3 | wait for green, check for cars, cross |
+| `item_sorting` | 5 | drag or tap an item into the right bin |
+| `collect_energy` | 3 | tap the right falling things, ignore the rest |
 
-The other 11 levels appear on the map as "Coming Soon" until their template
-exists. Three templates remain: `collect_energy`, `item_sorting`, `animal_rescue`.
+Each template is one file. Every level built on it differs only by its `config`
+block in `data/levels.json` — no new code per level. That is the whole design
+bet, and it is now proven three times over.
+
+**Still to build: `animal_rescue`** (3 levels — Follow the Footprints, Plan the
+Rescue Route, Find the Fire Exit). Left deliberately unbuilt; see §12.
 
 > The plan called for 12 levels; there are 14. The two extras are traffic
-> variants, added so there is more than one playable level on day one.
+> variants, added so there was more than one playable level on day one.
 
 ---
 
@@ -162,10 +166,10 @@ just written down:
 
 ## 10. Known caveats
 
-- **This code has not been run in the Godot editor.** It was validated
-  statically (`tools_check.py`: 0 errors) but the first launch may surface small
-  runtime issues — a container margin, a null on a first-run save. Fix as they
-  appear; the structure is sound.
+- **The two newest templates have never been run.** `item_sorting` and
+  `collect_energy` were written and validated statically (`tools_check.py`:
+  0 errors) but no one has watched them execute. `traffic_crossing` and the
+  screens around it are confirmed working. See §12 for what to check first.
 - Placeholder art throughout. It is meant to be replaced.
 - `Hero House` on the home screen is deliberately disabled until there is
   furniture to put in it.
@@ -181,3 +185,77 @@ color are tropes, not protected expression, and they are yours to release.
 Because of the skin system, if you do use licensed art in a private family
 build, it lives in one `.tres` file and swapping it out later is a two-minute
 job — not a rewrite.
+
+---
+
+## 12. Where things stand, and what to check first
+
+`traffic_crossing` and the whole shell — boot, home, map, result, rewards,
+parent center — are confirmed working; you played them. The two templates added
+since have not been run once. Statically they are clean, but static checking
+cannot catch a container that lays out wrong or a signal that never fires.
+
+**Test in this order** — each takes about a minute:
+
+1. **Colour Sorting** (Happy Piglet Town 1) — simplest use of `item_sorting`.
+   Check: does an item appear in the centre? Does dragging it onto a bin work?
+   Does *tapping* the item and then a bin also work? Both paths are implemented
+   and the tap path is the one a child will actually use on a tablet.
+2. **Counting to Ten** (Piglet Town 2) — same template, dot-cluster rendering
+   and five bins. Mainly a layout check: do five bins fit across the screen?
+3. **Spot the Danger** (Safety Bureau) — two bins, text items.
+4. **Collect Energy Orbs** (Hero City 1) — simplest `collect_energy`. Do orbs
+   fall? Does tapping one pop it and raise the counter?
+5. **Repair the Energy Tower** (Hero City 3) — the most complex thing built so
+   far: four colours, hazards, and a target colour that changes every three
+   collects and drives the hero's chest core.
+
+**Most likely failure points**, in rough order of probability:
+
+- `item_sorting` drag: the item follows `get_global_mouse_position()` while a
+  release is caught in `_input()`. If dragging does nothing, that release
+  handler is the first place to look.
+- `item_sorting` bins: they are absolutely positioned for a 1280x720 viewport.
+  With five bins (Counting) they may crowd or clip.
+- `collect_energy` taps: orbs are `Panel` controls with `MOUSE_FILTER_STOP`
+  inside a `MOUSE_FILTER_IGNORE` parent. If taps do not register, that filter
+  chain is the cause.
+- `_resolving` in `item_sorting` guards against double-answers during the
+  award animation. If the game locks up after one correct answer, that flag is
+  not being cleared.
+
+Paste any red line from the **Debugger** panel and it can be fixed quickly.
+
+### A note on the text-label items
+
+`Spot the Danger`, `Tidy Up the Room` and `Choose Rescue Tools` currently render
+items as **words**. A six-year-old who cannot read cannot play them unaided —
+right now they are really a reading exercise wearing a sorting costume.
+
+Colour Sorting and Counting have no such problem: colour and dot-count are the
+whole instruction, which is why those two are the ones to put in front of him
+first. The text levels need icons before they are real. The renderer already
+supports it — add `"render": "icon"` handling in `_build_item()` and point it at
+a texture, and the data files need no changes beyond swapping `text_key` for an
+icon path.
+
+### Why `animal_rescue` was left unbuilt
+
+It is the path-planning template, the most intricate of the four, and three
+untested minigames landing at once is a bad trade: debugging effort compounds
+when you cannot tell which of three new systems broke. Better to confirm these
+two work first.
+
+### Git housekeeping
+
+Two stale lock files may be sitting in `.git/` (`index.lock`, `HEAD.lock`) along
+with some `tmp_obj_*` files, left by a sandbox that could not delete files.
+Commits went through fine, but your local git may refuse to run until you clear
+them:
+
+```bash
+rm -f .git/index.lock .git/HEAD.lock
+rm -f .git/objects/*/tmp_obj_*
+git status          # should be clean
+git log --oneline   # should show three commits
+```

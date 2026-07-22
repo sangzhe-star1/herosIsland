@@ -12,6 +12,17 @@
     "reward": {
       "coins": 20,
       "badge": "energy_collector"
+    },
+    "config": {
+      "instruction_key": "collect.instruction",
+      "background": "#101c33",
+      "spawn_interval": 1.0,
+      "fall_speed": 120.0,
+      "orb_colors": [
+        "#ffd23c"
+      ],
+      "hazard_ratio": 0.0,
+      "color_target": false
     }
   },
   {
@@ -28,6 +39,17 @@
     "reward": {
       "coins": 20,
       "badge": ""
+    },
+    "config": {
+      "instruction_key": "collect.instruction_avoid",
+      "background": "#141a2e",
+      "spawn_interval": 0.85,
+      "fall_speed": 150.0,
+      "orb_colors": [
+        "#ffd23c"
+      ],
+      "hazard_ratio": 0.35,
+      "color_target": false
     }
   },
   {
@@ -44,6 +66,20 @@
     "reward": {
       "coins": 25,
       "badge": "tower_engineer"
+    },
+    "config": {
+      "instruction_key": "collect.match_tower",
+      "background": "#0e1b2b",
+      "spawn_interval": 0.75,
+      "fall_speed": 165.0,
+      "orb_colors": [
+        "#ff5d5d",
+        "#4fb8ff",
+        "#7ee06a",
+        "#ffd23c"
+      ],
+      "hazard_ratio": 0.15,
+      "color_target": true
     }
   },
   {

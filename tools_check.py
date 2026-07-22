@@ -55,7 +55,7 @@ for f in gd:
     # keys built indirectly, e.g. praise_key = "result.great"
     used |= set(re.findall(
         r'"((?:app|common|boot|home|map|world|level|badge|growth|character'
-        r'|traffic|result|parent|rewards|limit|sorting|bin|item)\.[a-z0-9_]+)"', src))
+        r'|traffic|result|parent|rewards|limit|sorting|bin|item|collect)\.[a-z0-9_]+)"', src))
 def collect_keys(node, out):
     """Any JSON field named *_key holds a translation key."""
     if isinstance(node, dict):
