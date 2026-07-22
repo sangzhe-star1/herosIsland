@@ -191,7 +191,7 @@ func _tick_things(delta: float) -> void:
 # --- tapping ------------------------------------------------------------
 
 func _on_thing_input(event: InputEvent, thing: Dictionary) -> void:
-	var pressed := (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
+	var pressed: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
 		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
 	if not pressed:
 		return

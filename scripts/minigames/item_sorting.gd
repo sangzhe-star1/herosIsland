@@ -280,7 +280,7 @@ func _render_shape(definition: Dictionary) -> Control:
 func _on_item_input(event: InputEvent) -> void:
 	if _resolving or _item == null:
 		return
-	var pressed := (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
+	var pressed: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
 		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
 	if pressed:
 		_dragging = true
@@ -292,7 +292,7 @@ func _on_item_input(event: InputEvent) -> void:
 func _input(event: InputEvent) -> void:
 	if not _dragging:
 		return
-	var released := (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
+	var released: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
 		and not event.pressed) or (event is InputEventScreenTouch and not event.pressed)
 	if released:
 		_end_drag()
@@ -327,7 +327,7 @@ func _end_drag() -> void:
 func _on_bin_input(event: InputEvent, bin_id: String) -> void:
 	if _resolving or _item == null or not _selected:
 		return
-	var pressed := (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
+	var pressed: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
 		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
 	if pressed:
 		_resolve(bin_id)

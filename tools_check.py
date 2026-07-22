@@ -45,6 +45,38 @@ for f in gd:
             errors.append(f"{f}: unbalanced {open_c}{close_c} "
                           f"({src.count(open_c)} vs {src.count(close_c)})")
 
+# --- 3b. GDScript cannot infer a type from an untyped (Variant) expression.
+#         `var x := event.pressed` is a parser error, and a parser error in any
+#         script blanks the whole game -- this is the bug that produced the
+#         grey-screen launch. Only flag when the OUTERMOST expression is
+#         untyped: int(d.get(...)) and I18n.t(d.get(...)) infer fine, because
+#         the outer call has a declared return type.
+def untyped_source(rhs):
+    rhs = rhs.strip()
+    if "event." in rhs:
+        return "an InputEvent property (untyped on the base class)"
+    if re.match(r'^[A-Za-z_][\w.]*\.get\(.*\)$', rhs):
+        return "a bare .get() call"
+    if re.match(r'^[A-Za-z_][\w.]*\[[^\]]+\]$', rhs):
+        return "a bare dictionary/array lookup"
+    return None
+
+for f in gd:
+    lines = open(f).read().split("\n")
+    for i, line in enumerate(lines, 1):
+        m = re.search(r'\bvar\s+(\w+)\s*:=\s*(.*)$', line)
+        if not m:
+            continue
+        name, rhs = m.group(1), m.group(2)
+        j = i
+        while rhs.rstrip().endswith("\\") and j < len(lines):
+            rhs = rhs.rstrip()[:-1] + " " + lines[j]
+            j += 1
+        why = untyped_source(rhs)
+        if why:
+            errors.append(f"{f}:{i}: `var {name} :=` infers from {why}; "
+                          f"declare the type explicitly")
+
 # --- 4. localization keys
 strings = json.load(open("data/strings.json"))
 en, zh = strings["en"], strings["zh"]
