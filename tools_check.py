@@ -77,6 +77,45 @@ for f in gd:
             errors.append(f"{f}:{i}: `var {name} :=` infers from {why}; "
                           f"declare the type explicitly")
 
+# --- 3c. Cross-file member checks.
+#         Without a running engine these two rules are the only thing that
+#         catches a renamed constant or a signal wired to a method that no
+#         longer exists -- both of which are runtime-fatal in Godot.
+
+# Members exposed by each class_name script.
+class_members = {}
+for f in gd:
+    src = open(f).read()
+    m = re.search(r'^class_name\s+(\w+)', src, re.M)
+    if not m:
+        continue
+    members = set()
+    members |= set(re.findall(r'^(?:static\s+)?func\s+(\w+)', src, re.M))
+    members |= set(re.findall(r'^const\s+(\w+)', src, re.M))
+    members |= set(re.findall(r'^(?:static\s+)?var\s+(\w+)', src, re.M))
+    members |= set(re.findall(r'^enum\s+(\w+)', src, re.M))
+    class_members[m.group(1)] = members
+
+for f in gd:
+    src = open(f).read()
+    for cls, member in re.findall(r'\b([A-Z]\w+)\.(\w+)', src):
+        if cls not in class_members:
+            continue          # engine class or autoload, not ours to verify
+        if member in class_members[cls]:
+            continue
+        if member in ("new", "call", "free", "instantiate"):
+            continue
+        errors.append(f"{f}: {cls}.{member} does not exist on {cls}")
+
+# Methods referenced by signal connections must exist in the same file.
+for f in gd:
+    src = open(f).read()
+    defined = set(re.findall(r'^\s*(?:static\s+)?func\s+(\w+)', src, re.M))
+    for method in re.findall(r'\.connect\(\s*(_\w+)', src):
+        if method not in defined:
+            errors.append(f"{f}: connect() references {method}(), which is not "
+                          f"defined in this file")
+
 # --- 4. localization keys
 strings = json.load(open("data/strings.json"))
 en, zh = strings["en"], strings["zh"]

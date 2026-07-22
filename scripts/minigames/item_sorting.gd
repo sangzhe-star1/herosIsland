@@ -222,18 +222,48 @@ func _render_dots(count: int) -> Control:
 	return holder
 
 
+## Picture first, word underneath.
+##
+## The icon is what makes these levels playable by a child who cannot read; the
+## caption rides along so the word is learned by association rather than being
+## required. If no icon exists for the item, the word fills the card on its own
+## and nothing breaks.
 func _render_label(definition: Dictionary) -> Control:
+	var key: String = str(definition.get("text_key", ""))
+	var caption: String = I18n.t(key) if key != "" else str(definition.get("text", "?"))
+
+	# "item.teddy" -> "teddy". An explicit "icon" field overrides the guess.
+	var icon_name: String = str(definition.get("icon", ""))
+	if icon_name == "" and key.begins_with("item."):
+		icon_name = key.substr(5)
+
+	var holder := Control.new()
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var icon: Control = IconLibrary.build(icon_name, ITEM_SIZE.x * 0.62) if icon_name != "" else null
+
 	var label := Label.new()
-	var key := str(definition.get("text_key", ""))
-	label.text = I18n.t(key) if key != "" else str(definition.get("text", "?"))
-	label.add_theme_font_size_override("font_size", 30)
+	label.text = caption
+	label.add_theme_font_size_override("font_size", 22 if icon != null else 30)
 	label.add_theme_color_override("font_color", Palette.INK)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.set_anchors_preset(Control.PRESET_FULL_RECT)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label
+
+	if icon == null:
+		label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		holder.add_child(label)
+		return holder
+
+	icon.position = Vector2(ITEM_SIZE.x * 0.19, ITEM_SIZE.y * 0.08)
+	holder.add_child(icon)
+
+	label.position = Vector2(0, ITEM_SIZE.y * 0.70)
+	label.size = Vector2(ITEM_SIZE.x, ITEM_SIZE.y * 0.26)
+	holder.add_child(label)
+	return holder
 
 
 func _render_shape(definition: Dictionary) -> Control:
@@ -366,6 +396,9 @@ func _accept() -> void:
 		if target != null else _item.global_position
 
 	AudioManager.play_voice("res://assets/audio/voice/level/well_done.ogg")
+	if target != null:
+		Juice.burst(_play_area, target.position + BIN_SIZE / 2.0)
+		Juice.pop(target)
 	var t := create_tween().set_parallel(true)
 	t.tween_property(_item, "global_position", destination, 0.25).set_trans(Tween.TRANS_SINE)
 	t.tween_property(_item, "scale", Vector2(0.35, 0.35), 0.25)
@@ -403,13 +436,7 @@ func _return_item_home() -> Signal:
 
 
 func _shake_item() -> void:
-	if _item == null:
-		return
-	var origin := _item.position
-	var t := create_tween()
-	t.tween_property(_item, "position", origin + Vector2(16, 0), 0.06)
-	t.tween_property(_item, "position", origin - Vector2(16, 0), 0.06)
-	t.tween_property(_item, "position", origin, 0.06)
+	Juice.nudge(_item)
 
 
 func _bin_node(bin_id: String) -> Control:

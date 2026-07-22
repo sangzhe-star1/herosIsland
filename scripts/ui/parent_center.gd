@@ -95,6 +95,7 @@ func _build_content() -> void:
 	list.add_child(HSeparator.new())
 	list.add_child(_build_language_row())
 	list.add_child(_build_limit_row())
+	list.add_child(_build_motion_row())
 
 
 func _compute_stats() -> Dictionary:
@@ -150,6 +151,25 @@ func _build_language_row() -> Control:
 		SceneManager.goto_scene("res://scenes/parent/ParentCenter.tscn")
 	)
 	row.add_child(picker)
+	return row
+
+
+## Confetti and bouncing delight most children and overwhelm some. A child who
+## is overstimulated cannot learn, so this is a real accessibility control, not
+## a preference.
+func _build_motion_row() -> Control:
+	var row := HBoxContainer.new()
+	var l := Label.new()
+	l.text = I18n.t("parent.reduce_motion")
+	l.custom_minimum_size = Vector2(460, 0)
+	l.add_theme_font_size_override("font_size", 30)
+	row.add_child(l)
+
+	var toggle := CheckButton.new()
+	toggle.button_pressed = bool(SaveManager.get_setting("reduce_motion", false))
+	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.toggled.connect(func(on: bool): SaveManager.set_setting("reduce_motion", on))
+	row.add_child(toggle)
 	return row
 
 

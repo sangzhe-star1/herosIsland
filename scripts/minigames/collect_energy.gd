@@ -94,6 +94,7 @@ func _build_scene(config: Dictionary) -> void:
 	_hero.position = Vector2(150, 620)
 	_hero.scale = Vector2(1.3, 1.3)
 	add_child(_hero)
+	Juice.idle_bob(_hero)
 
 	if _color_target:
 		_tower_light = Panel.new()
@@ -219,6 +220,7 @@ func _collect(node: Control) -> void:
 	t.tween_property(node, "modulate:a", 0.0, 0.22)
 	t.chain().tween_callback(node.queue_free)
 
+	Juice.burst(_play_area, node.position + ORB_SIZE / 2.0, 16)
 	_hero.celebrate()
 	score_correct()
 	_update_progress()
@@ -229,11 +231,7 @@ func _collect(node: Control) -> void:
 
 func _wrong(node: Control, message_key: String) -> void:
 	_instruction.text = I18n.t(message_key)
-	var origin := node.position
-	var t := create_tween()
-	t.tween_property(node, "position", origin + Vector2(14, 0), 0.06)
-	t.tween_property(node, "position", origin - Vector2(14, 0), 0.06)
-	t.tween_property(node, "position", origin, 0.06)
+	Juice.nudge(node)
 	score_mistake()
 
 

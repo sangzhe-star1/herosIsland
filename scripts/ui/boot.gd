@@ -35,6 +35,7 @@ func _ready() -> void:
 	holder.add_child(hero)
 	hero.position = Vector2(640, 160)
 	box.add_child(holder)
+	Juice.idle_bob(hero)
 	print("[boot] 4 hero ok")
 
 	var t := UiKit.title_on_art(I18n.t("app.title"), 72)

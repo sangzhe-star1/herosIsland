@@ -122,7 +122,8 @@
     "collect.instruction_avoid": "Collect the orbs, leave the rocks!",
     "collect.match_tower": "Collect this colour!",
     "collect.not_that": "Not the rocks!",
-    "collect.wrong_color": "Look at the tower colour!"
+    "collect.wrong_color": "Look at the tower colour!",
+    "parent.reduce_motion": "Reduce motion"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -247,6 +248,7 @@
     "collect.instruction_avoid": "收集光球，别碰石头！",
     "collect.match_tower": "收集这个颜色！",
     "collect.not_that": "不要碰石头！",
-    "collect.wrong_color": "看看塔的颜色！"
+    "collect.wrong_color": "看看塔的颜色！",
+    "parent.reduce_motion": "减少动画效果"
   }
 }

@@ -330,6 +330,10 @@ func _reject(message_key: String, voice_clip: String) -> void:
 
 ## A small step backwards, not a scary noise or a lost life.
 func _shake_hero() -> void:
+	if not Juice.motion_enabled():
+		return
+	# Steps back rather than sideways: the hero retreating from the kerb is
+	# the correction being shown, not just motion.
 	var origin := _hero.position
 	var t := create_tween()
 	t.tween_property(_hero, "position", origin + Vector2(0, 26), 0.12)
@@ -351,6 +355,7 @@ func _walk_across() -> void:
 	_cross_button.disabled = false
 	_instruction.text = I18n.t("traffic.well_done")
 	AudioManager.play_voice("res://assets/audio/voice/level/well_done.ogg")
+	Juice.burst(self, _hero.position)
 	_hero.celebrate()
 	score_correct()
 	_update_progress()

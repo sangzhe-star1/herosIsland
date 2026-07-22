@@ -30,6 +30,8 @@ func _default_data() -> Dictionary:
 			"sfx_volume": 1.0,
 			"voice_volume": 1.0,
 			"daily_limit_minutes": 30,
+			# Some children find particles and bouncing genuinely unpleasant.
+			"reduce_motion": false,
 		},
 		# level_id -> {stars, best_accuracy, attempts, completed}
 		"levels": {},
