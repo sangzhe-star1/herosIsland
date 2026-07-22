@@ -1,0 +1,171 @@
+extends Control
+## Behind a press-and-hold plus an arithmetic gate. Shows what the child has
+## actually been doing, with no judgement attached and nothing sent anywhere.
+
+var _gate: VBoxContainer
+var _content: Control
+var _answer: LineEdit
+var _feedback: Label
+var _a := 0
+var _b := 0
+
+
+func _ready() -> void:
+	theme = UiKit.theme()
+	UiKit.background(self, Color(0.93, 0.93, 0.95))
+	_build_gate()
+
+
+func _build_gate() -> void:
+	_a = randi_range(12, 29)
+	_b = randi_range(13, 28)
+
+	_gate = VBoxContainer.new()
+	_gate.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_gate.alignment = BoxContainer.ALIGNMENT_CENTER
+	_gate.add_theme_constant_override("separation", 20)
+	add_child(_gate)
+
+	_gate.add_child(UiKit.title(I18n.t("parent.question") % [_a, _b], 48))
+
+	_answer = LineEdit.new()
+	_answer.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_answer.custom_minimum_size = Vector2(280, 80)
+	_answer.add_theme_font_size_override("font_size", 40)
+	var center := CenterContainer.new()
+	center.add_child(_answer)
+	_gate.add_child(center)
+	_answer.text_submitted.connect(func(_t): _check())
+
+	_feedback = UiKit.title("", 30)
+	_feedback.add_theme_color_override("font_color", Color(0.7, 0.2, 0.2))
+	_gate.add_child(_feedback)
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 24)
+	var ok := UiKit.big_button(I18n.t("common.continue"))
+	ok.pressed.connect(_check)
+	row.add_child(ok)
+	var back := UiKit.big_button(I18n.t("common.back"), Color(0.5, 0.5, 0.55))
+	back.pressed.connect(func(): SceneManager.goto_home())
+	row.add_child(back)
+	_gate.add_child(row)
+
+
+func _check() -> void:
+	if _answer.text.strip_edges().is_valid_int() and int(_answer.text) == _a + _b:
+		_gate.queue_free()
+		_build_content()
+	else:
+		_feedback.text = I18n.t("parent.wrong")
+		_answer.text = ""
+
+
+func _build_content() -> void:
+	var root := UiKit.screen_root(self)
+	root.add_theme_constant_override("separation", 14)
+	_content = root
+
+	var header := HBoxContainer.new()
+	header.add_child(UiKit.back_button(func(): SceneManager.goto_home()))
+	var title := UiKit.title(I18n.t("parent.title"), 48)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title)
+	root.add_child(header)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(scroll)
+
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 10)
+	scroll.add_child(list)
+
+	var stats := _compute_stats()
+	_add_row(list, I18n.t("parent.playtime_today"),
+		I18n.t("parent.minutes") % int(SaveManager.playtime_today() / 60.0))
+	_add_row(list, I18n.t("parent.levels_completed"), str(stats.completed))
+	_add_row(list, I18n.t("parent.total_stars"), str(SaveManager.total_stars()))
+	_add_row(list, I18n.t("parent.accuracy"), "%d%%" % int(stats.accuracy * 100.0))
+	_add_row(list, I18n.t("parent.attempts"), str(stats.attempts))
+
+	list.add_child(HSeparator.new())
+	list.add_child(_build_language_row())
+	list.add_child(_build_limit_row())
+
+
+func _compute_stats() -> Dictionary:
+	var completed := 0
+	var attempts := 0
+	var accuracy_sum := 0.0
+	var counted := 0
+	for level_id in SaveManager.data["levels"].keys():
+		var p: Dictionary = SaveManager.data["levels"][level_id]
+		if p.get("completed", false):
+			completed += 1
+		attempts += int(p.get("attempts", 0))
+		accuracy_sum += float(p.get("best_accuracy", 0.0))
+		counted += 1
+	return {
+		"completed": completed,
+		"attempts": attempts,
+		"accuracy": accuracy_sum / float(counted) if counted > 0 else 0.0,
+	}
+
+
+func _add_row(parent: Control, label: String, value: String) -> void:
+	var row := HBoxContainer.new()
+	var l := Label.new()
+	l.text = label
+	l.custom_minimum_size = Vector2(460, 0)
+	l.add_theme_font_size_override("font_size", 30)
+	row.add_child(l)
+	var v := Label.new()
+	v.text = value
+	v.add_theme_font_size_override("font_size", 30)
+	row.add_child(v)
+	parent.add_child(row)
+
+
+func _build_language_row() -> Control:
+	var row := HBoxContainer.new()
+	var l := Label.new()
+	l.text = I18n.t("parent.language")
+	l.custom_minimum_size = Vector2(460, 0)
+	l.add_theme_font_size_override("font_size", 30)
+	row.add_child(l)
+
+	var picker := OptionButton.new()
+	picker.add_theme_font_size_override("font_size", 28)
+	var locales: Array = I18n.available_locales()
+	for i in range(locales.size()):
+		picker.add_item(str(locales[i]).to_upper(), i)
+		if locales[i] == I18n.locale:
+			picker.select(i)
+	picker.item_selected.connect(func(index: int):
+		I18n.set_locale(str(locales[index]))
+		SceneManager.goto_scene("res://scenes/parent/ParentCenter.tscn")
+	)
+	row.add_child(picker)
+	return row
+
+
+func _build_limit_row() -> Control:
+	var row := HBoxContainer.new()
+	var l := Label.new()
+	l.text = I18n.t("parent.daily_limit")
+	l.custom_minimum_size = Vector2(460, 0)
+	l.add_theme_font_size_override("font_size", 30)
+	row.add_child(l)
+
+	var spin := SpinBox.new()
+	spin.min_value = 0
+	spin.max_value = 120
+	spin.step = 5
+	spin.value = float(SaveManager.get_setting("daily_limit_minutes", 30))
+	spin.value_changed.connect(func(v: float): SaveManager.set_setting("daily_limit_minutes", int(v)))
+	row.add_child(spin)
+	return row

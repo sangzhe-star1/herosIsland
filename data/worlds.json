@@ -1,0 +1,30 @@
+[
+  {
+    "id": "hero_city",
+    "name_key": "world.hero_city",
+    "growth_attribute": "courage",
+    "color": "#3d7fd6",
+    "order": 1
+  },
+  {
+    "id": "piglet_town",
+    "name_key": "world.piglet_town",
+    "growth_attribute": "wisdom",
+    "color": "#e08ab0",
+    "order": 2
+  },
+  {
+    "id": "safety",
+    "name_key": "world.safety",
+    "growth_attribute": "safety",
+    "color": "#e2a33c",
+    "order": 3
+  },
+  {
+    "id": "rescue_forest",
+    "name_key": "world.rescue_forest",
+    "growth_attribute": "kindness",
+    "color": "#4fa86b",
+    "order": 4
+  }
+]

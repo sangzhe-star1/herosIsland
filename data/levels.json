@@ -1,0 +1,184 @@
+[
+  {
+    "id": "hero_city_01",
+    "world": "hero_city",
+    "name_key": "level.hero_city_01",
+    "game_type": "collect_energy",
+    "difficulty": 1,
+    "duration_seconds": 180,
+    "target": { "correct": 8 },
+    "reward": { "coins": 20, "badge": "energy_collector" }
+  },
+  {
+    "id": "hero_city_02",
+    "world": "hero_city",
+    "name_key": "level.hero_city_02",
+    "game_type": "collect_energy",
+    "difficulty": 2,
+    "duration_seconds": 180,
+    "requires": "hero_city_01",
+    "target": { "correct": 10 },
+    "reward": { "coins": 20, "badge": "" }
+  },
+  {
+    "id": "hero_city_03",
+    "world": "hero_city",
+    "name_key": "level.hero_city_03",
+    "game_type": "collect_energy",
+    "difficulty": 3,
+    "duration_seconds": 210,
+    "requires": "hero_city_02",
+    "target": { "correct": 12 },
+    "reward": { "coins": 25, "badge": "tower_engineer" }
+  },
+
+  {
+    "id": "piglet_town_01",
+    "world": "piglet_town",
+    "name_key": "level.piglet_town_01",
+    "game_type": "item_sorting",
+    "difficulty": 1,
+    "duration_seconds": 180,
+    "target": { "correct": 8 },
+    "reward": { "coins": 20, "badge": "color_expert" }
+  },
+  {
+    "id": "piglet_town_02",
+    "world": "piglet_town",
+    "name_key": "level.piglet_town_02",
+    "game_type": "item_sorting",
+    "difficulty": 2,
+    "duration_seconds": 180,
+    "requires": "piglet_town_01",
+    "target": { "correct": 10 },
+    "reward": { "coins": 20, "badge": "" }
+  },
+  {
+    "id": "piglet_town_03",
+    "world": "piglet_town",
+    "name_key": "level.piglet_town_03",
+    "game_type": "item_sorting",
+    "difficulty": 3,
+    "duration_seconds": 180,
+    "requires": "piglet_town_02",
+    "target": { "correct": 10 },
+    "reward": { "coins": 25, "badge": "tidy_helper" }
+  },
+
+  {
+    "id": "safety_traffic_01",
+    "world": "safety",
+    "name_key": "level.safety_traffic_01",
+    "game_type": "traffic_crossing",
+    "difficulty": 1,
+    "duration_seconds": 180,
+    "growth_attribute": "safety",
+    "voice_intro": "res://assets/audio/voice/level/safety_traffic_01_intro.ogg",
+    "config": {
+      "car_speed": 150.0,
+      "car_gap_min": 2.2,
+      "car_gap_max": 3.4,
+      "green_seconds": 5.0,
+      "red_seconds": 5.0,
+      "lanes": 1
+    },
+    "target": { "correct_crossings": 3 },
+    "reward": { "coins": 20, "badge": "road_guardian" }
+  },
+  {
+    "id": "safety_traffic_02",
+    "world": "safety",
+    "name_key": "level.safety_traffic_02",
+    "game_type": "traffic_crossing",
+    "difficulty": 2,
+    "duration_seconds": 180,
+    "growth_attribute": "safety",
+    "requires": "safety_traffic_01",
+    "config": {
+      "car_speed": 210.0,
+      "car_gap_min": 1.5,
+      "car_gap_max": 2.6,
+      "green_seconds": 4.0,
+      "red_seconds": 5.0,
+      "lanes": 2
+    },
+    "target": { "correct_crossings": 4 },
+    "reward": { "coins": 22, "badge": "" }
+  },
+  {
+    "id": "safety_traffic_03",
+    "world": "safety",
+    "name_key": "level.safety_traffic_03",
+    "game_type": "traffic_crossing",
+    "difficulty": 3,
+    "duration_seconds": 200,
+    "growth_attribute": "focus",
+    "requires": "safety_traffic_02",
+    "config": {
+      "car_speed": 190.0,
+      "car_gap_min": 1.4,
+      "car_gap_max": 2.4,
+      "green_seconds": 3.5,
+      "red_seconds": 5.0,
+      "lanes": 2,
+      "rain": true
+    },
+    "target": { "correct_crossings": 4 },
+    "reward": { "coins": 25, "badge": "all_weather_walker" }
+  },
+  {
+    "id": "safety_danger_01",
+    "world": "safety",
+    "name_key": "level.safety_danger_01",
+    "game_type": "item_sorting",
+    "difficulty": 2,
+    "duration_seconds": 180,
+    "requires": "safety_traffic_01",
+    "target": { "correct": 8 },
+    "reward": { "coins": 20, "badge": "sharp_eyes" }
+  },
+  {
+    "id": "safety_fire_01",
+    "world": "safety",
+    "name_key": "level.safety_fire_01",
+    "game_type": "animal_rescue",
+    "difficulty": 2,
+    "duration_seconds": 180,
+    "requires": "safety_danger_01",
+    "target": { "correct": 6 },
+    "reward": { "coins": 25, "badge": "exit_finder" }
+  },
+
+  {
+    "id": "rescue_forest_01",
+    "world": "rescue_forest",
+    "name_key": "level.rescue_forest_01",
+    "game_type": "animal_rescue",
+    "difficulty": 1,
+    "duration_seconds": 180,
+    "target": { "correct": 6 },
+    "reward": { "coins": 20, "badge": "tracker" }
+  },
+  {
+    "id": "rescue_forest_02",
+    "world": "rescue_forest",
+    "name_key": "level.rescue_forest_02",
+    "game_type": "item_sorting",
+    "difficulty": 2,
+    "duration_seconds": 180,
+    "requires": "rescue_forest_01",
+    "target": { "correct": 8 },
+    "reward": { "coins": 20, "badge": "" }
+  },
+  {
+    "id": "rescue_forest_03",
+    "world": "rescue_forest",
+    "name_key": "level.rescue_forest_03",
+    "game_type": "animal_rescue",
+    "difficulty": 3,
+    "duration_seconds": 210,
+    "requires": "rescue_forest_02",
+    "target": { "correct": 6 },
+    "reward": { "coins": 25, "badge": "rescue_planner" }
+  }
+]

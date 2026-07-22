@@ -1,0 +1,10 @@
+{
+  "default": "light_hero",
+  "characters": {
+    "light_hero": {
+      "skin": "res://resources/skins/light_hero.tres",
+      "name_key": "character.light_hero",
+      "unlocked": true
+    }
+  }
+}
