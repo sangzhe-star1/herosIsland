@@ -546,6 +546,14 @@
     "reward": {
       "coins": 25,
       "badge": "exit_finder"
+    },
+    "config": {
+      "instruction_key": "rescue.instruction_fire",
+      "background": "#f3e0d2",
+      "trail_length": 4,
+      "hazards": 2,
+      "hint": false,
+      "goal_icon": "house"
     }
   },
   {
@@ -561,6 +569,14 @@
     "reward": {
       "coins": 20,
       "badge": "tracker"
+    },
+    "config": {
+      "instruction_key": "rescue.instruction",
+      "background": "#d6ecd8",
+      "trail_length": 3,
+      "hazards": 0,
+      "hint": true,
+      "goal_icon": "paw"
     }
   },
   {
@@ -654,6 +670,14 @@
     "reward": {
       "coins": 25,
       "badge": "rescue_planner"
+    },
+    "config": {
+      "instruction_key": "rescue.instruction_route",
+      "background": "#cde4d2",
+      "trail_length": 5,
+      "hazards": 3,
+      "hint": false,
+      "goal_icon": "paw"
     }
   }
 ]

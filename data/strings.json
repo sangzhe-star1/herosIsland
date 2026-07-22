@@ -123,7 +123,13 @@
     "collect.match_tower": "Collect this colour!",
     "collect.not_that": "Not the rocks!",
     "collect.wrong_color": "Look at the tower colour!",
-    "parent.reduce_motion": "Reduce motion"
+    "parent.reduce_motion": "Reduce motion",
+    "rescue.instruction": "Follow the trail! Tap 1, then 2, then 3.",
+    "rescue.instruction_route": "Plan the route. Keep away from danger!",
+    "rescue.instruction_fire": "Find the way out. Follow the trail!",
+    "rescue.not_next": "Which one comes next? Count the dots.",
+    "rescue.avoid": "Careful! Go around that one.",
+    "rescue.found": "You found it!"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -249,6 +255,12 @@
     "collect.match_tower": "收集这个颜色！",
     "collect.not_that": "不要碰石头！",
     "collect.wrong_color": "看看塔的颜色！",
-    "parent.reduce_motion": "减少动画效果"
+    "parent.reduce_motion": "减少动画效果",
+    "rescue.instruction": "跟着脚印走！先点1，再点2，然后点3。",
+    "rescue.instruction_route": "规划路线，避开危险！",
+    "rescue.instruction_fire": "找到出口，跟着路标走！",
+    "rescue.not_next": "下一个是哪个？数一数圆点。",
+    "rescue.avoid": "小心！要绕开它。",
+    "rescue.found": "你找到啦！"
   }
 }

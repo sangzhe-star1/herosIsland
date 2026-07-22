@@ -6,8 +6,10 @@ errors, warnings = [], []
 def res(p):  # res://x -> ./x
     return p.replace("res://", "./", 1)
 
-gd = glob.glob("scripts/**/*.gd", recursive=True)
-tscn = glob.glob("scenes/**/*.tscn", recursive=True)
+# tests/ is linted too: the smoke test is as prone to the untyped-inference
+# parser bug as anything else, and a broken test is worse than no test.
+gd = glob.glob("scripts/**/*.gd", recursive=True) + glob.glob("tests/**/*.gd", recursive=True)
+tscn = glob.glob("scenes/**/*.tscn", recursive=True) + glob.glob("tests/**/*.tscn", recursive=True)
 tres = glob.glob("resources/**/*.tres", recursive=True)
 
 # --- 1. res:// references resolve (audio/font assets are optional by design)

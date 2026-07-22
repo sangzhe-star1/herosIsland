@@ -17,7 +17,26 @@ It is a single executable with no installer and no dependencies.
 **Pin this version.** Godot 4.x minor releases occasionally change API details.
 Finish the first release before upgrading.
 
-## 2. Open and run
+## 2. Verify it works (30 seconds)
+
+Before anything else, run the smoke test. It boots every scene and every level
+headlessly, checks the data files agree, and fails loudly on any script error:
+
+```bash
+./tests/run_smoke.sh
+```
+
+It exists because this project was written without a running engine. A parser
+error in a file the boot screen never touches once blanked the whole game while
+every static check passed — this catches that class of fault in half a minute.
+
+Also run the static checker after editing any data file:
+
+```bash
+python3 tools_check.py
+```
+
+## 3. Open and run
 
 1. Launch Godot → **Import** → select this folder's `project.godot` → **Import & Edit**.
 2. First import takes a minute while assets are scanned.
@@ -29,7 +48,7 @@ progress saved.
 
 ---
 
-## 3. What is built
+## 4. What is built
 
 **Working end to end (the vertical slice):**
 
@@ -40,27 +59,27 @@ progress saved.
 | Save, audio, scene flow, rewards, growth stats | `scripts/core/`, `scripts/reward/` |
 | Level config, 2 languages | `data/` |
 
-**Playable levels right now: 11 of 14**, from three templates:
+**All 14 levels are playable**, from four templates:
 
 | Template | Levels | Mechanic |
 |---|---|---|
 | `traffic_crossing` | 3 | wait for green, check for cars, cross |
 | `item_sorting` | 5 | drag or tap an item into the right bin |
 | `collect_energy` | 3 | tap the right falling things, ignore the rest |
+| `animal_rescue` | 3 | follow a trail in order, route around hazards |
 
 Each template is one file. Every level built on it differs only by its `config`
 block in `data/levels.json` — no new code per level. That is the whole design
 bet, and it is now proven three times over.
 
-**Still to build: `animal_rescue`** (3 levels — Follow the Footprints, Plan the
-Rescue Route, Find the Fire Exit). Left deliberately unbuilt; see §13.
+See `PLAN.md` for the long-term roadmap.
 
 > The plan called for 12 levels; there are 14. The two extras are traffic
 > variants, added so there was more than one playable level on day one.
 
 ---
 
-## 4. Adding a level (no code)
+## 5. Adding a level (no code)
 
 Add an entry to `data/levels.json`:
 
@@ -89,7 +108,7 @@ every translation key, level/badge/world references, and autoload ordering.
 
 ---
 
-## 5. Swapping the character art
+## 6. Swapping the character art
 
 Level code never names a character. It only reads a `CharacterSkin`
 (`resources/skins/light_hero.tres`). Today that skin has no textures, so
@@ -105,7 +124,7 @@ skin.
 
 ---
 
-## 6. Fonts and Chinese text
+## 7. Fonts and Chinese text
 
 **See `ASSETS.md` for the full art and font shopping list.** Short version: two
 font files are the biggest single visual improvement available, and take about
@@ -123,7 +142,7 @@ Parent Center.
 
 ---
 
-## 7. Voice and sound
+## 8. Voice and sound
 
 Every `AudioManager.play_voice()` / `play_sfx()` call silently no-ops when the
 file is absent, so the game is fully playable with zero audio today. Drop in
@@ -141,7 +160,7 @@ on this project.
 
 ---
 
-## 8. Exporting
+## 9. Exporting
 
 Godot → **Project → Export**, add a preset, then install the export templates
 when prompted (Editor → Manage Export Templates).
@@ -153,7 +172,7 @@ older tablets.
 
 ---
 
-## 9. Visual design
+## 10. Visual design
 
 **Nothing important is conveyed by words alone.** Home buttons, map level
 buttons, sorting items and sorting bins all carry a picture, with the word kept
@@ -181,7 +200,7 @@ generous and correction motion is not (confetti for right, a small nudge for
 wrong — never a buzz, screen shake or red flash), and all of it can be switched
 off from Parent Center for children who find particles overwhelming.
 
-## 10. Design rules encoded in the code
+## 11. Design rules encoded in the code
 
 These are enforced in `level_result.gd`, `level_manager.gd` and `ui_kit.gd`, not
 just written down:
@@ -197,7 +216,7 @@ just written down:
 
 ---
 
-## 11. Known caveats
+## 12. Known caveats
 
 - **The two newest templates have never been run.** `item_sorting` and
   `collect_energy` were written and validated statically (`tools_check.py`:
@@ -207,7 +226,7 @@ just written down:
 - `Hero House` on the home screen is deliberately disabled until there is
   furniture to put in it.
 
-## 12. On character likenesses
+## 13. On character likenesses
 
 Ultraman, Peppa Pig and PAW Patrol are owned properties, and there are no
 open-source asset libraries for them — anything labelled that way is fan art,
@@ -221,7 +240,7 @@ job — not a rewrite.
 
 ---
 
-## 13. Where things stand, and what to check first
+## 14. Where things stand, and what to check first
 
 `traffic_crossing` and the whole shell — boot, home, map, result, rewards,
 parent center — are confirmed working; you played them. The two templates added
@@ -295,7 +314,7 @@ git log --oneline   # should show three commits
 
 ---
 
-## 14. Overnight session — what changed, and what to check
+## 15. Overnight session — what changed, and what to check
 
 Five commits after the blank-screen fix. **None of it has been run.** The
 static checker passes (0 errors, and it now catches cross-file member and
