@@ -66,7 +66,7 @@ func _build_ui(config: Dictionary) -> void:
 	_instruction = Label.new()
 	_instruction.text = I18n.t(str(config.get("instruction_key", "sorting.instruction")))
 	_instruction.add_theme_font_size_override("font_size", 38)
-	_instruction.add_theme_color_override("font_color", UiKit.TEXT_DARK)
+	_instruction.add_theme_color_override("font_color", Palette.INK)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_instruction.position = Vector2(340, 40)
 	_instruction.size = Vector2(600, 60)
@@ -75,7 +75,7 @@ func _build_ui(config: Dictionary) -> void:
 
 	_progress = Label.new()
 	_progress.add_theme_font_size_override("font_size", 32)
-	_progress.add_theme_color_override("font_color", UiKit.TEXT_DARK)
+	_progress.add_theme_color_override("font_color", Palette.INK)
 	_progress.position = Vector2(1000, 40)
 	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_progress)
@@ -174,7 +174,7 @@ func _build_item(definition: Dictionary) -> Control:
 	item.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(1, 1, 1, 0.92)
+	style.bg_color = Palette.SURFACE
 	style.set_corner_radius_all(24)
 	style.border_width_bottom = 6
 	style.border_color = Color(0, 0, 0, 0.12)
@@ -227,7 +227,7 @@ func _render_label(definition: Dictionary) -> Control:
 	var key := str(definition.get("text_key", ""))
 	label.text = I18n.t(key) if key != "" else str(definition.get("text", "?"))
 	label.add_theme_font_size_override("font_size", 30)
-	label.add_theme_color_override("font_color", UiKit.TEXT_DARK)
+	label.add_theme_color_override("font_color", Palette.INK)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

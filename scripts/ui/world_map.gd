@@ -4,7 +4,7 @@ extends Control
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Color(0.60, 0.82, 0.70))
+	UiKit.background(self, Palette.MEADOW, "res://assets/backgrounds/map.png")
 
 	var root := UiKit.screen_root(self)
 	root.add_theme_constant_override("separation", 12)
@@ -79,7 +79,7 @@ func _build_level_button(level: Dictionary) -> Control:
 	elif not unlocked:
 		label += "\n(" + I18n.t("common.locked") + ")"
 
-	var color := Color(0.22, 0.48, 0.78) if implemented and unlocked else Color(0.6, 0.6, 0.64)
+	var color: Color = Palette.BLUE if implemented and unlocked else Palette.MUTED
 	var button := UiKit.big_button(label, color)
 	button.custom_minimum_size = Vector2(300, 130)
 	button.add_theme_font_size_override("font_size", 28)

@@ -71,7 +71,7 @@ func _build_scene(config: Dictionary) -> void:
 	_instruction = Label.new()
 	_instruction.text = I18n.t(str(config.get("instruction_key", "collect.instruction")))
 	_instruction.add_theme_font_size_override("font_size", 36)
-	_instruction.add_theme_color_override("font_color", Color(0.88, 0.94, 1.0))
+	_instruction.add_theme_color_override("font_color", Palette.ON_COLOR)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_instruction.position = Vector2(340, 36)
 	_instruction.size = Vector2(600, 56)
@@ -80,7 +80,7 @@ func _build_scene(config: Dictionary) -> void:
 
 	_progress = Label.new()
 	_progress.add_theme_font_size_override("font_size", 32)
-	_progress.add_theme_color_override("font_color", Color(0.88, 0.94, 1.0))
+	_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
 	_progress.position = Vector2(1020, 40)
 	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_progress)

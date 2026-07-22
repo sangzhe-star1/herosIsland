@@ -12,7 +12,7 @@ var _hold_bar: ProgressBar
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Color(0.53, 0.78, 0.92))
+	UiKit.background(self, Palette.SKY, "res://assets/backgrounds/home.png")
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -20,8 +20,7 @@ func _ready() -> void:
 	root.add_theme_constant_override("separation", 28)
 	add_child(root)
 
-	var greeting := UiKit.title(I18n.t("home.greeting"), 52)
-	greeting.add_theme_color_override("font_color", Color(0.1, 0.2, 0.35))
+	var greeting := UiKit.title_on_art(I18n.t("home.greeting"), 52)
 	root.add_child(greeting)
 
 	var grid := GridContainer.new()
@@ -32,15 +31,15 @@ func _ready() -> void:
 	center.add_child(grid)
 	root.add_child(center)
 
-	var play := UiKit.big_button(I18n.t("home.play"), Color(0.20, 0.62, 0.35))
+	var play := UiKit.big_button(I18n.t("home.play"), Palette.GREEN)
 	play.pressed.connect(_on_play)
 	grid.add_child(play)
 
-	var rewards := UiKit.big_button(I18n.t("home.rewards"), Color(0.85, 0.55, 0.15))
+	var rewards := UiKit.big_button(I18n.t("home.rewards"), Palette.ORANGE)
 	rewards.pressed.connect(func(): SceneManager.goto_scene("res://scenes/reward/RewardCenter.tscn"))
 	grid.add_child(rewards)
 
-	var house := UiKit.big_button(I18n.t("home.house"), Color(0.55, 0.40, 0.75))
+	var house := UiKit.big_button(I18n.t("home.house"), Palette.PURPLE)
 	house.disabled = true
 	house.tooltip_text = I18n.t("common.coming_soon")
 	grid.add_child(house)
@@ -48,7 +47,7 @@ func _ready() -> void:
 	# Press-and-hold, then an arithmetic gate on the next screen.
 	# The button itself counts down, so an adult can see the hold is working
 	# while a child who taps once still gets nowhere.
-	_parent_button = UiKit.big_button(I18n.t("home.parent"), Color(0.42, 0.45, 0.52))
+	_parent_button = UiKit.big_button(I18n.t("home.parent"), Palette.SLATE)
 	_parent_button.button_down.connect(_begin_hold)
 	_parent_button.button_up.connect(_cancel_hold)
 	grid.add_child(_parent_button)
@@ -61,7 +60,7 @@ func _ready() -> void:
 	var hint := Label.new()
 	hint.text = I18n.t("parent.hold_hint")
 	hint.add_theme_font_size_override("font_size", 22)
-	hint.add_theme_color_override("font_color", Color(0.25, 0.35, 0.45))
+	hint.add_theme_color_override("font_color", Palette.INK_SOFT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	var bar_box := VBoxContainer.new()

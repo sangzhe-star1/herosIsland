@@ -13,7 +13,7 @@ func _ready() -> void:
 	# Background first, and with no dependencies, so that even a total failure
 	# further down leaves a recognisable navy screen rather than engine grey.
 	var bg := ColorRect.new()
-	bg.color = Color(0.08, 0.12, 0.22)
+	bg.color = Palette.DUSK
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
@@ -37,12 +37,10 @@ func _ready() -> void:
 	box.add_child(holder)
 	print("[boot] 4 hero ok")
 
-	var t := UiKit.title(I18n.t("app.title"), 72)
-	t.add_theme_color_override("font_color", Color(1, 1, 1))
+	var t := UiKit.title_on_art(I18n.t("app.title"), 72)
 	box.add_child(t)
 
-	_prompt = UiKit.title(I18n.t("boot.tap_to_start"), 40)
-	_prompt.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
+	_prompt = UiKit.title(I18n.t("boot.tap_to_start"), 40, Color(0.78, 0.88, 1.0))
 	box.add_child(_prompt)
 
 	# Slow breathing pulse, not a flash.

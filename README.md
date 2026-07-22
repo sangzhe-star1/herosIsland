@@ -53,7 +53,7 @@ block in `data/levels.json` — no new code per level. That is the whole design
 bet, and it is now proven three times over.
 
 **Still to build: `animal_rescue`** (3 levels — Follow the Footprints, Plan the
-Rescue Route, Find the Fire Exit). Left deliberately unbuilt; see §12.
+Rescue Route, Find the Fire Exit). Left deliberately unbuilt; see §13.
 
 > The plan called for 12 levels; there are 14. The two extras are traffic
 > variants, added so there was more than one playable level on day one.
@@ -105,16 +105,21 @@ skin.
 
 ---
 
-## 6. Chinese text
+## 6. Fonts and Chinese text
 
-English is the default and works out of the box. Chinese strings are complete,
-but Godot's built-in font has no CJK glyphs — **Chinese will render as empty
-boxes until you add a font.**
+**See `ASSETS.md` for the full art and font shopping list.** Short version: two
+font files are the biggest single visual improvement available, and take about
+ten minutes.
 
-1. Download Noto Sans SC from <https://fonts.google.com/noto/specimen/Noto+Sans+SC>
-2. Save as `assets/fonts/NotoSansSC-Regular.ttf` (exact name)
+| File | Path |
+|---|---|
+| [Baloo 2 SemiBold](https://fonts.google.com/specimen/Baloo+2) | `assets/fonts/Baloo2-SemiBold.ttf` |
+| [Noto Sans SC Regular](https://fonts.google.com/noto/specimen/Noto+Sans+SC) | `assets/fonts/NotoSansSC-Regular.ttf` |
 
-`UiKit.theme()` picks it up automatically. Switch language in Parent Center.
+`UiKit.theme()` chains them, so Baloo 2 renders Latin text and Noto fills in
+every Chinese glyph automatically. English works with neither font installed;
+**Chinese renders as empty boxes until Noto is present**. Switch language in
+Parent Center.
 
 ---
 
@@ -148,7 +153,23 @@ older tablets.
 
 ---
 
-## 9. Design rules encoded in the code
+## 9. Visual design
+
+Colours live in `scripts/ui/palette.gd` and nowhere else. Every text pairing is
+verified against WCAG AA (4.5:1 body, 3:1 for large button text) — the orange
+was darkened specifically to clear it, and disabled buttons use dark ink on a
+light surface rather than white on grey for the same reason.
+
+Buttons are drawn as physically raised slabs: a thick bottom edge in a darker
+shade of the button's own colour, which shrinks on press while the label slides
+down, so the button visibly squashes. For a child who cannot read, that motion
+is what confirms a tap landed — more legible to them than any colour change.
+
+Backgrounds accept optional artwork: `UiKit.background(self, colour, art_path)`
+uses the image when it exists and the flat colour when it does not, so adding
+art later needs no code change.
+
+## 10. Design rules encoded in the code
 
 These are enforced in `level_result.gd`, `level_manager.gd` and `ui_kit.gd`, not
 just written down:
@@ -164,17 +185,17 @@ just written down:
 
 ---
 
-## 10. Known caveats
+## 11. Known caveats
 
 - **The two newest templates have never been run.** `item_sorting` and
   `collect_energy` were written and validated statically (`tools_check.py`:
   0 errors) but no one has watched them execute. `traffic_crossing` and the
-  screens around it are confirmed working. See §12 for what to check first.
+  screens around it are confirmed working. See §13 for what to check first.
 - Placeholder art throughout. It is meant to be replaced.
 - `Hero House` on the home screen is deliberately disabled until there is
   furniture to put in it.
 
-## 11. On character likenesses
+## 12. On character likenesses
 
 Ultraman, Peppa Pig and PAW Patrol are owned properties, and there are no
 open-source asset libraries for them — anything labelled that way is fan art,
@@ -188,7 +209,7 @@ job — not a rewrite.
 
 ---
 
-## 12. Where things stand, and what to check first
+## 13. Where things stand, and what to check first
 
 `traffic_crossing` and the whole shell — boot, home, map, result, rewards,
 parent center — are confirmed working; you played them. The two templates added

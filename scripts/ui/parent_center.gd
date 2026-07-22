@@ -12,7 +12,7 @@ var _b := 0
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Color(0.93, 0.93, 0.95))
+	UiKit.background(self, Palette.SURFACE_SUNK)
 	_build_gate()
 
 
@@ -38,7 +38,7 @@ func _build_gate() -> void:
 	_answer.text_submitted.connect(func(_t): _check())
 
 	_feedback = UiKit.title("", 30)
-	_feedback.add_theme_color_override("font_color", Color(0.7, 0.2, 0.2))
+	_feedback.add_theme_color_override("font_color", Palette.RED)
 	_gate.add_child(_feedback)
 
 	var row := HBoxContainer.new()
@@ -47,7 +47,7 @@ func _build_gate() -> void:
 	var ok := UiKit.big_button(I18n.t("common.continue"))
 	ok.pressed.connect(_check)
 	row.add_child(ok)
-	var back := UiKit.big_button(I18n.t("common.back"), Color(0.5, 0.5, 0.55))
+	var back := UiKit.big_button(I18n.t("common.back"), Palette.SLATE)
 	back.pressed.connect(func(): SceneManager.goto_home())
 	row.add_child(back)
 	_gate.add_child(row)

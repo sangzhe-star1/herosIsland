@@ -4,7 +4,7 @@ extends Control
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Color(0.96, 0.90, 0.76))
+	UiKit.background(self, Palette.CREAM)
 
 	var root := UiKit.screen_root(self)
 	root.add_theme_constant_override("separation", 16)
@@ -41,7 +41,7 @@ func _ready() -> void:
 		var earned: bool = badge_id in owned
 		var chip := UiKit.big_button(
 			RewardManager.badge_name(badge_id) if earned else "?",
-			Color(0.90, 0.68, 0.20) if earned else Color(0.72, 0.70, 0.66)
+			Palette.ORANGE if earned else Palette.MUTED
 		)
 		chip.custom_minimum_size = Vector2(260, 110)
 		chip.add_theme_font_size_override("font_size", 26)

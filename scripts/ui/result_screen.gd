@@ -4,7 +4,7 @@ extends Control
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Color(0.16, 0.22, 0.36))
+	UiKit.background(self, Palette.DUSK)
 
 	var result: LevelResult = GameManager.get_last_result()
 	var stars: int = result.stars() if result != null else 0
@@ -15,8 +15,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 24)
 	add_child(box)
 
-	var heading := UiKit.title(I18n.t("result.title"), 64)
-	heading.add_theme_color_override("font_color", Color.WHITE)
+	var heading := UiKit.title_on_art(I18n.t("result.title"), 64)
 	box.add_child(heading)
 
 	var row := UiKit.star_row(stars, 3, 96)
@@ -29,14 +28,14 @@ func _ready() -> void:
 	elif stars == 2:
 		praise_key = "result.good"
 	var praise := UiKit.title(I18n.t(praise_key), 44)
-	praise.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0))
+	praise.add_theme_color_override("font_color", Color(0.82, 0.92, 1.0))
 	box.add_child(praise)
 
 	if RewardManager.last_coins_earned > 0:
 		var coins := UiKit.title(
 			I18n.t("result.coins") % RewardManager.last_coins_earned, 34
 		)
-		coins.add_theme_color_override("font_color", Color(1.0, 0.9, 0.6))
+		coins.add_theme_color_override("font_color", Palette.STAR_ON)
 		box.add_child(coins)
 
 	if RewardManager.last_new_badge != "":
@@ -44,7 +43,7 @@ func _ready() -> void:
 			I18n.t("result.new_badge") + "  " + RewardManager.badge_name(RewardManager.last_new_badge),
 			38
 		)
-		badge.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
+		badge.add_theme_color_override("font_color", Palette.STAR_ON)
 		box.add_child(badge)
 
 	var buttons := HBoxContainer.new()
@@ -52,11 +51,11 @@ func _ready() -> void:
 	buttons.add_theme_constant_override("separation", 32)
 	box.add_child(buttons)
 
-	var again := UiKit.big_button(I18n.t("common.again"), Color(0.20, 0.62, 0.35))
+	var again := UiKit.big_button(I18n.t("common.again"), Palette.GREEN)
 	again.pressed.connect(func(): GameManager.start_level(GameManager.current_level_id))
 	buttons.add_child(again)
 
-	var to_map := UiKit.big_button(I18n.t("result.back_to_map"), Color(0.24, 0.5, 0.85))
+	var to_map := UiKit.big_button(I18n.t("result.back_to_map"), Palette.BLUE)
 	to_map.pressed.connect(func(): SceneManager.goto_world_map())
 	buttons.add_child(to_map)
 
