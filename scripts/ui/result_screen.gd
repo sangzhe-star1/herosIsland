@@ -32,11 +32,10 @@ func _ready() -> void:
 	box.add_child(praise)
 
 	if RewardManager.last_coins_earned > 0:
-		var coins := UiKit.title(
-			I18n.t("result.coins") % RewardManager.last_coins_earned, 34
-		)
+		var coins := UiKit.title(I18n.t("result.coins") % 0, 34)
 		coins.add_theme_color_override("font_color", Palette.STAR_ON)
 		box.add_child(coins)
+		_count_up(coins, RewardManager.last_coins_earned)
 
 	if RewardManager.last_new_badge != "":
 		var badge := UiKit.title(
@@ -60,6 +59,32 @@ func _ready() -> void:
 	buttons.add_child(to_map)
 
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
+
+	# A full three stars earns a proper celebration; one or two do not. The
+	# child should be able to feel the difference without counting.
+	if stars >= 3:
+		await get_tree().create_timer(1.4).timeout
+		if is_instance_valid(self):
+			Juice.burst(self, Vector2(420, 320), 30)
+			Juice.burst(self, Vector2(860, 320), 30)
+
+
+## Coins tick up rather than appearing. Watching a number climb is a reward in
+## itself at this age, and it stretches the payoff over a couple of seconds
+## instead of spending it in one frame.
+func _count_up(label: Label, total: int) -> void:
+	if not Juice.motion_enabled():
+		label.text = I18n.t("result.coins") % total
+		return
+	var shown := 0
+	var step: float = maxf(0.04, 0.9 / float(maxi(total, 1)))
+	while shown < total:
+		await get_tree().create_timer(step).timeout
+		if not is_instance_valid(label):
+			return
+		shown += 1
+		label.text = I18n.t("result.coins") % shown
+		AudioManager.play_sfx("res://assets/audio/coin.ogg")
 
 
 ## Stars pop in one at a time. The pause between them is the reward.

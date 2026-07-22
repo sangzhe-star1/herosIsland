@@ -115,16 +115,30 @@ func _build_bins(definitions: Array) -> void:
 			label_text = str(definition["label"])
 		elif definition.has("label_key"):
 			label_text = I18n.t(str(definition["label_key"]))
+		# A bin can carry an icon too, which is what lets a pre-reader tell
+		# "safe" from "dangerous" without decoding either word.
+		var bin_icon_name: String = str(definition.get("icon", ""))
+		var bin_icon: Control = null
+		if bin_icon_name != "":
+			bin_icon = IconLibrary.build(bin_icon_name, BIN_SIZE.x * 0.44)
+		if bin_icon != null:
+			bin_icon.position = Vector2(BIN_SIZE.x * 0.28, BIN_SIZE.y * 0.10)
+			bin.add_child(bin_icon)
+
 		if label_text != "":
 			var label := Label.new()
 			label.text = label_text
-			label.add_theme_font_size_override("font_size", 34)
+			label.add_theme_font_size_override("font_size", 30 if bin_icon != null else 34)
 			label.add_theme_color_override("font_color", Color.WHITE)
 			label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
 			label.add_theme_constant_override("outline_size", 6)
 			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			label.set_anchors_preset(Control.PRESET_FULL_RECT)
+			if bin_icon != null:
+				label.position = Vector2(0, BIN_SIZE.y * 0.62)
+				label.size = Vector2(BIN_SIZE.x, BIN_SIZE.y * 0.30)
+			else:
+				label.set_anchors_preset(Control.PRESET_FULL_RECT)
 			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			bin.add_child(label)
 

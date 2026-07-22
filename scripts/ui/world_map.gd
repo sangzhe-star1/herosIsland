@@ -48,9 +48,28 @@ func _build_world_section(world: Dictionary) -> Control:
 	box.add_theme_constant_override("separation", 14)
 	panel.add_child(box)
 
+	# Header: world name, and how many of this world's stars are collected.
+	# Per-world progress rather than one global total, so a child can see which
+	# island still has something left in it.
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+
 	var name_label := UiKit.title(I18n.t(world.get("name_key", "")), 40)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	box.add_child(name_label)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(name_label)
+
+	var world_levels: Array = GameData.get_levels_for_world(world.get("id", ""))
+	var earned := 0
+	for level in world_levels:
+		earned += int(SaveManager.get_level_progress(level.get("id", "")).get("stars", 0))
+	var possible: int = world_levels.size() * 3
+
+	header.add_child(UiKit.star(earned > 0, 34))
+	var tally := UiKit.title("%d / %d" % [earned, possible], 30)
+	tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header.add_child(tally)
+	box.add_child(header)
 
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation", 16)

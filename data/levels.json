@@ -310,17 +310,20 @@
         {
           "id": "toys",
           "label_key": "bin.toys",
-          "color": "#c86ba8"
+          "color": "#c86ba8",
+          "icon": "teddy"
         },
         {
           "id": "books",
           "label_key": "bin.books",
-          "color": "#4f8fc0"
+          "color": "#4f8fc0",
+          "icon": "picture_book"
         },
         {
           "id": "clothes",
           "label_key": "bin.clothes",
-          "color": "#6aa86a"
+          "color": "#6aa86a",
+          "icon": "tshirt"
         }
       ],
       "items": [
@@ -465,12 +468,14 @@
         {
           "id": "safe",
           "label_key": "bin.safe",
-          "color": "#4f9e5c"
+          "color": "#4f9e5c",
+          "icon": "check"
         },
         {
           "id": "danger",
           "label_key": "bin.danger",
-          "color": "#d0483f"
+          "color": "#d0483f",
+          "icon": "warning"
         }
       ],
       "items": [
@@ -580,17 +585,20 @@
         {
           "id": "hurt",
           "label_key": "bin.hurt",
-          "color": "#d0483f"
+          "color": "#d0483f",
+          "icon": "bandage"
         },
         {
           "id": "hungry",
           "label_key": "bin.hungry",
-          "color": "#e0952f"
+          "color": "#e0952f",
+          "icon": "carrot"
         },
         {
           "id": "cold",
           "label_key": "bin.cold",
-          "color": "#4f8fc0"
+          "color": "#4f8fc0",
+          "icon": "blanket"
         }
       ],
       "items": [

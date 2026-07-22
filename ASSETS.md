@@ -61,23 +61,24 @@ Sources: [Kenney Background Elements](https://kenney.nl/assets/background-elemen
 
 ---
 
-## 4. Item icons (this one matters most for gameplay)
+## 4. Item icons — already handled, but replaceable
 
-Three sorting levels — Spot the Danger, Tidy Up the Room, Choose Rescue Tools —
-currently render items as **words**. A six-year-old who cannot read cannot play
-them. They need pictures.
+This was the worst problem in the game: three sorting levels rendered their
+items as **words**, so a child who cannot read could not play them.
 
-Needed: teddy bear, ball, blocks, picture book, story book, socks, t-shirt, hat,
-kitchen knife, matches, scissors, medicine, power socket, crayon, pillow,
-bandage, plaster, berries, fish, carrot, blanket, scarf.
+**Fixed without art.** `scripts/ui/icon_library.gd` draws all 22 items — teddy,
+knife, matches, socket, carrot, scarf and the rest — plus check and warning
+marks for the safe/dangerous bins, all from primitives. Cards now show the
+picture with the word beneath it, so the image carries the meaning and the word
+is learned by association.
 
-Sources: [Kenney Game Icons](https://kenney.nl/assets/game-icons),
-[game-icons.net](https://game-icons.net/) (CC-BY 3.0, needs a credit line).
+Replace them with real artwork whenever you like; the drawn icons are meant to
+be outgrown, not kept. Add an `"icon"` field to the item in `data/levels.json`
+pointing at a texture, and add a texture branch to `_render_label()` in
+`item_sorting.gd` — a few lines. Ask and I'll wire it.
 
-Then in `data/levels.json`, swap each item's `"text_key"` for
-`"icon": "res://assets/characters/teddy.png"` — and `item_sorting.gd` needs a
-matching `"icon"` branch in `_build_item()`, about five lines. Ask and I'll
-add it.
+Good sources if you do: [Kenney Game Icons](https://kenney.nl/assets/game-icons)
+(CC0), [game-icons.net](https://game-icons.net/) (CC-BY 3.0, needs a credit line).
 
 ---
 
@@ -88,6 +89,7 @@ All optional; every call silently no-ops when the file is missing.
 ```
 assets/audio/correct.ogg          assets/audio/try_again.ogg
 assets/audio/star.ogg             assets/audio/level_complete.ogg
+assets/audio/coin.ogg
 assets/audio/voice/level/well_done.ogg
 assets/audio/voice/level/wrong_light.ogg
 assets/audio/voice/level/car_coming.ogg

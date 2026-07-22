@@ -36,6 +36,8 @@ static func has(icon_name: String) -> bool:
 		"hat", "knife", "matches", "scissors", "medicine", "socket", "crayon",
 		"pillow", "bandage", "plaster", "berries", "fish", "carrot", "blanket",
 		"scarf",
+		# abstract, used on bins rather than items
+		"check", "warning",
 	]
 
 
@@ -193,6 +195,17 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 			for i in range(3):
 				var x: float = s * (0.05 + 0.05 * float(i))
 				_rect(p, c + Vector2(x, s * 0.34), Vector2(s * 0.03, s * 0.10), Color(0.72, 0.26, 0.32))
+		"check":
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.30, -s * 0.02), c + Vector2(-s * 0.14, -s * 0.18),
+				c + Vector2(-s * 0.04, s * 0.04), c + Vector2(s * 0.26, -s * 0.28),
+				c + Vector2(s * 0.36, -s * 0.12), c + Vector2(-s * 0.04, s * 0.30),
+			]), Color(0.98, 0.99, 0.98))
+		"warning":
+			_tri(p, c + Vector2(0, -s * 0.32), c + Vector2(s * 0.36, s * 0.26),
+				c + Vector2(-s * 0.36, s * 0.26), Color(0.99, 0.86, 0.30))
+			_rect(p, c + Vector2(0, -s * 0.02), Vector2(s * 0.08, s * 0.24), Color(0.22, 0.18, 0.10))
+			_circle(p, c + Vector2(0, s * 0.17), s * 0.05, Color(0.22, 0.18, 0.10))
 		_:
 			return false
 	return true
