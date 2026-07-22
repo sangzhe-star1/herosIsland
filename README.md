@@ -292,3 +292,58 @@ rm -f .git/objects/*/tmp_obj_*
 git status          # should be clean
 git log --oneline   # should show three commits
 ```
+
+---
+
+## 14. Overnight session — what changed, and what to check
+
+Five commits after the blank-screen fix. **None of it has been run.** The
+static checker passes (0 errors, and it now catches cross-file member and
+signal mistakes), but static checking cannot see a layout that overflows or a
+particle system that misbehaves.
+
+### Test order, about six minutes
+
+1. **Home** — four picture buttons: flag, star, house, gear. Check the icons
+   sit above the words rather than overlapping them. This is the layout most
+   likely to be wrong, because `icon_button()` positions the icon by fraction
+   of button size and pushes the label down with a content margin.
+2. **Growth Island** — level buttons now show a car / sorting shapes / spark,
+   with per-world star tallies in each header. Buttons grew from 130px to
+   200px tall; check four of them still fit a row without ugly wrapping.
+3. **Colour Sorting** — confetti should burst at the bin on a correct answer.
+   If nothing appears, the culprit is `CPUParticles2D` property names in
+   `juice.gd`.
+4. **Spot the Danger** — the real test. Items show a picture with the word
+   under it, and the bins show a green check and a yellow warning triangle.
+   Ask yourself whether your son could play this without you reading anything
+   aloud. If not, that is the bug worth reporting.
+5. **Result screen** — coins tick up one at a time; three stars fires a
+   double confetti burst that one or two stars does not.
+6. **Parent Center** — new "Reduce motion" toggle at the bottom. Switch it on
+   and replay a level: confetti should vanish, the count-up should jump
+   straight to the total, and the hero should stop bobbing.
+
+### Most likely failures
+
+- `icon_button()` label/icon overlap on Home — fractional positioning was
+  never measured against real rendered text.
+- Map row wrapping at the new button height.
+- `CPUParticles2D` property names in `juice.gd` (`scale_amount_min`,
+  `angular_velocity_min`) — correct for Godot 4.x as I understand it, but
+  unverified against 4.7 specifically.
+- Icons are drawn blind. Some almost certainly read poorly at 96px. The
+  scissors and the socket are my main suspicions.
+
+### Judgement calls made while you slept
+
+- **Stopped at three templates.** `animal_rescue` is still unbuilt. Adding a
+  fourth untested minigame would have made it harder to tell which system
+  broke, not easier.
+- **Icons drawn from primitives rather than waiting for art.** They are meant
+  to be outgrown — swapping in real textures is a data change.
+- **Words kept next to every picture.** Replacing words entirely would have
+  made the game more usable today and taught him nothing.
+- **UI/UX Pro Max not used** — it needs a Claude restart to load. Worth
+  revisiting for palette and typography once installed, but it has no Godot
+  knowledge, so expect vocabulary rather than code.
