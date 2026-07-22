@@ -31,15 +31,15 @@ func _ready() -> void:
 	center.add_child(grid)
 	root.add_child(center)
 
-	var play := UiKit.big_button(I18n.t("home.play"), Palette.GREEN)
+	var play := UiKit.icon_button(I18n.t("home.play"), "flag", Palette.GREEN)
 	play.pressed.connect(_on_play)
 	grid.add_child(play)
 
-	var rewards := UiKit.big_button(I18n.t("home.rewards"), Palette.ORANGE)
+	var rewards := UiKit.icon_button(I18n.t("home.rewards"), "star", Palette.ORANGE)
 	rewards.pressed.connect(func(): SceneManager.goto_scene("res://scenes/reward/RewardCenter.tscn"))
 	grid.add_child(rewards)
 
-	var house := UiKit.big_button(I18n.t("home.house"), Palette.PURPLE)
+	var house := UiKit.icon_button(I18n.t("home.house"), "house", Palette.PURPLE)
 	house.disabled = true
 	house.tooltip_text = I18n.t("common.coming_soon")
 	grid.add_child(house)
@@ -47,7 +47,7 @@ func _ready() -> void:
 	# Press-and-hold, then an arithmetic gate on the next screen.
 	# The button itself counts down, so an adult can see the hold is working
 	# while a child who taps once still gets nowhere.
-	_parent_button = UiKit.big_button(I18n.t("home.parent"), Palette.SLATE)
+	_parent_button = UiKit.icon_button(I18n.t("home.parent"), "gear", Palette.SLATE)
 	_parent_button.button_down.connect(_begin_hold)
 	_parent_button.button_up.connect(_cancel_hold)
 	grid.add_child(_parent_button)
@@ -87,7 +87,7 @@ func _process(delta: float) -> void:
 	_hold_bar.value = _hold_time
 
 	var remaining := int(ceil(PARENT_HOLD_SECONDS - _hold_time))
-	_parent_button.text = "%s  %d" % [I18n.t("home.parent"), maxi(remaining, 1)]
+	_parent_button.text = "%s %d" % [I18n.t("home.parent"), maxi(remaining, 1)]
 
 	if _hold_time >= PARENT_HOLD_SECONDS:
 		_reset_hold()

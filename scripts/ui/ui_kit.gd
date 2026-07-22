@@ -157,6 +157,37 @@ static func _raised(color: Color, edge_size: int) -> StyleBoxFlat:
 	return style
 
 
+## A button carrying a picture above its label.
+##
+## The picture is not decoration: a six-year-old cannot read "Adventure" or "My
+## Rewards", so on a text-only menu they are reduced to memorising button
+## positions. The icon is what makes the screen navigable, and the word is what
+## they gradually learn from it.
+static func icon_button(text: String, icon_name: String,
+		color: Color = Palette.BLUE, box: Vector2 = Vector2(300, 210)) -> Button:
+	var b := big_button(text, color)
+	b.custom_minimum_size = box
+	b.add_theme_font_size_override("font_size", 30)
+
+	var icon: Control = IconLibrary.build(icon_name, box.x * 0.36)
+	if icon == null:
+		return b
+
+	# Sits above the label, which is pushed to the lower part of the button.
+	icon.position = Vector2(box.x * 0.32, box.y * 0.12)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(icon)
+	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	# Push the label into the lower third so it clears the icon above it.
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		var style: StyleBox = b.get_theme_stylebox(state)
+		if style is StyleBoxFlat:
+			var flat := style as StyleBoxFlat
+			flat.content_margin_top = box.y * 0.56
+	return b
+
+
 static func back_button(target: Callable) -> Button:
 	var b := big_button("<", Palette.SLATE)
 	b.custom_minimum_size = Vector2(112, 96)

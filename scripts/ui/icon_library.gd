@@ -38,6 +38,8 @@ static func has(icon_name: String) -> bool:
 		"scarf",
 		# abstract, used on bins rather than items
 		"check", "warning",
+		# navigation, so the home screen and map can be read without words
+		"flag", "house", "gear", "star", "car", "spark", "sort", "paw",
 	]
 
 
@@ -195,6 +197,55 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 			for i in range(3):
 				var x: float = s * (0.05 + 0.05 * float(i))
 				_rect(p, c + Vector2(x, s * 0.34), Vector2(s * 0.03, s * 0.10), Color(0.72, 0.26, 0.32))
+		"flag":
+			_rect(p, c + Vector2(-s * 0.22, s * 0.02), Vector2(s * 0.06, s * 0.60), Color(0.52, 0.40, 0.28))
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.19, -s * 0.28), c + Vector2(s * 0.30, -s * 0.16),
+				c + Vector2(-s * 0.19, -s * 0.04),
+			]), Color(0.88, 0.34, 0.32))
+		"house":
+			_tri(p, c + Vector2(0, -s * 0.34), c + Vector2(s * 0.38, -s * 0.02),
+				c + Vector2(-s * 0.38, -s * 0.02), Color(0.84, 0.38, 0.32))
+			_rect(p, c + Vector2(0, s * 0.16), Vector2(s * 0.56, s * 0.36), Color(0.96, 0.90, 0.78))
+			_rect(p, c + Vector2(0, s * 0.22), Vector2(s * 0.16, s * 0.24), Color(0.52, 0.40, 0.28))
+		"gear":
+			for i in range(8):
+				var a: float = TAU * float(i) / 8.0
+				_rect(p, c + Vector2(cos(a), sin(a)) * s * 0.30,
+					Vector2(s * 0.14, s * 0.14), Color(0.56, 0.60, 0.66), a)
+			_circle(p, c, s * 0.24, Color(0.64, 0.68, 0.74))
+			_circle(p, c, s * 0.10, Color(0.34, 0.38, 0.44))
+		"star":
+			var pts := PackedVector2Array()
+			for i in range(10):
+				var ang: float = -PI / 2.0 + TAU * float(i) / 10.0
+				var r: float = s * 0.38 if i % 2 == 0 else s * 0.17
+				pts.append(c + Vector2(cos(ang), sin(ang)) * r)
+			_poly(p, pts, Color(1.0, 0.80, 0.18))
+		"car":
+			_rect(p, c + Vector2(0, s * 0.02), Vector2(s * 0.66, s * 0.22), Color(0.32, 0.58, 0.86))
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.22, -s * 0.09), c + Vector2(-s * 0.12, -s * 0.28),
+				c + Vector2(s * 0.14, -s * 0.28), c + Vector2(s * 0.24, -s * 0.09),
+			]), Color(0.44, 0.70, 0.94))
+			_circle(p, c + Vector2(-s * 0.20, s * 0.18), s * 0.10, Color(0.20, 0.22, 0.26))
+			_circle(p, c + Vector2(s * 0.20, s * 0.18), s * 0.10, Color(0.20, 0.22, 0.26))
+		"spark":
+			_circle(p, c, s * 0.20, Color(1.0, 0.86, 0.34))
+			for i in range(6):
+				var ang2: float = TAU * float(i) / 6.0
+				_rect(p, c + Vector2(cos(ang2), sin(ang2)) * s * 0.32,
+					Vector2(s * 0.08, s * 0.20), Color(1.0, 0.78, 0.24), ang2 + PI / 2.0)
+		"sort":
+			_rect(p, c + Vector2(-s * 0.18, -s * 0.16), Vector2(s * 0.26, s * 0.26), Color(0.34, 0.62, 0.88))
+			_circle(p, c + Vector2(s * 0.18, s * 0.18), s * 0.15, Color(0.92, 0.60, 0.26))
+			_tri(p, c + Vector2(s * 0.18, -s * 0.30), c + Vector2(s * 0.33, -s * 0.02),
+				c + Vector2(s * 0.03, -s * 0.02), Color(0.44, 0.74, 0.48))
+		"paw":
+			_circle(p, c + Vector2(0, s * 0.14), s * 0.22, Color(0.62, 0.46, 0.34))
+			for dx in [-0.22, -0.07, 0.07, 0.22]:
+				_circle(p, c + Vector2(s * dx, -s * (0.16 if absf(dx) < 0.15 else 0.06)),
+					s * 0.09, Color(0.62, 0.46, 0.34))
 		"check":
 			_poly(p, PackedVector2Array([
 				c + Vector2(-s * 0.30, -s * 0.02), c + Vector2(-s * 0.14, -s * 0.18),

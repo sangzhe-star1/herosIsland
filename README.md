@@ -155,6 +155,13 @@ older tablets.
 
 ## 9. Visual design
 
+**Nothing important is conveyed by words alone.** Home buttons, map level
+buttons, sorting items and sorting bins all carry a picture, with the word kept
+alongside. This is the difference between a game a six-year-old can play by
+himself and one where he needs you next to him reading labels — and it is why
+`scripts/ui/icon_library.gd` exists: 34 icons drawn from primitives, no art
+files required. Words remain so they are learned by association.
+
 Colours live in `scripts/ui/palette.gd` and nowhere else. Every text pairing is
 verified against WCAG AA (4.5:1 body, 3:1 for large button text) — the orange
 was darkened specifically to clear it, and disabled buttons use dark ink on a
@@ -168,6 +175,11 @@ is what confirms a tap landed — more legible to them than any colour change.
 Backgrounds accept optional artwork: `UiKit.background(self, colour, art_path)`
 uses the image when it exists and the flat colour when it does not, so adding
 art later needs no code change.
+
+Celebration lives in `scripts/ui/juice.gd`, under two rules: reward motion is
+generous and correction motion is not (confetti for right, a small nudge for
+wrong — never a buzz, screen shake or red flash), and all of it can be switched
+off from Parent Center for children who find particles overwhelming.
 
 ## 10. Design rules encoded in the code
 

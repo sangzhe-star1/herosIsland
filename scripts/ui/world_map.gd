@@ -99,9 +99,18 @@ func _build_level_button(level: Dictionary) -> Control:
 		label += "\n(" + I18n.t("common.locked") + ")"
 
 	var color: Color = Palette.BLUE if implemented and unlocked else Palette.MUTED
-	var button := UiKit.big_button(label, color)
-	button.custom_minimum_size = Vector2(300, 130)
-	button.add_theme_font_size_override("font_size", 28)
+
+	# The picture tells a pre-reader what kind of game this is before they can
+	# read its name: a car for crossing, sorting shapes, a spark for collecting.
+	var icons := {
+		"traffic_crossing": "car",
+		"item_sorting": "sort",
+		"collect_energy": "spark",
+		"animal_rescue": "paw",
+	}
+	var icon_name: String = str(icons.get(level.get("game_type", ""), ""))
+	var button := UiKit.icon_button(label, icon_name, color, Vector2(300, 200))
+	button.add_theme_font_size_override("font_size", 26)
 	button.disabled = not (implemented and unlocked)
 	if not button.disabled:
 		button.pressed.connect(func(): GameManager.start_level(level_id))
