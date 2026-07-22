@@ -6,8 +6,21 @@ var _prompt: Label
 
 
 func _ready() -> void:
+	# Breadcrumbs: the Output panel shows how far boot gets. If the window is
+	# blank, the last line printed is the step that failed.
+	print("[boot] 1 entering _ready")
+
+	# Background first, and with no dependencies, so that even a total failure
+	# further down leaves a recognisable navy screen rather than engine grey.
+	var bg := ColorRect.new()
+	bg.color = Color(0.08, 0.12, 0.22)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+	print("[boot] 2 background ok")
+
 	theme = UiKit.theme()
-	UiKit.background(self, Color(0.08, 0.12, 0.22))
+	print("[boot] 3 theme ok")
 
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -22,6 +35,7 @@ func _ready() -> void:
 	holder.add_child(hero)
 	hero.position = Vector2(640, 160)
 	box.add_child(holder)
+	print("[boot] 4 hero ok")
 
 	var t := UiKit.title(I18n.t("app.title"), 72)
 	t.add_theme_color_override("font_color", Color(1, 1, 1))
@@ -35,6 +49,7 @@ func _ready() -> void:
 	var tw := create_tween().set_loops()
 	tw.tween_property(_prompt, "modulate:a", 0.35, 1.1).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(_prompt, "modulate:a", 1.0, 1.1).set_trans(Tween.TRANS_SINE)
+	print("[boot] 5 done")
 
 
 func _gui_input(event: InputEvent) -> void:

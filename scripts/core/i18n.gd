@@ -17,11 +17,13 @@ var _strings: Dictionary = {}
 
 
 func _ready() -> void:
+	print("[autoload] I18n starting")
 	if FileAccess.file_exists(STRINGS_PATH):
 		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(STRINGS_PATH))
 		if parsed is Dictionary:
 			_strings = parsed
 	locale = SaveManager.get_setting("locale", DEFAULT_LOCALE)
+	print("[autoload] I18n ok: locale=%s, %d locales loaded" % [locale, _strings.size()])
 
 
 func set_locale(new_locale: String) -> void:

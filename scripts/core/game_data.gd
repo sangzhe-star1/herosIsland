@@ -12,6 +12,7 @@ var _worlds_by_id: Dictionary = {}
 
 
 func _ready() -> void:
+	print("[autoload] GameData starting")
 	worlds = _load_json("res://data/worlds.json", [])
 	levels = _load_json("res://data/levels.json", [])
 	rewards = _load_json("res://data/rewards.json", {})
@@ -21,6 +22,7 @@ func _ready() -> void:
 		_worlds_by_id[w.get("id", "")] = w
 	for l in levels:
 		_levels_by_id[l.get("id", "")] = l
+	print("[autoload] GameData ok: %d worlds, %d levels" % [worlds.size(), levels.size()])
 
 
 func _load_json(path: String, fallback: Variant) -> Variant:

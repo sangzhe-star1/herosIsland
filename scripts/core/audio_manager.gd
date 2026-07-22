@@ -11,6 +11,7 @@ var _music_base_db := 0.0
 
 
 func _ready() -> void:
+	print("[autoload] AudioManager starting")
 	_music = AudioStreamPlayer.new()
 	_sfx = AudioStreamPlayer.new()
 	_voice = AudioStreamPlayer.new()
@@ -18,6 +19,7 @@ func _ready() -> void:
 		add_child(p)
 	_voice.finished.connect(_on_voice_finished)
 	apply_volumes()
+	print("[autoload] AudioManager ok")
 
 
 func apply_volumes() -> void:

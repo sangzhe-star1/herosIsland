@@ -11,7 +11,9 @@ var data: Dictionary = {}
 
 
 func _ready() -> void:
+	print("[autoload] SaveManager starting")
 	load_game()
+	print("[autoload] SaveManager ok")
 
 
 func _default_data() -> Dictionary:

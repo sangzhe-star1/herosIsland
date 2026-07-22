@@ -10,6 +10,7 @@ var _busy := false
 
 
 func _ready() -> void:
+	print("[autoload] SceneManager starting")
 	var layer := CanvasLayer.new()
 	layer.layer = 128
 	add_child(layer)
@@ -19,6 +20,7 @@ func _ready() -> void:
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(_fade)
+	print("[autoload] SceneManager ok")
 
 
 func goto_scene(path: String) -> void:
