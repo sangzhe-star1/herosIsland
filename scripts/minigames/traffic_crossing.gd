@@ -182,7 +182,10 @@ func _build_ui() -> void:
 	_instruction.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
 	_instruction.add_theme_constant_override("outline_size", 8)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_instruction.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	# No anchor preset here: PRESET_CENTER_TOP anchors to the screen centre and
+	# then treats `position` as an offset from it, which pushed this label to
+	# x=980 and ran 300px off the right edge. Plain absolute positioning, like
+	# every other label in the game.
 	_instruction.position = Vector2(340, 40)
 	_instruction.custom_minimum_size = Vector2(600, 0)
 	_instruction.size = Vector2(600, 60)

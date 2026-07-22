@@ -247,6 +247,9 @@ func _pick_required_color() -> void:
 
 	var color := _color_at(_required_color_index)
 	_hero.set_core_color(color)
+	# The hero's light flares when the target colour changes, so the child's eye
+	# is drawn to the thing that just became the instruction.
+	_hero.power_up()
 
 	if _tower_light != null:
 		var style := StyleBoxFlat.new()

@@ -14,7 +14,12 @@ extends Node
 ## understand it. Those need eyes and hands.
 
 const FRAMES_PER_SCENE := 6
-const VIEWPORT := Vector2(1280.0, 720.0)
+
+## Headless Godot does not size its viewport from the project window settings,
+## so the first run reported a 1280x1280 square and flagged 183 controls as
+## off-screen when almost none were. Force the real game's dimensions, then
+## measure against what the viewport actually is rather than a constant.
+const TARGET_VIEWPORT := Vector2i(1280, 720)
 
 var _failures: Array[String] = []
 var _warnings: Array[String] = []
@@ -23,6 +28,13 @@ var _checks := 0
 
 func _ready() -> void:
 	print("\n=== Little Heroes Growth Island :: smoke test ===\n")
+
+	var window := get_window()
+	if window != null:
+		window.size = TARGET_VIEWPORT
+		window.content_scale_size = TARGET_VIEWPORT
+	await get_tree().process_frame
+	print("viewport: %s" % get_viewport().get_visible_rect().size)
 
 	_check_data()
 	_check_icons()
@@ -221,20 +233,36 @@ func _try_scene(path: String, label: String) -> void:
 	await get_tree().process_frame
 
 
-## Controls spilling outside the viewport. Reported as warnings rather than
-## failures: some overflow is legitimate (scroll content), but a button off the
-## edge of the screen is invisible to a child and worth surfacing.
-func _check_bounds(node: Node, label: String) -> void:
-	if node is Control:
+## Controls spilling outside the viewport.
+##
+## Only things a child could actually fail to see are reported: buttons and
+## labels, not the containers holding them. Anything inside a ScrollContainer is
+## skipped, because overflowing is what scroll content is for -- the first run
+## produced 183 warnings, almost all of them layout machinery doing its job,
+## which is the same as producing none.
+func _check_bounds(node: Node, label: String, in_scroll: bool = false) -> void:
+	var scrolling := in_scroll or node is ScrollContainer
+
+	if not scrolling and (node is Button or node is Label):
 		var control := node as Control
 		if control.visible and control.size.x > 1.0 and control.size.y > 1.0:
+			var view := get_viewport().get_visible_rect().size
 			var rect := control.get_global_rect()
-			var off_left: bool = rect.position.x < -2.0
-			var off_top: bool = rect.position.y < -2.0
-			var off_right: bool = rect.end.x > VIEWPORT.x + 2.0
-			var off_bottom: bool = rect.end.y > VIEWPORT.y + 2.0
-			if off_left or off_top or off_right or off_bottom:
-				_warnings.append("%s: %s sits outside the screen (%s)"
-					% [label, control.name, rect])
+			var out_by := maxf(
+				maxf(-rect.position.x, -rect.position.y),
+				maxf(rect.end.x - view.x, rect.end.y - view.y)
+			)
+			# A few pixels of bleed is rounding, not a mistake.
+			if out_by > 8.0:
+				var text: String = ""
+				if control.has_method("get_text"):
+					text = str(control.text)
+				var caption: String = ""
+				if text != "":
+					caption = " \"%s\"" % text
+				_warnings.append("%s: %s%s is %d px off-screen (%s)" % [
+					label, control.get_class(), caption, int(out_by), rect
+				])
+
 	for child in node.get_children():
-		_check_bounds(child, label)
+		_check_bounds(child, label, scrolling)
