@@ -1,5 +1,9 @@
 # Art and font shopping list
 
+> **Replacing the artwork?** See `ART_CHECKLIST.md` for the complete list of
+> every image slot with exact filenames and pixel sizes. This file covers the
+> free/CC0 route; that one covers supplying your own.
+
 Everything here is free and licensed for commercial release. The game runs
 without any of it — each file is picked up automatically once it exists at the
 exact path given, with no code changes.

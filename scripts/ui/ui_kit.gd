@@ -157,6 +157,34 @@ static func _raised(color: Color, edge_size: int) -> StyleBoxFlat:
 	return style
 
 
+## Resolves a picture reference to a node, whichever form it takes.
+##
+## Accepts either a drawn-icon name ("teddy") or a texture path
+## ("res://assets/icons/teddy.png"). Real artwork wins when it is present; the
+## drawn placeholder is used when it is not. This is the seam that lets every
+## icon in the game be replaced by dropping files into a folder, with no code
+## change and no data change beyond the filename.
+static func picture(reference: String, size: float) -> Control:
+	if reference == "":
+		return null
+
+	if reference.begins_with("res://"):
+		if ResourceLoader.exists(reference):
+			var tex := TextureRect.new()
+			tex.texture = load(reference)
+			tex.custom_minimum_size = Vector2(size, size)
+			tex.size = Vector2(size, size)
+			tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			return tex
+		# Named art that has not been added yet: fall back to the drawn icon
+		# with the same base name, so a half-finished art pass still runs.
+		return IconLibrary.build(reference.get_file().get_basename(), size)
+
+	return IconLibrary.build(reference, size)
+
+
 ## A button carrying a picture above its label.
 ##
 ## The picture is not decoration: a six-year-old cannot read "Adventure" or "My
@@ -169,7 +197,7 @@ static func icon_button(text: String, icon_name: String,
 	b.custom_minimum_size = box
 	b.add_theme_font_size_override("font_size", 30)
 
-	var icon: Control = IconLibrary.build(icon_name, box.x * 0.36)
+	var icon: Control = picture(icon_name, box.x * 0.36)
 	if icon == null:
 		return b
 

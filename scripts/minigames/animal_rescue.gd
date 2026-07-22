@@ -153,7 +153,7 @@ func _build_step(index: int, at: Vector2) -> Control:
 	step.add_theme_stylebox_override("panel", style)
 
 	if is_goal:
-		var icon: Control = IconLibrary.build(_goal_icon, STEP_SIZE * 0.62)
+		var icon: Control = UiKit.picture(_goal_icon, STEP_SIZE * 0.62)
 		if icon != null:
 			icon.position = Vector2(STEP_SIZE * 0.19, STEP_SIZE * 0.19)
 			step.add_child(icon)
@@ -212,7 +212,7 @@ func _build_hazard(at: Vector2) -> void:
 	style.border_color = Color(0.70, 0.34, 0.28, 0.5)
 	hazard.add_theme_stylebox_override("panel", style)
 
-	var icon: Control = IconLibrary.build("warning", HAZARD_SIZE * 0.62)
+	var icon: Control = UiKit.picture("warning", HAZARD_SIZE * 0.62)
 	if icon != null:
 		icon.position = Vector2(HAZARD_SIZE * 0.19, HAZARD_SIZE * 0.19)
 		hazard.add_child(icon)

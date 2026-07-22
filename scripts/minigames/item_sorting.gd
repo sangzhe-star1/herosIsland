@@ -120,7 +120,7 @@ func _build_bins(definitions: Array) -> void:
 		var bin_icon_name: String = str(definition.get("icon", ""))
 		var bin_icon: Control = null
 		if bin_icon_name != "":
-			bin_icon = IconLibrary.build(bin_icon_name, BIN_SIZE.x * 0.44)
+			bin_icon = UiKit.picture(bin_icon_name, BIN_SIZE.x * 0.44)
 		if bin_icon != null:
 			bin_icon.position = Vector2(BIN_SIZE.x * 0.28, BIN_SIZE.y * 0.10)
 			bin.add_child(bin_icon)
@@ -255,7 +255,7 @@ func _render_label(definition: Dictionary) -> Control:
 	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var icon: Control = IconLibrary.build(icon_name, ITEM_SIZE.x * 0.62) if icon_name != "" else null
+	var icon: Control = UiKit.picture(icon_name, ITEM_SIZE.x * 0.62)
 
 	var label := Label.new()
 	label.text = caption

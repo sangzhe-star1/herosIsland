@@ -110,6 +110,8 @@ every translation key, level/badge/world references, and autoload ordering.
 
 ## 6. Swapping the character art
 
+> Full art specification with every filename and size: `ART_CHECKLIST.md`.
+
 Level code never names a character. It only reads a `CharacterSkin`
 (`resources/skins/light_hero.tres`). Today that skin has no textures, so
 `SkinnedCharacter` draws a placeholder hero from primitives — body, crest, and a
