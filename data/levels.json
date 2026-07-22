@@ -6,8 +6,13 @@
     "game_type": "collect_energy",
     "difficulty": 1,
     "duration_seconds": 180,
-    "target": { "correct": 8 },
-    "reward": { "coins": 20, "badge": "energy_collector" }
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 20,
+      "badge": "energy_collector"
+    }
   },
   {
     "id": "hero_city_02",
@@ -17,8 +22,13 @@
     "difficulty": 2,
     "duration_seconds": 180,
     "requires": "hero_city_01",
-    "target": { "correct": 10 },
-    "reward": { "coins": 20, "badge": "" }
+    "target": {
+      "correct": 10
+    },
+    "reward": {
+      "coins": 20,
+      "badge": ""
+    }
   },
   {
     "id": "hero_city_03",
@@ -28,10 +38,14 @@
     "difficulty": 3,
     "duration_seconds": 210,
     "requires": "hero_city_02",
-    "target": { "correct": 12 },
-    "reward": { "coins": 25, "badge": "tower_engineer" }
+    "target": {
+      "correct": 12
+    },
+    "reward": {
+      "coins": 25,
+      "badge": "tower_engineer"
+    }
   },
-
   {
     "id": "piglet_town_01",
     "world": "piglet_town",
@@ -39,8 +53,105 @@
     "game_type": "item_sorting",
     "difficulty": 1,
     "duration_seconds": 180,
-    "target": { "correct": 8 },
-    "reward": { "coins": 20, "badge": "color_expert" }
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 20,
+      "badge": "color_expert"
+    },
+    "config": {
+      "instruction_key": "sorting.instruction_color",
+      "background": "#f3e2ef",
+      "bins": [
+        {
+          "id": "red",
+          "color": "#e04b4b"
+        },
+        {
+          "id": "blue",
+          "color": "#3f7fd0"
+        },
+        {
+          "id": "yellow",
+          "color": "#e8b93c"
+        }
+      ],
+      "items": [
+        {
+          "bin": "red",
+          "render": "shape",
+          "shape": "circle",
+          "color": "#e04b4b"
+        },
+        {
+          "bin": "red",
+          "render": "shape",
+          "shape": "square",
+          "color": "#e04b4b"
+        },
+        {
+          "bin": "red",
+          "render": "shape",
+          "shape": "triangle",
+          "color": "#e04b4b"
+        },
+        {
+          "bin": "red",
+          "render": "shape",
+          "shape": "star",
+          "color": "#e04b4b"
+        },
+        {
+          "bin": "blue",
+          "render": "shape",
+          "shape": "circle",
+          "color": "#3f7fd0"
+        },
+        {
+          "bin": "blue",
+          "render": "shape",
+          "shape": "square",
+          "color": "#3f7fd0"
+        },
+        {
+          "bin": "blue",
+          "render": "shape",
+          "shape": "triangle",
+          "color": "#3f7fd0"
+        },
+        {
+          "bin": "blue",
+          "render": "shape",
+          "shape": "star",
+          "color": "#3f7fd0"
+        },
+        {
+          "bin": "yellow",
+          "render": "shape",
+          "shape": "circle",
+          "color": "#e8b93c"
+        },
+        {
+          "bin": "yellow",
+          "render": "shape",
+          "shape": "square",
+          "color": "#e8b93c"
+        },
+        {
+          "bin": "yellow",
+          "render": "shape",
+          "shape": "triangle",
+          "color": "#e8b93c"
+        },
+        {
+          "bin": "yellow",
+          "render": "shape",
+          "shape": "star",
+          "color": "#e8b93c"
+        }
+      ]
+    }
   },
   {
     "id": "piglet_town_02",
@@ -50,8 +161,96 @@
     "difficulty": 2,
     "duration_seconds": 180,
     "requires": "piglet_town_01",
-    "target": { "correct": 10 },
-    "reward": { "coins": 20, "badge": "" }
+    "target": {
+      "correct": 10
+    },
+    "reward": {
+      "coins": 20,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "sorting.instruction_count",
+      "background": "#eef3dc",
+      "bins": [
+        {
+          "id": "1",
+          "label": "1",
+          "color": "#5a8f4f"
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "color": "#5a8f4f"
+        },
+        {
+          "id": "3",
+          "label": "3",
+          "color": "#5a8f4f"
+        },
+        {
+          "id": "4",
+          "label": "4",
+          "color": "#5a8f4f"
+        },
+        {
+          "id": "5",
+          "label": "5",
+          "color": "#5a8f4f"
+        }
+      ],
+      "items": [
+        {
+          "bin": "1",
+          "render": "dots",
+          "count": 1
+        },
+        {
+          "bin": "1",
+          "render": "dots",
+          "count": 1
+        },
+        {
+          "bin": "2",
+          "render": "dots",
+          "count": 2
+        },
+        {
+          "bin": "2",
+          "render": "dots",
+          "count": 2
+        },
+        {
+          "bin": "3",
+          "render": "dots",
+          "count": 3
+        },
+        {
+          "bin": "3",
+          "render": "dots",
+          "count": 3
+        },
+        {
+          "bin": "4",
+          "render": "dots",
+          "count": 4
+        },
+        {
+          "bin": "4",
+          "render": "dots",
+          "count": 4
+        },
+        {
+          "bin": "5",
+          "render": "dots",
+          "count": 5
+        },
+        {
+          "bin": "5",
+          "render": "dots",
+          "count": 5
+        }
+      ]
+    }
   },
   {
     "id": "piglet_town_03",
@@ -61,10 +260,77 @@
     "difficulty": 3,
     "duration_seconds": 180,
     "requires": "piglet_town_02",
-    "target": { "correct": 10 },
-    "reward": { "coins": 25, "badge": "tidy_helper" }
+    "target": {
+      "correct": 10
+    },
+    "reward": {
+      "coins": 25,
+      "badge": "tidy_helper"
+    },
+    "config": {
+      "instruction_key": "sorting.instruction_tidy",
+      "background": "#f6ead8",
+      "bins": [
+        {
+          "id": "toys",
+          "label_key": "bin.toys",
+          "color": "#c86ba8"
+        },
+        {
+          "id": "books",
+          "label_key": "bin.books",
+          "color": "#4f8fc0"
+        },
+        {
+          "id": "clothes",
+          "label_key": "bin.clothes",
+          "color": "#6aa86a"
+        }
+      ],
+      "items": [
+        {
+          "bin": "toys",
+          "render": "label",
+          "text_key": "item.teddy"
+        },
+        {
+          "bin": "toys",
+          "render": "label",
+          "text_key": "item.ball"
+        },
+        {
+          "bin": "toys",
+          "render": "label",
+          "text_key": "item.blocks"
+        },
+        {
+          "bin": "books",
+          "render": "label",
+          "text_key": "item.picture_book"
+        },
+        {
+          "bin": "books",
+          "render": "label",
+          "text_key": "item.comic"
+        },
+        {
+          "bin": "clothes",
+          "render": "label",
+          "text_key": "item.socks"
+        },
+        {
+          "bin": "clothes",
+          "render": "label",
+          "text_key": "item.tshirt"
+        },
+        {
+          "bin": "clothes",
+          "render": "label",
+          "text_key": "item.hat"
+        }
+      ]
+    }
   },
-
   {
     "id": "safety_traffic_01",
     "world": "safety",
@@ -82,8 +348,13 @@
       "red_seconds": 5.0,
       "lanes": 1
     },
-    "target": { "correct_crossings": 3 },
-    "reward": { "coins": 20, "badge": "road_guardian" }
+    "target": {
+      "correct_crossings": 3
+    },
+    "reward": {
+      "coins": 20,
+      "badge": "road_guardian"
+    }
   },
   {
     "id": "safety_traffic_02",
@@ -102,8 +373,13 @@
       "red_seconds": 5.0,
       "lanes": 2
     },
-    "target": { "correct_crossings": 4 },
-    "reward": { "coins": 22, "badge": "" }
+    "target": {
+      "correct_crossings": 4
+    },
+    "reward": {
+      "coins": 22,
+      "badge": ""
+    }
   },
   {
     "id": "safety_traffic_03",
@@ -123,8 +399,13 @@
       "lanes": 2,
       "rain": true
     },
-    "target": { "correct_crossings": 4 },
-    "reward": { "coins": 25, "badge": "all_weather_walker" }
+    "target": {
+      "correct_crossings": 4
+    },
+    "reward": {
+      "coins": 25,
+      "badge": "all_weather_walker"
+    }
   },
   {
     "id": "safety_danger_01",
@@ -134,8 +415,81 @@
     "difficulty": 2,
     "duration_seconds": 180,
     "requires": "safety_traffic_01",
-    "target": { "correct": 8 },
-    "reward": { "coins": 20, "badge": "sharp_eyes" }
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 20,
+      "badge": "sharp_eyes"
+    },
+    "config": {
+      "instruction_key": "sorting.instruction_danger",
+      "background": "#f7ecd9",
+      "bins": [
+        {
+          "id": "safe",
+          "label_key": "bin.safe",
+          "color": "#4f9e5c"
+        },
+        {
+          "id": "danger",
+          "label_key": "bin.danger",
+          "color": "#d0483f"
+        }
+      ],
+      "items": [
+        {
+          "bin": "danger",
+          "render": "label",
+          "text_key": "item.knife"
+        },
+        {
+          "bin": "danger",
+          "render": "label",
+          "text_key": "item.matches"
+        },
+        {
+          "bin": "danger",
+          "render": "label",
+          "text_key": "item.scissors"
+        },
+        {
+          "bin": "danger",
+          "render": "label",
+          "text_key": "item.medicine"
+        },
+        {
+          "bin": "danger",
+          "render": "label",
+          "text_key": "item.socket"
+        },
+        {
+          "bin": "safe",
+          "render": "label",
+          "text_key": "item.teddy"
+        },
+        {
+          "bin": "safe",
+          "render": "label",
+          "text_key": "item.ball"
+        },
+        {
+          "bin": "safe",
+          "render": "label",
+          "text_key": "item.picture_book"
+        },
+        {
+          "bin": "safe",
+          "render": "label",
+          "text_key": "item.crayon"
+        },
+        {
+          "bin": "safe",
+          "render": "label",
+          "text_key": "item.pillow"
+        }
+      ]
+    }
   },
   {
     "id": "safety_fire_01",
@@ -145,10 +499,14 @@
     "difficulty": 2,
     "duration_seconds": 180,
     "requires": "safety_danger_01",
-    "target": { "correct": 6 },
-    "reward": { "coins": 25, "badge": "exit_finder" }
+    "target": {
+      "correct": 6
+    },
+    "reward": {
+      "coins": 25,
+      "badge": "exit_finder"
+    }
   },
-
   {
     "id": "rescue_forest_01",
     "world": "rescue_forest",
@@ -156,8 +514,13 @@
     "game_type": "animal_rescue",
     "difficulty": 1,
     "duration_seconds": 180,
-    "target": { "correct": 6 },
-    "reward": { "coins": 20, "badge": "tracker" }
+    "target": {
+      "correct": 6
+    },
+    "reward": {
+      "coins": 20,
+      "badge": "tracker"
+    }
   },
   {
     "id": "rescue_forest_02",
@@ -167,8 +530,71 @@
     "difficulty": 2,
     "duration_seconds": 180,
     "requires": "rescue_forest_01",
-    "target": { "correct": 8 },
-    "reward": { "coins": 20, "badge": "" }
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 20,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "sorting.instruction_tools",
+      "background": "#dceedd",
+      "bins": [
+        {
+          "id": "hurt",
+          "label_key": "bin.hurt",
+          "color": "#d0483f"
+        },
+        {
+          "id": "hungry",
+          "label_key": "bin.hungry",
+          "color": "#e0952f"
+        },
+        {
+          "id": "cold",
+          "label_key": "bin.cold",
+          "color": "#4f8fc0"
+        }
+      ],
+      "items": [
+        {
+          "bin": "hurt",
+          "render": "label",
+          "text_key": "item.bandage"
+        },
+        {
+          "bin": "hurt",
+          "render": "label",
+          "text_key": "item.plaster"
+        },
+        {
+          "bin": "hungry",
+          "render": "label",
+          "text_key": "item.berries"
+        },
+        {
+          "bin": "hungry",
+          "render": "label",
+          "text_key": "item.fish"
+        },
+        {
+          "bin": "hungry",
+          "render": "label",
+          "text_key": "item.carrot"
+        },
+        {
+          "bin": "cold",
+          "render": "label",
+          "text_key": "item.blanket"
+        },
+        {
+          "bin": "cold",
+          "render": "label",
+          "text_key": "item.scarf"
+        }
+      ]
+    }
   },
   {
     "id": "rescue_forest_03",
@@ -178,7 +604,12 @@
     "difficulty": 3,
     "duration_seconds": 210,
     "requires": "rescue_forest_02",
-    "target": { "correct": 6 },
-    "reward": { "coins": 25, "badge": "rescue_planner" }
+    "target": {
+      "correct": 6
+    },
+    "reward": {
+      "coins": 25,
+      "badge": "rescue_planner"
+    }
   }
 ]

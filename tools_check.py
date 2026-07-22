@@ -55,11 +55,23 @@ for f in gd:
     # keys built indirectly, e.g. praise_key = "result.great"
     used |= set(re.findall(
         r'"((?:app|common|boot|home|map|world|level|badge|growth|character'
-        r'|traffic|result|parent|rewards|limit)\.[a-z0-9_]+)"', src))
+        r'|traffic|result|parent|rewards|limit|sorting|bin|item)\.[a-z0-9_]+)"', src))
+def collect_keys(node, out):
+    """Any JSON field named *_key holds a translation key."""
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k.endswith("_key") and isinstance(v, str) and v:
+                out.add(v)
+            else:
+                collect_keys(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            collect_keys(v, out)
+
 for f in glob.glob("data/*.json"):
-    data = json.load(open(f))
-    used |= set(re.findall(r'"((?:world|level|badge|growth|character)\.[a-z0-9_.]+)"',
-                           json.dumps(data)))
+    if f.endswith("strings.json"):
+        continue
+    collect_keys(json.load(open(f)), used)
 for k in sorted(used):
     if k not in en:
         errors.append(f"strings.json: missing en key '{k}'")
