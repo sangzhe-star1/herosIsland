@@ -77,6 +77,19 @@ echo "Using: $GODOT"
 OUT=$(mktemp)
 trap 'rm -f "$OUT"' EXIT
 
+# Refresh the global class cache before testing.
+#
+# Godot only rescans for new `class_name` scripts when the editor opens the
+# project. Headless runs read .godot/global_script_class_cache.cfg as-is, so a
+# class added since the editor last ran is simply unknown, and every script
+# referencing it fails to parse. That looks exactly like a code bug and is not
+# one -- it cost a full debugging round once already.
+echo "Refreshing class cache..."
+if ! "$GODOT" --headless --path . --import >/dev/null 2>&1; then
+  # --import is newer; older builds need a full editor open-and-quit.
+  "$GODOT" --headless --path . --editor --quit >/dev/null 2>&1 || true
+fi
+
 # --quit-after bounds the run if a scene hangs instead of finishing.
 "$GODOT" --headless --path . res://tests/SmokeTest.tscn --quit-after 3000 2>&1 | tee "$OUT"
 STATUS=${PIPESTATUS[0]}

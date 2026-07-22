@@ -118,6 +118,26 @@ for f in gd:
             errors.append(f"{f}: connect() references {method}(), which is not "
                           f"defined in this file")
 
+# --- 3d. Godot's global class cache goes stale.
+#         The editor rewrites it on scan; headless runs read it as-is. A
+#         class_name added since the editor last opened the project is unknown
+#         to any headless run, and every script using it fails to parse -- which
+#         looks like a code bug and is not one.
+cache_path = ".godot/global_script_class_cache.cfg"
+if os.path.exists(cache_path):
+    cached = set(re.findall(r'"class": &"(\w+)"', open(cache_path).read()))
+    declared = set()
+    for f in gd:
+        m = re.search(r'^class_name\s+(\w+)', open(f).read(), re.M)
+        if m:
+            declared.add(m.group(1))
+    missing = sorted(declared - cached)
+    if missing:
+        warnings.append(
+            "Godot's class cache is stale: %s not registered. "
+            "Open the project in the editor, or run tests/run_smoke.sh which "
+            "refreshes it first." % ", ".join(missing))
+
 # --- 4. localization keys
 strings = json.load(open("data/strings.json"))
 en, zh = strings["en"], strings["zh"]

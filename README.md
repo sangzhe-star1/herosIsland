@@ -42,6 +42,13 @@ It exists because this project was written without a running engine. A parser
 error in a file the boot screen never touches once blanked the whole game while
 every static check passed — this catches that class of fault in half a minute.
 
+**If it reports `Identifier "X" not declared in the current scope`:** that is
+Godot's class cache being stale, not a code bug. The editor rewrites the cache
+when it scans; headless runs read it as-is, so a `class_name` added since the
+editor last opened the project is invisible to them. `run_smoke.sh` now
+refreshes the cache before testing, and `tools_check.py` warns when it detects
+the condition. Opening the project in the editor once also fixes it.
+
 Also run the static checker after editing any data file:
 
 ```bash
