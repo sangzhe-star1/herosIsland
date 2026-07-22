@@ -26,6 +26,18 @@ headlessly, checks the data files agree, and fails loudly on any script error:
 ./tests/run_smoke.sh
 ```
 
+**If it says "Could not find Godot":** you launched Godot straight from the
+download, so macOS is running it from a randomised read-only path (App
+Translocation). Fix it once:
+
+```bash
+mv ~/Downloads/Godot.app /Applications/
+```
+
+That also clears the translocation, which can cause odd behaviour in the editor
+itself. Or point at it directly with
+`GODOT=/path/to/Godot.app/Contents/MacOS/Godot ./tests/run_smoke.sh`.
+
 It exists because this project was written without a running engine. A parser
 error in a file the boot screen never touches once blanked the whole game while
 every static check passed — this catches that class of fault in half a minute.
