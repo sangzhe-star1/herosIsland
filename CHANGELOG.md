@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-07-24 (later still) — The Light Song, tap sparkles, and a sticker wall
+
+- **New template #7, `light_echo` — the Light Song**: big candy-coloured
+  pads sing a short pentatonic melody (the island theme's own notes, five
+  freshly synthesized plucks), then the child taps the song back. Listen,
+  hold it, reproduce it — a whole new kind of interaction, and the gentlest
+  one: the game waits forever, and a wrong note just replays the song. The
+  hero's chest light turns the colour of every note. Two levels (Light Song
+  in Piglet Town, Tower Light Song in Hero City; 32 total) and
+  challenge-ready scaling (longer songs, never faster ones).
+- **Tap-anywhere sparkles**: a new autoload answers taps that land on
+  nothing with a tiny golden sparkle, game-wide — at six, a tap that does
+  nothing is a broken screen. Unhandled input only (never competes with
+  real controls), off under reduce-motion.
+- **The sticker wall**: stickers bought in My Rewards now appear along the
+  bottom of the Hero House like a bedroom door; each one bounces, sparkles
+  and sings a random island note when tapped. Purely for joy — no score,
+  no goal, no way to be wrong.
+- Suite: 331 checks + both probes, all green; Light Song verified by
+  rendered screenshot.
+
+
 ## 2026-07-24 (continued) — Challenge gating fix, progression probe, honest docs
 
 - **Fixed a real challenge bug**: `LevelResult.met_target()` read the

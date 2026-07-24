@@ -48,6 +48,54 @@ func _ready() -> void:
 		row.add_child(card)
 
 	_refresh_selection()
+	_build_sticker_wall()
+
+
+## The stickers bought in My Rewards live here, stuck along the bottom of
+## the Hero House like a six-year-old's bedroom door. Each one is a toy:
+## tap it and it bounces, sparkles and sings one of the island's own notes.
+## Purely for joy -- no score, no goal, no way to be wrong.
+func _build_sticker_wall() -> void:
+	var owned: Array = SaveManager.data["rewards"]["stickers"]
+	if owned.is_empty():
+		return
+
+	var wall := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.13, 0.26, 0.55)
+	style.set_corner_radius_all(30)
+	style.set_content_margin_all(10)
+	style.content_margin_left = 22
+	style.content_margin_right = 22
+	wall.add_theme_stylebox_override("panel", style)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	wall.add_child(row)
+
+	for sticker_id in owned:
+		var tile := Button.new()
+		tile.focus_mode = Control.FOCUS_NONE
+		tile.custom_minimum_size = Vector2(64, 64)
+		tile.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		tile.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+		tile.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+		var icon: Control = UiKit.picture(str(sticker_id), 56)
+		if icon != null:
+			icon.position = Vector2(4, 4)
+			tile.add_child(icon)
+		tile.pressed.connect(func():
+			Juice.pop(tile, 0.35)
+			Juice.burst(self, tile.get_global_rect().get_center(), 10)
+			AudioManager.play_sfx("res://assets/audio/notes/note_%d.ogg" % (randi() % 5 + 1))
+		)
+		tile.resized.connect(func(): tile.pivot_offset = tile.size / 2.0)
+		row.add_child(tile)
+
+	add_child(wall)
+	await get_tree().process_frame
+	if is_instance_valid(wall):
+		wall.position = Vector2(640.0 - wall.size.x / 2.0, 720.0 - wall.size.y - 18.0)
 
 
 func _build_card(character_id: String, entry: Dictionary) -> PanelContainer:

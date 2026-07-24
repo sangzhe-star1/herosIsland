@@ -77,5 +77,6 @@ func get_minigame_scene(game_type: String) -> String:
 		"animal_rescue": "res://scenes/minigames/animal_rescue/AnimalRescue.tscn",
 		"monster_battle": "res://scenes/minigames/monster_battle/MonsterBattle.tscn",
 		"memory_match": "res://scenes/minigames/memory_match/MemoryMatch.tscn",
+		"light_echo": "res://scenes/minigames/light_echo/LightEcho.tscn",
 	}
 	return map.get(game_type, "")

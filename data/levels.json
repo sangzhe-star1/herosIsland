@@ -1289,5 +1289,58 @@
       "hint": false,
       "goal_icon": "paw"
     }
+  },
+  {
+    "id": "piglet_town_06",
+    "world": "piglet_town",
+    "name_key": "level.piglet_town_06",
+    "game_type": "light_echo",
+    "difficulty": 2,
+    "duration_seconds": 240,
+    "requires": "piglet_town_05",
+    "target": {
+      "correct": 5
+    },
+    "reward": {
+      "coins": 25,
+      "badge": "little_musician"
+    },
+    "config": {
+      "background": "#f6ead8",
+      "background_art": "res://assets/backgrounds/town.png",
+      "pads": 4,
+      "sequence_start": 2,
+      "sequence_max": 4
+    }
+  },
+  {
+    "id": "hero_city_06",
+    "world": "hero_city",
+    "name_key": "level.hero_city_06",
+    "game_type": "light_echo",
+    "difficulty": 3,
+    "duration_seconds": 260,
+    "requires": "hero_city_03",
+    "target": {
+      "correct": 6
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "background": "#0e1b2b",
+      "background_art": "res://assets/backgrounds/city.png",
+      "pads": 5,
+      "sequence_start": 2,
+      "sequence_max": 5,
+      "colors": [
+        "#ff5d5d",
+        "#ffd23c",
+        "#7ee06a",
+        "#4fb8ff",
+        "#c493f2"
+      ]
+    }
   }
 ]

@@ -26,6 +26,7 @@ AudioManager="*res://scripts/core/audio_manager.gd"
 RewardManager="*res://scripts/reward/reward_manager.gd"
 GameManager="*res://scripts/core/game_manager.gd"
 SceneManager="*res://scripts/core/scene_manager.gd"
+TouchSparkles="*res://scripts/ui/touch_sparkles.gd"
 
 [display]
 

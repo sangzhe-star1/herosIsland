@@ -79,6 +79,10 @@
     "forest_friend": {
       "name_key": "badge.forest_friend",
       "icon": ""
+    },
+    "little_musician": {
+      "name_key": "badge.little_musician",
+      "icon": ""
     }
   },
   "growth_attributes": [

@@ -189,6 +189,7 @@ func _build_level_button(level: Dictionary) -> Control:
 		"animal_rescue": "paw",
 		"monster_battle": "monster",
 		"memory_match": "blocks",
+		"light_echo": "sound_on",
 	}
 	var icon_name: String = str(icons.get(level.get("game_type", ""), ""))
 	var challenge := bool(level.get("challenge", false))
