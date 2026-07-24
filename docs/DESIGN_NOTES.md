@@ -72,6 +72,24 @@ build stress. The arena keeps the drama and removes the threat:
   duds are dull, square and grey where sparks are bright, round and gold —
   shape AND brightness, so colour-blindness never decides the fight.
 
+## The duel (the arena-game loop, filed smooth)
+
+monster_duel borrows the big arena games' grammar — a skill wheel in the
+thumb corner, cooldown sweeps, an ult that charges from landed hits, a
+pre-battle choice of special move — because that grammar is genuinely fun,
+not because it is fashionable. The child-safe translation:
+
+- **Cooldowns pace, they don't pressure.** The game never advances without
+  the child; a sweeping button just says "the light is coming back".
+- **Blocking is attacking.** A shielded hit bounces back and COUNTS. The
+  clever moment belongs to the child, not to the monster.
+- **An unblocked hit costs a wobble and a moment of rest — never progress,
+  never health.** There is no hero health bar and no mistake recorded.
+- **The ult never charges itself.** Specials are earned by ordinary work,
+  which is the honest version of the loop.
+- **Same ending as every battle**: tired, happy, waving. A duel is still a
+  befriending.
+
 ## The shell restyle (what the reference apps taught us)
 
 Studying BabyBus (宝宝巴士), Toca Boca and Khan Academy Kids yielded five

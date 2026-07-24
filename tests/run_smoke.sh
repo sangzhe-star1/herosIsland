@@ -144,4 +144,17 @@ if ! grep -q "PROGRESSION PROBE PASSED" "$PROG_OUT"; then
 fi
 rm -f "$PROG_OUT"
 
+# The duel probe drives the skill wheel like thumbs would: cooldown gates,
+# the ult economy, shield reflections, and the harmless unshielded hit.
+echo
+echo "Running duel probe..."
+DUEL_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/DuelProbe.tscn 2>&1 | tee "$DUEL_OUT"
+if ! grep -q "DUEL PROBE PASSED" "$DUEL_OUT"; then
+  rm -f "$DUEL_OUT"
+  echo "Duel probe failed."
+  exit 1
+fi
+rm -f "$DUEL_OUT"
+
 echo "All good."

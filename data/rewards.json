@@ -83,6 +83,10 @@
     "little_musician": {
       "name_key": "badge.little_musician",
       "icon": ""
+    },
+    "arena_champion": {
+      "name_key": "badge.arena_champion",
+      "icon": ""
     }
   },
   "growth_attributes": [

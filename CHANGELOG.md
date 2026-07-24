@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-07-24 (arena upgrade) — Real 1v1 duels with a skill wheel
+
+- **Template #8, `monster_duel`** — the Honor-of-Kings loop, filed smooth
+  for six: a skill wheel in the thumb corner with BEAM (basic attack, short
+  cooldown sweep), SHIELD (a light bubble; attacks that hit it bounce back
+  and COUNT), and a chargeable ULT picked before battle when the level
+  offers a choice — Meteor Barrage (six raking beams) or Light Burst (a
+  gold ring that clears every threat and stuns). The ult charges from
+  landed hits and never from its own.
+- **The monster finally fights back**: goo lobs and, in later duels,
+  roaring rings that cross the arena. Blocked = bounced back for a hit;
+  unblocked = a wobble and a briefly resting beam button. No hero health,
+  nothing ever lost, no mistake recorded — and every duel still ends with
+  the monster waving goodbye.
+- **A duel ladder across four environments**: Rocky on the city rooftop,
+  Blobbi in town, Spikelor in the forest, and the Champion Duel in the
+  burning city (36 levels total; Arena Champion badge). Challenge scaling
+  hooks are in (busier opponent, higher goal, never a faster hand).
+- **Fourth probe in the suite**: drives the skill wheel like thumbs —
+  cooldown gates, ult economy (including the it-must-not-self-charge rule
+  the probe caught being broken), shield reflection, harmless unshielded
+  hits, and a clean 3-star finish.
+- Suite: 355 checks + battle, progression and duel probes, all green;
+  arena and ult picker verified by rendered screenshot.
+
+
 ## 2026-07-24 (later still) — The Light Song, tap sparkles, and a sticker wall
 
 - **New template #7, `light_echo` — the Light Song**: big candy-coloured

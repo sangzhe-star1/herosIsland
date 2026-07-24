@@ -1342,5 +1342,166 @@
         "#c493f2"
       ]
     }
+  },
+  {
+    "id": "monster_arena_04",
+    "world": "monster_arena",
+    "name_key": "level.monster_arena_04",
+    "game_type": "monster_duel",
+    "difficulty": 2,
+    "duration_seconds": 240,
+    "requires": "monster_arena_03",
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "duel.instruction",
+      "background": "#101c33",
+      "background_art": "res://assets/backgrounds/city.png",
+      "goo_interval": 6.0,
+      "roar_interval": 0.0,
+      "beam_cooldown": 1.2,
+      "ult": "barrage",
+      "ult_needed": 5,
+      "monster": {
+        "id": "rocky",
+        "body_color": "#d98a4a",
+        "belly_color": "#f2c489",
+        "accent_color": "#a8632f",
+        "height": 300,
+        "width": 0.85,
+        "horns": 1,
+        "eyes": 2,
+        "spikes": 0,
+        "scale": 1.1
+      }
+    }
+  },
+  {
+    "id": "monster_arena_05",
+    "world": "monster_arena",
+    "name_key": "level.monster_arena_05",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "duration_seconds": 260,
+    "requires": "monster_arena_04",
+    "target": {
+      "correct": 10
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "duel.instruction",
+      "background": "#f6ead8",
+      "background_art": "res://assets/backgrounds/town.png",
+      "goo_interval": 4.5,
+      "roar_interval": 0.0,
+      "beam_cooldown": 1.2,
+      "ult_choices": [
+        "barrage",
+        "burst"
+      ],
+      "ult_needed": 6,
+      "monster": {
+        "id": "blobbi",
+        "body_color": "#7ec66a",
+        "belly_color": "#b9e6a5",
+        "accent_color": "#4f9e4a",
+        "height": 270,
+        "width": 0.95,
+        "horns": 0,
+        "eyes": 3,
+        "spikes": 0,
+        "scale": 1.05
+      }
+    }
+  },
+  {
+    "id": "monster_arena_06",
+    "world": "monster_arena",
+    "name_key": "level.monster_arena_06",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "duration_seconds": 280,
+    "requires": "monster_arena_05",
+    "target": {
+      "correct": 12
+    },
+    "reward": {
+      "coins": 30,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "duel.instruction",
+      "background": "#dcedd8",
+      "background_art": "res://assets/backgrounds/forest.png",
+      "goo_interval": 4.5,
+      "roar_interval": 9.0,
+      "beam_cooldown": 1.2,
+      "ult_choices": [
+        "barrage",
+        "burst"
+      ],
+      "ult_needed": 6,
+      "monster": {
+        "id": "spikelor",
+        "body_color": "#8a5fc9",
+        "belly_color": "#c9aef2",
+        "accent_color": "#5e3f96",
+        "height": 330,
+        "width": 0.88,
+        "horns": 2,
+        "eyes": 2,
+        "spikes": 5,
+        "scale": 1.15
+      }
+    }
+  },
+  {
+    "id": "monster_arena_07",
+    "world": "monster_arena",
+    "name_key": "level.monster_arena_07",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "monster_arena_06",
+    "target": {
+      "correct": 14
+    },
+    "reward": {
+      "coins": 35,
+      "badge": "arena_champion"
+    },
+    "config": {
+      "instruction_key": "duel.instruction",
+      "background": "#141024",
+      "background_art": "res://assets/backgrounds/city_damaged.png",
+      "goo_interval": 3.6,
+      "roar_interval": 7.0,
+      "beam_cooldown": 1.2,
+      "ult_choices": [
+        "barrage",
+        "burst"
+      ],
+      "ult_needed": 7,
+      "monster": {
+        "id": "spikelor",
+        "body_color": "#8a5fc9",
+        "belly_color": "#c9aef2",
+        "accent_color": "#5e3f96",
+        "height": 330,
+        "width": 0.88,
+        "horns": 2,
+        "eyes": 2,
+        "spikes": 5,
+        "scale": 1.3
+      }
+    }
   }
 ]
