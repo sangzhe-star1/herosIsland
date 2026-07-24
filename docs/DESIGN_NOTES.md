@@ -72,6 +72,40 @@ build stress. The arena keeps the drama and removes the threat:
   duds are dull, square and grey where sparks are bright, round and gold —
   shape AND brightness, so colour-blindness never decides the fight.
 
+## The shell restyle (what the reference apps taught us)
+
+Studying BabyBus (宝宝巴士), Toca Boca and Khan Academy Kids yielded five
+conventions the shell screens now follow:
+
+- **Brightness is the affordance.** Pressable things are the brightest
+  things; locked cards sink visibly darker. A pre-reader picks the playable
+  level by glow, not by reading.
+- **A padlock badge, never the word "locked."** Same for every state: show
+  a thing, not a term.
+- **The character is the warmest pixel on screen.** The chosen hero stands
+  in a soft radial spotlight on the home screen; the eye lands there first,
+  exactly as BabyBus leads with its panda.
+- **One pulsing primary action per screen.** The Adventure button breathes
+  slowly; nothing else on the screen moves at rest. A screen where
+  everything pulses is a screen where nothing does.
+- **Chrome comes from one family.** Level cards, panels and progress bars
+  all use the bundle's navy spotlight art, matching the icon badges — the
+  same visual language from home screen to battle meter.
+
+Voice guidance is the one BabyBus signature still missing, and the hooks are
+already wired (`assets/audio/voice/`): recorded lines would do more for a
+pre-reader than any further visual work.
+
+## A Godot trap this file exists to remember
+
+`TextureRect` clamps `size` to the texture's own size until `expand_mode`
+is set — so set `expand_mode` (and `stretch_mode`) FIRST, then `size`.
+Getting this backwards once rendered every 128px badge at 128px regardless
+of the size asked for, which is why the world map's stars were briefly
+enormous. Likewise `PanelContainer` re-lays-out its direct children:
+free-positioned content (name bars, corner badges) must live inside a plain
+`Control` wrapper.
+
 ## Sources
 
 - NN/g — Design for Kids and Physical Development:
@@ -83,3 +117,6 @@ build stress. The arena keeps the drama and removes the threat:
 - GameJuice technique library: https://gamejuice.co.uk/browse
 - UX for children overviews: https://www.aufaitux.com/blog/ui-ux-designing-for-children/,
   https://www.ungrammary.com/post/designing-for-kids-ux-design-tips-for-children-apps
+- Toca Boca's design process: https://motionographer.com/2016/04/27/the-design-process-behind-toca-bocas-infectious-apps/
+- Ramotion, UX design for kids: https://www.ramotion.com/blog/ux-design-for-kids/
+- BabyBus reference apps (store pages, for style study): https://apps.apple.com/us/app/baby-panda-world-babybus/id1264951751

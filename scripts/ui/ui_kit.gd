@@ -78,6 +78,21 @@ static func card(fill: Color = Palette.SURFACE) -> PanelContainer:
 	return p
 
 
+## Nine-patch stylebox from bundle UI art (panels, level cards, progress
+## bars). Returns null when the art is missing so callers keep their drawn
+## fallback -- same contract as every other slot in the pipeline.
+static func texture_style(path: String, margin: float, content_margin: float = 16.0,
+		tint: Color = Color.WHITE) -> StyleBoxTexture:
+	if not ResourceLoader.exists(path):
+		return null
+	var style := StyleBoxTexture.new()
+	style.texture = load(path)
+	style.set_texture_margin_all(margin)
+	style.set_content_margin_all(content_margin)
+	style.modulate_color = tint
+	return style
+
+
 ## Full-screen background. Uses assets/backgrounds/<name>.png when that art
 ## exists, and a flat colour when it does not, so screens look finished now and
 ## better later without any code change.
@@ -171,11 +186,15 @@ static func picture(reference: String, size: float) -> Control:
 	if reference.begins_with("res://"):
 		if ResourceLoader.exists(reference):
 			var tex := TextureRect.new()
+			# expand_mode FIRST: until it is set, a TextureRect's minimum size
+			# is the texture's own size, and assigning a smaller `size` gets
+			# clamped up to it -- which is how every 128px badge in the game
+			# once rendered at 128px regardless of what was asked for.
+			tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			tex.texture = load(reference)
 			tex.custom_minimum_size = Vector2(size, size)
 			tex.size = Vector2(size, size)
-			tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			return tex
 		# Named art that has not been added yet: fall back to the drawn icon
@@ -205,12 +224,12 @@ static func icon_button(text: String, icon_name: String,
 	b.custom_minimum_size = box
 	b.add_theme_font_size_override("font_size", 30)
 
-	var icon: Control = picture(icon_name, box.x * 0.36)
+	var icon: Control = picture(icon_name, box.x * 0.40)
 	if icon == null:
 		return b
 
 	# Sits above the label, which is pushed to the lower part of the button.
-	icon.position = Vector2(box.x * 0.32, box.y * 0.12)
+	icon.position = Vector2(box.x * 0.30, box.y * 0.10)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(icon)
 	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -278,11 +297,16 @@ static func star(filled: bool, size: int = 72) -> Control:
 	var art := "res://assets/icons/%s.png" % ("star" if filled else "star_empty")
 	if ResourceLoader.exists(art):
 		var tex := TextureRect.new()
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # before size; see picture()
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tex.texture = load(art)
 		tex.size = Vector2(size, size)
-		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if not filled:
+			# The empty badge is navy-on-navy on the map panels; lift it so
+			# "still to earn" stays visible, which is the whole point of
+			# showing empty stars at all.
+			tex.modulate = Color(1.7, 1.7, 1.85)
 		holder.add_child(tex)
 		return holder
 

@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-07-24 (later) — Shell restyle after first on-device screenshots
+
+- **Fixed the giant overlapping stars** on the world map (and every other
+  oversized badge): `TextureRect` clamps `size` until `expand_mode` is set,
+  so icons silently rendered at their native 128px. All picture/star/effect
+  construction now sets expand mode first; hit bursts, collect flashes,
+  power rings and battle meters were all quietly affected.
+- **World map restyled** on the BabyBus/Toca/Khan-Kids patterns: white
+  outlined titles over the painted scene, the bundle's navy panel and level
+  cards, a per-world progress bar (bundle frame/fill art), padlock badges
+  instead of "(locked)" text, and playable cards rendered clearly brighter
+  than locked ones so pressability reads by glow alone.
+- **Home screen**: the chosen hero stands in a soft radial spotlight, the
+  Adventure button breathes slowly (the screen's single pulsing action),
+  bigger badges, readable parent hint.
+- **Hero House cards fixed** (names now sit in the card art's name bar; the
+  gold star pins to the chosen card's corner) — PanelContainer tramples
+  anchors, so card content moved into a plain Control wrapper.
+- **Battle sparks** got a glowing disc backing so tap targets read as
+  things, not wisps; dud sparks stay square and dull.
+- New `tests/Screenshot.tscn` renders any scene to PNG under Xvfb, so
+  screens can be eyeballed (and were: home, map, Hero House, battle, and
+  the repair level, all verified rendered) without a person at the keyboard.
+- Design rationale and the reference sources are in `docs/DESIGN_NOTES.md`
+  ("The shell restyle").
+
 ## 2026-07-24 — The Ultraman build: asset bundle, Hero House, juice pass, Monster Arena
 
 One working session, three rounds. Levels went from 14 to 23, worlds from

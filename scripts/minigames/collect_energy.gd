@@ -414,6 +414,8 @@ func _collect_flash(at: Vector2) -> void:
 	if not ResourceLoader.exists(COLLECT_FLASH_ART) or not Juice.motion_enabled():
 		return
 	var flash := TextureRect.new()
+	flash.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # before size, or 512px art wins
+	flash.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	flash.texture = load(COLLECT_FLASH_ART)
 	flash.size = Vector2(150, 150)
 	flash.position = at - flash.size / 2.0
@@ -433,6 +435,8 @@ func _power_up_ring() -> void:
 	if _tower_light == null or not ResourceLoader.exists(POWER_UP_ART) or not Juice.motion_enabled():
 		return
 	var ring := TextureRect.new()
+	ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ring.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ring.texture = load(POWER_UP_ART)
 	ring.size = Vector2(280, 280)
 	ring.position = _tower_light.position + _tower_light.size / 2.0 - ring.size / 2.0

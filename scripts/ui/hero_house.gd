@@ -54,6 +54,13 @@ func _build_card(character_id: String, entry: Dictionary) -> PanelContainer:
 	var card := UiKit.card()
 	card.custom_minimum_size = Vector2(300, 400)
 
+	# PanelContainer lays out its direct children itself and tramples anchors
+	# and positions, so everything lives inside one plain Control -- the one
+	# node type guaranteed to leave its children exactly where they are put.
+	var inner := Control.new()
+	inner.custom_minimum_size = Vector2(300, 400)
+	card.add_child(inner)
+
 	# A character with painted card art (the spotlight cards from the asset
 	# bundle) gets it as the whole card face. Characters without one -- the
 	# drawn Light Hero -- get the live SkinnedCharacter standing on a plain
@@ -62,51 +69,45 @@ func _build_card(character_id: String, entry: Dictionary) -> PanelContainer:
 	if ResourceLoader.exists(card_art):
 		card.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 		var face := TextureRect.new()
-		face.texture = load(card_art)
 		face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		face.texture = load(card_art)
+		face.set_anchors_preset(Control.PRESET_FULL_RECT)
 		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(face)
+		inner.add_child(face)
 
-		# Name over the card art's bottom bar.
-		var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 36)
+		# Name in the card art's bottom bar.
+		var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 34)
 		name_label.add_theme_color_override("font_color", Palette.ON_COLOR)
 		name_label.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.75))
 		name_label.add_theme_constant_override("outline_size", 8)
 		name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-		name_label.offset_top = -66
-		name_label.offset_bottom = -18
-		card.add_child(name_label)
+		name_label.offset_top = -64
+		name_label.offset_bottom = -14
+		inner.add_child(name_label)
 	else:
-		var box := VBoxContainer.new()
-		box.alignment = BoxContainer.ALIGNMENT_CENTER
-		box.add_theme_constant_override("separation", 10)
-		card.add_child(box)
-
-		var holder := Control.new()
-		holder.custom_minimum_size = Vector2(240, 260)
-		holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		box.add_child(holder)
-
 		var preview := SkinnedCharacter.new()
 		var skin_path: String = str(entry.get("skin", ""))
 		if skin_path != "" and ResourceLoader.exists(skin_path):
 			preview.skin = load(skin_path)
-		preview.position = Vector2(120, 130)
-		preview.scale = Vector2(1.7, 1.7)
-		holder.add_child(preview)
+		preview.position = Vector2(150, 165)
+		preview.scale = Vector2(2.0, 2.0)
+		inner.add_child(preview)
 		Juice.idle_bob(preview, 5.0)
 
 		var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 34)
-		box.add_child(name_label)
+		name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		name_label.offset_top = -64
+		name_label.offset_bottom = -14
+		inner.add_child(name_label)
 
 	# "This is who you are right now": a gold star pinned to the chosen card.
 	# A badge rather than a border, because at six a THING on the card reads
 	# better than a property of the card.
 	var badge: Control = UiKit.star(true, 72)
-	badge.position = Vector2(228, 2)
+	badge.position = Vector2(224, 4)
 	_badges[character_id] = badge
-	card.add_child(badge)
+	inner.add_child(badge)
 
 	# The whole card is the touch target; a six-year-old taps the hero, not a
 	# button under it.

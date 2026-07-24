@@ -1,6 +1,12 @@
 extends Control
 ## Growth Island. Every world and level is drawn from data/levels.json --
 ## adding a level here means adding a JSON entry, never editing this file.
+##
+## Styled the way the good children's apps do it (BabyBus, Toca Boca, Khan
+## Kids): the scene art carries the mood, the chrome sits on top as bright
+## rounded cards with white outlined text, a padlock BADGE marks locked
+## levels instead of a word, and progress is a bar that fills plus stars to
+## collect -- everything readable with zero reading.
 
 func _ready() -> void:
 	theme = UiKit.theme()
@@ -11,10 +17,10 @@ func _ready() -> void:
 
 	var header := HBoxContainer.new()
 	header.add_child(UiKit.back_button(func(): SceneManager.goto_home()))
-	var title := UiKit.title(I18n.t("map.title"), 52)
+	var title := UiKit.title_on_art(I18n.t("map.title"), 52)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
-	var stars := UiKit.title(I18n.t("map.stars") % SaveManager.total_stars(), 36)
+	var stars := UiKit.title_on_art(I18n.t("map.stars") % SaveManager.total_stars(), 36)
 	stars.custom_minimum_size = Vector2(220, 0)
 	header.add_child(stars)
 	root.add_child(header)
@@ -36,25 +42,33 @@ func _ready() -> void:
 
 
 func _build_world_section(world: Dictionary) -> Control:
+	var world_color := Color.from_string(world.get("color", "#888888"), Color.GRAY)
+
 	var panel := PanelContainer.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color.from_string(world.get("color", "#888888"), Color.GRAY)
-	style.bg_color.a = 0.28
-	style.set_corner_radius_all(24)
-	style.set_content_margin_all(20)
+	# The bundle's navy panel, tinted faintly toward the world's colour so the
+	# five islands stay tellable-apart at a glance. Flat translucent fallback.
+	var style: StyleBox = UiKit.texture_style(
+		"res://assets/ui/panel.png", 46.0, 22.0, world_color.lerp(Color.WHITE, 0.55))
+	if style == null:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = world_color
+		flat.bg_color.a = 0.28
+		flat.set_corner_radius_all(24)
+		flat.set_content_margin_all(20)
+		style = flat
 	panel.add_theme_stylebox_override("panel", style)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 12)
 	panel.add_child(box)
 
-	# Header: world name, and how many of this world's stars are collected.
-	# Per-world progress rather than one global total, so a child can see which
-	# island still has something left in it.
+	# Header: world name, per-world star tally, and a progress bar that fills
+	# as stars are earned -- which island still has treasure left in it is
+	# visible from across the room.
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 12)
 
-	var name_label := UiKit.title(I18n.t(world.get("name_key", "")), 40)
+	var name_label := UiKit.title_on_art(I18n.t(world.get("name_key", "")), 40)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(name_label)
@@ -65,21 +79,50 @@ func _build_world_section(world: Dictionary) -> Control:
 		earned += int(SaveManager.get_level_progress(level.get("id", "")).get("stars", 0))
 	var possible: int = world_levels.size() * 3
 
-	header.add_child(UiKit.star(earned > 0, 34))
-	var tally := UiKit.title("%d / %d" % [earned, possible], 30)
+	header.add_child(UiKit.star(earned > 0, 40))
+	var tally := UiKit.title_on_art("%d / %d" % [earned, possible], 30)
 	tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header.add_child(tally)
 	box.add_child(header)
+
+	box.add_child(_progress_bar(earned, possible))
 
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation", 16)
 	row.add_theme_constant_override("v_separation", 16)
 	box.add_child(row)
 
-	for level in GameData.get_levels_for_world(world.get("id", "")):
+	for level in world_levels:
 		row.add_child(_build_level_button(level))
 
 	return panel
+
+
+## The bundle's progress frame and fill as a real bar; plain styleboxes when
+## the art is missing. Godot draws the fill inside the background's content
+## margins, so the frame's border width doubles as the fill inset.
+func _progress_bar(earned: int, possible: int) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.max_value = maxf(float(possible), 1.0)
+	bar.value = float(earned)
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0, 30)
+
+	var frame: StyleBox = UiKit.texture_style("res://assets/ui/progress_frame.png", 24.0, 7.0)
+	var fill: StyleBox = UiKit.texture_style("res://assets/ui/progress_fill.png", 18.0, 0.0)
+	if frame == null or fill == null:
+		var back := StyleBoxFlat.new()
+		back.bg_color = Color(0.08, 0.12, 0.22, 0.55)
+		back.set_corner_radius_all(15)
+		back.set_content_margin_all(5)
+		frame = back
+		var flat_fill := StyleBoxFlat.new()
+		flat_fill.bg_color = Palette.STAR_ON
+		flat_fill.set_corner_radius_all(10)
+		fill = flat_fill
+	bar.add_theme_stylebox_override("background", frame)
+	bar.add_theme_stylebox_override("fill", fill)
+	return bar
 
 
 func _build_level_button(level: Dictionary) -> Control:
@@ -88,20 +131,18 @@ func _build_level_button(level: Dictionary) -> Control:
 	var unlocked := SaveManager.is_level_unlocked(level_id)
 	var scene_path := GameData.get_minigame_scene(level.get("game_type", ""))
 	var implemented := scene_path != "" and ResourceLoader.exists(scene_path)
+	var playable := implemented and unlocked
 
 	var column := VBoxContainer.new()
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 4)
 
 	var label := I18n.t(level.get("name_key", ""))
 	if not implemented:
 		label += "\n(" + I18n.t("common.coming_soon") + ")"
-	elif not unlocked:
-		label += "\n(" + I18n.t("common.locked") + ")"
-
-	var color: Color = Palette.BLUE if implemented and unlocked else Palette.MUTED
 
 	# The picture tells a pre-reader what kind of game this is before they can
-	# read its name: a car for crossing, sorting shapes, a spark for collecting.
+	# read its name -- and a padlock, not a word, says "not yet".
 	var icons := {
 		"traffic_crossing": "car",
 		"item_sorting": "sort",
@@ -110,12 +151,69 @@ func _build_level_button(level: Dictionary) -> Control:
 		"monster_battle": "monster",
 	}
 	var icon_name: String = str(icons.get(level.get("game_type", ""), ""))
-	var button := UiKit.icon_button(label, icon_name, color, Vector2(300, 200))
-	button.add_theme_font_size_override("font_size", 26)
-	button.disabled = not (implemented and unlocked)
-	if not button.disabled:
+	if not playable:
+		icon_name = "lock"
+
+	var button := _card_button(label, icon_name, playable)
+	if playable:
 		button.pressed.connect(func(): GameManager.start_level(level_id))
 	column.add_child(button)
 
 	column.add_child(UiKit.star_row(int(progress.get("stars", 0)), 3, 40))
 	return column
+
+
+## A level as one of the bundle's navy spotlight cards: icon badge on top,
+## white name beneath, the card itself the touch target. Falls back to the
+## drawn chunky button when the card art is missing.
+func _card_button(text: String, icon_name: String, playable: bool) -> Button:
+	var box := Vector2(300, 200)
+	var normal: StyleBoxTexture = UiKit.texture_style("res://assets/ui/level_card.png", 40.0, 16.0)
+	if normal == null:
+		var fallback := UiKit.icon_button(text, icon_name,
+			Palette.BLUE if playable else Palette.MUTED, box)
+		fallback.add_theme_font_size_override("font_size", 26)
+		fallback.disabled = not playable
+		return fallback
+
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = box
+	button.focus_mode = Control.FOCUS_NONE
+	button.disabled = not playable
+	button.add_theme_font_size_override("font_size", 26)
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		button.add_theme_color_override(state, Palette.ON_COLOR)
+	button.add_theme_color_override("font_disabled_color", Color(0.75, 0.78, 0.88, 0.9))
+	button.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.7))
+	button.add_theme_constant_override("outline_size", 6)
+
+	# Playable cards glow brighter than the panel; locked ones sink well below
+	# it. The gap between the two is the affordance -- a pre-reader picks the
+	# pressable card by brightness alone, before the lock badge even registers.
+	normal.modulate_color = Color(1.35, 1.32, 1.28)
+	var hover: StyleBoxTexture = UiKit.texture_style("res://assets/ui/level_card.png", 40.0, 16.0,
+		Color(1.55, 1.5, 1.42))
+	var pressed: StyleBoxTexture = UiKit.texture_style("res://assets/ui/level_card.png", 40.0, 16.0,
+		Color(1.1, 1.08, 1.05))
+	var disabled: StyleBoxTexture = UiKit.texture_style("res://assets/ui/level_card.png", 40.0, 16.0,
+		Color(0.42, 0.44, 0.54, 0.85))
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+
+	# Icon badge above, label pushed to the card's lower band.
+	var icon: Control = UiKit.picture(icon_name, box.x * 0.36)
+	if icon != null:
+		icon.position = Vector2(box.x * 0.32, box.y * 0.10)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if not playable:
+			icon.modulate = Color(1, 1, 1, 0.85)
+		button.add_child(icon)
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			var style := button.get_theme_stylebox(state)
+			if style is StyleBoxTexture:
+				(style as StyleBoxTexture).content_margin_top = box.y * 0.62
+	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	return button

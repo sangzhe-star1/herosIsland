@@ -184,7 +184,16 @@ func _spawn_spark() -> void:
 	node.size = SPARK_SIZE
 	node.position = at - SPARK_SIZE / 2.0
 	node.pivot_offset = SPARK_SIZE / 2.0
-	node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	# A soft glowing disc behind the sparkle art: the sparkle alone is wispy
+	# against the monster, and the disc is what makes the tap target read as
+	# "a thing", the full 116px of it.
+	var glow := StyleBoxFlat.new()
+	glow.bg_color = Color(1.0, 0.85, 0.42, 0.30) if not dud else Color(0.45, 0.47, 0.53, 0.30)
+	glow.set_corner_radius_all(int(SPARK_SIZE.x / 2.0) if not dud else 14)
+	if not dud:
+		glow.shadow_color = Color(1.0, 0.82, 0.35, 0.35)
+		glow.shadow_size = 18
+	node.add_theme_stylebox_override("panel", glow)
 	node.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	var face: Control = null
@@ -293,6 +302,8 @@ func _hit_burst(at: Vector2) -> void:
 	if not ResourceLoader.exists(HIT_ART):
 		return
 	var burst := TextureRect.new()
+	burst.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # before size, or 512px art wins
+	burst.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	burst.texture = load(HIT_ART)
 	burst.size = Vector2(170, 170)
 	burst.position = at - burst.size / 2.0
@@ -372,6 +383,8 @@ func _splat(at: Vector2) -> void:
 	if not ResourceLoader.exists(SMOKE_ART):
 		return
 	var poof := TextureRect.new()
+	poof.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	poof.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	poof.texture = load(SMOKE_ART)
 	poof.size = Vector2(130, 130)
 	poof.position = at - poof.size / 2.0

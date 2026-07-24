@@ -20,7 +20,7 @@ func _ready() -> void:
 	root.add_theme_constant_override("separation", 28)
 	add_child(root)
 
-	var greeting := UiKit.title_on_art(I18n.t("home.greeting"), 52)
+	var greeting := UiKit.title_on_art(I18n.t("home.greeting"), 58)
 	root.add_child(greeting)
 
 	var grid := GridContainer.new()
@@ -34,6 +34,7 @@ func _ready() -> void:
 	var play := UiKit.icon_button(I18n.t("home.play"), "flag", Palette.GREEN)
 	play.pressed.connect(_on_play)
 	grid.add_child(play)
+	_breathe(play)
 
 	var rewards := UiKit.icon_button(I18n.t("home.rewards"), "star", Palette.ORANGE)
 	rewards.pressed.connect(func(): SceneManager.goto_scene("res://scenes/reward/RewardCenter.tscn"))
@@ -59,7 +60,9 @@ func _ready() -> void:
 	var hint := Label.new()
 	hint.text = I18n.t("parent.hold_hint")
 	hint.add_theme_font_size_override("font_size", 22)
-	hint.add_theme_color_override("font_color", Palette.INK_SOFT)
+	# Over painted night art, soft ink vanishes; this is aimed at the adult
+	# but still has to be findable.
+	hint.add_theme_color_override("font_color", Color(0.84, 0.89, 1.0, 0.85))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 	var bar_box := VBoxContainer.new()
@@ -80,15 +83,35 @@ func _ready() -> void:
 ## whoever is standing here.
 func _build_hero() -> void:
 	var holder := Control.new()
-	holder.position = Vector2(60, 330)
-	holder.size = Vector2(220, 330)
+	holder.position = Vector2(50, 310)
+	holder.size = Vector2(240, 350)
 	holder.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(holder)
 
+	# A soft spotlight pool behind the hero -- the BabyBus/Toca trick of making
+	# the character the warmest, brightest thing on the screen so the eye (and
+	# the finger) goes there first. A radial gradient, not a polygon: the glow
+	# must FADE, or it reads as a grey egg instead of light.
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(1.0, 0.96, 0.8, 0.30))
+	gradient.set_color(1, Color(1.0, 0.96, 0.8, 0.0))
+	var glow_texture := GradientTexture2D.new()
+	glow_texture.gradient = gradient
+	glow_texture.fill = GradientTexture2D.FILL_RADIAL
+	glow_texture.fill_from = Vector2(0.5, 0.5)
+	glow_texture.fill_to = Vector2(0.5, 0.0)
+	glow_texture.width = 256
+	glow_texture.height = 256
+	var glow := Sprite2D.new()
+	glow.texture = glow_texture
+	glow.position = Vector2(120, 170)
+	glow.scale = Vector2(1.35, 1.6)
+	holder.add_child(glow)
+
 	var hero := SkinnedCharacter.new()
 	hero.skin = GameData.current_skin()
-	hero.position = Vector2(110, 230)
-	hero.scale = Vector2(1.9, 1.9)
+	hero.position = Vector2(120, 245)
+	hero.scale = Vector2(2.0, 2.0)
 	holder.add_child(hero)
 	Juice.idle_bob(hero)
 
@@ -98,9 +121,26 @@ func _build_hero() -> void:
 			or (event is InputEventScreenTouch and event.pressed)
 		if pressed:
 			hero.celebrate()
-			Juice.burst(holder, Vector2(110, 140), 14)
+			Juice.burst(holder, Vector2(120, 150), 14)
 			AudioManager.play_sfx("res://assets/audio/star.ogg")
 	)
+
+
+## The slow breathing pulse every good kids' app puts on its primary action:
+## "this is the one to press". One button only -- a screen where everything
+## pulses is a screen where nothing does.
+func _breathe(button: Button) -> void:
+	if not Juice.motion_enabled():
+		return
+	await get_tree().process_frame
+	if not is_instance_valid(button):
+		return
+	button.pivot_offset = button.size / 2.0
+	var t := button.create_tween().set_loops()
+	t.tween_property(button, "scale", Vector2(1.03, 1.03), 0.9)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(button, "scale", Vector2.ONE, 0.9)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _begin_hold() -> void:
