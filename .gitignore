@@ -19,3 +19,6 @@ save/*.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Scratch bin for files the sandboxed session cannot delete
+_to_delete/
