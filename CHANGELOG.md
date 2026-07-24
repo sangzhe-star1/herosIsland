@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-24 (continued) — Challenge gating fix, progression probe, honest docs
+
+- **Fixed a real challenge bug**: `LevelResult.met_target()` read the
+  original target from GameData, so a rank-scaled challenge SHOWED the
+  bigger goal but completed at the base one. Results now carry a
+  `target_override` wired to the live level data; completion is measured
+  against what the label promises.
+- **New progression probe** in the suite (`tests/ProgressionProbe.tscn`):
+  XP maths (45 per clean run, replays pay in full, 120/rank boundaries),
+  improvement-only coins (a same-star replay pays zero), the sticker
+  economy (no overdrafts, no duplicates), and challenge scaling — including
+  the exact regression above, plus proof that scaling never leaks into
+  GameData. Snapshots and restores the save, so it is safe on a machine
+  with a real child's save. `run_smoke.sh` runs it after the battle probe.
+- Docs told the truth again: README (30 levels, six templates, five
+  endless; art status), ART_CHECKLIST and ASSETS status blurbs updated to
+  what actually ships versus what is still genuinely open (monster
+  paintings, richer art, family voice recordings).
+
+
 ## 2026-07-24 (late night) — Music, voice pipeline, and the ever-growing level system
 
 - **The island has music**: an original 26-second pentatonic lullaby loop

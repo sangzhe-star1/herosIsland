@@ -1,5 +1,14 @@
 # Art and font shopping list
 
+> **Status update (July 2026):** much of this list is now filled in-repo —
+> `assets/fonts/NotoSansSC.otf` ships (Chinese + Latin; adding
+> `Baloo2-SemiBold.ttf` still upgrades the Latin to the rounded toy look),
+> the SFX set and a music loop are synthesized in `assets/audio/`, item and
+> navigation icons are generated badges, and `tools/make_voice.command`
+> speaks the voice lines with the Mac's built-in Chinese voice. Everything
+> below still applies as the guide to REPLACING those with richer,
+> hand-picked versions — same paths, same rules.
+
 > **Replacing the artwork?** See `ART_CHECKLIST.md` for the complete list of
 > every image slot with exact filenames and pixel sizes. This file covers the
 > free/CC0 route; that one covers supplying your own.

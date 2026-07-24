@@ -13,8 +13,15 @@ Every image slot in the game, with the exact filename and size to produce.
 > `power_up.png` effects. Six icons the bundle lacked — `check`, `flag`,
 > `gear`, `car`, `sort`, `paw` — were generated in the same badge style
 > (`assets/icons/`), so navigation and bins are fully textured and consistent.
-> Still open: the 22 item icons, the town/street/forest world backgrounds, and
-> all audio. Interaction principles behind the wiring: `docs/DESIGN_NOTES.md`.
+> **Later that day:** the 22 item icons were generated in the same badge style
+> (drop richer versions on the same filenames any time), painted town / forest
+> / room scenes now sit behind the sorting, rescue and memory levels, eight
+> synthesized SFX and an original music loop live in `assets/audio/`, and
+> `tools/make_voice.command` generates the Chinese voice lines on the Mac.
+> Still genuinely open: monster paintings (`assets/characters/monsters/`),
+> a `street.png` for the traffic world if ever wanted, richer backgrounds,
+> and real family voice recordings to replace the synthetic ones.
+> Interaction principles behind the wiring: `docs/DESIGN_NOTES.md`.
 >
 > **Monster Arena:** the three battle monsters (`rocky`, `blobbi`, `spikelor`)
 > are drawn procedurally. To replace one with real art, drop a PNG at

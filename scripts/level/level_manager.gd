@@ -26,6 +26,9 @@ func _ready() -> void:
 		push_warning("LevelManager: no level data; running in standalone test mode")
 		level_data = _debug_level_data()
 	result = LevelResult.new(level_data.get("id", ""))
+	# Same dictionary object the templates mutate in setup_level(), so any
+	# challenge scaling applied there is what completion is measured against.
+	result.target_override = level_data.get("target", {})
 	setup_level()
 	_speak_instruction()
 

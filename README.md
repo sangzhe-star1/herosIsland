@@ -78,9 +78,12 @@ progress saved.
 | Save, audio, scene flow, rewards, growth stats | `scripts/core/`, `scripts/reward/` |
 | Level config, 2 languages | `data/` |
 
-**All 23 levels are playable**, from five templates (the fifth, `monster_battle`,
-is the Monster Arena: tap-the-spark beam battles where the monster ends up
-tired and happy, never hurt):
+**All 30 levels are playable**, from six templates — including the Monster
+Arena's beam battles (`monster_battle`: the monster ends up tired and happy,
+never hurt) and pair-finding (`memory_match`). Five of the thirty are
+**Challenge levels** that grow one rank bigger every time they are beaten,
+so the game never runs out (CHANGELOG.md and `docs/DESIGN_PLAN.md` tell that
+story):
 
 | Template | Levels | Mechanic |
 |---|---|---|
@@ -245,9 +248,12 @@ just written down:
   `collect_energy` were written and validated statically (`tools_check.py`:
   0 errors) but no one has watched them execute. `traffic_crossing` and the
   screens around it are confirmed working. See §13 for what to check first.
-- Placeholder art remains for the item icons, navigation icons and three of
-  the four worlds' backgrounds; the hero skins and the Hero City world now use
-  real artwork from the integrated asset bundle (see `ART_CHECKLIST.md`).
+- Every art slot now has SOMETHING real in it — bundle art for the heroes and
+  Hero City, generated badge icons for all items and navigation, painted
+  town/forest/room scenes, synthesized SFX and an original music loop — but
+  the generated pieces are meant to be outgrown: drop richer art on the same
+  filenames any time (see `ART_CHECKLIST.md`). Voice lines are one
+  double-click away in `tools/make_voice.command`.
 - `Hero House` is now the character-select room: the child taps a hero (Tiga,
   Zero, or the original Light Hero) and plays as them everywhere. The
   furniture idea from PLAN.md Phase 5 can still move in later.

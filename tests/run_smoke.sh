@@ -130,4 +130,18 @@ if ! grep -q "BATTLE PROBE PASSED" "$BATTLE_OUT"; then
 fi
 rm -f "$BATTLE_OUT"
 
+# The progression probe guards the meta-layer: XP maths, improvement-only
+# coins, the sticker economy, and challenge scaling actually gating
+# completion (a bug the probe caught once already).
+echo
+echo "Running progression probe..."
+PROG_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/ProgressionProbe.tscn 2>&1 | tee "$PROG_OUT"
+if ! grep -q "PROGRESSION PROBE PASSED" "$PROG_OUT"; then
+  rm -f "$PROG_OUT"
+  echo "Progression probe failed."
+  exit 1
+fi
+rm -f "$PROG_OUT"
+
 echo "All good."
