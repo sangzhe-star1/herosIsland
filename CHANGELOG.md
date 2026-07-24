@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-07-24 (evening) — Fonts, home hub polish, BabyBus-pass plan
+
+- **Real fonts ship at last**: `assets/fonts/NotoSansSC.otf` (Noto Sans CJK
+  SC Medium, OFL) — Chinese renders identically on desktop and mobile, no
+  more engine-default look. Drop `Baloo2-SemiBold.ttf` beside it any time
+  for the rounded Latin; the chain picks it up automatically.
+- **Home hub**: treasure chip top-right (stars + coins, tap = My Rewards),
+  hero waves by himself every ~9s (motion-gated), soft radial spotlight.
+- **Every button** now bounces on release via `UiKit.big_button`.
+- **My Rewards** restyled as white rounded cards on the soft page (treasure,
+  badges, growth) with the bundle's progress-bar art — the BabyBus
+  catalogue look.
+- **Traffic fix**: the Tap-to-Cross button sat exactly on top of the waiting
+  hero, hiding all but his head; moved to the bottom-right thumb corner and
+  the hero enlarged.
+- Dropped the now-unused `common.locked` string (padlock badges replaced it).
+- **docs/DESIGN_PLAN.md**: the full BabyBus-quality iteration plan — next
+  coding pass, exact art slots to fill (items, three world backgrounds,
+  monster paintings), the voice-recording script table, and future play
+  ideas (sticker book, memory match, rhythm tap).
+
 ## 2026-07-24 (later) — Shell restyle after first on-device screenshots
 
 - **Fixed the giant overlapping stars** on the world map (and every other

@@ -18,7 +18,7 @@ const EDGE := 8          # thickness of a button's raised bottom edge
 const FONT_DISPLAY := "res://assets/fonts/Baloo2-SemiBold.ttf"
 ## CJK fallback. Godot falls through to this for any glyph the display font
 ## lacks, so mixed English/Chinese strings render in one pass.
-const FONT_CJK := "res://assets/fonts/NotoSansSC-Regular.ttf"
+const FONT_CJK := "res://assets/fonts/NotoSansSC.otf"
 
 static var _theme: Theme = null
 
@@ -151,6 +151,11 @@ static func big_button(text: String, color: Color = Palette.BLUE) -> Button:
 	b.add_theme_stylebox_override("hover", _raised(Palette.lift(color), EDGE))
 	b.add_theme_stylebox_override("pressed", _raised(color.darkened(0.06), 2))
 	b.add_theme_stylebox_override("disabled", _raised(Palette.MUTED, 3))
+
+	# Every press earns a little bounce on release, on top of the squash the
+	# styleboxes already do. Feedback at the finger, always.
+	b.resized.connect(func(): b.pivot_offset = b.size / 2.0)
+	b.pressed.connect(func(): Juice.pop(b, 0.06))
 	return b
 
 

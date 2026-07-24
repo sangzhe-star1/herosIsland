@@ -116,6 +116,7 @@ func _build_scene() -> void:
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
 	_hero.position = Vector2(640, NEAR_SIDE_Y)
+	_hero.scale = Vector2(1.15, 1.15)
 	add_child(_hero)
 
 
@@ -188,9 +189,13 @@ func _build_ui() -> void:
 	_instruction.size = Vector2(600, 60)
 	root.add_child(_instruction)
 
+	# Bottom-right, not bottom-centre: centred it sat exactly on top of the
+	# hero waiting at the kerb, hiding everything but his head -- and on a
+	# landscape tablet the right corner is where the child's thumb already
+	# rests anyway.
 	_cross_button = UiKit.big_button(I18n.t("traffic.tap_to_cross"), Color(0.20, 0.62, 0.35))
-	_cross_button.custom_minimum_size = Vector2(420, 140)
-	_cross_button.position = Vector2(430, 560)
+	_cross_button.custom_minimum_size = Vector2(380, 130)
+	_cross_button.position = Vector2(864, 566)
 	_cross_button.pressed.connect(_on_cross_pressed)
 	root.add_child(_cross_button)
 

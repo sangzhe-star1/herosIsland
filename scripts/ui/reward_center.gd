@@ -1,6 +1,10 @@
 extends Control
 ## What the child has earned. Coins, badges, and the five growth attributes
 ## shown as bars that only ever grow.
+##
+## Laid out like a BabyBus catalogue page: a soft light background with white
+## rounded cards, one card per idea -- treasure, badges, growing up. The
+## child's stuff looks collected and cared for, not listed.
 
 func _ready() -> void:
 	theme = UiKit.theme()
@@ -30,20 +34,41 @@ func _ready() -> void:
 	list.add_theme_constant_override("separation", 20)
 	scroll.add_child(list)
 
-	var coins: int = int(SaveManager.data["rewards"]["coins"])
-	var coin_row := HBoxContainer.new()
-	coin_row.add_theme_constant_override("separation", 12)
-	var coin_icon: Control = UiKit.picture("coin", 48)
+	# --- treasure card ---------------------------------------------------
+	var treasure_card := UiKit.card()
+	treasure_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var treasure_row := HBoxContainer.new()
+	treasure_row.add_theme_constant_override("separation", 14)
+	var coin_icon: Control = UiKit.picture("coin", 52)
 	if coin_icon != null:
-		coin_row.add_child(coin_icon)
-	coin_row.add_child(UiKit.title("%s: %d" % [I18n.t("rewards.coins"), coins], 40))
-	list.add_child(coin_row)
+		treasure_row.add_child(coin_icon)
+	var coins: int = int(SaveManager.data["rewards"]["coins"])
+	treasure_row.add_child(UiKit.title("%s: %d" % [I18n.t("rewards.coins"), coins], 40))
+	var star_icon: Control = UiKit.picture("star", 52)
+	if star_icon != null:
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(28, 0)
+		treasure_row.add_child(spacer)
+		treasure_row.add_child(star_icon)
+		treasure_row.add_child(UiKit.title("%d" % SaveManager.total_stars(), 40))
+	treasure_card.add_child(treasure_row)
+	list.add_child(treasure_card)
 
-	list.add_child(UiKit.title(I18n.t("rewards.badges"), 40))
+	# --- badges card -------------------------------------------------------
+	var badge_card := UiKit.card()
+	badge_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var badge_box := VBoxContainer.new()
+	badge_box.add_theme_constant_override("separation", 12)
+	badge_card.add_child(badge_box)
+
+	var badge_title := UiKit.title(I18n.t("rewards.badges"), 40)
+	badge_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	badge_box.add_child(badge_title)
+
 	var badge_row := HFlowContainer.new()
 	badge_row.add_theme_constant_override("h_separation", 16)
 	badge_row.add_theme_constant_override("v_separation", 16)
-	list.add_child(badge_row)
+	badge_box.add_child(badge_row)
 
 	var owned: Array = SaveManager.data["rewards"]["badges"]
 	var all_badges: Dictionary = GameData.rewards.get("badges", {})
@@ -57,8 +82,19 @@ func _ready() -> void:
 		chip.add_theme_font_size_override("font_size", 26)
 		chip.disabled = true
 		badge_row.add_child(chip)
+	list.add_child(badge_card)
 
-	list.add_child(UiKit.title(I18n.t("rewards.growth"), 40))
+	# --- growth card ---------------------------------------------------------
+	var growth_card := UiKit.card()
+	growth_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var growth_box := VBoxContainer.new()
+	growth_box.add_theme_constant_override("separation", 12)
+	growth_card.add_child(growth_box)
+
+	var growth_title := UiKit.title(I18n.t("rewards.growth"), 40)
+	growth_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	growth_box.add_child(growth_title)
+
 	for attribute in GameData.rewards.get("growth_attributes", []):
 		var id: String = attribute.get("id", "")
 		var value: int = int(SaveManager.data["growth"].get(id, 0))
@@ -73,6 +109,13 @@ func _ready() -> void:
 		bar.max_value = 30.0
 		bar.value = mini(value, 30)
 		bar.show_percentage = false
-		bar.custom_minimum_size = Vector2(500, 40)
+		bar.custom_minimum_size = Vector2(500, 34)
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var frame: StyleBox = UiKit.texture_style("res://assets/ui/progress_frame.png", 24.0, 7.0)
+		var fill: StyleBox = UiKit.texture_style("res://assets/ui/progress_fill.png", 18.0, 0.0)
+		if frame != null and fill != null:
+			bar.add_theme_stylebox_override("background", frame)
+			bar.add_theme_stylebox_override("fill", fill)
 		line.add_child(bar)
-		list.add_child(line)
+		growth_box.add_child(line)
+	list.add_child(growth_card)

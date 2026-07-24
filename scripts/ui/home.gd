@@ -74,6 +74,50 @@ func _ready() -> void:
 	root.add_child(bar_center)
 
 	_build_hero()
+	_build_treasure_chip()
+
+
+## Stars and coins, worn like a badge in the corner. BabyBus keeps the
+## child's collectibles visible on every hub screen; this is that, and
+## tapping it opens My Rewards -- the number IS the button.
+func _build_treasure_chip() -> void:
+	var chip := Button.new()
+	chip.focus_mode = Control.FOCUS_NONE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.13, 0.26, 0.78)
+	style.set_corner_radius_all(26)
+	style.set_content_margin_all(10)
+	style.content_margin_left = 16
+	style.content_margin_right = 16
+	chip.add_theme_stylebox_override("normal", style)
+	chip.add_theme_stylebox_override("hover", style)
+	chip.add_theme_stylebox_override("pressed", style)
+	chip.pressed.connect(func(): SceneManager.goto_scene("res://scenes/reward/RewardCenter.tscn"))
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var star_icon: Control = UiKit.picture("star", 40)
+	if star_icon != null:
+		row.add_child(star_icon)
+	var star_count := UiKit.title("%d" % SaveManager.total_stars(), 30, Palette.ON_COLOR)
+	row.add_child(star_count)
+
+	var coin_icon: Control = UiKit.picture("coin", 40)
+	if coin_icon != null:
+		row.add_child(coin_icon)
+	var coin_count := UiKit.title("%d" % int(SaveManager.data["rewards"]["coins"]), 30, Palette.ON_COLOR)
+	row.add_child(coin_count)
+
+	chip.add_child(row)
+	add_child(chip)
+	# Sized after layout, then pinned to the top-right corner.
+	await get_tree().process_frame
+	if is_instance_valid(chip) and is_instance_valid(row):
+		chip.size = row.size + Vector2(32, 20)
+		row.position = Vector2(16, 10)
+		chip.position = Vector2(1280.0 - chip.size.x - 28.0, 24)
 
 
 ## The chosen hero, standing at home. Tapping them earns a little celebration
@@ -114,6 +158,18 @@ func _build_hero() -> void:
 	hero.scale = Vector2(2.0, 2.0)
 	holder.add_child(hero)
 	Juice.idle_bob(hero)
+
+	# Every so often the hero cheers on their own -- the screen invites play
+	# instead of waiting for it. Skipped entirely under reduce-motion: that
+	# setting means "calm screen", including from the hero.
+	var wave_timer := Timer.new()
+	wave_timer.wait_time = 9.0
+	wave_timer.autostart = true
+	holder.add_child(wave_timer)
+	wave_timer.timeout.connect(func():
+		if Juice.motion_enabled() and is_instance_valid(hero):
+			hero.celebrate()
+	)
 
 	holder.gui_input.connect(func(event: InputEvent):
 		var pressed: bool = (event is InputEventMouseButton \
