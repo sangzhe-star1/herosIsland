@@ -4,7 +4,7 @@ extends Control
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Palette.DUSK)
+	UiKit.background(self, Palette.DUSK, "res://assets/backgrounds/victory.png")
 
 	var result: LevelResult = GameManager.get_last_result()
 	var stars: int = result.stars() if result != null else 0
@@ -32,9 +32,16 @@ func _ready() -> void:
 	box.add_child(praise)
 
 	if RewardManager.last_coins_earned > 0:
+		var coin_row := HBoxContainer.new()
+		coin_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		coin_row.add_theme_constant_override("separation", 10)
+		var coin_icon: Control = UiKit.picture("coin", 42)
+		if coin_icon != null:
+			coin_row.add_child(coin_icon)
 		var coins := UiKit.title(I18n.t("result.coins") % 0, 34)
 		coins.add_theme_color_override("font_color", Palette.STAR_ON)
-		box.add_child(coins)
+		coin_row.add_child(coins)
+		box.add_child(coin_row)
 		_count_up(coins, RewardManager.last_coins_earned)
 
 	if RewardManager.last_new_badge != "":
@@ -60,11 +67,22 @@ func _ready() -> void:
 
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 
+	# The hero celebrates WITH the child. Same skin they just played as; the
+	# cheer pose (arms up) if that skin has one.
+	var hero := SkinnedCharacter.new()
+	hero.skin = GameData.current_skin()
+	hero.position = Vector2(212, 520)
+	hero.scale = Vector2(2.4, 2.4)
+	add_child(hero)
+	Juice.idle_bob(hero)
+	hero.celebrate()
+
 	# A full three stars earns a proper celebration; one or two do not. The
 	# child should be able to feel the difference without counting.
 	if stars >= 3:
 		await get_tree().create_timer(1.4).timeout
 		if is_instance_valid(self):
+			hero.celebrate()
 			Juice.burst(self, Vector2(420, 320), 30)
 			Juice.burst(self, Vector2(860, 320), 30)
 

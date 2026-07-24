@@ -21,7 +21,7 @@ func _default_data() -> Dictionary:
 		"version": SAVE_VERSION,
 		"profile": {
 			"name": "",
-			"character_id": "light_hero",
+			"character_id": str(GameData.characters.get("default", "light_hero")),
 			"created_at": Time.get_unix_time_from_system(),
 		},
 		"settings": {
@@ -110,6 +110,16 @@ func get_profile() -> Dictionary:
 func set_profile_name(child_name: String) -> void:
 	data["profile"]["name"] = child_name
 	save_game()
+
+
+## Which hero the child plays as. Only ids present in data/characters.json are
+## accepted, so a corrupt save cannot point the game at a skin that is not there.
+func set_character(character_id: String) -> void:
+	if not GameData.characters.get("characters", {}).has(character_id):
+		return
+	data["profile"]["character_id"] = character_id
+	save_game()
+	progress_changed.emit()
 
 
 # --- level progress ---

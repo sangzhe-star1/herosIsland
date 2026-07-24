@@ -37,6 +37,20 @@ func _load_json(path: String, fallback: Variant) -> Variant:
 	return parsed
 
 
+## The skin of the character the child currently plays as, or null when its
+## resource is missing (SkinnedCharacter then falls back to the drawn hero).
+## The single place this lookup happens; levels and screens all come here.
+func current_skin() -> CharacterSkin:
+	var character_id: String = SaveManager.get_profile().get(
+		"character_id", str(characters.get("default", "light_hero"))
+	)
+	var entry: Dictionary = characters.get("characters", {}).get(character_id, {})
+	var path: String = str(entry.get("skin", ""))
+	if path != "" and ResourceLoader.exists(path):
+		return load(path) as CharacterSkin
+	return null
+
+
 func get_level(level_id: String) -> Dictionary:
 	return _levels_by_id.get(level_id, {})
 
@@ -61,5 +75,6 @@ func get_minigame_scene(game_type: String) -> String:
 		"collect_energy": "res://scenes/minigames/collect_energy/CollectEnergy.tscn",
 		"item_sorting": "res://scenes/minigames/item_sorting/ItemSorting.tscn",
 		"animal_rescue": "res://scenes/minigames/animal_rescue/AnimalRescue.tscn",
+		"monster_battle": "res://scenes/minigames/monster_battle/MonsterBattle.tscn",
 	}
 	return map.get(game_type, "")

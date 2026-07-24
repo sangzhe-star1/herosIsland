@@ -1,9 +1,19 @@
 {
-  "default": "light_hero",
+  "default": "tiga",
   "characters": {
     "light_hero": {
       "skin": "res://resources/skins/light_hero.tres",
       "name_key": "character.light_hero",
+      "unlocked": true
+    },
+    "tiga": {
+      "skin": "res://resources/skins/tiga.tres",
+      "name_key": "character.tiga",
+      "unlocked": true
+    },
+    "zero": {
+      "skin": "res://resources/skins/zero.tres",
+      "name_key": "character.zero",
       "unlocked": true
     }
   }

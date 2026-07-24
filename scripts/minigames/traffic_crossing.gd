@@ -114,18 +114,9 @@ func _build_scene() -> void:
 	_build_traffic_light()
 
 	_hero = SkinnedCharacter.new()
-	_hero.skin = _load_skin()
+	_hero.skin = GameData.current_skin()
 	_hero.position = Vector2(640, NEAR_SIDE_Y)
 	add_child(_hero)
-
-
-func _load_skin() -> CharacterSkin:
-	var character_id: String = SaveManager.get_profile().get("character_id", "light_hero")
-	var entry: Dictionary = GameData.characters.get("characters", {}).get(character_id, {})
-	var path: String = entry.get("skin", "")
-	if path != "" and ResourceLoader.exists(path):
-		return load(path)
-	return null
 
 
 func _build_traffic_light() -> void:
@@ -171,7 +162,13 @@ func _build_ui() -> void:
 	_progress = Label.new()
 	_progress.add_theme_font_size_override("font_size", 34)
 	_progress.add_theme_color_override("font_color", Color.WHITE)
-	_progress.position = Vector2(980, 36)
+	# Right-aligned inside a fixed box that ends 24px short of the right edge,
+	# so the text grows leftward and can never run off-screen. At x=980 with no
+	# box it overflowed by 18px in every traffic level (the smoke test's one
+	# standing warning).
+	_progress.position = Vector2(756, 36)
+	_progress.size = Vector2(500, 48)
+	_progress.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	root.add_child(_progress)
 	_update_progress()
 

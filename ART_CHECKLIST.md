@@ -2,6 +2,33 @@
 
 Every image slot in the game, with the exact filename and size to produce.
 
+> **Status — July 2026:** the `ultraman_tiga_zero_complete_game_bundle` has been
+> integrated. Filled from it: both hero skins (Tiga and Zero, chosen in the Hero
+> House; the original drawn Light Hero remains available), the home and map
+> backgrounds (`menu_bg` and `level_select_bg` from the bundle), the Hero City
+> set (`city.png`, `tower.png` + broken/repaired states, `city_damaged.png`,
+> `orb.png`, `rock.png`), the result-screen `victory.png`, the full icon-badge
+> set (star, coin, heart, warning, house, spark and friends), the character
+> select cards, the reward chest, and the `sparkle.png` / `collect_flash.png` /
+> `power_up.png` effects. Six icons the bundle lacked — `check`, `flag`,
+> `gear`, `car`, `sort`, `paw` — were generated in the same badge style
+> (`assets/icons/`), so navigation and bins are fully textured and consistent.
+> Still open: the 22 item icons, the town/street/forest world backgrounds, and
+> all audio. Interaction principles behind the wiring: `docs/DESIGN_NOTES.md`.
+>
+> **Monster Arena:** the three battle monsters (`rocky`, `blobbi`, `spikelor`)
+> are drawn procedurally. To replace one with real art, drop a PNG at
+> `assets/characters/monsters/<id>.png` — transparent background, feet at the
+> bottom edge, roughly 512 × 640 — and it takes over automatically, keeping
+> every animation (flinch, puff, happy exit). Battle sound hooks, silent until
+> the files exist: `assets/audio/beam.ogg` (each shot) plus the shared
+> `correct/try_again/level_complete` set.
+>
+> **Licence note:** the Tiga and Zero skins depict recognisable Tsuburaya
+> characters. They are for this household's own tablet only — a build that
+> leaves the house must ship with `light_hero` (or other original art) as the
+> only skins. `data/characters.json` is the single place to remove them.
+
 **Format for everything: PNG, RGBA with real transparency, no baked background.**
 Not JPG — it has no alpha channel and will give you white boxes behind every
 icon.
@@ -166,6 +193,45 @@ assets/audio/voice/level/safety_traffic_01_intro.ogg
 **Record the voice lines yourself.** He cannot read, so the voice *is* the
 instruction — and a recording of you or him beats any stock clip. A phone
 recording converted to `.ogg` is fine.
+
+---
+
+## 7. Light Energy Hero City — the hero-themed scenes
+
+These three levels are the ones with the strongest character identity, so they
+benefit most from real art. Everything below is currently drawn in code and
+works; each file simply replaces a drawn version.
+
+| What | Path | Size | Notes |
+|---|---|---|---|
+| City skyline | `assets/backgrounds/city.png` | 1920 × 1080 | Night city, lit windows. **Keep the upper two-thirds quiet** — orbs fall through it |
+| Energy orb | `assets/icons/orb.png` | 128 × 128 | Neutral **white or pale**, tinted at runtime to 4 colours. A pre-coloured orb cannot be recoloured |
+| Hazard rock | `assets/icons/rock.png` | 128 × 128 | Must differ from the orb in **shape as well as colour** — a colour-blind child has to tell them apart |
+| Energy tower | `assets/backgrounds/tower.png` | 400 × 700 | Lamp area left blank; the game draws the coloured lamp on top |
+| Hero, standing | `assets/characters/hero_idle.png` | 256 × 384 | Chest light **neutral white** |
+| Hero, arms raised | `assets/characters/hero_cheer.png` | 256 × 384 | Optional; used on a correct collect |
+
+### The two rules that will bite you if ignored
+
+**Neutral, not coloured, for anything the game tints.** The hero's chest light,
+the orbs, and the tower lamp are all recoloured at runtime — that recolouring
+*is* the gameplay in Repair the Energy Tower. Paint them red and the level stops
+working.
+
+**Hazards differ by shape, not just colour.** Roughly 1 boy in 12 has some
+red-green colour deficiency. The drawn version uses a dark square against a
+glowing circle for exactly this reason.
+
+### Audio for this world
+
+```
+assets/audio/orb_collect.ogg     bright chime, very short
+assets/audio/power_up.ogg        rising tone, for the colour change
+assets/audio/voice/level/hero_city_intro.ogg
+```
+
+The power-up sound is the one worth getting right: it fires when the tower
+changes colour, which is the moment the child needs to look up.
 
 ---
 

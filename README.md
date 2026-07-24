@@ -78,7 +78,9 @@ progress saved.
 | Save, audio, scene flow, rewards, growth stats | `scripts/core/`, `scripts/reward/` |
 | Level config, 2 languages | `data/` |
 
-**All 14 levels are playable**, from four templates:
+**All 23 levels are playable**, from five templates (the fifth, `monster_battle`,
+is the Monster Arena: tap-the-spark beam battles where the monster ends up
+tired and happy, never hurt):
 
 | Template | Levels | Mechanic |
 |---|---|---|
@@ -243,9 +245,12 @@ just written down:
   `collect_energy` were written and validated statically (`tools_check.py`:
   0 errors) but no one has watched them execute. `traffic_crossing` and the
   screens around it are confirmed working. See §13 for what to check first.
-- Placeholder art throughout. It is meant to be replaced.
-- `Hero House` on the home screen is deliberately disabled until there is
-  furniture to put in it.
+- Placeholder art remains for the item icons, navigation icons and three of
+  the four worlds' backgrounds; the hero skins and the Hero City world now use
+  real artwork from the integrated asset bundle (see `ART_CHECKLIST.md`).
+- `Hero House` is now the character-select room: the child taps a hero (Tiga,
+  Zero, or the original Light Hero) and plays as them everywhere. The
+  furniture idea from PLAN.md Phase 5 can still move in later.
 
 ## 13. On character likenesses
 
@@ -258,6 +263,13 @@ color are tropes, not protected expression, and they are yours to release.
 Because of the skin system, if you do use licensed art in a private family
 build, it lives in one `.tres` file and swapping it out later is a two-minute
 job — not a rewrite.
+
+That is exactly what the integrated bundle does: the `tiga` and `zero` skins
+in `resources/skins/` are recognisable Tsuburaya characters and belong in this
+household only. A build that leaves the house must drop those two entries from
+`data/characters.json` (the original `light_hero` stays, and the game falls
+back to it cleanly). The shared world art — city, tower, orbs, icons, effects
+— carries no character likeness and can stay.
 
 ---
 

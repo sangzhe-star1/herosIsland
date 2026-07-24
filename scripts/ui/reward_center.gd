@@ -14,6 +14,10 @@ func _ready() -> void:
 	var title := UiKit.title(I18n.t("rewards.title"), 52)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
+	# The treasure chest, sitting on the shelf where the treasure is counted.
+	var chest: Control = UiKit.picture("res://assets/ui/reward_chest.png", 84)
+	if chest != null:
+		header.add_child(chest)
 	root.add_child(header)
 
 	var scroll := ScrollContainer.new()
@@ -27,7 +31,13 @@ func _ready() -> void:
 	scroll.add_child(list)
 
 	var coins: int = int(SaveManager.data["rewards"]["coins"])
-	list.add_child(UiKit.title("%s: %d" % [I18n.t("rewards.coins"), coins], 40))
+	var coin_row := HBoxContainer.new()
+	coin_row.add_theme_constant_override("separation", 12)
+	var coin_icon: Control = UiKit.picture("coin", 48)
+	if coin_icon != null:
+		coin_row.add_child(coin_icon)
+	coin_row.add_child(UiKit.title("%s: %d" % [I18n.t("rewards.coins"), coins], 40))
+	list.add_child(coin_row)
 
 	list.add_child(UiKit.title(I18n.t("rewards.badges"), 40))
 	var badge_row := HFlowContainer.new()

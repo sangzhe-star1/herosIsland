@@ -182,6 +182,14 @@ static func picture(reference: String, size: float) -> Control:
 		# with the same base name, so a half-finished art pass still runs.
 		return IconLibrary.build(reference.get_file().get_basename(), size)
 
+	# A bare name checks for real artwork first -- "star" uses
+	# assets/icons/star.png the moment that file exists -- and draws its
+	# IconLibrary version until then. This is what makes the art checklist's
+	# "drop the file in and it appears" promise true for icons.
+	var art := "res://assets/icons/%s.png" % reference
+	if ResourceLoader.exists(art):
+		return picture(art, size)
+
 	return IconLibrary.build(reference, size)
 
 
@@ -256,8 +264,9 @@ static func star_row(filled: int, total: int = 3, size: int = 72) -> HBoxContain
 	return row
 
 
-## A real five-pointed star, not an asterisk. Drawn as a polygon so it needs no
-## art and scales cleanly.
+## A real five-pointed star, not an asterisk. Uses the painted star badges when
+## they exist (assets/icons/star.png and star_empty.png); drawn as a polygon so
+## it needs no art and scales cleanly when they do not.
 static func star(filled: bool, size: int = 72) -> Control:
 	var holder := Control.new()
 	holder.custom_minimum_size = Vector2(size, size)
@@ -265,6 +274,17 @@ static func star(filled: bool, size: int = 72) -> Control:
 	# Set here rather than by the caller: `size` is still zero before the first
 	# layout pass, so a caller computing the pivot would scale from the corner.
 	holder.pivot_offset = Vector2(size, size) / 2.0
+
+	var art := "res://assets/icons/%s.png" % ("star" if filled else "star_empty")
+	if ResourceLoader.exists(art):
+		var tex := TextureRect.new()
+		tex.texture = load(art)
+		tex.size = Vector2(size, size)
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.add_child(tex)
+		return holder
 
 	var points := PackedVector2Array()
 	var centre := Vector2(size, size) / 2.0

@@ -22,6 +22,9 @@ func _ready() -> void:
 	theme = UiKit.theme()
 	print("[boot] 3 theme ok")
 
+	# Painted title backdrop over the failsafe colour, when the art exists.
+	UiKit.background(self, Palette.DUSK, "res://assets/backgrounds/home.png")
+
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -29,6 +32,7 @@ func _ready() -> void:
 	add_child(box)
 
 	var hero := SkinnedCharacter.new()
+	hero.skin = GameData.current_skin()
 	hero.scale = Vector2(2.0, 2.0)
 	var holder := Control.new()
 	holder.custom_minimum_size = Vector2(0, 240)

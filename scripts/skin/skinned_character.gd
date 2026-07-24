@@ -37,13 +37,49 @@ func _build() -> void:
 		skin = _fallback_skin()
 
 	if skin.idle_texture != null:
-		_sprite = Sprite2D.new()
-		_sprite.texture = skin.idle_texture
-		add_child(_sprite)
+		_build_textured()
 	else:
 		_build_placeholder()
 
 	set_core_color(skin.core_color)
+
+
+## A real sprite, scaled to occupy the same footprint as the drawn placeholder
+## so that every position and scale a level has already chosen keeps working.
+## The placeholder spans roughly 1.35x body_size.y from crest to boots with its
+## feet at +body_size.y/2, and the sprite is fitted to match both.
+func _build_textured() -> void:
+	_sprite = Sprite2D.new()
+	_sprite.texture = skin.idle_texture
+	var tex_h: float = maxf(float(skin.idle_texture.get_height()), 1.0)
+	var s: float = (skin.body_size.y * 1.35) / tex_h
+	_sprite.scale = Vector2(s, s)
+	# Feet line: texture bottom edge sits where the placeholder's boots sat.
+	_sprite.position = Vector2(0, skin.body_size.y * 0.5 - (tex_h * s) * 0.5)
+	add_child(_sprite)
+
+	# The tintable chest light, drawn over the sprite. Children of the sprite
+	# live in texture-pixel space, so the skin states the light's position and
+	# size in texture pixels and inherits the sprite's scaling for free.
+	if skin.core_radius <= 0.0:
+		return
+	var halo := Polygon2D.new()
+	halo.polygon = _oval(skin.core_offset, skin.core_radius * 1.7)
+	halo.color = Color(1, 1, 1, 0.28)
+	_sprite.add_child(halo)
+
+	_core = Polygon2D.new()
+	_core.polygon = _oval(skin.core_offset, skin.core_radius)
+	_core.color = skin.core_color
+	_sprite.add_child(_core)
+
+
+static func _oval(centre: Vector2, radius: float) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in range(16):
+		var a: float = TAU * float(i) / 16.0
+		points.append(centre + Vector2(cos(a) * radius, sin(a) * radius * 1.2))
+	return points
 
 
 ## An original light hero, drawn from primitives.
@@ -205,9 +241,24 @@ func set_core_color(value: Color) -> void:
 		_core.color = value
 
 
+## Where the chest light is, in global coordinates -- the muzzle of the light
+## beam in battle levels. Falls back to a chest-height guess for skins that
+## have no explicit core.
+func core_position() -> Vector2:
+	if _core != null and is_instance_valid(_core):
+		return _core.global_position
+	return to_global(Vector2(0, -skin.body_size.y * 0.16) if skin != null else Vector2.ZERO)
+
+
 ## Soft pulse used for celebration. No flashing: rapid flicker is both
 ## unpleasant and a seizure risk, so this stays slow and low-contrast.
+##
+## A skin with a cheer pose swaps to it for the duration of the pulse -- arms
+## up while bouncing, then back to standing. The swap happens even with motion
+## reduced: a still pose change is exactly the calm kind of feedback that
+## setting asks for.
 func celebrate() -> void:
+	_show_cheer_pose()
 	if not Juice.motion_enabled():
 		return
 	var base := scale
@@ -215,6 +266,17 @@ func celebrate() -> void:
 	t.tween_property(self, "scale", base * Vector2(1.12, 0.92), 0.16)
 	t.tween_property(self, "scale", base * Vector2(0.96, 1.08), 0.16)
 	t.tween_property(self, "scale", base, 0.16)
+
+
+func _show_cheer_pose(hold_seconds: float = 1.5) -> void:
+	if _sprite == null or skin == null or skin.cheer_texture == null:
+		return
+	_sprite.texture = skin.cheer_texture
+	var timer := get_tree().create_timer(hold_seconds)
+	timer.timeout.connect(func():
+		if is_instance_valid(_sprite) and skin != null and skin.idle_texture != null:
+			_sprite.texture = skin.idle_texture
+	)
 
 
 ## The chest light brightening, for moments worth marking. Slow enough to read

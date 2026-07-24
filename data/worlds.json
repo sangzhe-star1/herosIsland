@@ -26,5 +26,12 @@
     "growth_attribute": "kindness",
     "color": "#4fa86b",
     "order": 4
+  },
+  {
+    "id": "monster_arena",
+    "name_key": "world.monster_arena",
+    "growth_attribute": "courage",
+    "color": "#8a5fc9",
+    "order": 5
   }
 ]

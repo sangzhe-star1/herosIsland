@@ -40,6 +40,7 @@ static func has(icon_name: String) -> bool:
 		"check", "warning",
 		# navigation, so the home screen and map can be read without words
 		"flag", "house", "gear", "star", "car", "spark", "sort", "paw",
+		"monster",
 	]
 
 
@@ -257,6 +258,21 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				c + Vector2(-s * 0.36, s * 0.26), Color(0.99, 0.86, 0.30))
 			_rect(p, c + Vector2(0, -s * 0.02), Vector2(s * 0.08, s * 0.24), Color(0.22, 0.18, 0.10))
 			_circle(p, c + Vector2(0, s * 0.17), s * 0.05, Color(0.22, 0.18, 0.10))
+		"monster":
+			var purple := Color(0.56, 0.40, 0.78)
+			_circle(p, c + Vector2(0, s * 0.04), s * 0.32, purple)
+			_tri(p, c + Vector2(-s * 0.20, -s * 0.20), c + Vector2(-s * 0.30, -s * 0.42),
+				c + Vector2(-s * 0.08, -s * 0.26), purple.darkened(0.2))
+			_tri(p, c + Vector2(s * 0.20, -s * 0.20), c + Vector2(s * 0.30, -s * 0.42),
+				c + Vector2(s * 0.08, -s * 0.26), purple.darkened(0.2))
+			for dx in [-1.0, 1.0]:
+				_circle(p, c + Vector2(dx * s * 0.12, -s * 0.02), s * 0.10, Color(0.99, 0.99, 0.97))
+				_circle(p, c + Vector2(dx * s * 0.12, 0), s * 0.045, Color(0.13, 0.12, 0.16))
+			_rect(p, c + Vector2(0, s * 0.20), Vector2(s * 0.28, s * 0.05), Color(0.30, 0.16, 0.20))
+			for dx in [-1.0, 1.0]:
+				_tri(p, c + Vector2(dx * s * 0.10 - s * 0.03, s * 0.18),
+					c + Vector2(dx * s * 0.10 + s * 0.03, s * 0.18),
+					c + Vector2(dx * s * 0.10, s * 0.24), Color(0.99, 0.99, 0.95))
 		_:
 			return false
 	return true

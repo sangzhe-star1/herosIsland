@@ -40,8 +40,7 @@ func _ready() -> void:
 	grid.add_child(rewards)
 
 	var house := UiKit.icon_button(I18n.t("home.house"), "house", Palette.PURPLE)
-	house.disabled = true
-	house.tooltip_text = I18n.t("common.coming_soon")
+	house.pressed.connect(func(): SceneManager.goto_scene("res://scenes/house/HeroHouse.tscn"))
 	grid.add_child(house)
 
 	# Press-and-hold, then an arithmetic gate on the next screen.
@@ -70,6 +69,38 @@ func _ready() -> void:
 	var bar_center := CenterContainer.new()
 	bar_center.add_child(bar_box)
 	root.add_child(bar_center)
+
+	_build_hero()
+
+
+## The chosen hero, standing at home. Tapping them earns a little celebration
+## -- it does nothing, costs nothing, and cannot be wrong, which is exactly the
+## kind of button a six-year-old presses forty times with total satisfaction.
+## It is also how the Hero House choice stays visible: whoever was picked is
+## whoever is standing here.
+func _build_hero() -> void:
+	var holder := Control.new()
+	holder.position = Vector2(60, 330)
+	holder.size = Vector2(220, 330)
+	holder.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(holder)
+
+	var hero := SkinnedCharacter.new()
+	hero.skin = GameData.current_skin()
+	hero.position = Vector2(110, 230)
+	hero.scale = Vector2(1.9, 1.9)
+	holder.add_child(hero)
+	Juice.idle_bob(hero)
+
+	holder.gui_input.connect(func(event: InputEvent):
+		var pressed: bool = (event is InputEventMouseButton \
+			and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
+			or (event is InputEventScreenTouch and event.pressed)
+		if pressed:
+			hero.celebrate()
+			Juice.burst(holder, Vector2(110, 140), 14)
+			AudioManager.play_sfx("res://assets/audio/star.ogg")
+	)
 
 
 func _begin_hold() -> void:

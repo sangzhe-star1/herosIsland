@@ -103,6 +103,7 @@ func _check_icons() -> void:
 		"pillow", "bandage", "plaster", "berries", "fish", "carrot", "blanket",
 		"scarf", "check", "warning",
 		"flag", "house", "gear", "star", "car", "spark", "sort", "paw",
+		"monster",
 	]
 	for icon_name in names:
 		var icon: Control = IconLibrary.build(icon_name, 96.0)
@@ -183,6 +184,7 @@ func _check_scenes() -> void:
 	var screens := [
 		"res://scenes/boot/Boot.tscn",
 		"res://scenes/home/Home.tscn",
+		"res://scenes/house/HeroHouse.tscn",
 		"res://scenes/map/WorldMap.tscn",
 		"res://scenes/reward/RewardCenter.tscn",
 		"res://scenes/parent/ParentCenter.tscn",

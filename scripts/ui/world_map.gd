@@ -107,6 +107,7 @@ func _build_level_button(level: Dictionary) -> Control:
 		"item_sorting": "sort",
 		"collect_energy": "spark",
 		"animal_rescue": "paw",
+		"monster_battle": "monster",
 	}
 	var icon_name: String = str(icons.get(level.get("game_type", ""), ""))
 	var button := UiKit.icon_button(label, icon_name, color, Vector2(300, 200))

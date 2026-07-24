@@ -115,4 +115,19 @@ if ! grep -q "SMOKE TEST PASSED" "$OUT"; then
   exit 1
 fi
 
+# The battle probe drives the Monster Arena the way a finger would: taps
+# through the input handler, dud handling, meter fill, and the full win
+# sequence through to level_finished. Scenes instantiating is not the same
+# as a game playing; this covers the difference for the battle template.
+echo
+echo "Running battle interaction probe..."
+BATTLE_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/BattleProbe.tscn 2>&1 | tee "$BATTLE_OUT"
+if ! grep -q "BATTLE PROBE PASSED" "$BATTLE_OUT"; then
+  rm -f "$BATTLE_OUT"
+  echo "Battle probe failed."
+  exit 1
+fi
+rm -f "$BATTLE_OUT"
+
 echo "All good."

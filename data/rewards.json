@@ -1,21 +1,98 @@
 {
   "badges": {
-    "road_guardian":      { "name_key": "badge.road_guardian",      "icon": "" },
-    "all_weather_walker": { "name_key": "badge.all_weather_walker", "icon": "" },
-    "sharp_eyes":         { "name_key": "badge.sharp_eyes",         "icon": "" },
-    "exit_finder":        { "name_key": "badge.exit_finder",        "icon": "" },
-    "energy_collector":   { "name_key": "badge.energy_collector",   "icon": "" },
-    "tower_engineer":     { "name_key": "badge.tower_engineer",     "icon": "" },
-    "color_expert":       { "name_key": "badge.color_expert",       "icon": "" },
-    "tidy_helper":        { "name_key": "badge.tidy_helper",        "icon": "" },
-    "tracker":            { "name_key": "badge.tracker",            "icon": "" },
-    "rescue_planner":     { "name_key": "badge.rescue_planner",     "icon": "" }
+    "road_guardian": {
+      "name_key": "badge.road_guardian",
+      "icon": ""
+    },
+    "all_weather_walker": {
+      "name_key": "badge.all_weather_walker",
+      "icon": ""
+    },
+    "sharp_eyes": {
+      "name_key": "badge.sharp_eyes",
+      "icon": ""
+    },
+    "exit_finder": {
+      "name_key": "badge.exit_finder",
+      "icon": ""
+    },
+    "energy_collector": {
+      "name_key": "badge.energy_collector",
+      "icon": ""
+    },
+    "tower_engineer": {
+      "name_key": "badge.tower_engineer",
+      "icon": ""
+    },
+    "color_expert": {
+      "name_key": "badge.color_expert",
+      "icon": ""
+    },
+    "tidy_helper": {
+      "name_key": "badge.tidy_helper",
+      "icon": ""
+    },
+    "tracker": {
+      "name_key": "badge.tracker",
+      "icon": ""
+    },
+    "rescue_planner": {
+      "name_key": "badge.rescue_planner",
+      "icon": ""
+    },
+    "storm_guardian": {
+      "name_key": "badge.storm_guardian",
+      "icon": ""
+    },
+    "rainbow_charger": {
+      "name_key": "badge.rainbow_charger",
+      "icon": ""
+    },
+    "super_sorter": {
+      "name_key": "badge.super_sorter",
+      "icon": ""
+    },
+    "danger_detective": {
+      "name_key": "badge.danger_detective",
+      "icon": ""
+    },
+    "night_walker": {
+      "name_key": "badge.night_walker",
+      "icon": ""
+    },
+    "trail_master": {
+      "name_key": "badge.trail_master",
+      "icon": ""
+    },
+    "brave_defender": {
+      "name_key": "badge.brave_defender",
+      "icon": ""
+    },
+    "monster_friend": {
+      "name_key": "badge.monster_friend",
+      "icon": ""
+    }
   },
   "growth_attributes": [
-    { "id": "courage", "name_key": "growth.courage" },
-    { "id": "wisdom",  "name_key": "growth.wisdom"  },
-    { "id": "kindness","name_key": "growth.kindness"},
-    { "id": "focus",   "name_key": "growth.focus"   },
-    { "id": "safety",  "name_key": "growth.safety"  }
+    {
+      "id": "courage",
+      "name_key": "growth.courage"
+    },
+    {
+      "id": "wisdom",
+      "name_key": "growth.wisdom"
+    },
+    {
+      "id": "kindness",
+      "name_key": "growth.kindness"
+    },
+    {
+      "id": "focus",
+      "name_key": "growth.focus"
+    },
+    {
+      "id": "safety",
+      "name_key": "growth.safety"
+    }
   ]
 }

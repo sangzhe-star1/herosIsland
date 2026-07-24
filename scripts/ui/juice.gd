@@ -54,6 +54,14 @@ static func burst(parent: Node, at: Vector2, amount: int = 22) -> void:
 	particles.angular_velocity_min = -220.0
 	particles.angular_velocity_max = 220.0
 	particles.color = CONFETTI_COLORS[randi() % CONFETTI_COLORS.size()]
+
+	# Painted sparkle when the art exists; bare squares until then. The art is
+	# 256px, so the scale drops to keep particles the same size either way.
+	var sparkle_art := "res://assets/effects/sparkle.png"
+	if ResourceLoader.exists(sparkle_art):
+		particles.texture = load(sparkle_art)
+		particles.scale_amount_min = 0.06
+		particles.scale_amount_max = 0.14
 	parent.add_child(particles)
 	particles.emitting = true
 
