@@ -98,6 +98,13 @@ func _build_treasure_chip() -> void:
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+	# Hero rank first: the number that only ever grows.
+	var rank_icon: Control = UiKit.picture("shield", 40)
+	if rank_icon != null:
+		row.add_child(rank_icon)
+		var rank_label := UiKit.title("%d" % SaveManager.hero_level(), 30, Palette.ON_COLOR)
+		row.add_child(rank_label)
+
 	var star_icon: Control = UiKit.picture("star", 40)
 	if star_icon != null:
 		row.add_child(star_icon)

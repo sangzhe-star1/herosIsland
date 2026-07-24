@@ -19,13 +19,32 @@ var _finished := false
 
 
 func _ready() -> void:
-	level_data = GameManager.current_level_data()
+	# A deep copy: challenge scaling mutates targets and knobs per run, and
+	# the original dictionaries in GameData must never drift.
+	level_data = GameManager.current_level_data().duplicate(true)
 	if level_data.is_empty():
 		push_warning("LevelManager: no level data; running in standalone test mode")
 		level_data = _debug_level_data()
 	result = LevelResult.new(level_data.get("id", ""))
 	setup_level()
 	_speak_instruction()
+
+
+## How many times this challenge has been beaten before -- 0 for ordinary
+## levels. Templates read this in setup_level() and grow themselves: more to
+## do, a little denser, never faster than the no-speed rule allows. This is
+## the level system that expands forever without new content.
+func challenge_rank() -> int:
+	if not bool(level_data.get("challenge", false)):
+		return 0
+	return SaveManager.get_challenge_rank(str(level_data.get("id", "")))
+
+
+## Raise a target counter for challenge runs, e.g. bump_target("correct", 3).
+func bump_target(key: String, extra: int) -> void:
+	var target: Dictionary = level_data.get("target", {})
+	target[key] = int(target.get(key, 0)) + extra
+	level_data["target"] = target
 
 
 ## Override in subclasses. Read level_data for difficulty knobs.

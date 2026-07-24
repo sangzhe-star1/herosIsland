@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-07-24 (late night) — Music, voice pipeline, and the ever-growing level system
+
+- **The island has music**: an original 26-second pentatonic lullaby loop
+  (`assets/audio/music/island_theme.ogg`, composed and synthesized in-repo),
+  playing softly from app start across every screen, ducking under voice
+  lines. The Parent Center music slider controls or silences it.
+- **Voice, one double-click away**: the sandbox cannot reach any usable TTS,
+  so `tools/make_voice.command` generates all 8 Chinese lines on the family
+  Mac using its built-in Tingting voice (no internet, no installs) straight
+  into `assets/audio/voice/level/`; the audio loader now accepts .wav where
+  call sites say .ogg. Three levels gained spoken intros
+  (`voice_intro` on Hero City 1, Arena 1, Memory Toys).
+- **Hero level**: every finished level pays experience (replays included —
+  effort always counts, unlike coins which pay improvement only). The hero
+  rank sits first in the home treasure chip (shield badge), the result
+  screen shows a quiet +XP spark line, and rank-ups get a breathing gold
+  "Level up!" banner. 120 XP per rank, rising forever.
+- **Challenge levels — the level system that expands itself**: each world
+  ends in a gold-star Challenge card that unlocks after its last hand-made
+  level. Beating a challenge raises its rank permanently; every rank makes
+  it a little bigger — denser skies, more sparks and duds, an extra memory
+  pair, longer trails, busier traffic — always MORE TO DO, never faster
+  reactions (the no-speed rule holds; spark lifetimes and car speeds never
+  shrink). Rank shows on the map card and pays bonus XP. 30 levels total,
+  five of which never run out.
+- Suite: 319 checks + battle probe, all green.
+
+
 ## 2026-07-24 (night) — Every plan phase executed
 
 - **Phase 1 juice**: sorting bins wear counter chips that pop as they fill;

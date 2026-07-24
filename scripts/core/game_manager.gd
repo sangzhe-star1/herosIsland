@@ -50,6 +50,10 @@ func start_level(level_id: String) -> void:
 func finish_level(result: LevelResult) -> void:
 	_last_result = result
 	RewardManager.grant_for_level(result)
+	# A beaten challenge grows: next time it is one rank bigger.
+	var level := GameData.get_level(result.level_id)
+	if bool(level.get("challenge", false)) and not result.quit_early:
+		SaveManager.bump_challenge_rank(result.level_id)
 	flush_playtime()
 	level_finished.emit(result)
 	SceneManager.goto_scene("res://scenes/ui/ResultScreen.tscn")

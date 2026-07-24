@@ -9,6 +9,11 @@ var _voice: AudioStreamPlayer
 
 var _music_base_db := 0.0
 
+## The island theme: quiet, slow, pentatonic. Starts with the app and simply
+## keeps going -- one continuous piece of place, the way the gentle kids'
+## apps do it. Parents turn it off with the music slider.
+const THEME := "res://assets/audio/music/island_theme.ogg"
+
 
 func _ready() -> void:
 	print("[autoload] AudioManager starting")
@@ -18,7 +23,11 @@ func _ready() -> void:
 	for p in [_music, _sfx, _voice]:
 		add_child(p)
 	_voice.finished.connect(_on_voice_finished)
+	# Manual loop: restart on finish, so looping never depends on per-file
+	# import flags.
+	_music.finished.connect(func(): _music.play())
 	apply_volumes()
+	play_music(THEME)
 	print("[autoload] AudioManager ok")
 
 
@@ -66,6 +75,14 @@ func _on_voice_finished() -> void:
 
 
 func _load_stream(path: String) -> AudioStream:
-	if path == "" or not ResourceLoader.exists(path):
+	if path == "":
 		return null
-	return load(path) as AudioStream
+	if ResourceLoader.exists(path):
+		return load(path) as AudioStream
+	# Voice lines generated on the family Mac arrive as .wav (tools/
+	# make_voice.command); every call site says .ogg, so fall through.
+	if path.ends_with(".ogg"):
+		var wav := path.trim_suffix(".ogg") + ".wav"
+		if ResourceLoader.exists(wav):
+			return load(wav) as AudioStream
+	return null

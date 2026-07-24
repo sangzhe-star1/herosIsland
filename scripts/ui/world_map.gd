@@ -191,10 +191,20 @@ func _build_level_button(level: Dictionary) -> Control:
 		"memory_match": "blocks",
 	}
 	var icon_name: String = str(icons.get(level.get("game_type", ""), ""))
+	var challenge := bool(level.get("challenge", false))
+	if challenge:
+		# Challenges wear the gold star and show their rank: this is the
+		# level that grows every time it is beaten.
+		icon_name = "star"
+		var rank := SaveManager.get_challenge_rank(level_id)
+		if rank > 0:
+			label += "  %d" % (rank + 1)
 	if not playable:
 		icon_name = "lock"
 
 	var button := _card_button(label, icon_name, playable)
+	if challenge and playable:
+		button.modulate = Color(1.10, 1.04, 0.86)
 	if playable:
 		button.pressed.connect(func(): GameManager.start_level(level_id))
 		# The frontier level -- playable but not yet cleared -- breathes

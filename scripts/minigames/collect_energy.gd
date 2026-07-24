@@ -51,6 +51,15 @@ func setup_level() -> void:
 	_hazard_ratio = clampf(float(config.get("hazard_ratio", 0.0)), 0.0, 0.8)
 	_color_target = bool(config.get("color_target", false))
 
+	# Challenge scaling: denser sky and a higher goal each rank. Fall speed
+	# barely moves (missing costs nothing here), and the pace has a floor.
+	var rank := challenge_rank()
+	if rank > 0:
+		_spawn_interval = maxf(_spawn_interval * pow(0.94, rank), 0.45)
+		_fall_speed = minf(_fall_speed + 4.0 * rank, 240.0)
+		_hazard_ratio = clampf(_hazard_ratio + 0.02 * rank, 0.0, 0.6)
+		bump_target("correct", mini(rank, 15))
+
 	_build_scene(config)
 	_spawn_timer = 0.4
 	if _color_target:

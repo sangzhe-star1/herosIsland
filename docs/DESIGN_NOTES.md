@@ -106,6 +106,18 @@ enormous. Likewise `PanelContainer` re-lays-out its direct children:
 free-positioned content (name bars, corner badges) must live inside a plain
 `Control` wrapper.
 
+## Progression for a six-year-old (hero level and challenges)
+
+Modern games run on meta-progression: numbers that persist and grow across
+sessions. The child-safe translation used here: the hero level only ever
+rises and pays for effort (every finish earns XP, replays included); coins
+pay improvement; stars pay mastery — three currencies, none of which can go
+down, each answering a different "was that worth doing?". Challenge levels
+give the meta-progression somewhere to push: rank N+1 is always MORE to do
+than rank N, never faster, and the rank is worn on the map card like a
+trophy. No streaks, no daily pressure, no fear of missing out — the modern
+loop with its anxiety surgically removed.
+
 ## Sources
 
 - NN/g — Design for Kids and Physical Development:

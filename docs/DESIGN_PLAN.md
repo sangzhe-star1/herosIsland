@@ -116,3 +116,15 @@ checks + battle probe, screens eyeballed via rendered screenshots):
   once all three are befriended. The rhythm-tap idea was deliberately
   redesigned away: timing pressure conflicts with the "never demand speed"
   rule (docs/DESIGN_NOTES.md), so its slot went to memory instead.
+
+## Execution record — 2026-07-24 late night (the progression pass)
+
+- Music composed and shipped (island_theme loop); AudioManager loops it and
+  starts it with the app.
+- Voice: cloud TTS routes are policy-blocked, so tools/make_voice.command
+  generates all lines on the Mac via the built-in Tingting voice — double
+  click, done, replace with real recordings whenever.
+- Hero XP + rank (shield in the home chip, +XP on results, gold level-up
+  banner) and five per-world Challenge levels whose rank rises each clear,
+  scaling MORE-not-FASTER per the no-speed rule. The level system now grows
+  without new content forever.

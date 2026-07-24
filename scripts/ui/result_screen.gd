@@ -52,6 +52,26 @@ func _ready() -> void:
 		badge.add_theme_color_override("font_color", Palette.STAR_ON)
 		box.add_child(badge)
 
+	# Experience: a quiet spark line every time, a loud party on rank-up.
+	if RewardManager.last_xp_earned > 0:
+		var xp_row := HBoxContainer.new()
+		xp_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		xp_row.add_theme_constant_override("separation", 8)
+		var spark: Control = UiKit.picture("spark", 34)
+		if spark != null:
+			xp_row.add_child(spark)
+		var xp_label := UiKit.title("+%d" % RewardManager.last_xp_earned, 28, Color(0.75, 0.88, 1.0))
+		xp_row.add_child(xp_label)
+		box.add_child(xp_row)
+
+	if RewardManager.last_levels_gained > 0:
+		var level_up := UiKit.title_on_art(
+			I18n.t("result.level_up") % SaveManager.hero_level(), 46)
+		level_up.add_theme_color_override("font_color", Palette.STAR_ON)
+		box.add_child(level_up)
+		UiKit.breathe(level_up, 0.05, 0.8)
+		AudioManager.play_sfx("res://assets/audio/star.ogg")
+
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 32)

@@ -8,11 +8,15 @@ signal badge_earned(badge_id: String)
 
 var last_new_badge: String = ""
 var last_coins_earned: int = 0
+var last_xp_earned: int = 0
+var last_levels_gained: int = 0
 
 
 func grant_for_level(result: LevelResult) -> void:
 	last_new_badge = ""
 	last_coins_earned = 0
+	last_xp_earned = 0
+	last_levels_gained = 0
 	if result.quit_early:
 		return
 
@@ -42,6 +46,16 @@ func grant_for_level(result: LevelResult) -> void:
 			badge_earned.emit(badge)
 
 	_grant_growth(level, stars)
+
+	# Hero experience: every finished level feeds the hero level, replays
+	# included -- effort always counts, unlike coins which pay improvement
+	# only. Challenges pay a rank bonus, so the endless levels stay the best
+	# way to grow once the hand-made ones are mastered.
+	var xp := 15 + 10 * stars
+	if bool(level.get("challenge", false)):
+		xp += 20 + 5 * mini(SaveManager.get_challenge_rank(result.level_id), 8)
+	last_xp_earned = xp
+	last_levels_gained = SaveManager.add_xp(xp)
 
 
 ## Growth attributes rise from the world the level belongs to. They are shown to

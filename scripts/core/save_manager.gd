@@ -23,7 +23,14 @@ func _default_data() -> Dictionary:
 			"name": "",
 			"character_id": str(GameData.characters.get("default", "light_hero")),
 			"created_at": Time.get_unix_time_from_system(),
+			# Hero experience: only ever rises, one shared number for the one
+			# child. Levels come out of it via hero_level().
+			"xp": 0,
 		},
+		# Challenge ranks: level_id -> how many times its challenge has been
+		# beaten. Each rank makes that challenge a little bigger -- the level
+		# system that keeps growing after the hand-made levels run out.
+		"challenges": {},
 		"settings": {
 			"locale": "en",
 			"music_volume": 0.8,
@@ -165,6 +172,34 @@ func is_level_unlocked(level_id: String) -> bool:
 func add_coins(amount: int) -> void:
 	data["rewards"]["coins"] = int(data["rewards"]["coins"]) + amount
 	save_game()
+
+
+# --- hero level and challenges ---
+
+const XP_PER_LEVEL := 120
+
+
+func hero_level() -> int:
+	return 1 + int(data["profile"].get("xp", 0)) / XP_PER_LEVEL
+
+
+## Adds experience and returns how many hero levels that gained (usually 0,
+## sometimes 1 -- the result screen throws the party).
+func add_xp(amount: int) -> int:
+	var before := hero_level()
+	data["profile"]["xp"] = int(data["profile"].get("xp", 0)) + maxi(amount, 0)
+	save_game()
+	return hero_level() - before
+
+
+func get_challenge_rank(level_id: String) -> int:
+	return int(data.get("challenges", {}).get(level_id, 0))
+
+
+func bump_challenge_rank(level_id: String) -> void:
+	data["challenges"][level_id] = get_challenge_rank(level_id) + 1
+	save_game()
+	progress_changed.emit()
 
 
 ## Coins go out only through here, and only if they are really there.

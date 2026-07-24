@@ -54,6 +54,16 @@ func setup_level() -> void:
 	_beam_color = Color.from_string(str(config.get("beam_color", "#ffd95a")), _beam_color)
 	_goo_timer = _goo_interval * 1.5
 
+	# Challenge scaling: more sparks to land, more duds to tell apart, a
+	# slightly busier monster. Spark lifetime never shrinks -- aim, not speed.
+	var rank := challenge_rank()
+	if rank > 0:
+		_spark_interval = maxf(_spark_interval * pow(0.95, rank), 0.55)
+		_dud_ratio = clampf(_dud_ratio + 0.02 * rank, 0.0, 0.45)
+		if _goo_interval > 0.0:
+			_goo_interval = maxf(_goo_interval - 0.2 * rank, 3.0)
+		bump_target("correct", mini(rank, 12))
+
 	_build_scene(config)
 
 

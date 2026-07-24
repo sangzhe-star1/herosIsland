@@ -30,6 +30,17 @@ func setup_level() -> void:
 	var config: Dictionary = level_data.get("config", {})
 	_icons = (config.get("icons", ["teddy", "ball", "blocks", "crayon"]) as Array).duplicate()
 	_columns = int(config.get("columns", 4))
+
+	# Challenge scaling: the board grows toward the config's full icon pool,
+	# one extra pair every couple of ranks. Memory needs nothing else.
+	var rank := challenge_rank()
+	if rank > 0:
+		var pairs: int = clampi(4 + (rank + 1) / 2, 4, _icons.size())
+		_icons = _icons.slice(0, pairs)
+		_columns = 4 if pairs <= 6 else 5
+		var target: Dictionary = level_data.get("target", {})
+		target["correct"] = pairs
+		level_data["target"] = target
 	_build_ui(config)
 	_deal()
 

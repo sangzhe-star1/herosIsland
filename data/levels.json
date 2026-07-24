@@ -23,7 +23,8 @@
       ],
       "hazard_ratio": 0.0,
       "color_target": false
-    }
+    },
+    "voice_intro": "res://assets/audio/voice/level/hero_city_intro.ogg"
   },
   {
     "id": "hero_city_02",
@@ -997,7 +998,8 @@
         "spikes": 0,
         "scale": 1.0
       }
-    }
+    },
+    "voice_intro": "res://assets/audio/voice/level/monster_arena_intro.ogg"
   },
   {
     "id": "monster_arena_02",
@@ -1100,7 +1102,8 @@
         "blocks",
         "crayon"
       ]
-    }
+    },
+    "voice_intro": "res://assets/audio/voice/level/memory_intro.ogg"
   },
   {
     "id": "rescue_forest_05",
@@ -1129,6 +1132,162 @@
         "berries",
         "blanket"
       ]
+    }
+  },
+  {
+    "id": "hero_city_challenge",
+    "world": "hero_city",
+    "name_key": "level.hero_city_challenge",
+    "game_type": "collect_energy",
+    "challenge": true,
+    "difficulty": 3,
+    "duration_seconds": 240,
+    "requires": "hero_city_05",
+    "target": {
+      "correct": 12
+    },
+    "reward": {
+      "coins": 30,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "collect.match_tower",
+      "background": "#0e1b2b",
+      "spawn_interval": 0.8,
+      "fall_speed": 170.0,
+      "orb_colors": [
+        "#ff5d5d",
+        "#4fb8ff",
+        "#7ee06a",
+        "#ffd23c"
+      ],
+      "hazard_ratio": 0.2,
+      "color_target": true
+    }
+  },
+  {
+    "id": "monster_arena_challenge",
+    "world": "monster_arena",
+    "name_key": "level.monster_arena_challenge",
+    "game_type": "monster_battle",
+    "challenge": true,
+    "difficulty": 3,
+    "duration_seconds": 240,
+    "requires": "monster_arena_03",
+    "target": {
+      "correct": 10
+    },
+    "reward": {
+      "coins": 30,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "battle.instruction",
+      "background": "#141024",
+      "background_art": "res://assets/backgrounds/city_damaged.png",
+      "spark_interval": 1.1,
+      "spark_life": 5.5,
+      "dud_ratio": 0.25,
+      "goo_interval": 5.5,
+      "beam_color": "#7fd4ff",
+      "monster": {
+        "id": "spikelor",
+        "body_color": "#8a5fc9",
+        "belly_color": "#c9aef2",
+        "accent_color": "#5e3f96",
+        "height": 330,
+        "width": 0.88,
+        "horns": 2,
+        "eyes": 2,
+        "spikes": 5,
+        "scale": 1.1
+      }
+    }
+  },
+  {
+    "id": "piglet_town_challenge",
+    "world": "piglet_town",
+    "name_key": "level.piglet_town_challenge",
+    "game_type": "memory_match",
+    "challenge": true,
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "piglet_town_05",
+    "target": {
+      "correct": 4
+    },
+    "reward": {
+      "coins": 30,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "memory.instruction",
+      "background": "#f6ead8",
+      "background_art": "res://assets/backgrounds/town.png",
+      "columns": 4,
+      "icons": [
+        "teddy",
+        "ball",
+        "blocks",
+        "crayon",
+        "picture_book",
+        "socks",
+        "hat",
+        "tshirt"
+      ]
+    }
+  },
+  {
+    "id": "safety_challenge",
+    "world": "safety",
+    "name_key": "level.safety_challenge",
+    "game_type": "traffic_crossing",
+    "challenge": true,
+    "difficulty": 3,
+    "duration_seconds": 240,
+    "growth_attribute": "focus",
+    "requires": "safety_traffic_04",
+    "target": {
+      "correct_crossings": 4
+    },
+    "reward": {
+      "coins": 30,
+      "badge": ""
+    },
+    "config": {
+      "car_speed": 190.0,
+      "car_gap_min": 1.4,
+      "car_gap_max": 2.4,
+      "green_seconds": 3.5,
+      "red_seconds": 5.0,
+      "lanes": 3,
+      "rain": true
+    }
+  },
+  {
+    "id": "rescue_forest_challenge",
+    "world": "rescue_forest",
+    "name_key": "level.rescue_forest_challenge",
+    "game_type": "animal_rescue",
+    "challenge": true,
+    "difficulty": 3,
+    "duration_seconds": 260,
+    "requires": "rescue_forest_05",
+    "target": {
+      "correct": 6
+    },
+    "reward": {
+      "coins": 30,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "rescue.instruction_route",
+      "background": "#cfe0d8",
+      "background_art": "res://assets/backgrounds/forest.png",
+      "trail_length": 5,
+      "hazards": 3,
+      "hint": false,
+      "goal_icon": "paw"
     }
   }
 ]

@@ -40,6 +40,13 @@ func setup_level() -> void:
 	_goal_icon = str(config.get("goal_icon", "paw"))
 	_hint = bool(config.get("hint", int(level_data.get("difficulty", 1)) <= 1))
 
+	# Challenge scaling: longer trails through more hazards, more rounds.
+	var rank := challenge_rank()
+	if rank > 0:
+		_trail_length = mini(_trail_length + (rank + 1) / 2, 8)
+		_hazard_count = mini(_hazard_count + rank / 2, 6)
+		bump_target("correct", mini(rank, 4))
+
 	_build_ui(config)
 	_start_round()
 
