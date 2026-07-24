@@ -16,6 +16,7 @@ const BIN_ROW_Y := 470.0
 const TAP_THRESHOLD := 14.0
 
 var _bins: Array = []          # [{id, node, rect_source}]
+var _bin_counts: Dictionary = {}   # bin id -> items sorted into it this level
 var _item_pool: Array = []     # shuffled queue of item definitions
 var _pool_index := 0
 
@@ -58,6 +59,7 @@ func _build_ui(config: Dictionary) -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(bg)
+	UiKit.scene_art(_play_area, config)
 
 	var back := UiKit.back_button(func(): quit_level())
 	back.position = Vector2(24, 24)
@@ -413,6 +415,7 @@ func _accept() -> void:
 	if target != null:
 		Juice.burst(_play_area, target.position + BIN_SIZE / 2.0)
 		Juice.pop(target)
+		_bump_bin_count(_item_answer, target)
 	var t := create_tween().set_parallel(true)
 	t.tween_property(_item, "global_position", destination, 0.25).set_trans(Tween.TRANS_SINE)
 	t.tween_property(_item, "scale", Vector2(0.35, 0.35), 0.25)
@@ -451,6 +454,31 @@ func _return_item_home() -> Signal:
 
 func _shake_item() -> void:
 	Juice.nudge(_item)
+
+
+## A little counter chip on the bin that ticks up as it gets fed -- the bin
+## visibly "collects", which at six is half the pleasure of sorting.
+func _bump_bin_count(bin_id: String, bin: Control) -> void:
+	_bin_counts[bin_id] = int(_bin_counts.get(bin_id, 0)) + 1
+	var chip: Label = bin.get_node_or_null("count_chip")
+	if chip == null:
+		chip = Label.new()
+		chip.name = "count_chip"
+		chip.add_theme_font_size_override("font_size", 24)
+		chip.add_theme_color_override("font_color", Color.WHITE)
+		chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		chip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.07, 0.13, 0.26, 0.85)
+		style.set_corner_radius_all(19)
+		chip.add_theme_stylebox_override("normal", style)
+		chip.size = Vector2(38, 38)
+		chip.position = Vector2(BIN_SIZE.x - 26, -12)
+		chip.pivot_offset = chip.size / 2.0
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bin.add_child(chip)
+	chip.text = str(_bin_counts[bin_id])
+	Juice.pop(chip, 0.35)
 
 
 func _bin_node(bin_id: String) -> Control:

@@ -84,6 +84,31 @@ func _ready() -> void:
 		badge_row.add_child(chip)
 	list.add_child(badge_card)
 
+	# --- sticker book card ---------------------------------------------------
+	# Coins finally have somewhere to GO. Each sticker is one of the game's
+	# own badge pictures with a coin price; owned stickers glow at full
+	# colour, unowned ones sit dim behind their price. Tap to buy -- if the
+	# coins are there, it pops and it is yours forever. No reading needed:
+	# picture, price, tap.
+	var sticker_card := UiKit.card()
+	sticker_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sticker_box := VBoxContainer.new()
+	sticker_box.add_theme_constant_override("separation", 12)
+	sticker_card.add_child(sticker_box)
+
+	var sticker_title := UiKit.title(I18n.t("rewards.stickers"), 40)
+	sticker_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	sticker_box.add_child(sticker_title)
+
+	var sticker_row := HFlowContainer.new()
+	sticker_row.add_theme_constant_override("h_separation", 14)
+	sticker_row.add_theme_constant_override("v_separation", 14)
+	sticker_box.add_child(sticker_row)
+
+	for sticker in GameData.rewards.get("stickers", []):
+		sticker_row.add_child(_build_sticker(sticker))
+	list.add_child(sticker_card)
+
 	# --- growth card ---------------------------------------------------------
 	var growth_card := UiKit.card()
 	growth_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -119,3 +144,68 @@ func _ready() -> void:
 		line.add_child(bar)
 		growth_box.add_child(line)
 	list.add_child(growth_card)
+
+
+func _build_sticker(sticker: Dictionary) -> Control:
+	var sticker_id := str(sticker.get("id", ""))
+	var cost := int(sticker.get("cost", 10))
+	var owned := SaveManager.has_sticker(sticker_id)
+
+	var tile := Button.new()
+	tile.focus_mode = Control.FOCUS_NONE
+	tile.custom_minimum_size = Vector2(150, 150)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(1, 1, 1, 0.0) if owned else Color(0.55, 0.58, 0.66, 0.18)
+	style.set_corner_radius_all(22)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		tile.add_theme_stylebox_override(state, style)
+
+	var icon: Control = UiKit.picture(sticker_id, 96)
+	if icon != null:
+		icon.position = Vector2(27, 8)
+		icon.modulate = Color(1, 1, 1, 1.0) if owned else Color(0.6, 0.62, 0.7, 0.8)
+		tile.add_child(icon)
+
+	if not owned:
+		var price := HBoxContainer.new()
+		price.add_theme_constant_override("separation", 4)
+		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var coin: Control = UiKit.picture("coin", 30)
+		if coin != null:
+			price.add_child(coin)
+		var amount := Label.new()
+		amount.text = str(cost)
+		amount.add_theme_font_size_override("font_size", 24)
+		amount.add_theme_color_override("font_color", Palette.INK)
+		price.add_child(amount)
+		price.position = Vector2(48, 112)
+		tile.add_child(price)
+		tile.pressed.connect(func(): _try_buy(sticker_id, cost, tile, icon, price))
+	return tile
+
+
+func _try_buy(sticker_id: String, cost: int, tile: Button, icon: Control, price: Control) -> void:
+	if SaveManager.has_sticker(sticker_id):
+		return
+	if not SaveManager.spend_coins(cost):
+		# Not enough yet: the price tag wiggles, nothing is lost, and the next
+		# level is the way to fix it. No error sound, no popup.
+		Juice.nudge(price)
+		return
+	SaveManager.add_sticker(sticker_id)
+	if icon != null:
+		icon.modulate = Color.WHITE
+	price.queue_free()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(1, 1, 1, 0.0)
+	style.set_corner_radius_all(22)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		tile.add_theme_stylebox_override(state, style)
+	Juice.pop(tile, 0.25)
+	Juice.burst(self, tile.get_global_rect().get_center(), 18)
+	AudioManager.play_sfx("res://assets/audio/coin.ogg")
+	# The header chip and coins card are stale now; rebuild the screen state
+	# cheaply by refreshing the scene.
+	await get_tree().create_timer(0.6).timeout
+	if is_instance_valid(self):
+		SceneManager.goto_scene("res://scenes/reward/RewardCenter.tscn")

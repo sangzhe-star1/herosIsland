@@ -34,7 +34,7 @@ func _ready() -> void:
 	var play := UiKit.icon_button(I18n.t("home.play"), "flag", Palette.GREEN)
 	play.pressed.connect(_on_play)
 	grid.add_child(play)
-	_breathe(play)
+	UiKit.breathe(play)
 
 	var rewards := UiKit.icon_button(I18n.t("home.rewards"), "star", Palette.ORANGE)
 	rewards.pressed.connect(func(): SceneManager.goto_scene("res://scenes/reward/RewardCenter.tscn"))
@@ -182,21 +182,6 @@ func _build_hero() -> void:
 	)
 
 
-## The slow breathing pulse every good kids' app puts on its primary action:
-## "this is the one to press". One button only -- a screen where everything
-## pulses is a screen where nothing does.
-func _breathe(button: Button) -> void:
-	if not Juice.motion_enabled():
-		return
-	await get_tree().process_frame
-	if not is_instance_valid(button):
-		return
-	button.pivot_offset = button.size / 2.0
-	var t := button.create_tween().set_loops()
-	t.tween_property(button, "scale", Vector2(1.03, 1.03), 0.9)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_property(button, "scale", Vector2.ONE, 0.9)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _begin_hold() -> void:

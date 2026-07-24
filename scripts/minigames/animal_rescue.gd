@@ -61,6 +61,7 @@ func _build_ui(config: Dictionary) -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(bg)
+	UiKit.scene_art(_play_area, config)
 
 	var back := UiKit.back_button(func(): quit_level())
 	back.position = Vector2(24, 24)
@@ -112,6 +113,15 @@ func _start_round() -> void:
 		_build_hazard(at)
 
 	_refresh_hint()
+
+	# The goal breathes very gently the whole round: "this is where the trail
+	# is going". Softer and slower than the next-step hint, so they never
+	# compete for the eye.
+	if Juice.motion_enabled() and not _steps.is_empty():
+		var goal: Control = _steps[_steps.size() - 1]
+		var tween := goal.create_tween().set_loops()
+		tween.tween_property(goal, "scale", Vector2(1.05, 1.05), 1.1).set_trans(Tween.TRANS_SINE)
+		tween.tween_property(goal, "scale", Vector2.ONE, 1.1).set_trans(Tween.TRANS_SINE)
 
 
 ## Random placement that keeps everything reachable and non-overlapping.
@@ -275,10 +285,17 @@ func _take_step(index: int) -> void:
 	if not is_instance_valid(step):
 		return
 
-	# Taken steps stay on screen, dimmed, so the child can see the path they
-	# have built rather than watching it disappear behind them.
+	# Taken steps stay on screen -- greened, ticked, and joined to the previous
+	# stone by a dotted path, so the child watches the route they are building
+	# grow across the screen rather than vanish behind them.
 	step.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	step.modulate = Color(1.0, 1.0, 1.0, 0.45)
+	step.modulate = Color(0.72, 1.0, 0.78, 0.85)
+	var tick: Control = UiKit.picture("check", 44)
+	if tick != null:
+		tick.position = Vector2(STEP_SIZE - 34, -12)
+		step.add_child(tick)
+	if index > 0:
+		_draw_path_segment(index - 1, index)
 	Juice.pop(step)
 	AudioManager.play_sfx("res://assets/audio/correct.ogg")
 
@@ -288,6 +305,38 @@ func _take_step(index: int) -> void:
 		return
 
 	_finish_round(step)
+
+
+## The dotted trail between two taken stones. Drawn behind the stones, one
+## soft dot at a time so the path appears to be walked rather than stamped.
+func _draw_path_segment(from_index: int, to_index: int) -> void:
+	if from_index < 0 or to_index >= _steps.size():
+		return
+	var from_step: Control = _steps[from_index]
+	var to_step: Control = _steps[to_index]
+	if not (is_instance_valid(from_step) and is_instance_valid(to_step)):
+		return
+	var from: Vector2 = from_step.position + from_step.size / 2.0
+	var to: Vector2 = to_step.position + to_step.size / 2.0
+	var span := to - from
+	var count := maxi(int(span.length() / 34.0), 2)
+	for i in range(1, count):
+		var dot := Panel.new()
+		dot.size = Vector2(12, 12)
+		dot.position = from + span * (float(i) / float(count)) - dot.size / 2.0
+		dot.pivot_offset = dot.size / 2.0
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(1, 1, 1, 0.75)
+		style.set_corner_radius_all(6)
+		dot.add_theme_stylebox_override("panel", style)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_round_holder.add_child(dot)
+		_round_holder.move_child(dot, 0)
+		if Juice.motion_enabled():
+			dot.scale = Vector2.ZERO
+			var t := dot.create_tween()
+			t.tween_interval(0.03 * float(i))
+			t.tween_property(dot, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK)
 
 
 func _wrong_step(_index: int) -> void:

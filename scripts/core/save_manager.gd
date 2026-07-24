@@ -167,6 +167,28 @@ func add_coins(amount: int) -> void:
 	save_game()
 
 
+## Coins go out only through here, and only if they are really there.
+func spend_coins(amount: int) -> bool:
+	if amount <= 0 or int(data["rewards"]["coins"]) < amount:
+		return false
+	data["rewards"]["coins"] = int(data["rewards"]["coins"]) - amount
+	save_game()
+	progress_changed.emit()
+	return true
+
+
+func has_sticker(sticker_id: String) -> bool:
+	return sticker_id in data["rewards"]["stickers"]
+
+
+func add_sticker(sticker_id: String) -> void:
+	if sticker_id == "" or has_sticker(sticker_id):
+		return
+	data["rewards"]["stickers"].append(sticker_id)
+	save_game()
+	progress_changed.emit()
+
+
 func add_badge(badge_id: String) -> bool:
 	if badge_id == "" or badge_id in data["rewards"]["badges"]:
 		return false

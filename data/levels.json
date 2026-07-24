@@ -186,7 +186,8 @@
           "shape": "star",
           "color": "#e8b93c"
         }
-      ]
+      ],
+      "background_art": "res://assets/backgrounds/town.png"
     }
   },
   {
@@ -285,7 +286,8 @@
           "render": "dots",
           "count": 5
         }
-      ]
+      ],
+      "background_art": "res://assets/backgrounds/town.png"
     }
   },
   {
@@ -367,7 +369,8 @@
           "render": "label",
           "text_key": "item.hat"
         }
-      ]
+      ],
+      "background_art": "res://assets/backgrounds/town.png"
     }
   },
   {
@@ -529,7 +532,8 @@
           "render": "label",
           "text_key": "item.pillow"
         }
-      ]
+      ],
+      "background_art": "res://assets/backgrounds/room.png"
     }
   },
   {
@@ -553,7 +557,8 @@
       "trail_length": 4,
       "hazards": 2,
       "hint": false,
-      "goal_icon": "house"
+      "goal_icon": "house",
+      "background_art": "res://assets/backgrounds/room.png"
     }
   },
   {
@@ -576,7 +581,8 @@
       "trail_length": 3,
       "hazards": 0,
       "hint": true,
-      "goal_icon": "paw"
+      "goal_icon": "paw",
+      "background_art": "res://assets/backgrounds/forest.png"
     }
   },
   {
@@ -653,7 +659,8 @@
           "render": "label",
           "text_key": "item.scarf"
         }
-      ]
+      ],
+      "background_art": "res://assets/backgrounds/forest.png"
     }
   },
   {
@@ -677,7 +684,8 @@
       "trail_length": 5,
       "hazards": 3,
       "hint": false,
-      "goal_icon": "paw"
+      "goal_icon": "paw",
+      "background_art": "res://assets/backgrounds/forest.png"
     }
   },
   {
@@ -812,7 +820,8 @@
           "render": "label",
           "text_key": "item.scarf"
         }
-      ]
+      ],
+      "background_art": "res://assets/backgrounds/town.png"
     }
   },
   {
@@ -898,7 +907,8 @@
           "render": "label",
           "text_key": "item.carrot"
         }
-      ]
+      ],
+      "background_art": "res://assets/backgrounds/room.png"
     }
   },
   {
@@ -948,7 +958,8 @@
       "trail_length": 6,
       "hazards": 4,
       "hint": false,
-      "goal_icon": "paw"
+      "goal_icon": "paw",
+      "background_art": "res://assets/backgrounds/forest.png"
     }
   },
   {
@@ -1061,6 +1072,63 @@
         "spikes": 5,
         "scale": 1.15
       }
+    }
+  },
+  {
+    "id": "piglet_town_05",
+    "world": "piglet_town",
+    "name_key": "level.piglet_town_05",
+    "game_type": "memory_match",
+    "difficulty": 2,
+    "duration_seconds": 240,
+    "requires": "piglet_town_03",
+    "target": {
+      "correct": 4
+    },
+    "reward": {
+      "coins": 25,
+      "badge": "memory_master"
+    },
+    "config": {
+      "instruction_key": "memory.instruction",
+      "background": "#f6ead8",
+      "background_art": "res://assets/backgrounds/town.png",
+      "columns": 4,
+      "icons": [
+        "teddy",
+        "ball",
+        "blocks",
+        "crayon"
+      ]
+    }
+  },
+  {
+    "id": "rescue_forest_05",
+    "world": "rescue_forest",
+    "name_key": "level.rescue_forest_05",
+    "game_type": "memory_match",
+    "difficulty": 3,
+    "duration_seconds": 260,
+    "requires": "rescue_forest_03",
+    "target": {
+      "correct": 5
+    },
+    "reward": {
+      "coins": 30,
+      "badge": "forest_friend"
+    },
+    "config": {
+      "instruction_key": "memory.instruction",
+      "background": "#dcedd8",
+      "background_art": "res://assets/backgrounds/forest.png",
+      "columns": 5,
+      "icons": [
+        "paw",
+        "fish",
+        "carrot",
+        "berries",
+        "blanket"
+      ]
     }
   }
 ]

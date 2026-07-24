@@ -25,7 +25,7 @@ can do NEXT with no new material, and what needs ART or VOICE from you
   thumb corner); hero enlarged.
 - Removed the last unused string; suite stays at 277 checks + battle probe.
 
-## Phase 1 — next coding pass (no material needed)
+## Phase 1 — DONE (2026-07-24 evening pass)
 
 1. **Sorting levels**: item cards fly to the bin on a correct drop (tween
    arc), bins wiggle when fed, bin fill-count pips. Item card enters with a
@@ -39,7 +39,7 @@ can do NEXT with no new material, and what needs ART or VOICE from you
    chip (same treasure chip as home) — the BabyBus collect-the-reward beat.
 5. **Boot**: title gets a pop-in and the hero beams (power_up flare) once.
 
-## Phase 2 — needs ART from your generator (exact slots)
+## Phase 2 — largely DONE with generated placeholder art; generator art still welcome
 
 Highest impact first. PNG, transparent unless noted; drop in and done.
 
@@ -56,7 +56,7 @@ Highest impact first. PNG, transparent unless noted; drop in and done.
 When the three world backgrounds land, tell me — wiring each is one JSON
 line per level, and I'll do the pass and re-verify.
 
-## Phase 3 — needs VOICE (the single biggest BabyBus ingredient)
+## Phase 3 — SFX DONE (synthesized chime set ships); VOICE still needs your recordings
 
 BabyBus narrates everything because its players cannot read. All hooks are
 wired and silent. Record on a phone (quiet room, one line per file), any
@@ -76,7 +76,7 @@ Plus the short SFX set (`assets/audio/`): correct, try_again, star, coin,
 level_complete, orb_collect, power_up, beam — free CC0 packs listed in
 ASSETS.md §5, or I can point at exact files next pass.
 
-## Phase 4 — new play, once the above lands
+## Phase 4 — sticker book, memory match and the boss parade are IN; below is what remains
 
 - **Sticker book**: spend coins on stickers (reward_chest is already in);
   a page per world. This is PLAN.md's "reason to come back", BabyBus-style.
@@ -90,3 +90,29 @@ ASSETS.md §5, or I can point at exact files next pass.
 Whatever gets added: 2cm targets, tap-first, no time pressure, mistakes
 cost a nudge and nothing else, one pulsing thing per screen, no flashing,
 reduce-motion honoured everywhere, and words never carry meaning alone.
+
+---
+
+## Execution record — 2026-07-24 evening
+
+Everything a cloud session could do alone is done and verified (289 smoke
+checks + battle probe, screens eyeballed via rendered screenshots):
+
+- Phase 1 complete: bin counter chips, rescue trail (green ticked stones,
+  dotted path drawn as it is walked, breathing goal), map island stagger +
+  breathing frontier level, coins flying into the treasure chip on results,
+  boot title pop + chest-light flare.
+- Phase 2: all 22 item icons generated in the game's badge style (drop-in
+  replaceable by your generator art any time, same filenames), plus painted
+  town / forest / room scenes wired into every sorting, rescue and memory
+  level. Remaining for your generator: the three monster paintings and any
+  richer background upgrades.
+- Phase 3: the full SFX set is synthesized and shipped (correct, try_again,
+  star, coin, level_complete, orb_collect, power_up, beam) — gentle chimes,
+  quiet by design. Voice lines remain yours to record (script table above).
+- Phase 4: Sticker Book lives in My Rewards (12 stickers, 8–22 coins, buy
+  by tap, owned ones glow); memory_match template with two levels (25
+  levels total across 6 templates); the arena monsters parade on the map
+  once all three are befriended. The rhythm-tap idea was deliberately
+  redesigned away: timing pressure conflicts with the "never demand speed"
+  rule (docs/DESIGN_NOTES.md), so its slot went to memory instead.

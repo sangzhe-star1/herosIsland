@@ -44,6 +44,19 @@ func _ready() -> void:
 
 	var t := UiKit.title_on_art(I18n.t("app.title"), 72)
 	box.add_child(t)
+	# The title pops in and the hero's light flares once: the game says hello.
+	if Juice.motion_enabled():
+		t.resized.connect(func():
+			t.pivot_offset = t.size / 2.0
+			t.scale = Vector2(0.7, 0.7)
+			var pop := t.create_tween()
+			pop.tween_property(t, "scale", Vector2.ONE, 0.35)\
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		, CONNECT_ONE_SHOT)
+		get_tree().create_timer(0.9).timeout.connect(func():
+			if is_instance_valid(hero):
+				hero.power_up()
+		)
 
 	_prompt = UiKit.title(I18n.t("boot.tap_to_start"), 40, Color(0.78, 0.88, 1.0))
 	box.add_child(_prompt)

@@ -38,11 +38,11 @@ func _ready() -> void:
 		var coin_icon: Control = UiKit.picture("coin", 42)
 		if coin_icon != null:
 			coin_row.add_child(coin_icon)
-		var coins := UiKit.title(I18n.t("result.coins") % 0, 34)
+		var coins := UiKit.title(I18n.t("result.coins") % RewardManager.last_coins_earned, 34)
 		coins.add_theme_color_override("font_color", Palette.STAR_ON)
 		coin_row.add_child(coins)
 		box.add_child(coin_row)
-		_count_up(coins, RewardManager.last_coins_earned)
+		_fly_coins_to_chip(coin_row, RewardManager.last_coins_earned)
 
 	if RewardManager.last_new_badge != "":
 		var badge := UiKit.title(
@@ -87,22 +87,69 @@ func _ready() -> void:
 			Juice.burst(self, Vector2(860, 320), 30)
 
 
-## Coins tick up rather than appearing. Watching a number climb is a reward in
-## itself at this age, and it stretches the payoff over a couple of seconds
-## instead of spending it in one frame.
-func _count_up(label: Label, total: int) -> void:
-	if not Juice.motion_enabled():
-		label.text = I18n.t("result.coins") % total
+## The earned coins fly one by one into the treasure chip, whose total climbs
+## as each lands -- the child watches today's pay join the pile they own, the
+## same chip they see on the home screen. Watching wealth accumulate is a
+## reward in itself at this age.
+func _fly_coins_to_chip(from_node: Control, earned: int) -> void:
+	var new_total: int = int(SaveManager.data["rewards"]["coins"])
+	var old_total: int = maxi(new_total - earned, 0)
+
+	# The chip, top-right, showing where the coins are going.
+	var chip := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.13, 0.26, 0.85)
+	style.set_corner_radius_all(26)
+	style.set_content_margin_all(10)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	chip.add_theme_stylebox_override("panel", style)
+	var chip_row := HBoxContainer.new()
+	chip_row.add_theme_constant_override("separation", 8)
+	var chip_icon: Control = UiKit.picture("coin", 40)
+	if chip_icon != null:
+		chip_row.add_child(chip_icon)
+	var chip_label := UiKit.title("%d" % old_total, 30, Palette.ON_COLOR)
+	chip_row.add_child(chip_label)
+	chip.add_child(chip_row)
+	add_child(chip)
+	await get_tree().process_frame
+	if not is_instance_valid(chip):
 		return
-	var shown := 0
-	var step: float = maxf(0.04, 0.9 / float(maxi(total, 1)))
-	while shown < total:
-		await get_tree().create_timer(step).timeout
-		if not is_instance_valid(label):
+	chip.position = Vector2(1280.0 - chip.size.x - 28.0, 24)
+	chip.pivot_offset = chip.size / 2.0
+
+	if not Juice.motion_enabled():
+		chip_label.text = "%d" % new_total
+		return
+
+	# A handful of flying coins carry the whole amount between them.
+	var flights: int = clampi(earned, 3, 8)
+	var from: Vector2 = from_node.get_global_rect().get_center()
+	for i in range(flights):
+		await get_tree().create_timer(0.14).timeout
+		if not is_instance_valid(chip):
 			return
-		shown += 1
-		label.text = I18n.t("result.coins") % shown
-		AudioManager.play_sfx("res://assets/audio/coin.ogg")
+		var coin: Control = UiKit.picture("coin", 44)
+		if coin == null:
+			break
+		coin.position = from - Vector2(22, 22)
+		add_child(coin)
+		var to: Vector2 = chip.position + Vector2(24, chip.size.y / 2.0 - 22)
+		var t := create_tween()
+		t.set_parallel(true)
+		t.tween_property(coin, "position:x", to.x, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		t.tween_property(coin, "position:y", to.y, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		var landed := i + 1
+		t.chain().tween_callback(func():
+			if is_instance_valid(coin):
+				coin.queue_free()
+			if is_instance_valid(chip_label):
+				var shown: int = old_total + int(round(float(earned) * float(landed) / float(flights)))
+				chip_label.text = "%d" % (new_total if landed == flights else shown)
+				Juice.pop(chip, 0.12)
+				AudioManager.play_sfx("res://assets/audio/coin.ogg")
+		)
 
 
 ## Stars pop in one at a time. The pause between them is the reward.

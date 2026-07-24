@@ -71,6 +71,14 @@
     "monster_friend": {
       "name_key": "badge.monster_friend",
       "icon": ""
+    },
+    "memory_master": {
+      "name_key": "badge.memory_master",
+      "icon": ""
+    },
+    "forest_friend": {
+      "name_key": "badge.forest_friend",
+      "icon": ""
     }
   },
   "growth_attributes": [
@@ -93,6 +101,56 @@
     {
       "id": "safety",
       "name_key": "growth.safety"
+    }
+  ],
+  "stickers": [
+    {
+      "id": "check",
+      "cost": 8
+    },
+    {
+      "id": "star",
+      "cost": 10
+    },
+    {
+      "id": "heart",
+      "cost": 10
+    },
+    {
+      "id": "paw",
+      "cost": 12
+    },
+    {
+      "id": "house",
+      "cost": 12
+    },
+    {
+      "id": "car",
+      "cost": 14
+    },
+    {
+      "id": "flag",
+      "cost": 14
+    },
+    {
+      "id": "spark",
+      "cost": 16
+    },
+    {
+      "id": "shield",
+      "cost": 16
+    },
+    {
+      "id": "lightning",
+      "cost": 18
+    },
+    {
+      "id": "sort",
+      "cost": 18
+    },
+    {
+      "id": "monster",
+      "cost": 22
     }
   ]
 }

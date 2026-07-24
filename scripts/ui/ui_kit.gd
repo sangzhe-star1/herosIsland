@@ -248,6 +248,41 @@ static func icon_button(text: String, icon_name: String,
 	return b
 
 
+## The slow breathing pulse for a screen's ONE primary action ("this is the
+## thing to press"). Waits for first layout so the pivot lands in the centre.
+static func breathe(control: Control, amount: float = 0.03, period: float = 0.9) -> void:
+	if not Juice.motion_enabled():
+		return
+	var start := func():
+		if not is_instance_valid(control):
+			return
+		control.pivot_offset = control.size / 2.0
+		var t := control.create_tween().set_loops()
+		t.tween_property(control, "scale", Vector2.ONE * (1.0 + amount), period)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		t.tween_property(control, "scale", Vector2.ONE, period)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if control.is_inside_tree() and control.size.length() > 0.0:
+		start.call()
+	else:
+		control.resized.connect(start, CONNECT_ONE_SHOT)
+
+
+## Full-screen scene art behind gameplay, when a level's config names one.
+## The shared pattern for every template: colour fallback stays underneath.
+static func scene_art(parent: Control, config: Dictionary) -> void:
+	var path: String = str(config.get("background_art", ""))
+	if path == "" or not ResourceLoader.exists(path):
+		return
+	var art := TextureRect.new()
+	art.texture = load(path)
+	art.set_anchors_preset(Control.PRESET_FULL_RECT)
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(art)
+
+
 static func back_button(target: Callable) -> Button:
 	var b := big_button("<", Palette.SLATE)
 	b.custom_minimum_size = Vector2(112, 96)

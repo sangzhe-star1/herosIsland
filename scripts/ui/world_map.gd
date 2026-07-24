@@ -37,8 +37,17 @@ func _ready() -> void:
 
 	var worlds: Array = GameData.worlds.duplicate()
 	worlds.sort_custom(func(a, b): return int(a.get("order", 0)) < int(b.get("order", 0)))
+	var section_index := 0
 	for world in worlds:
-		list.add_child(_build_world_section(world))
+		var section := _build_world_section(world)
+		list.add_child(section)
+		# Islands drift in one after another instead of appearing as a wall.
+		if Juice.motion_enabled():
+			section.modulate.a = 0.0
+			var t := section.create_tween()
+			t.tween_interval(0.07 * float(section_index))
+			t.tween_property(section, "modulate:a", 1.0, 0.25)
+		section_index += 1
 
 
 func _build_world_section(world: Dictionary) -> Control:
@@ -95,7 +104,37 @@ func _build_world_section(world: Dictionary) -> Control:
 	for level in world_levels:
 		row.add_child(_build_level_button(level))
 
+	# When every arena monster has been befriended, they come back to wave
+	# from the panel header -- the reward for finishing a world is getting to
+	# SEE that its story ended happily.
+	if str(world.get("id", "")) == "monster_arena":
+		_maybe_add_parade(header, world_levels)
+
 	return panel
+
+
+func _maybe_add_parade(header: HBoxContainer, world_levels: Array) -> void:
+	for level in world_levels:
+		if not SaveManager.get_level_progress(str(level.get("id", ""))).get("completed", false):
+			return
+	var monsters := [
+		{"id": "rocky", "body_color": "#d98a4a", "belly_color": "#f2c489", "accent_color": "#a8632f",
+			"height": 300, "width": 0.85, "horns": 1, "eyes": 2, "spikes": 0},
+		{"id": "blobbi", "body_color": "#7ec66a", "belly_color": "#b9e6a5", "accent_color": "#4f9e4a",
+			"height": 270, "width": 0.95, "horns": 0, "eyes": 3, "spikes": 0},
+		{"id": "spikelor", "body_color": "#8a5fc9", "belly_color": "#c9aef2", "accent_color": "#5e3f96",
+			"height": 330, "width": 0.88, "horns": 2, "eyes": 2, "spikes": 5},
+	]
+	for config in monsters:
+		var holder := Control.new()
+		holder.custom_minimum_size = Vector2(64, 76)
+		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var monster: Node2D = preload("res://scripts/battle/monster.gd").new()
+		monster.position = Vector2(32, 74)
+		monster.scale = Vector2.ONE * (66.0 / float(config["height"]))
+		holder.add_child(monster)
+		monster.build(config)
+		header.add_child(holder)
 
 
 ## The bundle's progress frame and fill as a real bar; plain styleboxes when
@@ -149,6 +188,7 @@ func _build_level_button(level: Dictionary) -> Control:
 		"collect_energy": "spark",
 		"animal_rescue": "paw",
 		"monster_battle": "monster",
+		"memory_match": "blocks",
 	}
 	var icon_name: String = str(icons.get(level.get("game_type", ""), ""))
 	if not playable:
@@ -157,6 +197,11 @@ func _build_level_button(level: Dictionary) -> Control:
 	var button := _card_button(label, icon_name, playable)
 	if playable:
 		button.pressed.connect(func(): GameManager.start_level(level_id))
+		# The frontier level -- playable but not yet cleared -- breathes
+		# gently: "this one is next". At most a couple per screen, since
+		# each world has a single frontier.
+		if not progress.get("completed", false):
+			UiKit.breathe(button, 0.025, 1.1)
 	column.add_child(button)
 
 	column.add_child(UiKit.star_row(int(progress.get("stars", 0)), 3, 40))

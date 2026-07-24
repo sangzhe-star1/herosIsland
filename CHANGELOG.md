@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-07-24 (night) — Every plan phase executed
+
+- **Phase 1 juice**: sorting bins wear counter chips that pop as they fill;
+  rescue stones turn green with a tick and a dotted path draws itself
+  between them, the goal breathes; map islands drift in staggered and the
+  frontier level of each world breathes; result-screen coins fly one by one
+  into the treasure chip as it counts up; the boot title pops in and the
+  hero's chest light flares hello.
+- **Phase 2 art**: all 22 item icons generated in the badge style (sorting
+  levels are now fully pictorial), and three painted scenes — town, forest,
+  room — behind every sorting, rescue and memory level via the new shared
+  `background_art` hook (`UiKit.scene_art`).
+- **Phase 3 audio**: the game makes sound. Eight synthesized chime SFX ship
+  in `assets/audio/` (correct, try_again, star, coin, level_complete,
+  orb_collect, power_up, beam) — soft triads and sweeps, mixed quiet.
+  Voice lines remain for the family to record (script in DESIGN_PLAN.md).
+- **Phase 4 play**: the **Sticker Book** opens in My Rewards — twelve
+  stickers bought with coins (first thing coins are FOR), owned ones glow;
+  new **memory_match** template with Memory Toys and Forest Memory levels
+  (25 levels, 6 templates); the three arena monsters **parade** on the map
+  header once all are befriended. Rhythm-tap was consciously dropped:
+  timing pressure conflicts with the no-speed rule, memory took its slot.
+- SaveManager grows spend_coins/add_sticker (coins only ever leave through
+  the sticker book); suite grows to 289 checks, all green.
+
+
 ## 2026-07-24 (evening) — Fonts, home hub polish, BabyBus-pass plan
 
 - **Real fonts ship at last**: `assets/fonts/NotoSansSC.otf` (Noto Sans CJK
