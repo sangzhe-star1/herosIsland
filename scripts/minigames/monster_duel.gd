@@ -265,7 +265,10 @@ func _build_ult_picker(choices: Array) -> void:
 			icon.position = Vector2(40, 26)
 			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			card.add_child(icon)
-		var name_label := UiKit.title(I18n.t("duel.ult_" + kind), 26, Palette.ON_COLOR)
+		# Whole literal keys inside I18n.t calls, so tools_check can verify
+		# both statically.
+		var ult_name := I18n.t("duel.ult_burst") if kind == "burst" else I18n.t("duel.ult_barrage")
+		var name_label := UiKit.title(ult_name, 26, Palette.ON_COLOR)
 		name_label.position = Vector2(0, 160)
 		name_label.size = Vector2(190, 40)
 		card.add_child(name_label)
