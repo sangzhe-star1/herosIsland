@@ -245,6 +245,48 @@
       "slot": "back",
       "cost_coins": 40,
       "name_key": "outfit.wings"
+    },
+    {
+      "id": "sky",
+      "slot": "colour",
+      "cost_coins": 20,
+      "name_key": "colour.sky",
+      "icon": "orb"
+    },
+    {
+      "id": "mint",
+      "slot": "colour",
+      "cost_coins": 20,
+      "name_key": "colour.mint",
+      "icon": "leaf"
+    },
+    {
+      "id": "rose",
+      "slot": "colour",
+      "cost_coins": 25,
+      "name_key": "colour.rose",
+      "icon": "heart"
+    },
+    {
+      "id": "sun",
+      "slot": "colour",
+      "cost_coins": 25,
+      "name_key": "colour.sun",
+      "icon": "spark"
+    },
+    {
+      "id": "violet",
+      "slot": "colour",
+      "cost_coins": 35,
+      "name_key": "colour.violet",
+      "icon": "star"
+    },
+    {
+      "id": "shadow",
+      "slot": "colour",
+      "cost_coins": 45,
+      "name_key": "colour.shadow",
+      "icon": "moon"
     }
   ]
 }

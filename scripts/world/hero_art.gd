@@ -37,6 +37,31 @@ var design: CharacterSkin
 ## it does not know whose game this is).
 var outfit: Dictionary = {}
 
+## Colour schemes for the wardrobe's "colour" slot: three values that repaint
+## the whole suit at once. They live here, with the drawing, because that is
+## where the knowledge of which colour goes on what already is -- the shop
+## just sells the ids.
+const PALETTES := {
+	"sky":    {"body": Color(0.74, 0.87, 0.98), "accent": Color(0.24, 0.52, 0.88),
+		"trim": Color(1.0, 0.90, 0.48)},
+	"mint":   {"body": Color(0.86, 0.96, 0.90), "accent": Color(0.22, 0.70, 0.52),
+		"trim": Color(1.0, 0.92, 0.58)},
+	"rose":   {"body": Color(0.99, 0.91, 0.94), "accent": Color(0.88, 0.34, 0.52),
+		"trim": Color(1.0, 0.86, 0.42)},
+	"sun":    {"body": Color(1.0, 0.95, 0.82), "accent": Color(0.96, 0.60, 0.18),
+		"trim": Color(0.99, 0.99, 0.99)},
+	"violet": {"body": Color(0.91, 0.87, 0.99), "accent": Color(0.54, 0.34, 0.86),
+		"trim": Color(1.0, 0.88, 0.45)},
+	"shadow": {"body": Color(0.34, 0.38, 0.50), "accent": Color(0.18, 0.86, 0.90),
+		"trim": Color(0.95, 0.96, 1.0)},
+}
+
+## The skin as the level handed it over. `design` is what actually gets
+## drawn, and a chosen palette makes it a repainted copy -- so every line of
+## drawing code below keeps reading `design` and knows nothing about
+## wardrobes.
+var _base_design: CharacterSkin
+
 ## self -> _spin -> _root -> parts.
 ## _spin's origin sits at the body's centre so a roll rotates the hero around
 ## their middle; _root's origin is back at the feet so everything else (poses,
@@ -82,6 +107,9 @@ func rebuild() -> void:
 	for c in get_children():
 		c.queue_free()
 	_eyes.clear()
+	if _base_design == null:
+		_base_design = design
+	design = _repainted(_base_design)
 
 	_spin = Node2D.new()
 	_spin.position = Vector2(0, SPIN_CENTRE_Y)
@@ -120,6 +148,19 @@ func rebuild() -> void:
 	var caps := Node2D.new()
 	_root.add_child(caps)
 	_build_shoulder_caps(caps)
+
+
+## The skin, in the chosen colours. No colour chosen, no copy made.
+func _repainted(base: CharacterSkin) -> CharacterSkin:
+	var scheme_id := str(outfit.get("colour", ""))
+	if scheme_id == "" or not PALETTES.has(scheme_id) or base == null:
+		return base
+	var scheme: Dictionary = PALETTES[scheme_id]
+	var painted: CharacterSkin = base.duplicate()
+	painted.body_color = scheme["body"]
+	painted.accent_color = scheme["accent"]
+	painted.trim_color = scheme["trim"]
+	return painted
 
 
 func _limb_root(at: Vector2) -> Node2D:

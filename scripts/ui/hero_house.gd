@@ -11,6 +11,9 @@ var _cards: Dictionary = {}      # character_id -> PanelContainer
 var _badges: Dictionary = {}     # character_id -> the "this one is chosen" star
 var _previews: Dictionary = {}   # character_id -> SkinnedCharacter, for re-dressing
 var _outfit_tiles: Dictionary = {}  # outfit_id -> its rack Button
+var _slot_tabs: Dictionary = {}     # slot -> its tab Button
+var _rack: HBoxContainer            # the tiles for the open slot
+var _slot := "hat"                  # which drawer of the wardrobe is open
 var _coin_label: Label
 
 
@@ -31,6 +34,8 @@ func _ready() -> void:
 	var hint := UiKit.title_on_art(I18n.t("house.choose"), 32)
 	root.add_child(hint)
 
+	# The wardrobe sits between the question and the heroes, so "who am I
+	# today" and "what am I wearing" read as one decision.
 	_build_wardrobe(root)
 
 	var row := HBoxContainer.new()
@@ -84,38 +89,95 @@ func _ready() -> void:
 ## finally have a job beyond stickers. One piece per slot: the crown knocks
 ## the party hat back onto its hook, and tapping what you wear takes it off.
 func _build_wardrobe(root: Control) -> void:
-	var rack := HBoxContainer.new()
-	rack.alignment = BoxContainer.ALIGNMENT_CENTER
-	rack.add_theme_constant_override("separation", 12)
-	root.add_child(rack)
+	# Drawer tabs, then the drawer. Six pieces fitted on one shelf; twelve do
+	# not, and a wardrobe that scrolls sideways forever is how a child stops
+	# finding the hat they wanted. Tabs also name the SLOTS, which teaches
+	# the rule -- one hat, one face, one back, one colour -- without a word
+	# about rules.
+	var tabs := HBoxContainer.new()
+	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
+	tabs.add_theme_constant_override("separation", 10)
+	root.add_child(tabs)
 
-	var caption := Label.new()
-	caption.text = I18n.t("house.wardrobe")
-	caption.add_theme_font_size_override("font_size", 22)
-	caption.add_theme_color_override("font_color", Palette.ON_COLOR)
-	UiKit.on_art(caption, 6)
-	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	caption.custom_minimum_size = Vector2(190, 0)
-	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	rack.add_child(caption)
+	for spec in [
+		{"slot": "hat", "key": "house.slot_hat", "icon": "crown"},
+		{"slot": "face", "key": "house.slot_face", "icon": "sunglasses"},
+		{"slot": "back", "key": "house.slot_back", "icon": "cape_red"},
+		{"slot": "colour", "key": "house.slot_colour", "icon": "star"},
+	]:
+		tabs.add_child(_build_slot_tab(str(spec["slot"]), str(spec["key"]),
+			str(spec["icon"])))
 
-	for outfit in GameData.rewards.get("outfits", []):
-		rack.add_child(_build_outfit_tile(outfit))
-
-	# The purse, so "can I afford the wings yet?" answers itself.
+	# The purse rides with the tabs: "can I afford the wings yet?" answers
+	# itself without leaving the shelf.
 	var purse := PanelContainer.new()
-	purse.add_theme_stylebox_override("panel", UiKit.panel_style(Color(1.0, 0.99, 0.96, 0.92), 18))
+	purse.add_theme_stylebox_override("panel",
+		UiKit.panel_style(Color(1.0, 0.99, 0.96, 0.92), 18))
 	var purse_row := HBoxContainer.new()
 	purse_row.add_theme_constant_override("separation", 6)
-	var coin: Control = UiKit.picture("coin", 34)
+	var coin: Control = UiKit.picture("coin", 32)
 	if coin != null:
 		purse_row.add_child(coin)
 	_coin_label = Label.new()
-	_coin_label.add_theme_font_size_override("font_size", 28)
+	_coin_label.add_theme_font_size_override("font_size", 26)
 	_coin_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	purse_row.add_child(_coin_label)
 	purse.add_child(purse_row)
-	rack.add_child(purse)
+	tabs.add_child(purse)
+
+	_rack = HBoxContainer.new()
+	_rack.alignment = BoxContainer.ALIGNMENT_CENTER
+	_rack.add_theme_constant_override("separation", 12)
+	root.add_child(_rack)
+	_open_slot(_slot)
+
+
+func _build_slot_tab(slot: String, name_key: String, icon_name: String) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(148, 62)
+	b.focus_mode = Control.FOCUS_NONE
+	b.pivot_offset = Vector2(74, 31)
+	var row := HBoxContainer.new()
+	row.position = Vector2(14, 12)
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var icon: Control = UiKit.picture(icon_name, 36)
+	if icon != null:
+		row.add_child(icon)
+	var label := Label.new()
+	label.text = I18n.t(name_key)
+	label.add_theme_font_size_override("font_size", 24)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+	b.add_child(row)
+	b.pressed.connect(func(): _open_slot(slot))
+	_slot_tabs[slot] = b
+	return b
+
+
+## Open a drawer: rebuild the tile row for that slot, and light its tab.
+func _open_slot(slot: String) -> void:
+	_slot = slot
+	for tab_slot in _slot_tabs:
+		var tab: Button = _slot_tabs[tab_slot]
+		var chosen: bool = tab_slot == slot
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(1.0, 0.99, 0.96, 0.96) if chosen \
+			else Color(0.80, 0.84, 0.90, 0.80)
+		style.set_corner_radius_all(20)
+		style.border_width_bottom = 6 if chosen else 3
+		style.border_color = Palette.BLUE if chosen else Color(0.62, 0.66, 0.76, 0.7)
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			tab.add_theme_stylebox_override(state, style)
+	if _rack == null or not is_instance_valid(_rack):
+		return
+	for child in _rack.get_children():
+		child.queue_free()
+	_outfit_tiles.clear()
+	for outfit in GameData.rewards.get("outfits", []):
+		if str(outfit.get("slot", "")) != slot:
+			continue
+		_rack.add_child(_build_outfit_tile(outfit))
 	_refresh_wardrobe()
 
 
@@ -125,7 +187,7 @@ func _build_outfit_tile(outfit: Dictionary) -> Button:
 	b.custom_minimum_size = Vector2(94, 94)
 	b.focus_mode = Control.FOCUS_NONE
 	b.pivot_offset = Vector2(47, 47)
-	var icon: Control = UiKit.picture(outfit_id, 62)
+	var icon: Control = UiKit.picture(str(outfit.get("icon", outfit_id)), 62)
 	if icon != null:
 		icon.position = Vector2(16, 8)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -184,9 +246,9 @@ func _refresh_wardrobe() -> void:
 	var worn: Dictionary = SaveManager.get_outfit()
 	for outfit in GameData.rewards.get("outfits", []):
 		var outfit_id: String = str(outfit.get("id", ""))
-		var tile: Button = _outfit_tiles.get(outfit_id)
-		if tile == null:
-			continue
+		if not _outfit_tiles.has(outfit_id):
+			continue                       # a piece in a drawer that is shut
+		var tile: Button = _outfit_tiles[outfit_id]
 		var owned: bool = SaveManager.has_outfit(outfit_id)
 		var wearing: bool = str(worn.get(str(outfit.get("slot", "")), "")) == outfit_id
 		var style := StyleBoxFlat.new()
@@ -199,6 +261,15 @@ func _refresh_wardrobe() -> void:
 		style.border_color = Color(0.36, 0.78, 0.44) if wearing else Color(0.62, 0.66, 0.76, 0.6)
 		for state in ["normal", "hover", "pressed", "disabled"]:
 			tile.add_theme_stylebox_override(state, style)
+		if str(outfit.get("slot", "")) == "colour" \
+				and HeroArt.PALETTES.has(outfit_id):
+			# Paint the tile in the scheme it sells. A colour you cannot see
+			# before buying is a colour nobody buys.
+			var scheme: Dictionary = HeroArt.PALETTES[outfit_id]
+			style.bg_color = scheme["body"] if owned else (scheme["body"] as Color)\
+				.lerp(Color(0.80, 0.82, 0.88), 0.55)
+			if not wearing:
+				style.border_color = scheme["accent"]
 		var price: Label = tile.get_node_or_null("Price")
 		if price != null:
 			price.text = "" if owned else ("%d" % int(outfit.get("cost_coins", 0)))

@@ -685,58 +685,72 @@
     "id": "hero_city_04",
     "world": "hero_city",
     "name_key": "level.hero_city_04",
-    "game_type": "collect_energy",
+    "game_type": "light_defense",
     "difficulty": 3,
     "duration_seconds": 200,
     "requires": "hero_city_03",
     "target": {
-      "correct": 14
+      "correct": 10
     },
     "reward": {
       "coins": 25,
       "badge": "storm_guardian"
     },
     "config": {
-      "instruction_key": "collect.instruction_avoid",
-      "background": "#131022",
-      "spawn_interval": 0.7,
-      "fall_speed": 185.0,
-      "orb_colors": [
-        "#ffd23c",
-        "#4fb8ff"
-      ],
-      "hazard_ratio": 0.45,
-      "color_target": false
+      "instruction_key": "defense.instruction",
+      "targets": 10,
+      "spawn_interval": 2.6,
+      "speed": 36,
+      "hp_min": 1,
+      "hp_max": 1,
+      "per_pick": 3,
+      "monsters": [
+        {
+          "id": "sparky",
+          "body_color": "#5f8fd9",
+          "belly_color": "#b9d4f5",
+          "accent_color": "#3a5f9e",
+          "height": 190,
+          "width": 0.85,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 0,
+          "scale": 0.58
+        },
+        {
+          "id": "mossy",
+          "body_color": "#7fb069",
+          "belly_color": "#cde6b2",
+          "accent_color": "#4f7d43",
+          "height": 190,
+          "width": 0.85,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 0,
+          "scale": 0.58
+        }
+      ]
     }
   },
   {
     "id": "hero_city_05",
     "world": "hero_city",
     "name_key": "level.hero_city_05",
-    "game_type": "collect_energy",
+    "game_type": "item_sorting",
     "difficulty": 3,
     "duration_seconds": 220,
     "requires": "hero_city_04",
     "target": {
-      "correct": 15
+      "correct": 6
     },
     "reward": {
       "coins": 30,
       "badge": "rainbow_charger"
     },
     "config": {
-      "instruction_key": "collect.match_tower",
-      "background": "#0e1b2b",
-      "spawn_interval": 0.7,
-      "fall_speed": 175.0,
-      "orb_colors": [
-        "#ff5d5d",
-        "#4fb8ff",
-        "#7ee06a",
-        "#ffd23c"
-      ],
-      "hazard_ratio": 0.2,
-      "color_target": true
+      "instruction_key": "sorting.instruction_color",
+      "mode": "color",
+      "rounds": 6
     }
   },
   {
@@ -905,26 +919,21 @@
     "id": "safety_traffic_04",
     "world": "safety",
     "name_key": "level.safety_traffic_04",
-    "game_type": "traffic_crossing",
+    "game_type": "animal_rescue",
     "difficulty": 3,
     "duration_seconds": 200,
     "growth_attribute": "focus",
     "requires": "safety_traffic_03",
     "target": {
-      "correct_crossings": 5
+      "correct": 4
     },
     "reward": {
       "coins": 30,
       "badge": "night_walker"
     },
     "config": {
-      "car_speed": 200.0,
-      "car_gap_min": 1.3,
-      "car_gap_max": 2.2,
-      "green_seconds": 3.0,
-      "red_seconds": 5.0,
-      "lanes": 3,
-      "rain": true
+      "instruction_key": "rescue.instruction",
+      "rounds": 4
     }
   },
   {
@@ -1507,22 +1516,17 @@
     "id": "adventure_valley_02",
     "world": "adventure_valley",
     "name_key": "level.adventure_valley_02",
-    "game_type": "platformer",
+    "game_type": "light_echo",
     "difficulty": 2,
     "requires": "adventure_valley_01",
     "config": {
-      "length": 3000,
-      "gap_max": 140,
-      "seg_min": 210,
-      "coins": 11,
-      "moving": false,
-      "springs": 1,
-      "balloons": 4,
-      "birds": 1,
-      "rocks": 2
+      "instruction_key": "echo.listen",
+      "pads": 4,
+      "sequence_start": 2,
+      "sequence_max": 5
     },
     "target": {
-      "correct": 1
+      "correct": 5
     },
     "reward": {
       "coins": 30,
@@ -1559,23 +1563,22 @@
     "id": "adventure_valley_04",
     "world": "adventure_valley",
     "name_key": "level.adventure_valley_04",
-    "game_type": "platformer",
+    "game_type": "memory_match",
     "difficulty": 3,
     "requires": "adventure_valley_03",
     "config": {
-      "length": 3200,
-      "gap_max": 150,
-      "seg_min": 210,
-      "coins": 13,
-      "moving": true,
-      "springs": 1,
-      "weather": "snow",
-      "balloons": 5,
-      "birds": 2,
-      "rocks": 3
+      "instruction_key": "memory.instruction",
+      "background": "#e8f0f8",
+      "columns": 4,
+      "icons": [
+        "leaf",
+        "compass",
+        "moon",
+        "rock"
+      ]
     },
     "target": {
-      "correct": 1
+      "correct": 4
     },
     "reward": {
       "coins": 35,
@@ -1994,48 +1997,48 @@
     "id": "star_trials_04",
     "world": "star_trials",
     "name_key": "level.star_trials_04",
-    "game_type": "light_blaster",
+    "game_type": "light_defense",
     "difficulty": 2,
     "requires": "star_trials_02",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 25,
       "badge": ""
     },
     "config": {
-      "instruction_key": "blaster.instruction",
-      "targets": 10,
-      "max_up": 2,
-      "pop_min": 1.9,
-      "pop_max": 2.6,
-      "friend_ratio": 0.18,
-      "item_chance": 0.16,
+      "instruction_key": "defense.instruction",
+      "targets": 12,
+      "spawn_interval": 2.3,
+      "speed": 40,
+      "hp_min": 1,
+      "hp_max": 2,
+      "per_pick": 3,
       "monsters": [
         {
-          "id": "peek",
+          "id": "creep",
           "body_color": "#7fb069",
           "belly_color": "#cde6b2",
           "accent_color": "#4f7d43",
-          "height": 210,
+          "height": 190,
           "width": 0.85,
           "horns": 0,
           "eyes": 2,
           "spikes": 0,
-          "scale": 0.62
+          "scale": 0.58
         },
         {
-          "id": "boop",
+          "id": "stomper",
           "body_color": "#d98a4a",
           "belly_color": "#f2c489",
           "accent_color": "#a8632f",
-          "height": 210,
+          "height": 190,
           "width": 0.85,
           "horns": 1,
           "eyes": 2,
           "spikes": 0,
-          "scale": 0.62
+          "scale": 0.58
         }
       ]
     }
@@ -2044,60 +2047,72 @@
     "id": "star_trials_05",
     "world": "star_trials",
     "name_key": "level.star_trials_05",
-    "game_type": "light_blaster",
+    "game_type": "light_defense",
     "difficulty": 2,
     "requires": "star_trials_04",
     "target": {
-      "correct": 14
+      "correct": 18
     },
     "reward": {
       "coins": 25,
       "badge": ""
     },
     "config": {
-      "instruction_key": "blaster.instruction",
-      "targets": 14,
-      "max_up": 3,
-      "pop_min": 1.7,
-      "pop_max": 2.3,
-      "friend_ratio": 0.22,
-      "item_chance": 0.16,
+      "instruction_key": "defense.instruction",
+      "targets": 18,
+      "spawn_interval": 1.9,
+      "speed": 46,
+      "hp_min": 1,
+      "hp_max": 3,
+      "per_pick": 3,
       "monsters": [
         {
-          "id": "peek",
+          "id": "creep",
           "body_color": "#7fb069",
           "belly_color": "#cde6b2",
           "accent_color": "#4f7d43",
-          "height": 210,
+          "height": 190,
           "width": 0.85,
           "horns": 0,
           "eyes": 2,
           "spikes": 0,
-          "scale": 0.62
+          "scale": 0.58
         },
         {
-          "id": "boop",
+          "id": "stomper",
           "body_color": "#d98a4a",
           "belly_color": "#f2c489",
           "accent_color": "#a8632f",
-          "height": 210,
+          "height": 190,
           "width": 0.85,
           "horns": 1,
           "eyes": 2,
           "spikes": 0,
-          "scale": 0.62
+          "scale": 0.58
         },
         {
-          "id": "zippy",
+          "id": "prickle",
           "body_color": "#8a5fc9",
           "belly_color": "#c9aef2",
           "accent_color": "#5e3f96",
-          "height": 210,
+          "height": 190,
           "width": 0.85,
           "horns": 0,
           "eyes": 2,
           "spikes": 3,
-          "scale": 0.62
+          "scale": 0.58
+        },
+        {
+          "id": "bigby",
+          "body_color": "#c94f6d",
+          "belly_color": "#f2a9bc",
+          "accent_color": "#96324c",
+          "height": 230,
+          "width": 0.85,
+          "horns": 0,
+          "eyes": 1,
+          "spikes": 0,
+          "scale": 0.7
         }
       ]
     }

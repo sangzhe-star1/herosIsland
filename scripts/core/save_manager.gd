@@ -17,6 +17,12 @@ const SAVE_BACKUP := "user://save_game.bak"
 const SAVE_TMP := "user://save_game.tmp"
 const SAVE_VERSION := 1
 
+## The autoload order puts SaveManager BEFORE I18n, so the I18n singleton
+## does not exist yet while a fresh save is being built. Reading the
+## constant off the script itself works whatever the order, and keeps one
+## definition of "which language does this island speak".
+const I18nScript = preload("res://scripts/core/i18n.gd")
+
 var data: Dictionary = {}
 
 
@@ -45,7 +51,7 @@ func _default_data() -> Dictionary:
 		# system that keeps growing after the hand-made levels run out.
 		"challenges": {},
 		"settings": {
-			"locale": "en",
+			"locale": I18nScript.DEFAULT_LOCALE,
 			"music_volume": 0.8,
 			"sfx_volume": 1.0,
 			"voice_volume": 1.0,

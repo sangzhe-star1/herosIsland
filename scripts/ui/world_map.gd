@@ -318,7 +318,7 @@ func _build_marker(level: Dictionary, world_index: int) -> Control:
 		"monster_battle": "monster", "memory_match": "blocks",
 		"light_echo": "music", "monster_duel": "lightning",
 		"platformer": "flag", "monster_expedition": "compass",
-		"keepy_uppy": "balloon", "light_blaster": "target",
+		"keepy_uppy": "balloon", "light_defense": "target",
 	}
 	var icon_name: String = str(level.get("icon",
 		icons.get(str(level.get("game_type", "")), "flag")))

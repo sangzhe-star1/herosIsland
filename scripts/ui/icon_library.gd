@@ -58,6 +58,8 @@ const NAMES := [
 	"crown", "party_hat", "cap", "sunglasses", "cape_red", "wings",
 	# the blaster range's map stone, and the goo you swat out of the air
 	"target", "goo",
+	# the light defence's upgrade draft
+	"spread", "power", "slow", "split", "blast",
 ]
 
 
@@ -598,6 +600,55 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				Color(1, 1, 1, 0.5))
 			_tri(p, c + Vector2(-s * 0.05, s * 0.26), c + Vector2(s * 0.05, s * 0.26),
 				c + Vector2(0, s * 0.19), red2.darkened(0.15))
+		"spread":
+			# Three bolts fanning out: more shots per tap.
+			for k in range(3):
+				var ang: float = -0.42 + 0.42 * float(k)
+				var tip := c + Vector2(cos(ang), sin(ang)) * s * 0.38
+				var base := c + Vector2(cos(ang), sin(ang)) * s * 0.06 - Vector2(s * 0.26, 0)
+				_poly(p, Shapes.taper(base, tip, s * 0.075, s * 0.03),
+					Color(1.0, 0.86, 0.36))
+			_circle(p, c - Vector2(s * 0.30, 0), s * 0.08, Color(1.0, 0.94, 0.68))
+		"power":
+			# A fist of light: the bolt hits harder.
+			_lit_circle(p, c, s * 0.30, Color(1.0, 0.55, 0.26))
+			_poly(p, Shapes.star_points(c, s * 0.36, 0.42, 6), Color(1.0, 0.72, 0.28))
+			_poly(p, Shapes.star_points(c, s * 0.17, 0.45, 6), Color(1.0, 0.96, 0.80))
+		"slow":
+			# A snowflake: hit monsters trudge.
+			for k in range(3):
+				var a12: float = PI * float(k) / 3.0
+				var arm := Vector2(cos(a12), sin(a12)) * s * 0.34
+				_poly(p, Shapes.taper(c - arm, c + arm, s * 0.055, s * 0.055),
+					Color(0.62, 0.88, 1.0))
+			for k in range(6):
+				var a13: float = PI * float(k) / 3.0
+				_circle(p, c + Vector2(cos(a13), sin(a13)) * s * 0.30, s * 0.05,
+					Color(0.86, 0.96, 1.0))
+			_circle(p, c, s * 0.09, Color(1, 1, 1, 0.9))
+		"split":
+			# One bolt forking into two: it goes looking for a second monster.
+			_poly(p, Shapes.taper(c + Vector2(-s * 0.34, 0), c + Vector2(-s * 0.02, 0),
+				s * 0.08, s * 0.06), Color(0.72, 0.92, 1.0))
+			for side5 in [-1.0, 1.0]:
+				_poly(p, Shapes.taper(c + Vector2(-s * 0.04, 0),
+					c + Vector2(s * 0.32, side5 * s * 0.26), s * 0.06, s * 0.025),
+					Color(0.72, 0.92, 1.0))
+				_poly(p, Shapes.star_points(c + Vector2(s * 0.34, side5 * s * 0.28),
+					s * 0.10, 0.45, 4), Color(1.0, 0.94, 0.72))
+		"blast":
+			# Rings going out: a wider bang.
+			for k in range(3):
+				var r2: float = s * (0.16 + 0.11 * float(k))
+				var ring2 := PackedVector2Array()
+				for j in range(18):
+					var a14: float = TAU * float(j) / 18.0
+					ring2.append(c + Vector2(cos(a14), sin(a14)) * r2)
+				for j in range(17, -1, -1):
+					var a15: float = TAU * float(j) / 18.0
+					ring2.append(c + Vector2(cos(a15), sin(a15)) * (r2 - s * 0.035))
+				_poly(p, ring2, Color(1.0, 0.72, 0.30, 0.95 - 0.22 * float(k)))
+			_circle(p, c, s * 0.09, Color(1.0, 0.96, 0.78))
 		"goo":
 			var slime := Color(0.55, 0.78, 0.42)
 			_lit_circle(p, c + Vector2(0, s * 0.04), s * 0.30, slime)
