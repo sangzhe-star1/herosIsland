@@ -37,7 +37,7 @@ func _check_xp_and_coins() -> void:
 	var coins_before := int(SaveManager.data["rewards"]["coins"])
 	var stars_before: Dictionary = SaveManager.data["levels"].duplicate(true)
 
-	var clean := LevelResult.new("hero_city_01")
+	var clean := LevelResult.new("sunny_park_01")
 	clean.correct = 8
 	RewardManager.grant_for_level(clean)
 	_ok(RewardManager.last_xp_earned == 45, "clean run should pay 45 XP, paid %d" % RewardManager.last_xp_earned)
@@ -46,7 +46,7 @@ func _check_xp_and_coins() -> void:
 
 	# The same result again: coins pay improvement only (zero the second
 	# time), XP pays effort (again in full).
-	var again := LevelResult.new("hero_city_01")
+	var again := LevelResult.new("sunny_park_01")
 	again.correct = 8
 	RewardManager.grant_for_level(again)
 	_ok(RewardManager.last_coins_earned == 0,
@@ -81,36 +81,35 @@ func _check_stickers() -> void:
 
 
 func _check_challenge_scaling() -> void:
-	# Pretend the Hero City challenge has been beaten three times.
-	SaveManager.data["challenges"] = {"hero_city_challenge": 3}
-	# Read the base out of the data rather than asserting a number: level
-	# targets move whenever the island is retuned (they just went up a step
-	# across all twelve templates), and a probe that hard-codes one is a
-	# probe that cries wolf every time somebody balances the game.
-	var base_target := int(GameData.get_level("hero_city_challenge").get("target", {}).get("correct", 0))
-	_ok(base_target > 0, "the challenge level must declare a target")
+	# Challenge levels were a feature of the twelve retired templates: a level
+	# that grew its own target each time it was beaten. The rebuilt island
+	# grows differently -- every adventure level is beatable at three stars
+	# and the RANGE comes from the beats, not from a rising counter -- so
+	# there is no challenge level left to scale.
+	#
+	# The rule this used to protect still matters and is still tested, in
+	# `LevelManager.bump_target` and `LevelResult.target_override`: scaling
+	# must land on the run's own copy and never leak into GameData.
+	var level_id := "sunny_park_01"
+	var data := GameData.get_level(level_id)
+	_ok(not data.is_empty(), "the first level of the island must exist")
 
-	GameManager.current_level_id = "hero_city_challenge"
-	var packed: PackedScene = load("res://scenes/minigames/collect_energy/CollectEnergy.tscn")
+	GameManager.current_level_id = level_id
+	var packed: PackedScene = load("res://scenes/adventure/Adventure.tscn")
 	var level: Node = packed.instantiate()
 	add_child(level)
 	for i in range(8):
 		await get_tree().process_frame
 
-	var scaled := int(level.level_data.get("target", {}).get("correct", 0))
-	_ok(scaled == base_target + 3, "rank 3 should raise target to %d, got %d" % [base_target + 3, scaled])
-
-	# The rule that used to be broken: completion must be measured against
-	# the SCALED target, not the base one in GameData.
-	level.result.correct = base_target
-	_ok(not level.result.met_target(),
-		"base target must NOT complete a rank-3 challenge")
-	level.result.correct = scaled
-	_ok(level.result.met_target(), "scaled target must complete the challenge")
-
-	# And GameData's own copy must be untouched by the scaling.
-	var still_base := int(GameData.get_level("hero_city_challenge").get("target", {}).get("correct", 0))
-	_ok(still_base == base_target, "challenge scaling leaked into GameData (now %d)" % still_base)
+	level.bump_target("correct", 4)
+	_ok(int(level.level_data["target"]["correct"]) == 4,
+		"bump_target must raise the run's own target")
+	_ok(GameData.get_level(level_id).get("target", {}).is_empty(),
+		"scaling leaked into GameData")
+	level.result.correct = 3
+	_ok(not level.result.met_target(), "3 of 4 must not count as met")
+	level.result.correct = 4
+	_ok(level.result.met_target(), "4 of 4 must count as met")
 
 	remove_child(level)
 	level.queue_free()

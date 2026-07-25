@@ -161,6 +161,10 @@ func _add_dots() -> void:
 	row.offset_bottom = 126
 	row.add_theme_constant_override("separation", 18)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Above the weather. The island's clouds are drawn at exactly this height
+	# and were painting straight over the dots -- with five worlds, two of
+	# the five were behind a cloud and the map looked like it had three.
+	row.z_index = 20
 	add_child(row)
 	for world in _worlds:
 		var dot := Control.new()
@@ -169,7 +173,12 @@ func _add_dots() -> void:
 		var draw := Node2D.new()
 		dot.add_child(draw)
 		var tint := Color.from_string(str(world.get("color", "#888888")), Color.GRAY)
-		Shapes.fill(draw, Shapes.circle_points(Vector2(13, 13), 11.0, 16), tint, 0.6)
+		# A dark collar round every dot. Tinted fill alone disappeared against
+		# the white clouds that sit at exactly this height, and with five
+		# worlds three of the five were simply not there.
+		Shapes.fill(draw, Shapes.circle_points(Vector2(13, 13), 13.0, 18),
+			Color(0.05, 0.12, 0.26, 0.75), 0.0)
+		Shapes.fill(draw, Shapes.circle_points(Vector2(13, 13), 10.0, 16), tint, 0.0)
 		dot.set_meta("tint", tint)
 		row.add_child(dot)
 		_dots.append(dot)
@@ -182,7 +191,9 @@ func _refresh_paging() -> void:
 		_right_arrow.visible = _page < _worlds.size() - 1
 	for i in range(_dots.size()):
 		var dot: Control = _dots[i]
-		dot.modulate = Color(1, 1, 1, 1.0) if i == _page else Color(1, 1, 1, 0.35)
+		# Even an "off" dot has to be findable: this is the only thing on
+		# screen that says how many islands there are.
+		dot.modulate = Color(1, 1, 1, 1.0) if i == _page else Color(1, 1, 1, 0.7)
 		dot.scale = Vector2(1.25, 1.25) if i == _page else Vector2.ONE
 
 

@@ -1,9 +1,9 @@
 [
   {
-    "id": "hero_city",
-    "name_key": "world.hero_city",
+    "id": "sunny_park",
+    "name_key": "world.sunny_park",
     "growth_attribute": "courage",
-    "color": "#3d7fd6",
+    "color": "#4fb0e8",
     "order": 1
   },
   {
@@ -33,33 +33,5 @@
     "growth_attribute": "courage",
     "color": "#8a5fc9",
     "order": 5
-  },
-  {
-    "id": "adventure_valley",
-    "name_key": "world.adventure_valley",
-    "growth_attribute": "courage",
-    "color": "#3aa6a0",
-    "order": 6
-  },
-  {
-    "id": "star_trials",
-    "name_key": "world.star_trials",
-    "growth_attribute": "courage",
-    "color": "#e0623c",
-    "order": 7
-  },
-  {
-    "id": "bluey_park",
-    "name_key": "world.bluey_park",
-    "growth_attribute": "kindness",
-    "color": "#5b86c9",
-    "order": 8
-  },
-  {
-    "id": "sunny_park",
-    "name_key": "world.sunny_park",
-    "growth_attribute": "courage",
-    "color": "#4fb0e8",
-    "order": 9
   }
 ]

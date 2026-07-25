@@ -127,7 +127,13 @@ func _lay_out_nodes(worlds: Array, levels_by_world: Dictionary) -> void:
 				# and the first cut's cosy 144 -- which stacked row one's
 				# stars into row two's stones -- stays a lesson.
 				var sx: float = 240.0 + tt * 800.0
-				var sy: float = (358.0 if row == 0 else 584.0) \
+				# Rows measured from the BOTTOM of the screen, not from
+				# taste: a marker column is a stone plus a name plus a star
+				# row, about 215 px, hung from `sy - MARKER * 0.54`. At 584
+				# the second row's stars fell off the bottom edge of a 720 px
+				# screen -- invisible in a single-world map and obvious the
+				# moment a world had six levels instead of eight.
+				var sy: float = (332.0 if row == 0 else 550.0) \
 					+ sin(float(i) * 1.9) * 8.0
 				_positions["%s:%d" % [world_id, i]] = Vector2(sx, sy)
 			continue

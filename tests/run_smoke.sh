@@ -114,22 +114,6 @@ if ! grep -q "SMOKE TEST PASSED" "$OUT"; then
   echo "Exit status was $STATUS."
   exit 1
 fi
-
-# The battle probe drives the Monster Arena the way a finger would: taps
-# through the input handler, dud handling, meter fill, and the full win
-# sequence through to level_finished. Scenes instantiating is not the same
-# as a game playing; this covers the difference for the battle template.
-echo
-echo "Running battle interaction probe..."
-BATTLE_OUT=$(mktemp)
-"$GODOT" --headless --path . res://tests/BattleProbe.tscn 2>&1 | tee "$BATTLE_OUT"
-if ! grep -q "BATTLE PROBE PASSED" "$BATTLE_OUT"; then
-  rm -f "$BATTLE_OUT"
-  echo "Battle probe failed."
-  exit 1
-fi
-rm -f "$BATTLE_OUT"
-
 # The progression probe guards the meta-layer: XP maths, improvement-only
 # coins, the sticker economy, and challenge scaling actually gating
 # completion (a bug the probe caught once already).
@@ -143,19 +127,6 @@ if ! grep -q "PROGRESSION PROBE PASSED" "$PROG_OUT"; then
   exit 1
 fi
 rm -f "$PROG_OUT"
-
-# The duel probe drives the skill wheel like thumbs would: cooldown gates,
-# the ult economy, shield reflections, and the harmless unshielded hit.
-echo
-echo "Running duel probe..."
-DUEL_OUT=$(mktemp)
-"$GODOT" --headless --path . res://tests/DuelProbe.tscn 2>&1 | tee "$DUEL_OUT"
-if ! grep -q "DUEL PROBE PASSED" "$DUEL_OUT"; then
-  rm -f "$DUEL_OUT"
-  echo "Duel probe failed."
-  exit 1
-fi
-rm -f "$DUEL_OUT"
 
 # The tap probe pushes ONE real click through the input pipeline and counts
 # how many presses a pad hears. Touch emulation makes a click arrive twice;
@@ -240,6 +211,15 @@ rm -f "$ECHO_OUT"
 # The adventure probe walks a whole platform_adventure level with the two
 # buttons a child has -- collect, spring, gem, shut gate, plate, chest -- and
 # checks every placed thing is inside the hero's real jump.
+# NOTE -- the battle and duel probes are parked, not deleted.
+#
+# They drive `monster_battle` and `monster_duel`, two of the twelve templates
+# the 54-level rebuild took off the map. The templates and their scenes are
+# still on disk and still work; nothing points a level at them any more. Put
+# a `"game_type": "monster_duel"` level back into levels.json and restore the
+# probe blocks from git history (they were removed in the Phase D commit) and
+# both come straight back.
+
 echo
 echo "Running adventure probe..."
 ADV_OUT=$(mktemp)

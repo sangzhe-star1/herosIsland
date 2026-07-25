@@ -1,5 +1,42 @@
 # Changelog
 
+## Phase D: the whole island rebuilt — 25 July 2026
+
+The 54 old levels are gone. In their place, **thirty adventure levels across
+five worlds**, all one template, every one of them a side-scrolling run made
+of beats.
+
+- 阳光公园 · 快乐小猪镇 · 安全局 · 动物救援森林 · 怪兽擂台, six levels each.
+- A level's whole definition is now an ORDER OF BEATS. No x positions, no
+  lengths: the template plans the beats, grows ground to fit them, and derives
+  the level's length from what they need. Adding a level is nine lines of JSON.
+- **Every level has at least three different kinds of thing to do**, which is
+  the rule the old island broke worst: adventure_valley was five platformers
+  in a row and hero_city was six collect levels out of eight.
+- **The old teaching survives as cards.** `count` is Piglet Town's counting
+  (asked in dots, never digits); `sort_safe` is the Safety Bureau's spot-the-
+  danger; `same_as` is Memory Match without the memory; `color_match` is the
+  energy-tower colour levels. They pop up mid-level and hand the child back to
+  the path fifteen seconds later.
+- **Every badge the island ever had is earnable again** -- one per level,
+  matched to what the level is about.
+
+Testing changed shape to match. `AdventureProbe` now checks the LAWS of all
+thirty levels -- buildable, everything inside the real jump arc, plates far
+enough apart, gates that hold -- and walks three of them end to end, chosen to
+cover a gentle level, a hazard level and a fighting level.
+
+Two things caught by looking at it:
+- The map's second row of levels hung its names and stars off the bottom of a
+  720 px screen. Rows now sit where a marker column actually fits.
+- The page dots were drawn under the island's clouds, so with five worlds the
+  map looked like it had three.
+
+**The twelve old templates are still on disk and still work** -- nothing points
+a level at them any more. Light Defense, Keepy Uppy, Monster Duel, Dance Mode
+and the rest are one `"game_type"` line in levels.json away from coming back as
+bonus levels. Their two probes (battle, duel) are parked in the same spirit.
+
 ## Phase C: monsters that telegraph, and a giant to beat — 25 July 2026
 
 Third stage of the rebuild. Level 3, 岩石怪的挑战, and everything that fights.

@@ -119,6 +119,10 @@
     "giant_friend": {
       "name_key": "badge.giant_friend",
       "icon": "monster"
+    },
+    "island_hero": {
+      "name_key": "badge.island_hero",
+      "icon": "medal"
     }
   },
   "growth_attributes": [

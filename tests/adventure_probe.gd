@@ -20,7 +20,16 @@ extends Node
 ##   * a wrong plate resets the sequence without costing anything
 ##   * a wrong card answer dims a tile and nothing else
 
-const LEVELS := ["sunny_park_01", "sunny_park_02", "sunny_park_03"]
+## Every level gets its LAWS checked -- can it be built, is everything inside
+## the hero's jump, do the plates stand apart, does the gate hold. That is
+## thirty levels of the questions a screenshot cannot answer.
+##
+## Three of them additionally get walked end to end, chosen to cover the
+## three kinds of level the island has: a gentle one, a hazard one, and a
+## fighting one. Walking all thirty would take an hour and would mostly
+## re-prove the same template thirty times; walking none of them would prove
+## the game boots and nothing else.
+const WALKED := ["sunny_park_01", "sunny_park_02", "monster_arena_06"]
 
 var _out: Array[String] = []
 var _lvl: Node
@@ -36,9 +45,13 @@ var _quest := {}     # {"x": float, "done": Callable}
 var _card_tested := false
 
 
+var _level_id := ""
+
 func _ok(condition: bool, message: String) -> void:
 	if not condition:
-		_out.append(message)
+		# Thirty levels means a bare failure line is useless: every message
+		# carries the level it came from.
+		_out.append("[%s] %s" % [_level_id, message])
 
 
 func _ready() -> void:
@@ -47,8 +60,16 @@ func _ready() -> void:
 		w.size = Vector2i(1280, 720)
 	await get_tree().process_frame
 
-	for level_id in LEVELS:
-		await _run_level(level_id)
+	var all_levels: Array = []
+	for level in GameData.levels:
+		if str(level.get("game_type", "")) == "platform_adventure":
+			all_levels.append(str(level["id"]))
+	print("\n=== adventure probe: %d levels ===" % all_levels.size())
+	_ok(all_levels.size() >= 30,
+		"the island should have at least 30 levels, found %d" % all_levels.size())
+
+	for level_id in all_levels:
+		await _run_level(level_id, WALKED.has(level_id))
 
 	for f in _out:
 		print("FAIL  %s" % f)
@@ -56,28 +77,31 @@ func _ready() -> void:
 	get_tree().quit(1 if _out.size() > 0 else 0)
 
 
-func _run_level(level_id: String) -> void:
-	print("\n=== adventure probe: %s ===" % level_id)
+func _run_level(level_id: String, walk: bool) -> void:
 	_quest = {}
 	_card_tested = false
+	_level_id = level_id
 	GameManager.current_level_id = level_id
 	_lvl = load("res://scenes/adventure/Adventure.tscn").instantiate()
 	add_child(_lvl)
 	for i in range(4):
 		await get_tree().process_frame
 
-	_report_terrain()
-	_check_reachable()
+	if walk:
+		print("\n--- %s (walked end to end) ---" % level_id)
+	_report_terrain(walk)
+	_check_reachable(walk)
 	_check_hazard_warnings()
-	await _check_warning_really_precedes_harm()
-	await _check_gate_is_a_wall()
-	await _check_wrong_plate_costs_nothing()
-	await _check_crate_carries()
-	await _check_monsters_warn_first()
-	await _check_shield_blocks()
-	await _check_help_after_two_falls()
-	await _walk_the_level(level_id)
-	_report_result()
+	if walk:
+		await _check_warning_really_precedes_harm()
+		await _check_gate_is_a_wall()
+		await _check_wrong_plate_costs_nothing()
+		await _check_crate_carries()
+		await _check_monsters_warn_first()
+		await _check_shield_blocks()
+		await _check_help_after_two_falls()
+		await _walk_the_level(level_id)
+		_report_result()
 
 	_lvl.queue_free()
 	_lvl = null
@@ -87,7 +111,7 @@ func _run_level(level_id: String) -> void:
 
 # --- the mechanical laws -----------------------------------------------------
 
-func _report_terrain() -> void:
+func _report_terrain(loud: bool = true) -> void:
 	var flats: Array = []
 	for entry in _lvl._platforms:
 		if bool(entry.get("flat", false)):
@@ -106,23 +130,21 @@ func _report_terrain() -> void:
 	_ok(absf(_lvl._hero.position.y - _lvl._ground_y) < 2.0,
 		"the hero starts %0.1f px off the ground" % absf(
 			_lvl._hero.position.y - _lvl._ground_y))
-	print("  ground: %d segments over %.0f px; widest gap %.0f px vs %.0f px jump" % [
-		flats.size(), _lvl._length, widest, reach])
-	var edges: Array = []
-	for r in flats:
-		edges.append("%.0f-%.0f" % [r.position.x, r.position.x + r.size.x])
-	print("  flat: %s" % ", ".join(edges))
+	if loud:
+		print("  ground: %d segments over %.0f px; widest gap %.0f px vs %.0f px jump" % [
+			flats.size(), _lvl._length, widest, reach])
 	_ok(widest < reach * 0.65,
 		"a %.0f px gap is too wide for a %.0f px jump" % [widest, reach])
 	_ok(flats.size() >= 4, "only %d ground segments -- the level is one slab" % flats.size())
 
-	print("  beats: orbs=%d gems=%d springs=%d switches=%d gates=%d rocks=%d vents=%d seq=%d cards=%d crates=%d foes=%d cages=%d boss=%s flags=%d chest=%s" % [
-		_lvl._orbs.size(), _lvl._gems.size(), _lvl._springs.size(),
-		_lvl._switches.size(), _lvl._gates.size(), _lvl._rocks.size(),
-		_lvl._vents.size(), _lvl._seq_groups.size(), _lvl._puzzles.size(),
-		_lvl._crates.size(), _lvl._foes.size(), _lvl._cages.size(),
-		"yes" if not _lvl._boss.is_empty() else "no", _lvl._checkpoints.size(),
-		"yes" if not _lvl._chest.is_empty() else "NO"])
+	if loud:
+		print("  beats: orbs=%d gems=%d springs=%d switches=%d gates=%d rocks=%d vents=%d seq=%d cards=%d crates=%d foes=%d cages=%d boss=%s flags=%d chest=%s" % [
+			_lvl._orbs.size(), _lvl._gems.size(), _lvl._springs.size(),
+			_lvl._switches.size(), _lvl._gates.size(), _lvl._rocks.size(),
+			_lvl._vents.size(), _lvl._seq_groups.size(), _lvl._puzzles.size(),
+			_lvl._crates.size(), _lvl._foes.size(), _lvl._cages.size(),
+			"yes" if not _lvl._boss.is_empty() else "no", _lvl._checkpoints.size(),
+			"yes" if not _lvl._chest.is_empty() else "NO"])
 	var kinds := 0
 	for present in [_lvl._orbs.size() > 0, _lvl._gems.size() > 0,
 			_lvl._springs.size() > 0, _lvl._switches.size() > 0,
@@ -148,12 +170,12 @@ func _report_terrain() -> void:
 			var apart: float = float(xs[i]) - float(xs[i - 1])
 			_ok(apart >= 120.0,
 				"two sequence plates are only %.0f px apart -- one step hits both" % apart)
-		if xs.size() >= 2:
+		if xs.size() >= 2 and loud:
 			print("  %d sequence plates, %.0f px apart" % [xs.size(),
 				float(xs[1]) - float(xs[0])])
 
 
-func _check_reachable() -> void:
+func _check_reachable(loud: bool = true) -> void:
 	var ceiling: float = _lvl.reach()
 	var stranded: Array = []
 	for orb in _lvl._orbs:
@@ -171,8 +193,10 @@ func _check_reachable() -> void:
 		if not _standable_under(Vector2(float(sw["at"]), float(sw["y"]) - 10.0), ceiling):
 			stranded.append("plate at x=%.0f" % float(sw["at"]))
 	for s in stranded:
-		_out.append("out of reach: %s" % s)
-	print("  reach = %.0f px up; %d placed things out of reach" % [ceiling, stranded.size()])
+		_ok(false, "out of reach: %s" % s)
+	if loud:
+		print("  reach = %.0f px up; %d placed things out of reach" % [
+			ceiling, stranded.size()])
 
 
 func _standable_under(at: Vector2, ceiling: float) -> bool:
@@ -485,6 +509,17 @@ func _check_crate_carries() -> void:
 	var hero: HeroController = _lvl._hero
 	var start_x: float = node.position.x
 
+	# Open every door for the duration. A shut gate is a hard clamp on the
+	# hero's x, so on a level where the crate sits BEHIND one, this test used
+	# to teleport the hero to the crate and get yanked straight back to the
+	# door -- reporting a crate that would not move when the real answer was
+	# a crate the tester never reached. The doors are shut again afterwards.
+	var reshut: Array = []
+	for gate in _lvl._gates:
+		if not bool(gate["open"]):
+			gate["open"] = true
+			reshut.append(gate)
+
 	hero.place_at(Vector2(start_x - 90.0, _lvl._ground_y))
 	hero.press_right(true)
 	for i in range(240):                     # four seconds of shoving
@@ -523,6 +558,9 @@ func _check_crate_carries() -> void:
 		print("  rode the crate to the shelf; gem found: %s" % _lvl._gem_found)
 		_ok(_lvl._gem_found, "stood on the shelf but the gem was out of reach")
 
+	for gate in reshut:
+		gate["open"] = false
+		gate["pressing"] = 0.0
 	hero.place_at(Vector2(_lvl.SPAWN_X, _lvl._ground_y))
 	await get_tree().physics_frame
 
