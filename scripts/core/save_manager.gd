@@ -26,6 +26,9 @@ func _default_data() -> Dictionary:
 			# Hero experience: only ever rises, one shared number for the one
 			# child. Levels come out of it via hero_level().
 			"xp": 0,
+			# What the child is wearing, by slot. The outfit rides the CHILD,
+			# not the hero: swap heroes and the crown comes along.
+			"outfit": {"hat": "", "face": "", "back": ""},
 		},
 		# Challenge ranks: level_id -> how many times its challenge has been
 		# beaten. Each rank makes that challenge a little bigger -- the level
@@ -50,6 +53,8 @@ func _default_data() -> Dictionary:
 			# spending only raises spent_stars. Items are consumables, id -> count.
 			"spent_stars": 0,
 			"items": {},
+			# Outfit pieces owned (ids). Bought once with coins, kept forever.
+			"outfits": [],
 		},
 		# Growth attributes. Displayed as growing plants/flags, never as combat stats.
 		"growth": {
@@ -249,6 +254,34 @@ func use_item(item_id: String) -> bool:
 	save_game()
 	progress_changed.emit()
 	return true
+
+
+# --- the wardrobe ---------------------------------------------------------
+
+func get_outfit() -> Dictionary:
+	return data["profile"].get("outfit", {"hat": "", "face": "", "back": ""})
+
+
+func has_outfit(outfit_id: String) -> bool:
+	return outfit_id in data["rewards"].get("outfits", [])
+
+
+func add_outfit(outfit_id: String) -> void:
+	if outfit_id == "" or has_outfit(outfit_id):
+		return
+	data["rewards"]["outfits"].append(outfit_id)
+	save_game()
+	progress_changed.emit()
+
+
+## Wear a piece (or pass "" to take the slot's piece off). One piece per
+## slot: putting on the crown hangs the party hat back on its hook.
+func wear_outfit(slot: String, outfit_id: String) -> void:
+	var outfit: Dictionary = get_outfit()
+	outfit[slot] = outfit_id
+	data["profile"]["outfit"] = outfit
+	save_game()
+	progress_changed.emit()
 
 
 ## Coins go out only through here, and only if they are really there.

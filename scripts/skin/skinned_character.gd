@@ -47,6 +47,10 @@ func _build() -> void:
 
 	if skin.is_drawn():
 		_art = HeroArt.new(skin)
+		# Dressed from the save before entering the tree (HeroArt builds in
+		# _ready). The outfit follows the child across heroes and levels;
+		# textured skins (photo cut-outs, drop-in PNGs) stay as they came.
+		_art.outfit = SaveManager.get_outfit()
 		add_child(_art)
 		# Fitted to the same footprint the old placeholder occupied, so every
 		# position a level already chose keeps working.
@@ -78,6 +82,15 @@ func _build_textured() -> void:
 		Vector2(skin.core_radius, skin.core_radius * 1.2))
 	_core.color = skin.core_color
 	_sprite.add_child(_core)
+
+
+## Re-dress after the wardrobe changes, without rebuilding the whole node.
+func refresh_outfit() -> void:
+	if _art == null or not is_instance_valid(_art):
+		return
+	_art.outfit = SaveManager.get_outfit()
+	_art.rebuild()
+	_art.set_pose(HeroArt.Pose.IDLE, false)
 
 
 func set_core_color(value: Color) -> void:

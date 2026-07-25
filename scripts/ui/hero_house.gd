@@ -7,8 +7,11 @@ extends Control
 ## there is no confirm step, because trying every hero in turn IS the fun, and
 ## nothing here can be broken by tapping.
 
-var _cards: Dictionary = {}   # character_id -> PanelContainer
-var _badges: Dictionary = {}  # character_id -> the "this one is chosen" star
+var _cards: Dictionary = {}      # character_id -> PanelContainer
+var _badges: Dictionary = {}     # character_id -> the "this one is chosen" star
+var _previews: Dictionary = {}   # character_id -> SkinnedCharacter, for re-dressing
+var _outfit_tiles: Dictionary = {}  # outfit_id -> its rack Button
+var _coin_label: Label
 
 
 func _ready() -> void:
@@ -27,6 +30,8 @@ func _ready() -> void:
 
 	var hint := UiKit.title_on_art(I18n.t("house.choose"), 32)
 	root.add_child(hint)
+
+	_build_wardrobe(root)
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -81,6 +86,135 @@ func _ready() -> void:
 
 	_refresh_selection()
 	_build_sticker_wall()
+
+
+## The wardrobe rack: every outfit piece in the game on one shelf, worn with
+## one tap. Not owned yet? The tile wears its coin price; tapping it BUYS it
+## (and puts it straight on, because that is why anyone buys a hat). Coins
+## finally have a job beyond stickers. One piece per slot: the crown knocks
+## the party hat back onto its hook, and tapping what you wear takes it off.
+func _build_wardrobe(root: Control) -> void:
+	var rack := HBoxContainer.new()
+	rack.alignment = BoxContainer.ALIGNMENT_CENTER
+	rack.add_theme_constant_override("separation", 12)
+	root.add_child(rack)
+
+	var caption := Label.new()
+	caption.text = I18n.t("house.wardrobe")
+	caption.add_theme_font_size_override("font_size", 22)
+	caption.add_theme_color_override("font_color", Palette.ON_COLOR)
+	UiKit.on_art(caption, 6)
+	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	caption.custom_minimum_size = Vector2(190, 0)
+	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	rack.add_child(caption)
+
+	for outfit in GameData.rewards.get("outfits", []):
+		rack.add_child(_build_outfit_tile(outfit))
+
+	# The purse, so "can I afford the wings yet?" answers itself.
+	var purse := PanelContainer.new()
+	purse.add_theme_stylebox_override("panel", UiKit.panel_style(Color(1.0, 0.99, 0.96, 0.92), 18))
+	var purse_row := HBoxContainer.new()
+	purse_row.add_theme_constant_override("separation", 6)
+	var coin: Control = UiKit.picture("coin", 34)
+	if coin != null:
+		purse_row.add_child(coin)
+	_coin_label = Label.new()
+	_coin_label.add_theme_font_size_override("font_size", 28)
+	_coin_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	purse_row.add_child(_coin_label)
+	purse.add_child(purse_row)
+	rack.add_child(purse)
+	_refresh_wardrobe()
+
+
+func _build_outfit_tile(outfit: Dictionary) -> Button:
+	var outfit_id: String = str(outfit.get("id", ""))
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(94, 94)
+	b.focus_mode = Control.FOCUS_NONE
+	b.pivot_offset = Vector2(47, 47)
+	var icon: Control = UiKit.picture(outfit_id, 62)
+	if icon != null:
+		icon.position = Vector2(16, 8)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(icon)
+	var price := Label.new()
+	price.name = "Price"
+	price.add_theme_font_size_override("font_size", 19)
+	price.add_theme_color_override("font_color", Palette.ON_COLOR)
+	UiKit.on_art(price, 5)
+	price.position = Vector2(6, 68)
+	price.size = Vector2(82, 22)
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(price)
+	b.pressed.connect(_on_outfit_tap.bind(outfit))
+	_outfit_tiles[outfit_id] = b
+	return b
+
+
+func _on_outfit_tap(outfit: Dictionary) -> void:
+	var outfit_id: String = str(outfit.get("id", ""))
+	var slot: String = str(outfit.get("slot", "hat"))
+	var tile: Button = _outfit_tiles.get(outfit_id)
+
+	if not SaveManager.has_outfit(outfit_id):
+		# Buying: coins in, piece owned, and straight onto the hero -- a
+		# bought hat that stays on the shelf is a scolding, not a toy.
+		if not SaveManager.spend_coins(int(outfit.get("cost_coins", 0))):
+			if tile != null:
+				Juice.nudge(tile)
+			if _coin_label != null:
+				Juice.pop(_coin_label, 0.3)
+			return
+		SaveManager.add_outfit(outfit_id)
+		SaveManager.wear_outfit(slot, outfit_id)
+		if tile != null:
+			Juice.pop(tile, 0.14)
+			Juice.burst(self, tile.get_global_rect().get_center(), 14)
+		AudioManager.play_sfx("res://assets/audio/correct.ogg")
+	else:
+		var wearing: bool = str(SaveManager.get_outfit().get(slot, "")) == outfit_id
+		SaveManager.wear_outfit(slot, "" if wearing else outfit_id)
+		if tile != null:
+			Juice.pop(tile, 0.10)
+		AudioManager.play_sfx("res://assets/audio/notes/note_%d.ogg" % (randi() % 5 + 1))
+	_refresh_wardrobe()
+
+
+## Tiles show their state, the purse shows the coins, and every hero on the
+## shelf changes clothes at once -- the point of the whole rack.
+func _refresh_wardrobe() -> void:
+	if _coin_label != null:
+		# int() first: JSON numbers arrive as floats and "45.0 coins" is not
+		# a number any six-year-old has ever been paid.
+		_coin_label.text = str(int(SaveManager.data["rewards"]["coins"]))
+	var worn: Dictionary = SaveManager.get_outfit()
+	for outfit in GameData.rewards.get("outfits", []):
+		var outfit_id: String = str(outfit.get("id", ""))
+		var tile: Button = _outfit_tiles.get(outfit_id)
+		if tile == null:
+			continue
+		var owned: bool = SaveManager.has_outfit(outfit_id)
+		var wearing: bool = str(worn.get(str(outfit.get("slot", "")), "")) == outfit_id
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(1.0, 0.99, 0.96, 0.94) if owned else Color(0.85, 0.87, 0.92, 0.85)
+		style.set_corner_radius_all(22)
+		style.border_width_bottom = 6
+		style.border_width_top = 4
+		style.border_width_left = 4
+		style.border_width_right = 4
+		style.border_color = Color(0.36, 0.78, 0.44) if wearing else Color(0.62, 0.66, 0.76, 0.6)
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			tile.add_theme_stylebox_override(state, style)
+		var price: Label = tile.get_node_or_null("Price")
+		if price != null:
+			price.text = "" if owned else ("%d" % int(outfit.get("cost_coins", 0)))
+	for preview in _previews.values():
+		if is_instance_valid(preview):
+			preview.refresh_outfit()
 
 
 ## The stickers bought in My Rewards live here, stuck along the bottom of
@@ -158,6 +292,7 @@ func _build_card(character_id: String, entry: Dictionary, box: Vector2) -> Panel
 	preview.position = Vector2(box.x * 0.5, box.y * 0.75)
 	inner.add_child(preview)
 	preview.set_height(box.x * 0.83)
+	_previews[character_id] = preview
 
 	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))),
 		34 if box.x >= 260.0 else 28)

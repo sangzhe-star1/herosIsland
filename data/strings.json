@@ -223,7 +223,14 @@
     "level.bluey_park_challenge": "Family Games Day",
     "keepy.instruction": "Keep the balloon up! Tap it!",
     "keepy.plop": "Plop! No worries — here comes another!",
-    "badge.keepy_champion": "Keepy Uppy Champion"
+    "badge.keepy_champion": "Keepy Uppy Champion",
+    "outfit.crown": "Crown",
+    "outfit.party_hat": "Party Hat",
+    "outfit.cap": "Cap",
+    "outfit.sunglasses": "Sunglasses",
+    "outfit.cape_red": "Hero Cape",
+    "outfit.wings": "Little Wings",
+    "house.wardrobe": "Dress up! Tap to wear — coins buy new ones."
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -449,6 +456,13 @@
     "level.bluey_park_challenge": "家庭运动会",
     "keepy.instruction": "别让气球落地，点它！",
     "keepy.plop": "噗——没关系，新气球来啦！",
-    "badge.keepy_champion": "顶气球冠军"
+    "badge.keepy_champion": "顶气球冠军",
+    "outfit.crown": "小王冠",
+    "outfit.party_hat": "派对帽",
+    "outfit.cap": "棒球帽",
+    "outfit.sunglasses": "太阳镜",
+    "outfit.cape_red": "英雄披风",
+    "outfit.wings": "小翅膀",
+    "house.wardrobe": "来换装！点一下就穿上——金币能买新的。"
   }
 }

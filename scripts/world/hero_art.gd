@@ -31,6 +31,12 @@ const NOMINAL_HEIGHT := 232.0
 
 var design: CharacterSkin
 
+## What the hero is wearing, by slot: {"hat": id, "face": id, "back": id},
+## empty strings for bare. Set by SkinnedCharacter from the save before the
+## figure is built; HeroArt itself never reads the save (it draws designs,
+## it does not know whose game this is).
+var outfit: Dictionary = {}
+
 ## self -> _spin -> _root -> parts.
 ## _spin's origin sits at the body's centre so a roll rotates the hero around
 ## their middle; _root's origin is back at the feet so everything else (poses,
@@ -83,6 +89,9 @@ func rebuild() -> void:
 	_root = Node2D.new()
 	_root.position = Vector2(0, -SPIN_CENTRE_Y)
 	_spin.add_child(_root)
+
+	# The back of the wardrobe first: a cape or wings live BEHIND the body.
+	_build_back_piece(_root)
 
 	# Back to front. Back limbs are the same suit turned away from the light,
 	# not a different colour.
@@ -295,7 +304,14 @@ func _build_head(parent: Node2D) -> void:
 		ry * 0.037),
 		Color(0.82, 0.42, 0.48, 0.9) if design.lashes else design.body_color.darkened(0.18), 0.0)
 
-	# The crest -- the silhouette. Scaled to the big head, swept back.
+	# The crest -- the silhouette. Scaled to the big head, swept back. A hat
+	# REPLACES the crest: a crown balanced on a dorsal fin reads as an
+	# accident, and every hat in the shop earns its slot by becoming the
+	# silhouette instead.
+	if str(outfit.get("hat", "")) != "":
+		_build_hat(parent, centre, rx, ry)
+		_build_face_piece(parent, centre, rx, ry)
+		return
 	match design.crest_kind:
 		"fin":
 			Shapes.lit(parent, PackedVector2Array([
@@ -361,6 +377,118 @@ func _build_head(parent: Node2D) -> void:
 				centre + Vector2(rx * 0.16, -ry * 0.84),
 				centre + Vector2(-rx * 0.16, -ry * 0.84),
 			]), design.accent_color, 1.0)
+	_build_face_piece(parent, centre, rx, ry)
+
+
+# --- the wardrobe ---------------------------------------------------------
+#
+# Every piece is drawn in head-space fractions like the face itself, so it
+# fits every build width and rides every pose for free.
+
+func _build_hat(parent: Node2D, centre: Vector2, rx: float, ry: float) -> void:
+	match str(outfit.get("hat", "")):
+		"crown":
+			var gold := Color(1.0, 0.82, 0.30)
+			var band_y: float = -ry * 0.78
+			Shapes.fill(parent, Shapes.rounded_rect(
+				centre + Vector2(-rx * 0.52, band_y - ry * 0.10),
+				Vector2(rx * 1.04, ry * 0.16), 5.0), gold, 0.8)
+			for k in range(3):
+				var px3: float = (-0.34 + 0.34 * float(k)) * rx
+				var tall: float = ry * (0.42 if k == 1 else 0.30)
+				Shapes.lit(parent, PackedVector2Array([
+					centre + Vector2(px3 - rx * 0.14, band_y - ry * 0.08),
+					centre + Vector2(px3, band_y - ry * 0.08 - tall),
+					centre + Vector2(px3 + rx * 0.14, band_y - ry * 0.08),
+				]), gold, 0.8)
+			for k in range(3):
+				Shapes.fill(parent, Shapes.circle_points(
+					centre + Vector2((-0.34 + 0.34 * float(k)) * rx, band_y - ry * 0.02),
+					rx * 0.05, 10),
+					[Color(0.90, 0.32, 0.36), Color(0.36, 0.70, 0.92),
+						Color(0.42, 0.80, 0.52)][k], 0.6)
+		"party_hat":
+			var lean := rx * 0.06
+			Shapes.lit(parent, PackedVector2Array([
+				centre + Vector2(-rx * 0.34, -ry * 0.74),
+				centre + Vector2(rx * 0.34, -ry * 0.82),
+				centre + Vector2(lean, -ry * 1.52),
+			]), Color(0.95, 0.58, 0.76), 0.9)
+			Shapes.fill(parent, Shapes.rounded_rect(
+				centre + Vector2(-rx * 0.22, -ry * 1.06),
+				Vector2(rx * 0.40, ry * 0.09), 4.0), Color(1.0, 0.86, 0.42), 0.0)
+			Shapes.fill(parent, Shapes.circle_points(
+				centre + Vector2(lean, -ry * 1.56), rx * 0.10, 12), Color(1.0, 0.86, 0.42), 0.7)
+		"cap":
+			var blue3 := Color(0.34, 0.58, 0.86)
+			var dome := PackedVector2Array()
+			for k in range(15):
+				var a11: float = PI + PI * float(k) / 14.0
+				dome.append(centre + Vector2(cos(a11) * rx * 0.72, -ry * 0.70 + sin(a11) * ry * 0.42))
+			dome.append(centre + Vector2(rx * 0.72, -ry * 0.62))
+			dome.append(centre + Vector2(-rx * 0.72, -ry * 0.62))
+			Shapes.lit(parent, dome, blue3, 1.0)
+			Shapes.fill(parent, Shapes.oval_points(
+				centre + Vector2(0, -ry * 0.60), Vector2(rx * 0.80, ry * 0.11), 18),
+				blue3.darkened(0.12), 0.8)
+			Shapes.fill(parent, Shapes.circle_points(
+				centre + Vector2(0, -ry * 1.10), rx * 0.07, 10), blue3.darkened(0.20), 0.0)
+
+
+func _build_face_piece(parent: Node2D, centre: Vector2, rx: float, ry: float) -> void:
+	match str(outfit.get("face", "")):
+		"sunglasses":
+			var dark := Color(0.16, 0.18, 0.24, 0.94)
+			for side in [-1.0, 1.0]:
+				var lens_at := centre + Vector2(side * rx * 0.42, ry * 0.12)
+				Shapes.fill(parent, Shapes.rounded_rect(
+					lens_at - Vector2(rx * 0.30, ry * 0.22),
+					Vector2(rx * 0.60, ry * 0.42), rx * 0.14), dark, 0.7)
+				Shapes.fill(parent, Shapes.oval_points(
+					lens_at + Vector2(-side * rx * 0.08, -ry * 0.08),
+					Vector2(rx * 0.10, ry * 0.05), 10), Color(1, 1, 1, 0.30), 0.0)
+			Shapes.fill(parent, Shapes.rounded_rect(
+				centre + Vector2(-rx * 0.14, ry * 0.02), Vector2(rx * 0.28, ry * 0.08),
+				rx * 0.03), dark, 0.0)
+
+
+func _build_back_piece(parent: Node2D) -> void:
+	match str(outfit.get("back", "")):
+		"cape_red":
+			var red4 := Color(0.86, 0.28, 0.30)
+			# Collar at the shoulders, hem swinging past the hips -- one wavy
+			# polygon, because a cape is a silhouette, not a garment pattern.
+			Shapes.lit(parent, PackedVector2Array([
+				Vector2(_u(-26.0), SHOULDER_Y + _u(2.0)),
+				Vector2(_u(26.0), SHOULDER_Y + _u(2.0)),
+				Vector2(_u(40.0), _u(-30.0)),
+				Vector2(_u(24.0), _u(-36.0)),
+				Vector2(_u(6.0), _u(-26.0)),
+				Vector2(_u(-18.0), _u(-38.0)),
+				Vector2(_u(-38.0), _u(-26.0)),
+			]), red4, 1.0)
+			Shapes.fill(parent, Shapes.rounded_rect(
+				Vector2(_u(-27.0), SHOULDER_Y - _u(2.0)), Vector2(_u(54.0), _u(7.0)), 3.5),
+				design.trim_color, 0.7)
+		"wings":
+			for side in [-1.0, 1.0]:
+				var wing := Node2D.new()
+				wing.position = Vector2(side * _u(16.0), SHOULDER_Y + _u(6.0))
+				parent.add_child(wing)
+				Shapes.lit(wing, PackedVector2Array([
+					Vector2(0, 0),
+					Vector2(side * _u(34.0), _u(-30.0)),
+					Vector2(side * _u(28.0), _u(-6.0)),
+					Vector2(side * _u(16.0), _u(6.0)),
+				]), Color(0.97, 0.97, 1.0), 0.9)
+				Shapes.fill(wing, Shapes.circle_points(
+					Vector2(side * _u(22.0), _u(-12.0)), _u(4.5), 8), Color(1.0, 0.90, 0.55), 0.0)
+				if Juice.motion_enabled():
+					var t := wing.create_tween().set_loops()
+					t.tween_property(wing, "rotation_degrees", side * 9.0, 0.7)\
+						.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+					t.tween_property(wing, "rotation_degrees", side * -4.0, 0.7)\
+						.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _build_arm(parent: Node2D, back: bool) -> void:

@@ -54,6 +54,8 @@ const NAMES := [
 	"traffic_light",
 	# wordless-instruction states and the star shop's goods
 	"ear", "tap", "tower", "potion", "star_bomb", "balloon",
+	# the wardrobe: outfit pieces for the Hero House rack
+	"crown", "party_hat", "cap", "sunglasses", "cape_red", "wings",
 ]
 
 
@@ -594,6 +596,60 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				Color(1, 1, 1, 0.5))
 			_tri(p, c + Vector2(-s * 0.05, s * 0.26), c + Vector2(s * 0.05, s * 0.26),
 				c + Vector2(0, s * 0.19), red2.darkened(0.15))
+		"crown":
+			var gold := Color(1.0, 0.82, 0.30)
+			_round_rect(p, c + Vector2(-s * 0.30, s * 0.06), Vector2(s * 0.60, s * 0.16), gold, s * 0.04)
+			for k in range(3):
+				var px2: float = -s * 0.22 + s * 0.22 * float(k)
+				_tri(p, c + Vector2(px2 - s * 0.09, s * 0.08), c + Vector2(px2 + s * 0.09, s * 0.08),
+					c + Vector2(px2, -s * (0.30 if k == 1 else 0.20)), gold)
+			for k in range(3):
+				_circle(p, c + Vector2(-s * 0.22 + s * 0.22 * float(k), s * 0.13), s * 0.035,
+					[Color(0.90, 0.32, 0.36), Color(0.36, 0.70, 0.92), Color(0.42, 0.80, 0.52)][k])
+		"party_hat":
+			var cone := PackedVector2Array([
+				c + Vector2(-s * 0.22, s * 0.30), c + Vector2(s * 0.22, s * 0.30), c + Vector2(0, -s * 0.28),
+			])
+			_poly(p, cone, Color(0.95, 0.58, 0.76))
+			_round_rect(p, c + Vector2(-s * 0.17, s * 0.02), Vector2(s * 0.30, s * 0.075),
+				Color(1.0, 0.86, 0.42), s * 0.03)
+			_circle(p, c + Vector2(0, -s * 0.30), s * 0.07, Color(1.0, 0.86, 0.42))
+		"cap":
+			var blue2 := Color(0.34, 0.58, 0.86)
+			var dome := PackedVector2Array()
+			for k in range(13):
+				var a10: float = PI + PI * float(k) / 12.0
+				dome.append(c + Vector2(cos(a10) * s * 0.28, s * 0.06 + sin(a10) * s * 0.28))
+			_poly(p, dome, blue2)
+			_circle(p, c + Vector2(0, -s * 0.20), s * 0.045, blue2.darkened(0.2))
+			_poly(p, Shapes.oval_points(c + Vector2(s * 0.14, s * 0.09), Vector2(s * 0.26, s * 0.075), 14),
+				blue2.darkened(0.12))
+		"sunglasses":
+			var dark := Color(0.16, 0.18, 0.24)
+			for side3 in [-1.0, 1.0]:
+				_round_rect(p, c + Vector2(side3 * s * 0.26 - s * 0.15, -s * 0.10),
+					Vector2(s * 0.30, s * 0.22), dark, s * 0.07)
+				_circle(p, c + Vector2(side3 * s * 0.20, -s * 0.04), s * 0.035, Color(1, 1, 1, 0.35))
+			_round_rect(p, c + Vector2(-s * 0.08, -s * 0.06), Vector2(s * 0.16, s * 0.05), dark, s * 0.02)
+		"cape_red":
+			var red3 := Color(0.88, 0.30, 0.32)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.16, -s * 0.30), c + Vector2(s * 0.16, -s * 0.30),
+				c + Vector2(s * 0.30, s * 0.26), c + Vector2(s * 0.10, s * 0.18),
+				c + Vector2(-s * 0.06, s * 0.30), c + Vector2(-s * 0.28, s * 0.20),
+			]), red3)
+			_round_rect(p, c + Vector2(-s * 0.20, -s * 0.34), Vector2(s * 0.40, s * 0.075),
+				Color(1.0, 0.86, 0.42), s * 0.03)
+		"wings":
+			for side4 in [-1.0, 1.0]:
+				var wing := PackedVector2Array([
+					c + Vector2(side4 * s * 0.04, s * 0.10),
+					c + Vector2(side4 * s * 0.38, -s * 0.26),
+					c + Vector2(side4 * s * 0.30, s * 0.02),
+					c + Vector2(side4 * s * 0.20, s * 0.16),
+				])
+				_poly(p, wing, Color(0.97, 0.97, 1.0))
+				_circle(p, c + Vector2(side4 * s * 0.24, -s * 0.10), s * 0.05, Color(1.0, 0.90, 0.55))
 		_:
 			return false
 	return true

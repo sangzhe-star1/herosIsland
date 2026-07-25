@@ -208,5 +208,43 @@
       "name_key": "item.star_bomb",
       "desc_key": "item.star_bomb_desc"
     }
+  ],
+  "outfits": [
+    {
+      "id": "crown",
+      "slot": "hat",
+      "cost_coins": 30,
+      "name_key": "outfit.crown"
+    },
+    {
+      "id": "party_hat",
+      "slot": "hat",
+      "cost_coins": 15,
+      "name_key": "outfit.party_hat"
+    },
+    {
+      "id": "cap",
+      "slot": "hat",
+      "cost_coins": 20,
+      "name_key": "outfit.cap"
+    },
+    {
+      "id": "sunglasses",
+      "slot": "face",
+      "cost_coins": 20,
+      "name_key": "outfit.sunglasses"
+    },
+    {
+      "id": "cape_red",
+      "slot": "back",
+      "cost_coins": 25,
+      "name_key": "outfit.cape_red"
+    },
+    {
+      "id": "wings",
+      "slot": "back",
+      "cost_coins": 40,
+      "name_key": "outfit.wings"
+    }
   ]
 }
