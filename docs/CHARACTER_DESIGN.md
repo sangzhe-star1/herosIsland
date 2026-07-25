@@ -61,17 +61,20 @@ looking, all violated by the first pass):
 | Field | What it changes |
 |---|---|
 | `build_width` | the whole figure's bulk, one number |
-| `crest_kind` | `fin` (dorsal blade) / `twin` (paired sweeps) / `horns` (broad side blades) — the silhouette from across the room |
+| `crest_kind` | `fin` (dorsal blade) / `twin` (paired sweeps) / `horns` (broad side blades) / `tiara` (gold band, three points, a gem) — the silhouette from across the room |
 | `chest_pattern` | `blade` / `chevron` / `bands` |
+| `lashes` | three strokes off each eye's outer rim, warmer blush, rosier mouth — the feminine read at chibi scale; the eyes stay as big as everyone's |
 | `body_color` | the suit |
 | `accent_color` | sweeps, caps, gauntlets, boots, crest |
 | `trim_color` | collar, belt, boot bands — the thin bright line the family shares |
 | `eye_color` | the lamps |
 | `core_color` | the chest light — gameplay recolours this |
 
-Ships with three: `light_hero` (twin / bands / red-gold), `tiga`-like
-(fin / chevron / crimson-purple), `zero`-like (horns / blade / blue-red).
-A fourth hero is a new `.tres`, no code.
+Ships with five: `light_hero` (twin / bands / red-gold), `tiga`-like
+(fin / chevron / crimson-purple), `zero`-like (horns / blade / blue-red),
+and two heroines added by request from the playtester's father --
+`grigio`-like (twin / chevron / rose-silver, lashes) and `yullian`-like
+(tiara / bands / red-gold, lashes). A sixth hero is a new `.tres`, no code.
 
 ---
 

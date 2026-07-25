@@ -37,15 +37,47 @@ func _ready() -> void:
 	center.add_child(row)
 	root.add_child(center)
 
+	# Card size adapts to the roster: three heroes got 300px cards, five get
+	# ~220px ones, and every card stays at or above the house's 220x120 touch
+	# minimum. UiKit.card() pads 20px on every side, so the OUTER size is what
+	# has to fit the row and the drawing space inside is 40 less each way --
+	# the first cut of this maths sized the INSIDE and five cards marched off
+	# the right edge of the screen.
 	var characters: Dictionary = GameData.characters.get("characters", {})
+	var ids: Array = []
 	for character_id in characters.keys():
-		var entry: Dictionary = characters[character_id]
-		if not bool(entry.get("unlocked", false)):
-			continue
-		var card := _build_card(str(character_id), entry)
-		card.pivot_offset = card.custom_minimum_size / 2.0
-		_cards[str(character_id)] = card
-		row.add_child(card)
+		if bool(characters[character_id].get("unlocked", false)):
+			ids.append(str(character_id))
+	var n: int = maxi(ids.size(), 1)
+	var sep: float = 24.0 if n >= 5 else 32.0
+	var per_row: int = n if n <= 5 else int(ceil(float(n) / 2.0))
+	var ratio: float = 4.0 / 3.0 if n <= 5 else 1.15   # squarer cards when two rows
+	var outer_w: float = clampf(
+		(1200.0 - sep * float(per_row - 1)) / float(per_row), 220.0, 340.0)
+	var inner_w: float = outer_w - 40.0
+	var inner_box := Vector2(inner_w, inner_w * ratio)
+
+	var rows: Array = [row]
+	if n > 5:
+		row.get_parent().remove_child(row)
+		var stack := VBoxContainer.new()
+		stack.alignment = BoxContainer.ALIGNMENT_CENTER
+		stack.add_theme_constant_override("separation", 14)
+		center.add_child(stack)
+		stack.add_child(row)
+		var row2 := HBoxContainer.new()
+		row2.alignment = BoxContainer.ALIGNMENT_CENTER
+		stack.add_child(row2)
+		rows.append(row2)
+	for r in rows:
+		(r as HBoxContainer).add_theme_constant_override("separation", int(sep))
+
+	for i in range(ids.size()):
+		var character_id: String = ids[i]
+		var card := _build_card(character_id, characters[character_id], inner_box)
+		card.pivot_offset = (inner_box + Vector2(40, 40)) / 2.0
+		_cards[character_id] = card
+		(rows[i / per_row] as HBoxContainer).add_child(card)
 
 	_refresh_selection()
 	_build_sticker_wall()
@@ -98,15 +130,21 @@ func _build_sticker_wall() -> void:
 		wall.position = Vector2(640.0 - wall.size.x / 2.0, 720.0 - wall.size.y - 18.0)
 
 
-func _build_card(character_id: String, entry: Dictionary) -> PanelContainer:
+func _build_card(character_id: String, entry: Dictionary, box: Vector2) -> PanelContainer:
 	var card := UiKit.card()
-	card.custom_minimum_size = Vector2(300, 400)
+	card.custom_minimum_size = box
 
 	# PanelContainer lays out its direct children itself and tramples anchors
 	# and positions, so everything lives inside one plain Control -- the one
 	# node type guaranteed to leave its children exactly where they are put.
+	# MOUSE_FILTER_IGNORE, and the fix for "tapping a hero does nothing": a
+	# plain Control defaults to STOP, so this inner sheet was silently eating
+	# every tap on the middle of the card -- only the card's thin outer
+	# margin ever heard one. That is exactly the "not responsive" a child
+	# reports, because a child taps the hero, dead centre.
 	var inner := Control.new()
-	inner.custom_minimum_size = Vector2(300, 400)
+	inner.custom_minimum_size = box
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(inner)
 
 	# Every hero is presented the same way: the live drawn figure, standing on
@@ -117,33 +155,38 @@ func _build_card(character_id: String, entry: Dictionary) -> PanelContainer:
 	var preview_skin: CharacterSkin = GameData.skin_for(character_id)
 	if preview_skin != null:
 		preview.skin = preview_skin
-	preview.position = Vector2(150, 300)
+	preview.position = Vector2(box.x * 0.5, box.y * 0.75)
 	inner.add_child(preview)
-	preview.set_height(250.0)
+	preview.set_height(box.x * 0.83)
 
-	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 34)
+	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))),
+		34 if box.x >= 260.0 else 28)
 	name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	name_label.offset_top = -64
-	name_label.offset_bottom = -14
+	name_label.offset_top = -58
+	name_label.offset_bottom = -12
 	inner.add_child(name_label)
 
 	# "This is who you are right now": a gold star pinned to the chosen card.
 	# A badge rather than a border, because at six a THING on the card reads
 	# better than a property of the card.
-	var badge: Control = UiKit.star(true, 72)
-	badge.position = Vector2(224, 4)
+	var badge_size: int = 72 if box.x >= 260.0 else 56
+	var badge: Control = UiKit.star(true, badge_size)
+	badge.position = Vector2(box.x - float(badge_size) - 4.0, 4.0)
 	_badges[character_id] = badge
 	inner.add_child(badge)
 
-	# The whole card is the touch target; a six-year-old taps the hero, not a
-	# button under it.
-	card.gui_input.connect(func(event: InputEvent):
-		var pressed: bool = (event is InputEventMouseButton \
-			and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
-			or (event is InputEventScreenTouch and event.pressed)
-		if pressed:
-			_select(character_id)
-	)
+	# The whole card is one big button, and it answers ON PRESS -- button_down,
+	# not the release -- because at six, "the button is broken" usually means
+	# "it answered a beat after my finger did". An invisible Button on top of
+	# everything gets the platform's own touch handling (drag tolerance,
+	# multi-touch) for free, which hand-rolled gui_input never quite matched.
+	var hit := Button.new()
+	hit.focus_mode = Control.FOCUS_NONE
+	hit.set_anchors_preset(Control.PRESET_FULL_RECT)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		hit.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	hit.button_down.connect(func(): _select(character_id))
+	inner.add_child(hit)
 	return card
 
 

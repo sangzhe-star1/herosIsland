@@ -18,8 +18,19 @@ extends LevelManager
 ## Terrain is generated from the level's seed, so replays return to the same
 ## valley, and a level entry in data/levels.json is a handful of knobs:
 ##   { "length": 2600, "gap_max": 120, "seg_min": 220, "coins": 8,
-##     "moving": false }
+##     "moving": false, "springs": 1, "balloons": 4, "birds": 1, "rocks": 2 }
 ## Challenge ranks stretch the trail and add coins -- never faster reflexes.
+##
+## The second-feedback-round additions, each still inside the house rules:
+##   balloons -- floating pops of colour at jump height; touching one pops it
+##               in confetti and banks a bonus coin. Pure joy, zero risk.
+##   birds    -- big friendly gliders that drift sideways; the hero can RIDE
+##               one. They add routes, never block one: every gap stays
+##               crossable by ledge, so a bird is a discovery, not a toll.
+##   rocks    -- the one ground hazard: a spiky rock to jump over. Touching it
+##               is the same soft mistake as falling -- a stumble, a hop back,
+##               one star of accuracy, nothing lost -- plus the red no-sign,
+##               so the rule "rocks are not for touching" needs no reading.
 
 const GRAVITY := 1500.0
 const MOVE_SPEED := 265.0
@@ -33,12 +44,21 @@ const CAMERA_LEAD := 520.0
 var _length := 2600.0
 var _coins_total := 8
 var _moving_platforms := false
+var _balloon_count := 0
+var _bird_count := 0
+var _rock_count := 0
 
 var _world: Node2D
 var _stage: Stage
 var _hero: SkinnedCharacter
 var _platforms: Array = []        # [{rect: Rect2, node: Node2D|null}]
 var _coins: Array = []            # [{node, x, y, taken}]
+var _balloons: Array = []         # [{node, x, y, taken}]
+var _rocks: Array = []            # [{node, x, top}] the spiky ones
+## Seconds of grace after a rock bump, so one rock cannot sting twice while
+## the child is still reacting to the first touch.
+var _rock_mercy := 0.0
+var _probe_scroll := -1.0         # test-harness camera park; -1 = follow hero
 var _flag_x := 0.0
 var _ground_y := 0.0
 
@@ -55,8 +75,10 @@ var _coins_got := 0
 var _reached := false
 
 var _instruction: Label
+var _picto: Control
 var _coin_label: Label
 var _hud: Control
+var _balloons_got := 0
 
 
 func setup_level() -> void:
@@ -64,6 +86,9 @@ func setup_level() -> void:
 	_length = maxf(float(config.get("length", 2600.0)), 1400.0)
 	_coins_total = int(config.get("coins", 8))
 	_moving_platforms = bool(config.get("moving", false))
+	_balloon_count = int(config.get("balloons", 0))
+	_bird_count = int(config.get("birds", 0))
+	_rock_count = int(config.get("rocks", 0))
 	var gap_max := clampf(float(config.get("gap_max", 120.0)), 60.0, 210.0)
 	var seg_min := maxf(float(config.get("seg_min", 220.0)), 170.0)
 
@@ -74,6 +99,10 @@ func setup_level() -> void:
 		_length += 380.0 * float(rank)
 		_coins_total += 2 * rank
 		gap_max = clampf(gap_max + 6.0 * float(rank), 60.0, 230.0)
+		# More toys with rank, capped: joy scales, hazards barely do.
+		_balloon_count = mini(_balloon_count + (rank + 1) / 2, 9)
+		_bird_count = mini(_bird_count + rank / 2, 4)
+		_rock_count = mini(_rock_count + rank / 3, 5)
 
 	_stage = build_world(self)
 	_ground_y = _stage.ground_y()
@@ -84,10 +113,21 @@ func setup_level() -> void:
 
 	_build_terrain(gap_max, seg_min)
 	_add_springs(int(config.get("springs", 0)) + rank / 2)
+	_add_birds(_bird_count)
+	_add_rocks(_rock_count)
 	_build_coins()
+	_build_balloons(_balloon_count)
 	_build_flag()
+	_build_butterflies()
 	_build_hero()
 	_build_hud()
+
+	# Harness hook: screenshot tooling sets TRAIL_PROBE_X to park the camera
+	# partway down the trail, because balloons, birds and rocks all live past
+	# the first screen and a start-of-level screenshot cannot see any of them.
+	var probe := OS.get_environment("TRAIL_PROBE_X")
+	if probe != "" and probe.is_valid_float():
+		_probe_scroll = clampf(float(probe), 0.0, _length - 1280.0)
 
 
 # --- building the valley -------------------------------------------------
@@ -410,6 +450,220 @@ func _add_springs(count: int) -> void:
 		})
 
 
+## Big friendly birds that glide slowly side to side at ledge height -- the
+## flying things this trail was missing, and the hero can stand on their
+## backs and ride. A bird is always a bonus route: terrain generation already
+## guarantees every gap is crossable by ledge, so nothing ever REQUIRES
+## catching one.
+func _add_birds(count: int) -> void:
+	if count <= 0:
+		return
+	var rng := Shapes.rng_for(str(level_data.get("id", "trail")) + ":birds")
+	var span_a: float = 950.0
+	var span_b: float = _flag_x - 650.0
+	if span_b <= span_a:
+		return
+	for i in range(count):
+		# Spread evenly-ish along the trail, jittered so no two levels match.
+		var t: float = (float(i) + rng.randf_range(0.25, 0.75)) / float(count)
+		var bx: float = lerpf(span_a, span_b, t)
+		var by: float = _ground_y - rng.randf_range(150.0, 215.0)
+		var w := 148.0
+
+		var holder := Node2D.new()
+		_world.add_child(holder)
+		var body := Node2D.new()
+		body.position = Vector2(bx + w * 0.5, by + 20.0)
+		holder.add_child(body)
+
+		# Plump glider: round body, cream belly, little head, orange beak.
+		# The back is flat-ish on purpose -- it is a perch and should look
+		# like one.
+		var blue := Color(0.42, 0.66, 0.88)
+		Shapes.ground_shadow(body, Vector2(0, _ground_y - by - 20.0), 100.0, 0.10)
+		var wing_back := Node2D.new()
+		wing_back.position = Vector2(-6.0, -8.0)
+		body.add_child(wing_back)
+		Shapes.fill(wing_back, PackedVector2Array([
+			Vector2(-8, 2), Vector2(-52, -26), Vector2(-18, 8),
+		]), blue.darkened(0.18), 0.8)
+		Shapes.lit(body, Shapes.blob(Vector2.ZERO, Vector2(52.0, 26.0), rng, 0.10, 3, 16),
+			blue, 1.0)
+		Shapes.fill(body, Shapes.oval_points(Vector2(4.0, 8.0), Vector2(34.0, 15.0), 14),
+			Color(0.97, 0.94, 0.86), 0.0)
+		# Head, eye, beak: forward is +x, the direction the level runs.
+		Shapes.lit(body, Shapes.circle_points(Vector2(48.0, -12.0), 17.0, 16), blue, 0.9)
+		Shapes.fill(body, Shapes.circle_points(Vector2(54.0, -15.0), 4.2, 8),
+			Color(0.10, 0.12, 0.16), 0.0)
+		Shapes.fill(body, Shapes.circle_points(Vector2(55.5, -16.5), 1.5, 6),
+			Color(1, 1, 1, 0.9), 0.0)
+		Shapes.fill(body, PackedVector2Array([
+			Vector2(62.0, -14.0), Vector2(76.0, -9.0), Vector2(62.0, -5.0),
+		]), Color(0.96, 0.66, 0.28), 0.7)
+		var tail := PackedVector2Array([
+			Vector2(-46.0, -2.0), Vector2(-66.0, -14.0), Vector2(-62.0, 4.0),
+		])
+		Shapes.fill(body, tail, blue.darkened(0.10), 0.7)
+		# The front wing flaps -- slow, glider-slow, not hummingbird.
+		var wing := Node2D.new()
+		wing.position = Vector2(-2.0, -6.0)
+		body.add_child(wing)
+		Shapes.lit(wing, PackedVector2Array([
+			Vector2(-6, 0), Vector2(-48, -34), Vector2(-14, 10), Vector2(6, 8),
+		]), blue.lightened(0.10), 0.9)
+		if Juice.motion_enabled():
+			var flap := wing.create_tween().set_loops()
+			flap.tween_property(wing, "rotation_degrees", 16.0, 0.55)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			flap.tween_property(wing, "rotation_degrees", -10.0, 0.55)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+		# The glide: the WHOLE holder drifts horizontally, so the platform
+		# rect drifts with it via the node offset in _on_platform_x().
+		var entry := {"rect": Rect2(bx, by, w, 26.0), "node": holder,
+			"base_y": by, "bird": true, "last_x": 0.0}
+		if Juice.motion_enabled():
+			var drift: float = rng.randf_range(60.0, 96.0)
+			var period: float = rng.randf_range(2.6, 3.4)
+			var t2 := holder.create_tween().set_loops()
+			t2.tween_property(holder, "position:x", drift, period)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			t2.tween_property(holder, "position:x", -drift, period * 2.0)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			t2.tween_property(holder, "position:x", 0.0, period)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_platforms.append(entry)
+
+
+## The spiky rocks: the trail's one touchable hazard, there to give the jump
+## button a REASON between gaps. Blunt drawn spikes, a red no-sign when
+## touched, and the same soft cost as falling. Never placed near a mushroom,
+## the start, or the flag, and never taller than a third of a jump.
+func _add_rocks(count: int) -> void:
+	if count <= 0:
+		return
+	var rng := Shapes.rng_for(str(level_data.get("id", "trail")) + ":rocks")
+	var candidates: Array = []
+	for entry in _platforms:
+		if entry.get("spring", false) or entry.get("bird", false) or entry["node"] != null:
+			continue
+		var rect: Rect2 = entry["rect"]
+		if rect.size.y < 100.0 or rect.size.x < 300.0:
+			continue                      # wide ground segments only
+		if rect.position.x < 780.0 or rect.position.x > _flag_x - 560.0:
+			continue
+		candidates.append(rect)
+	while candidates.size() > count:
+		candidates.remove_at(rng.randi() % candidates.size())
+	for rect in candidates:
+		# Spring mushrooms live at 0.55..0.75 of a segment; rocks sit early,
+		# at 0.22..0.40, so the two never crowd one landing.
+		var rx: float = rect.position.x + rect.size.x * rng.randf_range(0.22, 0.40)
+		var holder := Node2D.new()
+		holder.position = Vector2(rx, _ground_y)
+		_world.add_child(holder)
+		Shapes.ground_shadow(holder, Vector2.ZERO, 84.0, 0.20)
+		var stone: Color = _slab_color().lightened(0.12)
+		# A low boulder with three blunt spikes -- clearly "spiky", nothing
+		# like the round collectables, and knee-high to a jump.
+		Shapes.lit(holder, Shapes.blob(Vector2(0, -10.0), Vector2(34.0, 14.0), rng, 0.14, 3, 12),
+			stone, 0.9)
+		for spike in [[-20.0, -38.0, 11.0], [2.0, -46.0, 12.0], [22.0, -34.0, 9.0]]:
+			Shapes.lit(holder, PackedVector2Array([
+				Vector2(spike[0] - spike[2], -8.0),
+				Vector2(spike[0] + rng.randf_range(-2.0, 2.0), spike[1]),
+				Vector2(spike[0] + spike[2], -8.0),
+			]), stone.darkened(0.10), 0.8)
+		_rocks.append({"node": holder, "x": rx, "top": _ground_y - 46.0})
+
+
+## Balloons: bright, poppable, gone in a burst of confetti, worth one bonus
+## coin each. They hang at one-jump height over the trail so the child jumps
+## for the JOY of the pop; missing every single one costs nothing.
+func _build_balloons(count: int) -> void:
+	if count <= 0:
+		return
+	var rng := Shapes.rng_for(str(level_data.get("id", "trail")) + ":balloons")
+	var span_a: float = 720.0
+	var span_b: float = _flag_x - 420.0
+	if span_b <= span_a:
+		return
+	var colours := [Color(0.92, 0.36, 0.38), Color(1.0, 0.78, 0.30),
+		Color(0.46, 0.72, 0.94), Color(0.95, 0.58, 0.76), Color(0.68, 0.58, 0.94)]
+	for i in range(count):
+		var t: float = (float(i) + rng.randf_range(0.2, 0.8)) / float(count)
+		var bx: float = lerpf(span_a, span_b, t)
+		var by: float = _ground_y - rng.randf_range(165.0, 235.0)
+		var colour: Color = colours[rng.randi() % colours.size()]
+
+		var holder := Node2D.new()
+		holder.position = Vector2(bx, by)
+		_world.add_child(holder)
+		# String first, then the balloon over it; the knot ties them.
+		var string := Line2D.new()
+		string.points = PackedVector2Array([Vector2(0, 26.0), Vector2(rng.randf_range(-4.0, 4.0), 74.0)])
+		string.width = 2.5
+		string.default_color = Color(1, 1, 1, 0.55)
+		holder.add_child(string)
+		Shapes.lit(holder, Shapes.oval_points(Vector2.ZERO, Vector2(26.0, 32.0), 18), colour, 0.9)
+		Shapes.fill(holder, Shapes.oval_points(Vector2(-8.0, -11.0), Vector2(7.0, 9.0), 10),
+			Color(1, 1, 1, 0.45), 0.0)
+		Shapes.fill(holder, PackedVector2Array([
+			Vector2(-5.0, 30.0), Vector2(5.0, 30.0), Vector2(0.0, 22.0),
+		]), colour.darkened(0.12), 0.0)
+		if Juice.motion_enabled():
+			var bob := holder.create_tween().set_loops()
+			var lift: float = rng.randf_range(8.0, 14.0)
+			bob.tween_property(holder, "position:y", by - lift, rng.randf_range(1.1, 1.5))\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			bob.tween_property(holder, "position:y", by, rng.randf_range(1.1, 1.5))\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_balloons.append({"node": holder, "x": bx, "y": by, "taken": false})
+
+
+## Butterflies: pure set dressing at head height, because a world with only
+## the things you can USE in it reads as a level, and a world with things
+## that simply live there reads as a place. Skipped on rooftops.
+func _build_butterflies() -> void:
+	if _stage.style.ground_kind == "plaza":
+		return
+	var rng := Shapes.rng_for(str(level_data.get("id", "trail")) + ":flutter")
+	var count := int(_length / 1050.0)
+	for i in range(count):
+		var bx: float = rng.randf_range(500.0, _length - 500.0)
+		var by: float = _ground_y - rng.randf_range(70.0, 140.0)
+		var fly := Node2D.new()
+		fly.position = Vector2(bx, by)
+		_world.add_child(fly)
+		var tint: Color = [Color(0.98, 0.70, 0.80), Color(0.80, 0.74, 0.98),
+			Color(1.0, 0.86, 0.52)][rng.randi() % 3]
+		for side in [-1.0, 1.0]:
+			var wing := Node2D.new()
+			wing.name = "WingL" if side < 0.0 else "WingR"
+			fly.add_child(wing)
+			Shapes.fill(wing, Shapes.oval_points(Vector2(side * 7.0, -2.0),
+				Vector2(7.5, 10.0), 10), tint, 0.0)
+		Shapes.fill(fly, Shapes.oval_points(Vector2.ZERO, Vector2(2.2, 7.0), 8),
+			Color(0.28, 0.24, 0.30), 0.0)
+		if Juice.motion_enabled():
+			# Wing flutter...
+			for side in [-1.0, 1.0]:
+				var wing2: Node2D = fly.get_node("WingL" if side < 0.0 else "WingR")
+				var fl := wing2.create_tween().set_loops()
+				fl.tween_property(wing2, "scale:x", 0.35, 0.14)\
+					.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+				fl.tween_property(wing2, "scale:x", 1.0, 0.14)\
+					.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			# ...and a lazy wander around home.
+			var wander := fly.create_tween().set_loops()
+			for hop in range(3):
+				wander.tween_property(fly, "position",
+					Vector2(bx + rng.randf_range(-70.0, 70.0), by + rng.randf_range(-36.0, 24.0)),
+					rng.randf_range(1.6, 2.4)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			wander.tween_property(fly, "position", Vector2(bx, by), 2.0)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
 # --- HUD and controls ------------------------------------------------------
 
 func _build_hud() -> void:
@@ -435,6 +689,17 @@ func _build_hud() -> void:
 	_instruction.size = Vector2(800, 52)
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(_instruction)
+
+	# The instruction, wordless: reach the flag (tick), leave the spiky rock
+	# alone (slash, only shown when this trail has any). The text above stays
+	# for the parent; this strip is what a pre-reader plays from.
+	var picto_items: Array = [{"icon": "flag", "ok": true}]
+	if _rock_count > 0:
+		picto_items.append({"icon": "rock", "ok": false})
+	_picto = UiKit.pictogram(picto_items)
+	_picto.position = Vector2(240, 88)
+	_picto.size = Vector2(800, 82)
+	_hud.add_child(_picto)
 
 	# The coin pouch, top right.
 	var chip := PanelContainer.new()
@@ -561,11 +826,19 @@ func _physics_process(delta: float) -> void:
 	_hero.position.x = clampf(_hero.position.x + _velocity.x * delta, 60.0, _length - 60.0)
 	_hero.position.y += _velocity.y * delta
 
-	# Standing on a drifting ledge: ride it.
+	# Standing on a drifting ledge: ride it. A bird also carries its rider
+	# SIDEWAYS -- without this the perch slides out from under the feet and
+	# the "riding a bird" moment never happens.
 	if _grounded and _stand_on >= 0:
 		var top: float = _platform_top(_stand_on)
 		if _on_platform_x(_stand_on):
 			_hero.position.y = top
+			var entry: Dictionary = _platforms[_stand_on]
+			var node: Variant = entry["node"]
+			if node != null and is_instance_valid(node):
+				var nx: float = (node as Node2D).position.x
+				_hero.position.x += nx - float(entry.get("last_x", nx))
+				entry["last_x"] = nx
 		else:
 			_grounded = false
 			_stand_on = -1
@@ -586,6 +859,9 @@ func _physics_process(delta: float) -> void:
 					_hero.set_pose(HeroArt.Pose.IDLE)
 				_grounded = true
 				_stand_on = i
+				var pnode: Variant = _platforms[i]["node"]
+				if pnode != null and is_instance_valid(pnode):
+					_platforms[i]["last_x"] = (pnode as Node2D).position.x
 				var rect: Rect2 = _platforms[i]["rect"]
 				_last_safe = Vector2(
 					clampf(_hero.position.x, rect.position.x + 40.0,
@@ -597,6 +873,8 @@ func _physics_process(delta: float) -> void:
 		_hero.walk(absf(dir) > 0.1)
 
 	_collect_coins()
+	_check_balloons()
+	_check_rocks(delta)
 	_check_flag()
 	_check_fall()
 	_scroll_camera()
@@ -632,9 +910,16 @@ func _platform_top(i: int) -> float:
 
 
 func _on_platform_x(i: int) -> bool:
-	var rect: Rect2 = _platforms[i]["rect"]
-	return _hero.position.x >= rect.position.x - 16.0 \
-		and _hero.position.x <= rect.position.x + rect.size.x + 16.0
+	var entry: Dictionary = _platforms[i]
+	var rect: Rect2 = entry["rect"]
+	# A drifting platform's collision follows its drawing: the rect is where
+	# it was BUILT, the node offset is where it is NOW.
+	var off := 0.0
+	var node: Variant = entry["node"]
+	if node != null and is_instance_valid(node):
+		off = (node as Node2D).position.x
+	return _hero.position.x >= rect.position.x + off - 16.0 \
+		and _hero.position.x <= rect.position.x + off + rect.size.x + 16.0
 
 
 func _collect_coins() -> void:
@@ -653,6 +938,73 @@ func _collect_coins() -> void:
 			AudioManager.play_sfx("res://assets/audio/coin.ogg")
 
 
+## Popping a balloon: confetti, a musical note, one bonus coin for the pouch.
+## The hit box is generous -- a six-year-old aiming a jump deserves the pop.
+func _check_balloons() -> void:
+	var hero_mid := Vector2(_hero.position.x, _hero.position.y - 62.0)
+	for balloon in _balloons:
+		if balloon["taken"]:
+			continue
+		var node: Node2D = balloon["node"]
+		if not is_instance_valid(node):
+			continue
+		if hero_mid.distance_to(node.position) < 74.0:
+			balloon["taken"] = true
+			_balloons_got += 1
+			Juice.burst(_world, node.position, 14)
+			node.queue_free()
+			AudioManager.play_sfx("res://assets/audio/notes/note_%d.ogg" % (randi() % 5 + 1))
+
+
+## Brushing a spiky rock: the same soft cost as falling -- stumble, a little
+## hop back, one star of accuracy -- plus the red no-sign over the rock, which
+## is the whole lesson in one picture. A short mercy window keeps a single
+## rock from stinging twice while the child is still reacting.
+func _check_rocks(delta: float) -> void:
+	_rock_mercy = maxf(_rock_mercy - delta, 0.0)
+	if _rock_mercy > 0.0:
+		return
+	for rock in _rocks:
+		if absf(_hero.position.x - float(rock["x"])) > 46.0:
+			continue
+		if _hero.position.y < float(rock["top"]) - 6.0:
+			continue                      # sailing over it: the intended move
+		_rock_mercy = 1.2
+		score_mistake()
+		# Away is wherever the rock is not: hop the hero back the way they came.
+		var side: float = signf(_hero.position.x - float(rock["x"]))
+		if side == 0.0:
+			side = -1.0
+		_hero.position.x = float(rock["x"]) + side * 78.0
+		_velocity.y = -320.0
+		_grounded = false
+		_stand_on = -1
+		_hero.stumble()
+		Juice.no_sign(_world, Vector2(float(rock["x"]), float(rock["top"]) - 40.0), 130.0)
+		_pulse_rule_tile(1)
+		AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+		_say(I18n.t("platformer.rock"))
+		break
+
+
+func _pulse_rule_tile(index: int) -> void:
+	if _picto == null or not is_instance_valid(_picto):
+		return
+	var tiles: Array = _picto.get_meta("tiles", [])
+	if index < tiles.size() and is_instance_valid(tiles[index]):
+		Juice.pop(tiles[index], 0.30)
+
+
+## Swap the instruction line for a moment, then put the standing one back.
+func _say(text: String) -> void:
+	_instruction.text = text
+	var timer := get_tree().create_timer(2.2)
+	timer.timeout.connect(func():
+		if is_instance_valid(_instruction) and not _finished:
+			_instruction.text = I18n.t("platformer.instruction")
+	)
+
+
 func _check_flag() -> void:
 	if _reached:
 		return
@@ -662,10 +1014,11 @@ func _check_flag() -> void:
 		_hero.victory()
 		AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 		# The coins picked up on the trail go straight into the pouch, on top
-		# of the level reward. A collected coin that vanished at the flag
-		# would be a broken promise at any age.
-		if _coins_got > 0:
-			SaveManager.add_coins(_coins_got)
+		# of the level reward -- and every balloon popped is a bonus coin.
+		# A collected coin that vanished at the flag would be a broken
+		# promise at any age.
+		if _coins_got + _balloons_got > 0:
+			SaveManager.add_coins(_coins_got + _balloons_got)
 		# Every coin found earns one extra confetti moment before the result.
 		if _coins_got >= _coins_total and _coins_total > 0:
 			Juice.burst(_world, _hero.position + Vector2(0, -120), 26)
@@ -685,18 +1038,15 @@ func _check_fall() -> void:
 	_hero.set_pose(HeroArt.Pose.IDLE)
 	_hero.stumble()
 	Juice.dust(_world, _hero.position, 6)
-	_instruction.text = I18n.t("platformer.fell")
-	var timer := get_tree().create_timer(2.2)
-	timer.timeout.connect(func():
-		if is_instance_valid(_instruction) and not _finished:
-			_instruction.text = I18n.t("platformer.instruction")
-	)
+	_say(I18n.t("platformer.fell"))
 
 
 ## The camera: the world slides, the horizon slides slower. This is where the
 ## valley stops being a screen and starts being a place that continues.
 func _scroll_camera() -> void:
 	var scroll: float = clampf(_hero.position.x - CAMERA_LEAD, 0.0, _length - 1280.0)
+	if _probe_scroll >= 0.0:
+		scroll = _probe_scroll
 	_world.position.x = -scroll
 	if _stage != null and is_instance_valid(_stage):
 		_stage.parallax(scroll)

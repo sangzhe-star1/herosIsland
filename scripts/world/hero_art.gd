@@ -266,19 +266,34 @@ func _build_head(parent: Node2D) -> void:
 		Shapes.fill(parent, Shapes.oval_points(
 			eye_centre + Vector2(-side * rx * 0.07, ry * 0.08).rotated(tilt),
 			Vector2(rx * 0.045, ry * 0.03), 8), Color(1, 1, 1, 0.5), 0.0)
+		# Lashes: three little strokes fanning off the outer-top rim. The one
+		# detail that reads "she" at this scale without narrowing the eye,
+		# which stays as big and bright as everyone else's.
+		if design.lashes:
+			for li in range(3):
+				var la: float = -0.95 + 0.38 * float(li)
+				var lash_dir := Vector2(cos(la) * side, sin(la))
+				var lash_base := eye_centre + Vector2(lash_dir.x * rx * 0.315,
+					lash_dir.y * ry * 0.275).rotated(tilt)
+				var lash_tip := lash_base + Vector2(lash_dir.x * rx * 0.16,
+					lash_dir.y * ry * 0.17 - ry * 0.03).rotated(tilt)
+				Shapes.fill(parent, Shapes.taper(lash_base, lash_tip, rx * 0.045, rx * 0.012),
+					design.body_color.darkened(0.30), 0.0)
 
 	# Cheek blush: two soft warm patches under the eyes. Kept faint -- it
 	# reads as roundness, not make-up.
 	for side in [-1.0, 1.0]:
 		Shapes.fill(parent, Shapes.oval_points(
 			centre + Vector2(side * rx * 0.58, ry * 0.44),
-			Vector2(rx * 0.15, ry * 0.08), 12), Color(1.0, 0.60, 0.62, 0.26), 0.0)
+			Vector2(rx * 0.15, ry * 0.08), 12),
+			Color(1.0, 0.60, 0.62, 0.34 if design.lashes else 0.26), 0.0)
 
 	# A tiny mouth, low. Small mouth is part of the schema; the second pass's
 	# wide guard read as a grille.
 	Shapes.fill(parent, Shapes.rounded_rect(
 		centre + Vector2(-rx * 0.10, ry * 0.60), Vector2(rx * 0.20, ry * 0.075),
-		ry * 0.037), design.body_color.darkened(0.18), 0.0)
+		ry * 0.037),
+		Color(0.82, 0.42, 0.48, 0.9) if design.lashes else design.body_color.darkened(0.18), 0.0)
 
 	# The crest -- the silhouette. Scaled to the big head, swept back.
 	match design.crest_kind:
@@ -308,6 +323,31 @@ func _build_head(parent: Node2D) -> void:
 				centre + Vector2(rx * 0.12, -ry * 0.88),
 				centre + Vector2(-rx * 0.12, -ry * 0.88),
 			]), design.trim_color, 1.0)
+		"tiara":
+			# The princess band: a gold arc riding the crown, three points
+			# (tall centre, two shy sides) and an accent gem. Yullian wears
+			# exactly this in the source material; at chibi scale the arc IS
+			# the silhouette.
+			var band := PackedVector2Array()
+			for i3 in range(13):
+				var ba: float = lerpf(PI * 1.14, PI * 1.86, float(i3) / 12.0)
+				band.append(centre + Vector2(cos(ba) * rx * 1.03, sin(ba) * ry * 1.05))
+			for i3 in range(13):
+				var ba2: float = lerpf(PI * 1.86, PI * 1.14, float(i3) / 12.0)
+				band.append(centre + Vector2(cos(ba2) * rx * 0.88, sin(ba2) * ry * 0.90))
+			Shapes.fill(parent, band, design.trim_color, 0.8)
+			for spec in [[-0.30, 1.26], [0.0, 1.52], [0.30, 1.26]]:
+				var px: float = spec[0]
+				var ph: float = spec[1]
+				Shapes.lit(parent, PackedVector2Array([
+					centre + Vector2(rx * (px - 0.10), -ry * 0.96),
+					centre + Vector2(rx * px, -ry * ph),
+					centre + Vector2(rx * (px + 0.10), -ry * 0.96),
+				]), design.trim_color, 0.9)
+			Shapes.fill(parent, Shapes.oval_points(centre + Vector2(0, -ry * 1.06),
+				Vector2(rx * 0.10, ry * 0.12), 12), design.accent_color, 0.7)
+			Shapes.fill(parent, Shapes.oval_points(centre + Vector2(-rx * 0.03, -ry * 1.10),
+				Vector2(rx * 0.035, ry * 0.04), 8), Color(1, 1, 1, 0.85), 0.0)
 		"horns":
 			for side in [-1.0, 1.0]:
 				Shapes.lit(parent, PackedVector2Array([

@@ -15,6 +15,16 @@
       "skin": "res://resources/skins/zero.tres",
       "name_key": "character.zero",
       "unlocked": true
+    },
+    "grigio": {
+      "skin": "res://resources/skins/grigio.tres",
+      "name_key": "character.grigio",
+      "unlocked": true
+    },
+    "yullian": {
+      "skin": "res://resources/skins/yullian.tres",
+      "name_key": "character.yullian",
+      "unlocked": true
     }
   }
 }

@@ -63,9 +63,12 @@ func _ready() -> void:
 	_ok(duel.result.correct == hits_before + 1,
 		"a shielded attack should bounce back and count")
 
-	# Unshielded hit: nothing lost, beam merely rests.
+	# Unshielded hit: progress is never removed, but since the light-bar
+	# redesign (the "no urgency" feedback) it DOES cost one light pip and one
+	# star of accuracy -- that is the urgency. The level itself is never lost.
 	duel._shield_until = 0.0
 	var cd_before: float = duel._beam_ready_at
+	var light_before: int = duel._light_left
 	var fake2 := Panel.new()
 	fake2.size = Vector2(80, 80)
 	fake2.position = Vector2(240, 500)
@@ -74,9 +77,12 @@ func _ready() -> void:
 	duel._threat_arrives(fake2)
 	_ok(duel.result.correct == hits_before + 1, "an unshielded hit must not remove progress")
 	_ok(duel._beam_ready_at > cd_before, "an unshielded hit should rest the beam briefly")
-	_ok(duel.result.mistakes == 0, "being hit is never a mistake")
+	_ok(duel.result.mistakes == 1, "an unshielded hit costs one star of accuracy")
+	_ok(duel._light_left == light_before - 1, "an unshielded hit dims one light pip")
 
-	# Finish the duel and land on a stored 3-star result.
+	# Wipe the probe's deliberate hit, then finish: the stored result must be
+	# the 3-star one an actually-clean run earns.
+	duel.result.mistakes = 0
 	while duel.result.correct < 8:
 		duel._land_hit(1)
 	var stored: LevelResult = await GameManager.level_finished

@@ -1490,7 +1490,10 @@
       "gap_max": 105,
       "seg_min": 240,
       "coins": 8,
-      "moving": false
+      "moving": false,
+      "balloons": 3,
+      "birds": 1,
+      "rocks": 1
     },
     "target": {
       "correct": 1
@@ -1513,7 +1516,10 @@
       "seg_min": 210,
       "coins": 11,
       "moving": false,
-      "springs": 1
+      "springs": 1,
+      "balloons": 4,
+      "birds": 1,
+      "rocks": 2
     },
     "target": {
       "correct": 1
@@ -1536,7 +1542,10 @@
       "seg_min": 195,
       "coins": 14,
       "moving": true,
-      "springs": 2
+      "springs": 2,
+      "balloons": 4,
+      "birds": 2,
+      "rocks": 2
     },
     "target": {
       "correct": 1
@@ -1560,7 +1569,10 @@
       "coins": 13,
       "moving": true,
       "springs": 1,
-      "weather": "snow"
+      "weather": "snow",
+      "balloons": 5,
+      "birds": 2,
+      "rocks": 3
     },
     "target": {
       "correct": 1
@@ -1584,7 +1596,10 @@
       "seg_min": 205,
       "coins": 12,
       "moving": true,
-      "springs": 2
+      "springs": 2,
+      "balloons": 6,
+      "birds": 3,
+      "rocks": 3
     },
     "target": {
       "correct": 1
@@ -1607,7 +1622,10 @@
       "seg_min": 215,
       "coins": 12,
       "moving": false,
-      "springs": 2
+      "springs": 2,
+      "balloons": 3,
+      "birds": 2,
+      "rocks": 2
     },
     "target": {
       "correct": 1
@@ -1630,7 +1648,10 @@
       "seg_min": 225,
       "coins": 12,
       "moving": false,
-      "springs": 1
+      "springs": 1,
+      "balloons": 4,
+      "birds": 1,
+      "rocks": 2
     },
     "target": {
       "correct": 1

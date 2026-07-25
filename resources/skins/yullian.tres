@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/skin/character_skin.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "yullian"
+display_name_key = "character.yullian"
+build_width = 70.0
+crest_kind = "tiara"
+chest_pattern = "bands"
+lashes = true
+body_color = Color(0.92, 0.92, 0.95, 1)
+accent_color = Color(0.88, 0.24, 0.28, 1)
+trim_color = Color(1, 0.84, 0.35, 1)
+eye_color = Color(1, 0.95, 0.66, 1)
+core_color = Color(1, 0.72, 0.3, 1)
+body_size = Vector2(64, 96)

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/skin/character_skin.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "grigio"
+display_name_key = "character.grigio"
+build_width = 70.0
+crest_kind = "twin"
+chest_pattern = "chevron"
+lashes = true
+body_color = Color(0.93, 0.91, 0.94, 1)
+accent_color = Color(0.85, 0.25, 0.42, 1)
+trim_color = Color(1, 0.84, 0.35, 1)
+eye_color = Color(1, 0.93, 0.6, 1)
+core_color = Color(1, 0.45, 0.62, 1)
+body_size = Vector2(64, 96)

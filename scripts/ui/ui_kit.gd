@@ -346,3 +346,100 @@ static func star(filled: bool, size: int = 72) -> Control:
 		# earn is the entire reason for drawing it at all.
 		Shapes.fill(holder, points, Color(1, 1, 1, 0.34), 1.0)
 	return holder
+
+
+# --- wordless instructions ------------------------------------------------
+
+## A "do / don't" ring. The two road signs every pre-reader already owns:
+## green ring with a tick means "this one, yes"; red ring with a diagonal
+## slash means "not this one". Drawn, so it can be dropped over any icon at
+## any size -- in the instruction strip, or flashed over the exact rock a
+## child just tapped.
+static func rule_ring(ok: bool, size: float) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(size, size)
+	holder.size = Vector2(size, size)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.pivot_offset = Vector2(size, size) / 2.0
+
+	var centre := Vector2(size, size) / 2.0
+	var colour := Color(0.36, 0.78, 0.44) if ok else Color(0.90, 0.28, 0.28)
+	var ring := Line2D.new()
+	ring.points = Shapes.circle_points(centre, size * 0.44, 30)
+	ring.closed = true
+	ring.width = maxf(size * 0.085, 4.0)
+	ring.default_color = colour
+	ring.antialiased = true
+	holder.add_child(ring)
+
+	if ok:
+		# A tick riding the ring's lower-right, like a stamp of approval --
+		# NOT crossing the icon, which stays fully visible.
+		var badge := Node2D.new()
+		badge.position = centre + Vector2(size * 0.30, size * 0.30)
+		holder.add_child(badge)
+		Shapes.fill(badge, Shapes.circle_points(Vector2.ZERO, size * 0.17, 16), colour, 0.0)
+		var tick := Line2D.new()
+		tick.points = PackedVector2Array([
+			Vector2(-size * 0.085, 0.0),
+			Vector2(-size * 0.02, size * 0.062),
+			Vector2(size * 0.09, -size * 0.07),
+		])
+		tick.width = maxf(size * 0.05, 3.0)
+		tick.default_color = Color(1, 1, 1, 0.95)
+		tick.antialiased = true
+		badge.add_child(tick)
+	else:
+		# The slash DOES cross the icon: "no" has to be unmissable.
+		var slash := Line2D.new()
+		var arm := Vector2(size * 0.30, -size * 0.30)
+		slash.points = PackedVector2Array([centre - arm, centre + arm])
+		slash.width = maxf(size * 0.085, 4.0)
+		slash.default_color = colour
+		slash.antialiased = true
+		holder.add_child(slash)
+	return holder
+
+
+## The instruction, without the reading: a row of icon tiles, each wearing a
+## green-tick or red-slash ring. Callers pass [{icon, ok, tint?}, ...] and put
+## the strip right under the text label -- the text stays for the parent and
+## for the child to grow into, the strip is what actually instructs.
+##
+## Returns the strip; each tile is retrievable via get_meta("tiles") (an Array
+## of Controls in item order) so a level can pulse the matching tile when its
+## rule is broken, or retint an icon when the target changes.
+static func pictogram(items: Array, tile: float = 78.0) -> Control:
+	var strip := HBoxContainer.new()
+	strip.alignment = BoxContainer.ALIGNMENT_CENTER
+	strip.add_theme_constant_override("separation", int(tile * 0.22))
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tiles: Array = []
+
+	for item in items:
+		var box := Control.new()
+		box.custom_minimum_size = Vector2(tile, tile)
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.pivot_offset = Vector2(tile, tile) / 2.0
+
+		# A soft dark coaster so the strip reads over any world, day or night.
+		var pad := Node2D.new()
+		box.add_child(pad)
+		Shapes.fill(pad, Shapes.rounded_rect(Vector2(2, 2),
+			Vector2(tile - 4.0, tile - 4.0), tile * 0.24),
+			Color(0.05, 0.09, 0.20, 0.55), 0.0)
+
+		var art: Control = picture(str(item.get("icon", "")), tile * 0.58)
+		if art != null:
+			art.name = "Art"     # so a level can retint it when the target changes
+			art.position = Vector2(tile, tile) / 2.0 - Vector2(tile * 0.29, tile * 0.29)
+			if item.has("tint"):
+				art.modulate = item["tint"]
+			box.add_child(art)
+
+		box.add_child(rule_ring(bool(item.get("ok", true)), tile))
+		strip.add_child(box)
+		tiles.append(box)
+
+	strip.set_meta("tiles", tiles)
+	return strip

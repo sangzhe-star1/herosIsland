@@ -22,14 +22,14 @@ func _ready() -> void:
 			art.set_height(470.0)
 			art.set_pose(poses[pi], false)
 	else:
-		var skins := ["light_hero", "tiga", "zero"]
+		var skins := ["light_hero", "tiga", "zero", "grigio", "yullian"]
 		var poses2 := [HeroArt.Pose.IDLE, HeroArt.Pose.CHEER, HeroArt.Pose.BEAM, HeroArt.Pose.HURT]
 		for si in range(skins.size()):
 			for pi in range(poses2.size()):
 				var art2 := HeroArt.new(load("res://resources/skins/%s.tres" % skins[si]))
 				root.add_child(art2)
-				art2.position = Vector2(170.0 + float(pi) * 300.0, 230.0 + float(si) * 230.0)
-				art2.set_height(210.0)
+				art2.position = Vector2(170.0 + float(pi) * 300.0, 150.0 + float(si) * 137.0)
+				art2.set_height(140.0)
 				art2.set_pose(poses2[pi], false)
 	await get_tree().create_timer(1.2).timeout
 	await RenderingServer.frame_post_draw

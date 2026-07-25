@@ -23,11 +23,18 @@ extends Resource
 @export var build_width: float = 76.0
 
 ## The shape on top of the head. In silhouette this is what a child recognises
-## from across the room, so it is the design's signature.
-@export_enum("fin", "twin", "horns") var crest_kind: String = "fin"
+## from across the room, so it is the design's signature. "tiara" is the
+## princess band -- gold arc, three points, a gem -- worn by the island's
+## heroines.
+@export_enum("fin", "twin", "horns", "tiara") var crest_kind: String = "fin"
 
 ## How the accent sweeps across the chest.
 @export_enum("blade", "chevron", "bands") var chest_pattern: String = "blade"
+
+## Long lashes, a warmer blush and a rosier mouth -- the feminine read at
+## chibi scale, where colours and silhouette do most of the work and these
+## three small touches finish it. Off for the original three heroes.
+@export var lashes: bool = false
 
 @export var body_color: Color = Color(0.87, 0.89, 0.92)   # the suit
 @export var accent_color: Color = Color(0.91, 0.27, 0.27) # sweeps, crest, boots

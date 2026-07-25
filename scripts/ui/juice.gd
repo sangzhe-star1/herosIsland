@@ -222,3 +222,49 @@ static func idle_bob(node: Node, height: float = 8.0, period: float = 1.8) -> vo
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	t.tween_property(node, "position", origin, period * 0.5)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## The red "not this one" ring: a circle with a diagonal slash, bloomed over
+## the exact thing that was wrongly touched, gone half a second later. For a
+## child who cannot read, THIS is the correction message -- it points at the
+## thing, it says no, and it leaves without scolding. Follows rule 1: one
+## small bloom, never a strobe, never a whole-screen flash; under
+## reduce-motion it appears still and simply goes.
+static func no_sign(parent: Node, at: Vector2, size: float = 150.0) -> void:
+	if parent == null or not is_instance_valid(parent):
+		return
+	var holder := Node2D.new()
+	holder.position = at
+	holder.z_index = 40                     # over the play things, under nothing that matters
+	parent.add_child(holder)
+
+	var red := Color(0.90, 0.28, 0.28)
+	var ring := Line2D.new()
+	ring.points = Shapes.circle_points(Vector2.ZERO, size * 0.44, 30)
+	ring.closed = true
+	ring.width = maxf(size * 0.085, 4.0)
+	ring.default_color = red
+	ring.antialiased = true
+	holder.add_child(ring)
+
+	var slash := Line2D.new()
+	var arm := Vector2(size * 0.30, -size * 0.30)
+	slash.points = PackedVector2Array([-arm, arm])
+	slash.width = maxf(size * 0.085, 4.0)
+	slash.default_color = red
+	slash.antialiased = true
+	holder.add_child(slash)
+
+	if motion_enabled():
+		holder.scale = Vector2(0.5, 0.5)
+		var t := holder.create_tween()
+		t.tween_property(holder, "scale", Vector2.ONE, 0.18)\
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.tween_interval(0.5)
+		t.tween_property(holder, "modulate:a", 0.0, 0.30)
+		t.tween_callback(holder.queue_free)
+	else:
+		holder.get_tree().create_timer(1.1).timeout.connect(func():
+			if is_instance_valid(holder):
+				holder.queue_free()
+		)

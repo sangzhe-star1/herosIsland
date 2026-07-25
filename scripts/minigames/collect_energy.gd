@@ -15,8 +15,6 @@ const ORB_SIZE := Vector2(110, 110)
 const DESPAWN_Y := 760.0
 const COLOR_SWITCH_EVERY := 3
 
-const ORB_ART := "res://assets/icons/orb.png"
-const ROCK_ART := "res://assets/icons/rock.png"
 const COLLECT_FLASH_ART := "res://assets/effects/collect_flash.png"
 const POWER_UP_ART := "res://assets/effects/power_up.png"
 
@@ -33,6 +31,7 @@ var _required_color_index := 0
 var _play_area: Control
 var _progress: Label
 var _instruction: Label
+var _picto: Control
 var _hero: SkinnedCharacter
 var _tower: EnergyTower
 
@@ -97,6 +96,22 @@ func _build_scene(config: Dictionary) -> void:
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_instruction)
 
+	# The instruction, wordless: icon tiles with tick/slash rings right under
+	# the text. The text stays for the parent; the strip is what a pre-reader
+	# actually plays from.
+	var picto_items: Array = []
+	if _color_target:
+		picto_items = [{"icon": "orb", "ok": true, "tint": _color_at(0)}]
+	elif _hazard_ratio > 0.0:
+		picto_items = [{"icon": "orb", "ok": true, "tint": _color_at(0)},
+			{"icon": "rock", "ok": false}]
+	else:
+		picto_items = [{"icon": "orb", "ok": true, "tint": _color_at(0)}]
+	_picto = UiKit.pictogram(picto_items)
+	_picto.position = Vector2(340, 96)
+	_picto.size = Vector2(600, 84)
+	_play_area.add_child(_picto)
+
 	_progress = Label.new()
 	_progress.add_theme_font_size_override("font_size", 32)
 	_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
@@ -150,38 +165,18 @@ func _spawn_thing() -> void:
 	)
 	node.mouse_filter = Control.MOUSE_FILTER_STOP
 
-	var art_path: String = ROCK_ART if hazard else ORB_ART
-	if ResourceLoader.exists(art_path):
-		# Real artwork. The orb is painted neutral and tinted here, which is
-		# what lets one file serve all four colours in the matching level. The
-		# rock stays untinted: it differs from orbs in shape as well as colour,
-		# so a colour-blind child can still tell them apart.
-		node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-		var art := TextureRect.new()
-		art.texture = load(art_path)
-		art.set_anchors_preset(Control.PRESET_FULL_RECT)
-		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# Drawn, not blitted -- and drawn from the SAME IconLibrary entries the
+	# instruction strip shows, so "collect these, not those" is taught by
+	# matching pictures rather than by reading. The orb is tinted per colour;
+	# the rock differs from orbs in shape as well as colour, so a colour-blind
+	# child can still tell them apart.
+	node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var art: Control = UiKit.picture("rock" if hazard else "orb", ORB_SIZE.x)
+	if art != null:
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if not hazard:
 			art.modulate = _color_at(color_index)
 		node.add_child(art)
-	else:
-		var style := StyleBoxFlat.new()
-		if hazard:
-			# Hazards are a different colour AND a different shape, never colour
-			# alone, so a colour-blind child can still tell them apart.
-			style.bg_color = Color(0.29, 0.30, 0.34)
-			style.set_corner_radius_all(6)
-			style.border_width_top = 6
-			style.border_color = Color(0.18, 0.19, 0.22)
-		else:
-			style.bg_color = _color_at(color_index)
-			style.set_corner_radius_all(int(ORB_SIZE.x / 2.0))
-			style.shadow_color = style.bg_color
-			style.shadow_color.a = 0.45
-			style.shadow_size = 14
-		node.add_theme_stylebox_override("panel", style)
 
 	var thing := {
 		"node": node,
@@ -316,7 +311,20 @@ func complete_level() -> void:
 func _wrong(node: Control, message_key: String) -> void:
 	_instruction.text = I18n.t(message_key)
 	Juice.nudge(node)
+	# The wordless half of the message: a red no-ring flashed over the exact
+	# thing the finger touched, and a pulse on the rule tile it broke. This is
+	# the entire correction for a child who cannot read the label above.
+	Juice.no_sign(_play_area, node.position + ORB_SIZE / 2.0)
+	_pulse_rule_tile(1 if message_key == "collect.not_that" else 0)
 	score_mistake()
+
+
+func _pulse_rule_tile(index: int) -> void:
+	if _picto == null or not is_instance_valid(_picto):
+		return
+	var tiles: Array = _picto.get_meta("tiles", [])
+	if index < tiles.size() and is_instance_valid(tiles[index]):
+		Juice.pop(tiles[index], 0.30)
 
 
 ## In colour-matching levels the target colour changes every few collects, and
@@ -338,6 +346,15 @@ func _pick_required_color() -> void:
 
 	if _tower != null:
 		_tower.set_light_color(color)
+
+	# The rule tile follows the target colour, and pulses to say "look here".
+	if _picto != null and is_instance_valid(_picto):
+		var tiles: Array = _picto.get_meta("tiles", [])
+		if tiles.size() > 0 and is_instance_valid(tiles[0]):
+			var art: Control = tiles[0].get_node_or_null("Art")
+			if art != null:
+				art.modulate = color
+			Juice.pop(tiles[0], 0.30)
 
 	_instruction.text = I18n.t("collect.match_tower")
 
