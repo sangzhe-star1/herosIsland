@@ -14,7 +14,15 @@ extends LevelManager
 ## maximum length, colours. Challenge-ready: rank stretches the song.
 
 const PAD_SIZE := Vector2(150, 150)
-const NOTE_GAP := 0.62
+## The demo's pace. Slower than the first cut: a phrase that has come and
+## gone before the child has finished looking up is not a demo, it is a
+## rumour. The lead-in matters as much -- the round used to begin singing
+## 0.8 s after the level appeared, while the child was still arriving.
+const NOTE_GAP := 0.78
+const LEAD_IN := 1.4
+## While the child is singing back, a nudge if nothing is tapped for this
+## long: the next pad breathes. No-fail games still need a way out of stuck.
+const HINT_AFTER := 5.0
 const DEFAULT_COLORS := ["#ff5d5d", "#ffd23c", "#7ee06a", "#4fb8ff", "#c493f2"]
 
 var _pad_count := 4
@@ -30,6 +38,9 @@ var _play_area: Control
 var _instruction: Label
 var _progress: Label
 var _hero: SkinnedCharacter
+var _dots: Array = []          # one lamp per note in the current phrase
+var _dot_row: HBoxContainer
+var _idle := 0.0               # seconds since the child last tapped
 var _ear_badge: Control        # "the island is singing -- listen"
 var _tap_badge: Control        # "your turn -- tap"
 var _replay: Button            # hear the song again, free, any time
@@ -134,11 +145,28 @@ func _build_scene(config: Dictionary) -> void:
 	_hero.scale = Vector2(1.4, 1.4)
 	_play_area.add_child(_hero)
 
+	# The note lamps: one per note in the phrase, above the pads. They fill
+	# as the island sings, empty at the handover, and fill again as the child
+	# sings back. THIS is the fix for "tapping does nothing": a correct tap
+	# used to change nothing a child could see, so two taps into a two-note
+	# phrase he had no idea he was winning -- and one wrong guess later the
+	# song restarted and he concluded the buttons were dead.
+	_dot_row = HBoxContainer.new()
+	_dot_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_dot_row.add_theme_constant_override("separation", 16)
+	_dot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_area.add_child(_dot_row)
+
 	# Pads in a gentle arc, big and forgiving.
 	var colors: Array = config.get("colors", DEFAULT_COLORS)
 	var spacing := 40.0
 	var total: float = _pad_count * PAD_SIZE.x + (_pad_count - 1) * spacing
 	var start_x: float = (1280.0 - total) / 2.0 + 60.0
+	# The lamps hang centred over the pad row, whatever the pad count -- the
+	# same numbers, not a guessed constant that drifts when a level asks for
+	# three pads or five.
+	_dot_row.position = Vector2(start_x, 330.0)
+	_dot_row.size = Vector2(total, 54.0)
 	for i in range(_pad_count):
 		var pad := Panel.new()
 		pad.size = PAD_SIZE
@@ -199,7 +227,55 @@ func _on_replay_pressed() -> void:
 			Juice.pop(_ear_badge, 0.25)
 		return
 	Juice.pop(_replay, 0.15)
+	_idle = 0.0
 	_play_sequence()
+
+
+## Rebuild the lamp row for a phrase of `count` notes.
+func _build_dots(count: int) -> void:
+	if _dot_row == null or not is_instance_valid(_dot_row):
+		return
+	for child in _dot_row.get_children():
+		child.queue_free()
+	_dots.clear()
+	for i in range(count):
+		var dot := Control.new()
+		dot.custom_minimum_size = Vector2(44, 44)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dot.pivot_offset = Vector2(22, 22)
+		var art := Node2D.new()
+		dot.add_child(art)
+		Shapes.fill(art, Shapes.circle_points(Vector2(22, 22), 17.0, 20),
+			Color(0.06, 0.10, 0.22, 0.55), 0.0)
+		var ring := Line2D.new()
+		ring.points = Shapes.circle_points(Vector2(22, 22), 17.0, 20)
+		ring.closed = true
+		ring.width = 4.0
+		ring.default_color = Color(1.0, 0.94, 0.72, 0.8)
+		ring.antialiased = true
+		dot.add_child(ring)
+		var core: Control = UiKit.star(true, 30)
+		core.position = Vector2(7, 7)
+		core.visible = false
+		core.name = "Core"
+		dot.add_child(core)
+		_dot_row.add_child(dot)
+		_dots.append(dot)
+
+
+## How many notes of the phrase are done. Filling one is an event: it pops.
+func _set_dots(filled: int) -> void:
+	for i in range(_dots.size()):
+		var dot: Control = _dots[i]
+		if not is_instance_valid(dot):
+			continue
+		var core: Control = dot.get_node_or_null("Core")
+		if core == null:
+			continue
+		var want: bool = i < filled
+		if want and not core.visible:
+			Juice.pop(dot, 0.28)
+		core.visible = want
 
 
 func _pad_style(color: Color, lit: bool) -> StyleBoxFlat:
@@ -223,11 +299,16 @@ func _start_round() -> void:
 	var previous := -1
 	for i in range(length):
 		var pick := randi() % _pad_count
-		# No triple repeats: they are hard to count by ear at six.
-		if pick == previous and randi() % 2 == 0:
+		# NEVER the same pad twice running. The old rule allowed it half the
+		# time, and a phrase like [blue, blue] is unreadable at six: one pad
+		# blinking twice looks exactly like one pad blinking once. The very
+		# first phrase a real child met was [blue, blue], which is how this
+		# level earned the verdict "tapping does nothing".
+		while pick == previous and _pad_count > 1:
 			pick = (pick + 1) % _pad_count
 		_sequence.append(pick)
 		previous = pick
+	_build_dots(_sequence.size())
 	_play_sequence()
 
 
@@ -236,13 +317,20 @@ func _play_sequence() -> void:
 	_position = 0
 	_instruction.text = I18n.t("echo.listen")
 	_show_state(false)
-	await get_tree().create_timer(0.8).timeout
-	for index in _sequence:
+	_set_dots(0)
+	await get_tree().create_timer(LEAD_IN).timeout
+	for i in range(_sequence.size()):
 		if not is_inside_tree():
 			return
-		_sing_pad(index)
+		_sing_pad(int(_sequence[i]))
+		# A lamp lights per note sung: the child learns HOW MANY notes there
+		# are while hearing them, and sees the same lamps fill back up when
+		# it is his turn.
+		_set_dots(i + 1)
 		await get_tree().create_timer(NOTE_GAP).timeout
 	_listening = true
+	_idle = 0.0
+	_set_dots(0)
 	_instruction.text = I18n.t("echo.your_turn")
 	_show_state(true)
 	# The pads bow, one after another: "now these are yours to press".
@@ -316,6 +404,7 @@ func _on_pad_input(event: InputEvent, index: int) -> void:
 		# Not that note. The song simply plays again -- hearing it twice is
 		# help, not punishment.
 		_listening = false
+		_set_dots(0)
 		_instruction.text = I18n.t("echo.again")
 		score_mistake()
 		await get_tree().create_timer(1.0).timeout
@@ -324,6 +413,8 @@ func _on_pad_input(event: InputEvent, index: int) -> void:
 		return
 
 	_position += 1
+	_idle = 0.0
+	_set_dots(_position)
 	if _position < _sequence.size():
 		return
 
@@ -337,6 +428,34 @@ func _on_pad_input(event: InputEvent, index: int) -> void:
 		await get_tree().create_timer(1.1).timeout
 		if is_inside_tree():
 			_start_round()
+
+
+## Stuck for a few seconds with the island waiting? The pad he needs next
+## breathes, once, quietly. It is a hint rather than an answer only in the
+## sense that he still has to tap it -- and a six-year-old who cannot find
+## the way in has already lost the level in every way that matters.
+func _process(delta: float) -> void:
+	super._process(delta)
+	if _finished or not _listening or _sequence.is_empty():
+		return
+	_idle += delta
+	if _idle < HINT_AFTER:
+		return
+	_idle = 0.0
+	if _position >= _sequence.size():
+		return
+	var node: Panel = _pads[int(_sequence[_position])]["node"]
+	if not is_instance_valid(node) or not Juice.motion_enabled():
+		return
+	var t := node.create_tween()
+	t.tween_property(node, "scale", Vector2(1.14, 1.14), 0.30)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(node, "scale", Vector2.ONE, 0.30)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(node, "scale", Vector2(1.14, 1.14), 0.30)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(node, "scale", Vector2.ONE, 0.30)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func on_correct() -> void:

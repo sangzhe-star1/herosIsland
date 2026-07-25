@@ -157,6 +157,19 @@ if ! grep -q "DUEL PROBE PASSED" "$DUEL_OUT"; then
 fi
 rm -f "$DUEL_OUT"
 
+# The echo probe drives Dance Mode / Light Song the way thumbs do: phrase
+# generation, the handover, the note lamps, and a completed phrase scoring.
+echo
+echo "Running echo probe..."
+ECHO_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/EchoProbe.tscn 2>&1 | tee "$ECHO_OUT"
+if ! grep -q "ECHO PROBE PASSED" "$ECHO_OUT"; then
+  rm -f "$ECHO_OUT"
+  echo "Echo probe failed."
+  exit 1
+fi
+rm -f "$ECHO_OUT"
+
 # The save probe tears the save file the way a force-closed tablet does and
 # proves the child's history survives. Runs LAST: it ends on a deliberately
 # fresh save, and any probe after it would inherit that emptiness.
