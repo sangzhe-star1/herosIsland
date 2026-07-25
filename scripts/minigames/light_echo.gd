@@ -12,6 +12,15 @@ extends LevelManager
 ##
 ## Powers the Light Song levels via "config": pad count, starting length,
 ## maximum length, colours. Challenge-ready: rank stretches the song.
+##
+## The hard part for a six-year-old is not remembering the notes, it is
+## understanding that ORDER is the whole point. A real playtester watched
+## yellow-then-green light up and tapped GREEN -- the last thing he saw --
+## and got told he was wrong by a sentence he cannot read. So the lamps
+## above the pads now carry the phrase's COLOURS in order while the island
+## sings, the first phrase of every level keeps them showing while he
+## answers (a copy-the-recipe round that teaches the rule), and any wrong
+## tap reveals them again instead of hiding the answer behind a retry.
 
 const PAD_SIZE := Vector2(150, 150)
 ## The demo's pace. Slower than the first cut: a phrase that has come and
@@ -38,8 +47,11 @@ var _play_area: Control
 var _instruction: Label
 var _progress: Label
 var _hero: SkinnedCharacter
+const DOT := 56.0
+
 var _dots: Array = []          # one lamp per note in the current phrase
 var _dot_row: HBoxContainer
+var _revealed := false         # are the lamps showing the phrase's colours?
 var _idle := 0.0               # seconds since the child last tapped
 var _ear_badge: Control        # "the island is singing -- listen"
 var _tap_badge: Control        # "your turn -- tap"
@@ -153,7 +165,7 @@ func _build_scene(config: Dictionary) -> void:
 	# song restarted and he concluded the buttons were dead.
 	_dot_row = HBoxContainer.new()
 	_dot_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_dot_row.add_theme_constant_override("separation", 16)
+	_dot_row.add_theme_constant_override("separation", 18)
 	_dot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_dot_row)
 
@@ -238,44 +250,85 @@ func _build_dots(count: int) -> void:
 	for child in _dot_row.get_children():
 		child.queue_free()
 	_dots.clear()
+	var centre := Vector2(DOT, DOT) * 0.5
 	for i in range(count):
 		var dot := Control.new()
-		dot.custom_minimum_size = Vector2(44, 44)
+		dot.custom_minimum_size = Vector2(DOT, DOT)
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		dot.pivot_offset = Vector2(22, 22)
+		dot.pivot_offset = centre
 		var art := Node2D.new()
+		art.name = "Art"     # _reveal() looks the swatch up by path
 		dot.add_child(art)
-		Shapes.fill(art, Shapes.circle_points(Vector2(22, 22), 17.0, 20),
+		Shapes.fill(art, Shapes.circle_points(centre, DOT * 0.40, 20),
 			Color(0.06, 0.10, 0.22, 0.55), 0.0)
+		# The colour swatch: invisible until the phrase is revealed, and then
+		# it IS the answer for that position -- "yellow, then green".
+		var swatch: Polygon2D = Shapes.fill(art,
+			Shapes.circle_points(centre, DOT * 0.31, 20), Color(1, 1, 1, 0.0), 0.0)
+		swatch.name = "Swatch"
 		var ring := Line2D.new()
-		ring.points = Shapes.circle_points(Vector2(22, 22), 17.0, 20)
+		ring.name = "Ring"
+		ring.points = Shapes.circle_points(centre, DOT * 0.40, 20)
 		ring.closed = true
-		ring.width = 4.0
+		ring.width = 4.5
 		ring.default_color = Color(1.0, 0.94, 0.72, 0.8)
 		ring.antialiased = true
 		dot.add_child(ring)
-		var core: Control = UiKit.star(true, 30)
-		core.position = Vector2(7, 7)
-		core.visible = false
-		core.name = "Core"
-		dot.add_child(core)
+		# The done-tick, same green tick badge the pictogram strips use, so a
+		# child who has met one has met both.
+		var tick := Node2D.new()
+		tick.name = "Tick"
+		tick.position = centre + Vector2(DOT * 0.26, DOT * 0.26)
+		tick.visible = false
+		dot.add_child(tick)
+		Shapes.fill(tick, Shapes.circle_points(Vector2.ZERO, DOT * 0.17, 14),
+			Color(0.36, 0.78, 0.44), 0.0)
+		var check := Line2D.new()
+		check.points = PackedVector2Array([
+			Vector2(-DOT * 0.085, 0.0), Vector2(-DOT * 0.02, DOT * 0.062),
+			Vector2(DOT * 0.09, -DOT * 0.07),
+		])
+		check.width = DOT * 0.055
+		check.default_color = Color(1, 1, 1, 0.95)
+		check.antialiased = true
+		tick.add_child(check)
 		_dot_row.add_child(dot)
 		_dots.append(dot)
 
 
-## How many notes of the phrase are done. Filling one is an event: it pops.
+## How many notes of the phrase are done. Ticking one is an event: it pops.
 func _set_dots(filled: int) -> void:
 	for i in range(_dots.size()):
 		var dot: Control = _dots[i]
 		if not is_instance_valid(dot):
 			continue
-		var core: Control = dot.get_node_or_null("Core")
-		if core == null:
+		var tick: Node2D = dot.get_node_or_null("Tick")
+		if tick == null:
 			continue
 		var want: bool = i < filled
-		if want and not core.visible:
+		if want and not tick.visible:
 			Juice.pop(dot, 0.28)
-		core.visible = want
+		tick.visible = want
+		var ring: Line2D = dot.get_node_or_null("Ring")
+		if ring != null:
+			ring.default_color = Color(0.36, 0.78, 0.44) if want \
+				else Color(1.0, 0.94, 0.72, 0.8)
+
+
+## Show (or hide) the phrase's colours in the lamps -- the recipe, in order.
+## Revealing is how this level teaches and how it rescues; hiding is how it
+## becomes a memory game again on the next phrase.
+func _reveal(show_colours: bool) -> void:
+	_revealed = show_colours
+	for i in range(_dots.size()):
+		var dot: Control = _dots[i]
+		if not is_instance_valid(dot) or i >= _sequence.size():
+			continue
+		var swatch: Polygon2D = dot.get_node_or_null("Art/Swatch")
+		if swatch == null:
+			continue
+		var colour: Color = _pads[int(_sequence[i])]["color"]
+		swatch.color = colour if show_colours else Color(colour.r, colour.g, colour.b, 0.0)
 
 
 func _pad_style(color: Color, lit: bool) -> StyleBoxFlat:
@@ -293,21 +346,28 @@ func _pad_style(color: Color, lit: bool) -> StyleBoxFlat:
 
 # --- the song -----------------------------------------------------------
 
-func _start_round() -> void:
-	var length: int = mini(_sequence_start + result.correct, _sequence_max)
-	_sequence.clear()
+## A phrase of `length` notes. Pure -- no nodes, no timers -- so the probe
+## can generate a hundred of them and check every one.
+##
+## NEVER the same pad twice running. The old rule allowed it half the time,
+## and a phrase like [blue, blue] is unreadable at six: one pad blinking
+## twice looks exactly like one pad blinking once. The very first phrase a
+## real child met was [blue, blue], which is how this level earned the
+## verdict "tapping does nothing".
+func make_phrase(length: int) -> Array:
+	var out: Array = []
 	var previous := -1
 	for i in range(length):
 		var pick := randi() % _pad_count
-		# NEVER the same pad twice running. The old rule allowed it half the
-		# time, and a phrase like [blue, blue] is unreadable at six: one pad
-		# blinking twice looks exactly like one pad blinking once. The very
-		# first phrase a real child met was [blue, blue], which is how this
-		# level earned the verdict "tapping does nothing".
 		while pick == previous and _pad_count > 1:
 			pick = (pick + 1) % _pad_count
-		_sequence.append(pick)
+		out.append(pick)
 		previous = pick
+	return out
+
+
+func _start_round() -> void:
+	_sequence = make_phrase(mini(_sequence_start + result.correct, _sequence_max))
 	_build_dots(_sequence.size())
 	_play_sequence()
 
@@ -318,19 +378,27 @@ func _play_sequence() -> void:
 	_instruction.text = I18n.t("echo.listen")
 	_show_state(false)
 	_set_dots(0)
+	_reveal(false)
 	await get_tree().create_timer(LEAD_IN).timeout
 	for i in range(_sequence.size()):
 		if not is_inside_tree():
 			return
 		_sing_pad(int(_sequence[i]))
-		# A lamp lights per note sung: the child learns HOW MANY notes there
-		# are while hearing them, and sees the same lamps fill back up when
-		# it is his turn.
-		_set_dots(i + 1)
+		# Each lamp takes the colour of the note being sung, left to right.
+		# By the end of the demo the strip literally reads the phrase --
+		# "yellow, then green" -- which is the ONE thing a child has to
+		# understand here and the one thing nothing used to say.
+		_paint_lamp(i)
 		await get_tree().create_timer(NOTE_GAP).timeout
 	_listening = true
 	_idle = 0.0
 	_set_dots(0)
+	# Training wheels: the first phrase of a level is a copy-the-recipe
+	# round, colours still showing. From the second phrase on they fade and
+	# it becomes the memory game it is named for -- and a wrong tap brings
+	# them straight back, so nobody is ever left guessing in the dark.
+	if not _teaching():
+		_reveal(false)
 	_instruction.text = I18n.t("echo.your_turn")
 	_show_state(true)
 	# The pads bow, one after another: "now these are yours to press".
@@ -345,6 +413,24 @@ func _play_sequence() -> void:
 				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 			t.tween_property(node, "scale", Vector2.ONE, 0.16)\
 				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
+## True while the child has not yet completed a phrase in this level.
+func _teaching() -> bool:
+	return result.correct == 0
+
+
+## Colour lamp `i` from the note it belongs to, with a little pop.
+func _paint_lamp(i: int) -> void:
+	if i >= _dots.size() or i >= _sequence.size():
+		return
+	var dot: Control = _dots[i]
+	if not is_instance_valid(dot):
+		return
+	var swatch: Polygon2D = dot.get_node_or_null("Art/Swatch")
+	if swatch != null:
+		swatch.color = _pads[int(_sequence[i])]["color"]
+	Juice.pop(dot, 0.30)
 
 
 ## One pad lights, plays its note, and the hero's chest light turns its
@@ -401,15 +487,25 @@ func _on_pad_input(event: InputEvent, index: int) -> void:
 	_sing_pad(index)
 
 	if index != _sequence[_position]:
-		# Not that note. The song simply plays again -- hearing it twice is
-		# help, not punishment.
+		# Not that note -- and specifically, not that note YET, which is the
+		# distinction a six-year-old misses. So: the red no-sign over the pad
+		# he touched (the same "not this one" he already knows from the other
+		# levels), then the recipe revealed, then the song again. Hearing it
+		# twice is help, not punishment; SEEING it is help he can act on.
 		_listening = false
 		_set_dots(0)
+		var wrong_pad: Panel = _pads[index]["node"]
+		if is_instance_valid(wrong_pad):
+			Juice.no_sign(_play_area, wrong_pad.position + PAD_SIZE / 2.0, 130.0)
+		_reveal(true)
 		_instruction.text = I18n.t("echo.again")
 		score_mistake()
-		await get_tree().create_timer(1.0).timeout
+		await get_tree().create_timer(1.4).timeout
 		if is_inside_tree():
+			# Replay with the colours still up: this attempt is a guided one.
 			_play_sequence()
+			await get_tree().create_timer(0.05).timeout
+			_reveal(true)
 		return
 
 	_position += 1
@@ -420,6 +516,7 @@ func _on_pad_input(event: InputEvent, index: int) -> void:
 
 	# The whole song, echoed back.
 	_listening = false
+	_reveal(false)
 	_hero.celebrate()
 	Juice.burst(_play_area, _pads[index]["node"].position + PAD_SIZE / 2.0, 20)
 	score_correct()
@@ -444,6 +541,10 @@ func _process(delta: float) -> void:
 	_idle = 0.0
 	if _position >= _sequence.size():
 		return
+	# Stuck with the recipe hidden? Show it -- that is the kinder hint, and
+	# it explains the rule rather than just pointing.
+	if not _revealed:
+		_reveal(true)
 	var node: Panel = _pads[int(_sequence[_position])]["node"]
 	if not is_instance_valid(node) or not Juice.motion_enabled():
 		return

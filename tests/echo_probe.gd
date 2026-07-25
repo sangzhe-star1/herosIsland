@@ -62,12 +62,12 @@ func _ready() -> void:
 	var sequence: Array = echo._sequence.duplicate()
 	_tap(echo, int(sequence[0]))
 	_ok(echo._position == 1, "the first correct tap must advance the song")
-	_ok(echo._dots[0].get_node("Core").visible,
-		"a correct tap must light a lamp -- visible proof it counted")
-	_ok(not echo._dots[sequence.size() - 1].get_node("Core").visible,
-		"lamps still to come stay dark")
-	print("  after one correct tap: position=%d of %d, lamp lit=%s" % [
-		echo._position, sequence.size(), echo._dots[0].get_node("Core").visible])
+	_ok(echo._dots[0].get_node("Tick").visible,
+		"a correct tap must tick a lamp -- visible proof it counted")
+	_ok(not echo._dots[sequence.size() - 1].get_node("Tick").visible,
+		"lamps still to come stay unticked")
+	print("  after one correct tap: position=%d of %d, lamp ticked=%s" % [
+		echo._position, sequence.size(), echo._dots[0].get_node("Tick").visible])
 
 	# Finish the phrase and check the round scores.
 	for i in range(1, sequence.size()):
@@ -76,12 +76,31 @@ func _ready() -> void:
 	_ok(echo.result.correct == correct_before + 1, "a completed phrase scores one")
 	print("  after the whole phrase: correct=%d" % echo.result.correct)
 
-	# Twenty phrases: none may repeat a pad, at any length.
-	for round_index in range(20):
-		echo._start_round()
-		for i in range(1, echo._sequence.size()):
-			_ok(int(echo._sequence[i]) != int(echo._sequence[i - 1]),
-				"generated phrase %d repeats a pad" % round_index)
+	# A hundred phrases at every length: none may repeat a pad. Generation is
+	# pure, so this costs nothing and cannot pile up coroutines.
+	for length in range(2, 9):
+		for attempt in range(100):
+			var phrase: Array = echo.make_phrase(length)
+			_ok(phrase.size() == length, "phrase length %d honoured" % length)
+			for i in range(1, phrase.size()):
+				if int(phrase[i]) == int(phrase[i - 1]):
+					_ok(false, "phrase repeats a pad at length %d" % length)
+					break
+
+	# The teaching rule: the lamps carry the phrase's colours while the
+	# island sings, and the FIRST phrase of a level keeps them up while the
+	# child answers -- a copy-the-recipe round.
+	_ok(echo.has_method("_reveal"), "the lamps can reveal the phrase")
+	echo._sequence = [0, 1]
+	echo._build_dots(2)
+	echo._reveal(true)
+	var swatch: Polygon2D = echo._dots[0].get_node("Art/Swatch")
+	_ok(swatch.color.a > 0.5, "a revealed lamp shows its note's colour")
+	_ok(swatch.color.is_equal_approx(echo._pads[0]["color"]),
+		"lamp one shows the colour of note one, in order")
+	echo._reveal(false)
+	_ok(echo._dots[0].get_node("Art/Swatch").color.a < 0.01,
+		"hiding the phrase clears the colours")
 
 	for f in _failures:
 		print("FAIL  %s" % f)
