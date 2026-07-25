@@ -2172,5 +2172,57 @@
         }
       ]
     }
+  },
+  {
+    "id": "sunny_park_01",
+    "world": "sunny_park",
+    "name_key": "level.sunny_park_01",
+    "game_type": "platform_adventure",
+    "difficulty": 1,
+    "duration_seconds": 300,
+    "target": {},
+    "reward": {
+      "coins": 25,
+      "badge": "first_steps"
+    },
+    "config": {
+      "instruction_key": "adventure.instruction",
+      "gap_max": 96,
+      "seg_min": 340,
+      "sections": [
+        {
+          "kind": "collect",
+          "count": 4,
+          "spread": 380
+        },
+        {
+          "kind": "spring",
+          "id": "bounce"
+        },
+        {
+          "kind": "gem",
+          "above": "bounce",
+          "offset": 150,
+          "height": 290
+        },
+        {
+          "kind": "collect",
+          "count": 3,
+          "spread": 340
+        },
+        {
+          "kind": "checkpoint"
+        },
+        {
+          "kind": "switch",
+          "height": 120,
+          "gate_gap": 260
+        },
+        {
+          "kind": "chest"
+        }
+      ],
+      "length": 3600
+    }
   }
 ]

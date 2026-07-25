@@ -48,7 +48,8 @@ const NAMES := [
 	# navigation and status, so every screen can be read without words
 	"flag", "house", "home", "gear", "star", "star_empty", "car", "spark",
 	"sort", "paw", "monster", "lock", "coin", "heart", "shield", "lightning",
-	"orb", "rock", "sound_on", "sound_off", "retry", "pause", "chest", "moon",
+	"orb", "gem", "rock", "sound_on", "sound_off", "retry", "pause", "chest",
+	"moon",
 	# badge pictures: every award a child can earn has a face of its own
 	"eye", "umbrella", "magnifier", "compass", "leaf", "music", "medal",
 	"traffic_light",
@@ -332,6 +333,21 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 			_lit_circle(p, c, s * 0.28, Color(0.55, 0.86, 1.0))
 			Shapes.fill(p, Shapes.oval_points(c + Vector2(-s * 0.09, -s * 0.10),
 				Vector2(s * 0.08, s * 0.05), 12), Color(1, 1, 1, 0.8), 0.0)
+		# The hidden treasure of an adventure level: on the task strip while it
+		# is still out there, and on the result screen's second star after.
+		# Drawn as a cut jewel rather than a question mark, because a reward a
+		# child can picture is a reward they will go looking for.
+		"gem":
+			Shapes.glow(p, c, s * 0.50, Color(0.98, 0.52, 0.86), 5, 0.42)
+			Shapes.lit(p, PackedVector2Array([
+				c + Vector2(0, -s * 0.34), c + Vector2(s * 0.26, -s * 0.06),
+				c + Vector2(s * 0.14, s * 0.30), c + Vector2(-s * 0.14, s * 0.30),
+				c + Vector2(-s * 0.26, -s * 0.06),
+			]), Color(0.96, 0.44, 0.78), 1.0)
+			Shapes.fill(p, PackedVector2Array([
+				c + Vector2(0, -s * 0.34), c + Vector2(s * 0.26, -s * 0.06),
+				c + Vector2(0, -s * 0.02),
+			]), Color(1, 1, 1, 0.38), 0.0)
 		"rock":
 			Shapes.lit(p, PackedVector2Array([
 				c + Vector2(-s * 0.34, s * 0.16), c + Vector2(-s * 0.22, -s * 0.20),

@@ -82,6 +82,7 @@ SHOTS=(
   "expedition|res://scenes/minigames/monster_expedition/MonsterExpedition.tscn|star_trials_01"
   "keepy|res://scenes/minigames/keepy_uppy/KeepyUppy.tscn|bluey_park_01"
   "defense|res://scenes/minigames/light_defense/LightDefense.tscn|star_trials_04"
+  "adventure|res://scenes/adventure/Adventure.tscn|sunny_park_01"
 )
 
 wanted=("$@")

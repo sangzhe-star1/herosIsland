@@ -1,0 +1,237 @@
+class_name SkillBar
+extends Control
+## The whole control layout for an adventure level, in one place.
+##
+##   bottom left   ◀ ▶      move
+##   bottom right  jump, attack, and two skill buttons with cooldown rings
+##   floating      the interact key, which only exists when there is
+##                 something to interact with
+##
+## Why it is its own file: every adventure level has the same hands. Laying
+## the pad out per level is how a child ends up with the jump button in a
+## different place on level four, which at six is the same as a new game.
+##
+## Sizes come from the house rules (>=220x120 area) and from a real six-year-
+## old's thumbs: jump is the biggest because it is pressed most, the skills
+## are smallest because they are pressed least and a mis-press costs a
+## cooldown rather than a life.
+
+signal move_pressed(dir: float, down: bool)
+signal jump_pressed()
+signal jump_released()
+signal attack_pressed()
+signal skill_pressed(slot: int)
+signal interact_pressed()
+
+const PAD_MOVE := 132.0
+const PAD_JUMP := 152.0
+const PAD_ATTACK := 128.0
+const PAD_SKILL := 112.0
+
+var _skill_buttons: Array = []      # [{button, ring, icon, ready_at, cooldown}]
+var _interact: Button
+var _interact_icon: Control
+var _clock := 0.0
+
+
+func _ready() -> void:
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_move()
+	_build_action()
+	_build_interact()
+	set_process(true)
+
+
+func _process(delta: float) -> void:
+	_clock += delta
+	for entry in _skill_buttons:
+		_draw_cooldown(entry)
+
+
+# --- the pad ---------------------------------------------------------------
+
+func _build_move() -> void:
+	var left := _round_button(Vector2(30, 552), PAD_MOVE, Color(0.55, 0.75, 0.95))
+	_arrow(left, PAD_MOVE, -1.0)
+	left.button_down.connect(func(): move_pressed.emit(-1.0, true))
+	left.button_up.connect(func(): move_pressed.emit(-1.0, false))
+
+	var right := _round_button(Vector2(192, 552), PAD_MOVE, Color(0.55, 0.75, 0.95))
+	_arrow(right, PAD_MOVE, 1.0)
+	right.button_down.connect(func(): move_pressed.emit(1.0, true))
+	right.button_up.connect(func(): move_pressed.emit(1.0, false))
+
+
+func _build_action() -> void:
+	# Jump, bottom right corner and biggest: the verb of the genre.
+	var jump := _round_button(Vector2(1098, 540), PAD_JUMP, Color(1.0, 0.86, 0.40))
+	_jump_glyph(jump, PAD_JUMP)
+	jump.button_down.connect(func(): jump_pressed.emit())
+	jump.button_up.connect(func(): jump_released.emit())
+
+	# Attack, just left of jump, the second-most-pressed thing.
+	var attack := _round_button(Vector2(948, 566), PAD_ATTACK, Color(0.96, 0.52, 0.42))
+	var fist: Control = UiKit.picture("power", PAD_ATTACK * 0.52)
+	if fist != null:
+		fist.position = Vector2(PAD_ATTACK * 0.24, PAD_ATTACK * 0.24)
+		fist.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		attack.add_child(fist)
+	attack.button_down.connect(func(): attack_pressed.emit())
+
+
+## Add a skill button. Slot 0 sits above attack, slot 1 above that -- an arc
+## the thumb sweeps rather than a row it has to reach across.
+func add_skill(icon_name: String, colour: Color, cooldown: float) -> void:
+	var slot: int = _skill_buttons.size()
+	var spots := [Vector2(958, 424), Vector2(1108, 386)]
+	var at: Vector2 = spots[slot] if slot < spots.size() \
+		else Vector2(958.0 - 140.0 * float(slot), 424.0)
+	var button := _round_button(at, PAD_SKILL, colour)
+	var icon: Control = UiKit.picture(icon_name, PAD_SKILL * 0.54)
+	if icon != null:
+		icon.position = Vector2(PAD_SKILL * 0.23, PAD_SKILL * 0.23)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(icon)
+
+	# The cooldown ring: a wedge that sweeps away as the skill comes back.
+	# A greyed-out button says "no"; a ring says "not yet, and this much
+	# longer" -- which is the difference between a rule and a wait.
+	var ring := Node2D.new()
+	ring.position = Vector2(PAD_SKILL, PAD_SKILL) / 2.0
+	button.add_child(ring)
+
+	var entry := {"button": button, "ring": ring, "ready_at": 0.0,
+		"cooldown": maxf(cooldown, 0.1), "colour": colour}
+	_skill_buttons.append(entry)
+	button.button_down.connect(func(): skill_pressed.emit(slot))
+
+
+## Has this skill come back yet?
+func skill_ready(slot: int) -> bool:
+	if slot < 0 or slot >= _skill_buttons.size():
+		return false
+	return _clock >= float(_skill_buttons[slot]["ready_at"])
+
+
+## Start a skill's cooldown. Returns false when it was not ready, so the
+## caller can answer the tap with a wobble instead of silence.
+func use_skill(slot: int) -> bool:
+	if not skill_ready(slot):
+		if slot >= 0 and slot < _skill_buttons.size():
+			Juice.nudge(_skill_buttons[slot]["button"])
+		return false
+	var entry: Dictionary = _skill_buttons[slot]
+	entry["ready_at"] = _clock + float(entry["cooldown"])
+	Juice.pop(entry["button"], 0.12)
+	return true
+
+
+func _draw_cooldown(entry: Dictionary) -> void:
+	var ring: Node2D = entry["ring"]
+	if not is_instance_valid(ring):
+		return
+	for child in ring.get_children():
+		child.queue_free()
+	var left: float = float(entry["ready_at"]) - _clock
+	if left <= 0.0:
+		return
+	var fraction: float = clampf(left / float(entry["cooldown"]), 0.0, 1.0)
+	var points := PackedVector2Array([Vector2.ZERO])
+	var steps: int = maxi(int(fraction * 26.0), 2)
+	for i in range(steps + 1):
+		var a: float = -PI * 0.5 + TAU * fraction * float(i) / float(steps)
+		points.append(Vector2(cos(a), sin(a)) * PAD_SKILL * 0.46)
+	Shapes.fill(ring, points, Color(0.04, 0.07, 0.16, 0.62), 0.0)
+
+
+# --- the interact key -------------------------------------------------------
+
+func _build_interact() -> void:
+	_interact = _round_button(Vector2(-999, -999), 116.0, Color(0.55, 0.95, 0.75))
+	_interact.visible = false
+	_interact_icon = UiKit.picture("tap", 62)
+	if _interact_icon != null:
+		_interact_icon.position = Vector2(27, 27)
+		_interact_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_interact.add_child(_interact_icon)
+	_interact.button_down.connect(func(): interact_pressed.emit())
+
+
+## Show the interact key at a screen position, wearing the icon of whatever
+## it will do. Called every frame by the level with the nearest thing, or
+## with an empty icon to hide it.
+func show_interact(at: Vector2, icon_name: String) -> void:
+	if _interact == null or not is_instance_valid(_interact):
+		return
+	if icon_name == "":
+		if _interact.visible:
+			_interact.visible = false
+		return
+	if not _interact.visible:
+		_interact.visible = true
+		Juice.pop(_interact, 0.30)
+	_interact.position = at - Vector2(58, 58)
+	if _interact_icon != null and is_instance_valid(_interact_icon):
+		var fresh: Control = UiKit.picture(icon_name, 62)
+		if fresh != null:
+			_interact_icon.queue_free()
+			fresh.position = Vector2(27, 27)
+			fresh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_interact.add_child(fresh)
+			_interact_icon = fresh
+
+
+# --- shared button shape ----------------------------------------------------
+
+func _round_button(at: Vector2, size: float, ring: Color) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(size, size)
+	b.size = Vector2(size, size)
+	b.position = at
+	b.focus_mode = Control.FOCUS_NONE
+	b.pivot_offset = Vector2(size, size) / 2.0
+	# Opaque: a translucent round face shows the corner-fan seam, and lets
+	# the world show through the one thing that must never be ambiguous.
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.09, 0.15, 0.30)
+	style.set_corner_radius_all(int(size / 2.0))
+	style.border_width_bottom = 7
+	style.border_width_top = 5
+	style.border_width_left = 5
+	style.border_width_right = 5
+	style.border_color = ring
+	var pressed: StyleBoxFlat = style.duplicate()
+	pressed.bg_color = Color(0.14, 0.22, 0.40)
+	pressed.border_width_bottom = 3
+	b.add_theme_stylebox_override("normal", style)
+	b.add_theme_stylebox_override("hover", style)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("disabled", style)
+	add_child(b)
+	return b
+
+
+func _arrow(button: Button, size: float, dir: float) -> void:
+	var icon := Control.new()
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(icon)
+	var c := Vector2(size, size) / 2.0
+	var r: float = size * 0.23
+	Shapes.fill(icon, PackedVector2Array([
+		c + Vector2(-dir * r * 0.7, -r), c + Vector2(-dir * r * 0.7, r),
+		c + Vector2(dir * r * 1.1, 0),
+	]), Color(0.92, 0.96, 1.0), 0.0)
+
+
+func _jump_glyph(button: Button, size: float) -> void:
+	var icon := Control.new()
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(icon)
+	var c := Vector2(size, size) / 2.0
+	var r: float = size * 0.22
+	Shapes.fill(icon, PackedVector2Array([
+		c + Vector2(-r * 1.1, 0.0), c + Vector2(0, -r * 1.2), c + Vector2(r * 1.1, 0.0),
+	]), Color(1.0, 0.94, 0.6), 0.0)
+	Shapes.fill(icon, Shapes.rounded_rect(c + Vector2(-r * 0.34, r * 0.05),
+		Vector2(r * 0.68, r * 0.95), r * 0.2), Color(1.0, 0.94, 0.6), 0.0)

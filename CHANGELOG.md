@@ -1,5 +1,42 @@
 # Changelog
 
+## The adventure template -- Phase A of the big rebuild — 25 July 2026
+
+The first stage of rebuilding all 54 levels into one side-scrolling adventure
+("儿童版冒险岛"), as planned in `docs/ADVENTURE_PLAN.md`.
+
+- **`platform_adventure`**, a new level template: one long strip of seeded
+  terrain with the level's beats laid along it from JSON -- collect, spring,
+  hidden gem, checkpoint, floor plate + gate, treasure chest. At least three
+  kinds per level, enforced.
+- **`HeroController`**: walking, jumping, climbing, attacking, being hurt,
+  with every forgiveness a six-year-old needs baked in -- coyote time, jump
+  buffer, ledge magnet, auto-aim, a mercy flicker after every hit.
+- **`SkillBar`**: the fixed hands of the genre. Move pad bottom-left; jump,
+  attack and two cooldown-ring skills bottom-right; a contextual interact key
+  that exists only when something is in reach.
+- **Three independent stars** (`LevelResult.objective_scoring`): reached the
+  chest / found the gem / kept your hearts. Undone tiles on the task strip
+  are dim, not crossed out -- "still out there", never "you failed".
+- **World 1: 阳光公园 (Sunny Park)** and its first level, 公园散步.
+- **AdventureProbe**, in the smoke suite: walks the whole level with the two
+  buttons a child has, measures every gap against the real jump arc, proves a
+  shut gate is a wall and that the plate is what opens it.
+
+Bugs the probe and the beat camera caught before any child could:
+- Pickups compared world coordinates with global ones, so collection drifted
+  by exactly the camera scroll -- nothing past the first screen could ever be
+  picked up.
+- `Juice.idle_bob` on a prop root tweened every orb back to world origin;
+  props now bob an inner node (`AdventureProps._bobber`).
+- The chest stood under the jump button on the final screen; it now stands at
+  dead centre of the fully-scrolled camera, and the level ends with plain
+  walking toward it.
+- Hand-written beat x-positions drifted with terrain overshoot and piled
+  three beats into one 190 px stretch; beats are now an ORDER, spread evenly
+  over whatever ground the seed produced.
+- Orbs hung above the real jump arc; heights now derive from jump physics.
+
 ## Mac packaging — 25 July 2026
 
 `tools/build_mac.command`: double-click to export, unzip, de-quarantine and

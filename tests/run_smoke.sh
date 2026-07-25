@@ -237,6 +237,20 @@ if ! grep -q "ECHO PROBE PASSED" "$ECHO_OUT"; then
 fi
 rm -f "$ECHO_OUT"
 
+# The adventure probe walks a whole platform_adventure level with the two
+# buttons a child has -- collect, spring, gem, shut gate, plate, chest -- and
+# checks every placed thing is inside the hero's real jump.
+echo
+echo "Running adventure probe..."
+ADV_OUT=$(mktemp)
+timeout 240 "$GODOT" --headless --path . res://tests/AdventureProbe.tscn 2>&1 | tee "$ADV_OUT"
+if ! grep -q "ADVENTURE PROBE PASSED" "$ADV_OUT"; then
+  rm -f "$ADV_OUT"
+  echo "Adventure probe failed."
+  exit 1
+fi
+rm -f "$ADV_OUT"
+
 # The save probe tears the save file the way a force-closed tablet does and
 # proves the child's history survives. Runs LAST: it ends on a deliberately
 # fresh save, and any probe after it would inherit that emptiness.

@@ -129,5 +129,8 @@ func get_minigame_scene(game_type: String) -> String:
 		"monster_expedition": "res://scenes/minigames/monster_expedition/MonsterExpedition.tscn",
 		"keepy_uppy": "res://scenes/minigames/keepy_uppy/KeepyUppy.tscn",
 		"light_defense": "res://scenes/minigames/light_defense/LightDefense.tscn",
+		# The adventure template: one side-scrolling level made of beats, and
+		# the thing the twelve above are being folded into.
+		"platform_adventure": "res://scenes/adventure/Adventure.tscn",
 	}
 	return map.get(game_type, "")

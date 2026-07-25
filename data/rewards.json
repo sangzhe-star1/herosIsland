@@ -107,6 +107,10 @@
     "keepy_champion": {
       "name_key": "badge.keepy_champion",
       "icon": "balloon"
+    },
+    "first_steps": {
+      "name_key": "badge.first_steps",
+      "icon": "flag"
     }
   },
   "growth_attributes": [

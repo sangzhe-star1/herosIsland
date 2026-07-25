@@ -287,7 +287,18 @@
     "parent.difficulty": "Difficulty",
     "parent.diff_gentle": "Gentle",
     "parent.diff_normal": "Normal",
-    "parent.diff_brave": "Brave"
+    "parent.diff_brave": "Brave",
+    "world.sunny_park": "Sunny Park",
+    "level.sunny_park_01": "A Walk in the Park",
+    "adventure.instruction": "Run, jump, and gather every orb!",
+    "adventure.gem": "You found the hidden gem!",
+    "adventure.gate_open": "The gate swings open!",
+    "adventure.gate_shut": "The gate is shut. Go stand on the plate.",
+    "adventure.checkpoint": "This is your safe spot.",
+    "adventure.oops": "No problem. Back to your safe spot.",
+    "adventure.again": "Let's try again. You've got this!",
+    "adventure.chest": "Open the chest!",
+    "badge.first_steps": "First Steps"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -577,6 +588,17 @@
     "parent.difficulty": "游戏难度",
     "parent.diff_gentle": "轻松",
     "parent.diff_normal": "普通",
-    "parent.diff_brave": "挑战"
+    "parent.diff_brave": "挑战",
+    "world.sunny_park": "阳光公园",
+    "level.sunny_park_01": "公园散步",
+    "adventure.instruction": "跑一跑，跳一跳，把光球都捡起来！",
+    "adventure.gem": "你找到了隐藏的宝石！",
+    "adventure.gate_open": "大门打开了！",
+    "adventure.gate_shut": "门关着，去踩那个圆盘。",
+    "adventure.checkpoint": "这里是安全点。",
+    "adventure.oops": "没关系，回到安全点。",
+    "adventure.again": "再来一次，你可以的！",
+    "adventure.chest": "打开宝箱！",
+    "badge.first_steps": "第一步"
   }
 }

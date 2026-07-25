@@ -108,6 +108,16 @@ func setup_level() -> void:
 	pass
 
 
+## Does hitting the target end the level by itself?
+##
+## True for the older templates, where "get ten right" IS the level. False for
+## adventure levels, where collecting is one beat among several and the level
+## ends at the chest -- without this they would finish on the first orb,
+## because an empty target satisfies met_target() immediately.
+func auto_complete_on_target() -> bool:
+	return true
+
+
 ## Override to react when the child gets something right or wrong.
 func on_correct() -> void:
 	pass
@@ -140,7 +150,7 @@ func score_correct() -> void:
 	AudioManager.play_sfx("res://assets/audio/correct.ogg")
 	on_correct()
 	correct_scored.emit(result.correct)
-	if result.met_target():
+	if auto_complete_on_target() and result.met_target():
 		complete_level()
 
 

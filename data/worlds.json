@@ -54,5 +54,12 @@
     "growth_attribute": "kindness",
     "color": "#5b86c9",
     "order": 8
+  },
+  {
+    "id": "sunny_park",
+    "name_key": "world.sunny_park",
+    "growth_attribute": "courage",
+    "color": "#4fb0e8",
+    "order": 9
   }
 ]
