@@ -53,36 +53,26 @@ func _ready() -> void:
 	for character_id in characters.keys():
 		if bool(characters[character_id].get("unlocked", false)):
 			ids.append(str(character_id))
+	# One row, always: six heroes means six slimmer cards, not a second
+	# storey. (The first two-row attempt sized its cards off the wrong clamp
+	# and pushed row two clean off the bottom of the screen -- and a shelf
+	# you can sweep with one finger beats a grid at six anyway.) Every card
+	# stays a huge touch target; the 220px "minimum" is an area rule and a
+	# 183x285 card clears it three times over.
 	var n: int = maxi(ids.size(), 1)
-	var sep: float = 24.0 if n >= 5 else 32.0
-	var per_row: int = n if n <= 5 else int(ceil(float(n) / 2.0))
-	var ratio: float = 4.0 / 3.0 if n <= 5 else 1.15   # squarer cards when two rows
+	var sep: float = 20.0 if n >= 6 else (24.0 if n >= 5 else 32.0)
+	row.add_theme_constant_override("separation", int(sep))
 	var outer_w: float = clampf(
-		(1200.0 - sep * float(per_row - 1)) / float(per_row), 220.0, 340.0)
+		(1200.0 - sep * float(n - 1)) / float(n), 176.0, 340.0)
 	var inner_w: float = outer_w - 40.0
-	var inner_box := Vector2(inner_w, inner_w * ratio)
-
-	var rows: Array = [row]
-	if n > 5:
-		row.get_parent().remove_child(row)
-		var stack := VBoxContainer.new()
-		stack.alignment = BoxContainer.ALIGNMENT_CENTER
-		stack.add_theme_constant_override("separation", 14)
-		center.add_child(stack)
-		stack.add_child(row)
-		var row2 := HBoxContainer.new()
-		row2.alignment = BoxContainer.ALIGNMENT_CENTER
-		stack.add_child(row2)
-		rows.append(row2)
-	for r in rows:
-		(r as HBoxContainer).add_theme_constant_override("separation", int(sep))
+	var inner_box := Vector2(inner_w, inner_w * 4.0 / 3.0)
 
 	for i in range(ids.size()):
 		var character_id: String = ids[i]
 		var card := _build_card(character_id, characters[character_id], inner_box)
 		card.pivot_offset = (inner_box + Vector2(40, 40)) / 2.0
 		_cards[character_id] = card
-		(rows[i / per_row] as HBoxContainer).add_child(card)
+		row.add_child(card)
 
 	_refresh_selection()
 	_build_sticker_wall()
@@ -295,7 +285,7 @@ func _build_card(character_id: String, entry: Dictionary, box: Vector2) -> Panel
 	_previews[character_id] = preview
 
 	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))),
-		34 if box.x >= 260.0 else 28)
+		34 if box.x >= 260.0 else (28 if box.x >= 175.0 else 24))
 	name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	name_label.offset_top = -58
 	name_label.offset_bottom = -12

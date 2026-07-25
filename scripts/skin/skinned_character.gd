@@ -15,6 +15,10 @@ extends Node2D
 @export var skin: CharacterSkin: set = set_skin
 
 var _art: HeroArt
+## The alternate drawn figure (the heeler). Exactly one of _art/_pup/_sprite
+## is alive at a time; _pup speaks enough of HeroArt's language (set_height,
+## set_pose, core_position...) that the verbs below stay renderer-blind.
+var _pup: Node2D
 var _sprite: Sprite2D
 var _core: Polygon2D
 ## Height in pixels, when a caller has asked for one. Held here because a
@@ -39,17 +43,23 @@ func _build() -> void:
 	for c in get_children():
 		c.queue_free()
 	_art = null
+	_pup = null
 	_sprite = null
 	_core = null
 
 	if skin == null:
 		skin = _fallback_skin()
 
-	if skin.is_drawn():
+	if skin.is_drawn() and skin.renderer == "puppy":
+		_pup = preload("res://scripts/world/puppy_art.gd").new()
+		add_child(_pup)
+		_pup.set_height(_height if _height > 0.0 else skin.body_size.y * 1.9)
+	elif skin.is_drawn():
 		_art = HeroArt.new(skin)
 		# Dressed from the save before entering the tree (HeroArt builds in
 		# _ready). The outfit follows the child across heroes and levels;
-		# textured skins (photo cut-outs, drop-in PNGs) stay as they came.
+		# textured skins (photo cut-outs, drop-in PNGs) stay as they came --
+		# and so does the puppy: paint sticks to neither photographs nor fur.
 		_art.outfit = SaveManager.get_outfit()
 		add_child(_art)
 		# Fitted to the same footprint the old placeholder occupied, so every
@@ -97,6 +107,8 @@ func set_core_color(value: Color) -> void:
 	core_color = value
 	if _art != null and is_instance_valid(_art):
 		_art.set_core_color(value)
+	if _pup != null and is_instance_valid(_pup):
+		_pup.set_core_color(value)
 	if _core != null and is_instance_valid(_core):
 		_core.color = value
 
@@ -106,6 +118,8 @@ func set_core_color(value: Color) -> void:
 func core_position() -> Vector2:
 	if _art != null and is_instance_valid(_art):
 		return _art.core_position()
+	if _pup != null and is_instance_valid(_pup):
+		return _pup.core_position()
 	if _core != null and is_instance_valid(_core):
 		return _core.global_position
 	return to_global(Vector2(0, -skin.body_size.y * 0.16) if skin != null else Vector2.ZERO)
@@ -117,6 +131,8 @@ func set_height(pixels: float) -> void:
 	_height = pixels
 	if _art != null and is_instance_valid(_art):
 		_art.set_height(pixels)
+	if _pup != null and is_instance_valid(_pup):
+		_pup.set_height(pixels)
 		return
 	if _sprite != null and is_instance_valid(_sprite) and skin.idle_texture != null:
 		var s: float = pixels / maxf(float(skin.idle_texture.get_height()), 1.0)
@@ -127,6 +143,8 @@ func set_height(pixels: float) -> void:
 func set_pose(pose: int, animate: bool = true) -> void:
 	if _art != null and is_instance_valid(_art):
 		_art.set_pose(pose as HeroArt.Pose, animate)
+	if _pup != null and is_instance_valid(_pup):
+		_pup.set_pose(pose, animate)
 
 
 func walk(enabled: bool) -> void:
@@ -200,6 +218,8 @@ func jump(height: float = 80.0, duration: float = 0.55) -> void:
 	var base_y: float = position.y
 	if _art != null and is_instance_valid(_art):
 		_art.crouch()
+	if _pup != null and is_instance_valid(_pup):
+		_pup.crouch()
 	var seq := create_tween()
 	seq.tween_property(self, "scale:y", _rest_scale.y * 0.90, 0.10)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -253,6 +273,8 @@ func roll(distance: float = 170.0, duration: float = 0.55) -> void:
 	set_pose(HeroArt.Pose.TUCK)
 	if _art != null and is_instance_valid(_art):
 		_art.spin(signf(distance), duration)
+	if _pup != null and is_instance_valid(_pup):
+		_pup.spin(signf(distance), duration)
 	Juice.speed_lines(get_parent(), position + Vector2(0, -60), direction)
 	var seq := create_tween()
 	seq.set_parallel(true)
@@ -327,6 +349,8 @@ func _show_cheer_texture(hold_seconds: float = 1.5) -> void:
 func power_up() -> void:
 	if _art != null and is_instance_valid(_art):
 		_art.pulse_core()
+	if _pup != null and is_instance_valid(_pup):
+		_pup.pulse_core()
 		return
 	if _core == null or not Juice.motion_enabled():
 		return

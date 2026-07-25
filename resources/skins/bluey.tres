@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/skin/character_skin.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bluey"
+display_name_key = "character.bluey"
+renderer = "puppy"
+body_size = Vector2(64, 96)

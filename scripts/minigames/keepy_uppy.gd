@@ -103,8 +103,8 @@ func _build_scene(config: Dictionary) -> void:
 
 	_puppy = preload("res://scripts/world/puppy_art.gd").new()
 	_puppy.position = Vector2(1070, _ground_y)
-	_puppy.scale = Vector2(1.15, 1.15)
 	_play_area.add_child(_puppy)
+	_puppy.set_height(235.0)
 
 	_spawn_balloon(true)
 

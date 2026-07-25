@@ -15,6 +15,11 @@ extends Resource
 @export var id: String = ""
 @export var display_name_key: String = ""
 
+## Which drawn figure renders this skin: the humanoid hero rig, or the
+## bipedal heeler puppy. One switch, so Bluey can be a full playable
+## character without pretending to be a humanoid in armour.
+@export_enum("hero", "puppy") var renderer: String = "hero"
+
 # --- the design, which is what actually gets drawn ----------------------
 
 ## Shoulder width in local units. Everything else on the body is a fraction of

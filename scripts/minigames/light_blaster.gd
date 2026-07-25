@@ -198,8 +198,8 @@ func _pop_one() -> void:
 	var head_h := 150.0
 	if friend:
 		riser = preload("res://scripts/world/puppy_art.gd").new()
-		riser.scale = Vector2(0.82, 0.82)
-		head_h = 130.0
+		riser.scale = Vector2(0.62, 0.62)
+		head_h = 145.0
 	else:
 		var spec: Dictionary = (_specs[randi() % _specs.size()] as Dictionary).duplicate()
 		riser = preload("res://scripts/battle/monster.gd").new()
@@ -211,8 +211,8 @@ func _pop_one() -> void:
 	_actors.add_child(riser)
 	if not friend:
 		riser.build(riser.get_meta("spec"))
-	if friend and riser.has_method("hop"):
-		riser.hop()
+	if friend and riser.has_method("wave"):
+		riser.wave()    # "it's me, don't shoot!" -- one paw up, waving
 
 	spot["taken"] = true
 	spot["node"] = riser

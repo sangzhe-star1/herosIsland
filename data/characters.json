@@ -25,6 +25,11 @@
       "skin": "res://resources/skins/yullian.tres",
       "name_key": "character.yullian",
       "unlocked": true
+    },
+    "bluey": {
+      "skin": "res://resources/skins/bluey.tres",
+      "name_key": "character.bluey",
+      "unlocked": true
     }
   }
 }
