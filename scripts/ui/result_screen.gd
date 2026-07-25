@@ -22,6 +22,14 @@ func _ready() -> void:
 	box.add_child(row)
 	_animate_stars(row, stars)
 
+	# Adventure levels earn their three stars from three SEPARATE questions,
+	# so the screen says which one is still out there. "You got two stars"
+	# tells a six-year-old they fell short; a dim gem next to a bright chest
+	# tells them exactly where to go looking, which is an invitation rather
+	# than a grade.
+	if result != null and result.objective_scoring:
+		box.add_child(_objective_row(result))
+
 	var praise_key := "result.finished"
 	if stars >= 3:
 		praise_key = "result.great"
@@ -188,6 +196,41 @@ func _fly_coins_to_chip(from_node: Control, earned: int) -> void:
 
 
 ## Stars pop in one at a time. The pause between them is the reward.
+## The three doors: finished / found the secret / kept your hearts. Done ones
+## are bright and wear a tick; the rest are dim -- never crossed out, never
+## red. Nothing on this screen is allowed to read as a telling-off.
+func _objective_row(result: LevelResult) -> Control:
+	var strip := HBoxContainer.new()
+	strip.alignment = BoxContainer.ALIGNMENT_CENTER
+	strip.add_theme_constant_override("separation", 30)
+	var delay := 0.0
+	for item in result.objectives():
+		var tile := Control.new()
+		tile.custom_minimum_size = Vector2(104, 104)
+		tile.pivot_offset = Vector2(52, 52)
+		var pad := Node2D.new()
+		tile.add_child(pad)
+		Shapes.fill(pad, Shapes.rounded_rect(Vector2(2, 2), Vector2(100, 100), 26.0),
+			Color(0.05, 0.09, 0.20, 0.55), 0.0)
+		var art: Control = UiKit.picture(str(item.get("icon", "")), 62)
+		if art != null:
+			art.position = Vector2(21, 21)
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			tile.add_child(art)
+		var done: bool = bool(item.get("done", false))
+		if done:
+			tile.add_child(UiKit.rule_ring(true, 104.0))
+		else:
+			tile.modulate = Color(1, 1, 1, 0.42)
+		strip.add_child(tile)
+		if done and Juice.motion_enabled():
+			delay += 0.28
+			var wait := tile.create_tween()
+			wait.tween_interval(0.5 + delay)
+			wait.tween_callback(func(): Juice.pop(tile, 0.34))
+	return strip
+
+
 func _animate_stars(row: HBoxContainer, stars: int) -> void:
 	var children := row.get_children()
 	for i in range(children.size()):

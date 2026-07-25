@@ -115,6 +115,10 @@
     "rock_dodger": {
       "name_key": "badge.rock_dodger",
       "icon": "rock"
+    },
+    "giant_friend": {
+      "name_key": "badge.giant_friend",
+      "icon": "monster"
     }
   },
   "growth_attributes": [

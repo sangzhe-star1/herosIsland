@@ -304,7 +304,17 @@
     "adventure.rocks": "Watch out -- falling rocks!",
     "adventure.fire": "Red ground means fire is coming!",
     "adventure.seq_again": "Not that order -- try again.",
-    "badge.rock_dodger": "Rock Dodger"
+    "badge.rock_dodger": "Rock Dodger",
+    "level.sunny_park_03": "The Rock Giant's Challenge",
+    "adventure.instruction_03": "Use attack on the monsters, and the shield to block!",
+    "adventure.shield_hint": "It's about to spit -- press the shield!",
+    "adventure.rescued": "You freed a little friend!",
+    "adventure.boss_open": "Hit the glowing spot on its back!",
+    "adventure.boss_shell": "The shell blocks you -- use the lightning skill!",
+    "adventure.boss_phase": "Well done! It wants another go!",
+    "adventure.boss_done": "The rock giant sits down and waves at you!",
+    "badge.giant_friend": "Friend of the Giant",
+    "adventure.helping": "Let me help -- a little slower now."
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -611,6 +621,16 @@
     "adventure.rocks": "小心！有落石！",
     "adventure.fire": "地面变红就要喷火了！",
     "adventure.seq_again": "顺序不对，再试一次。",
-    "badge.rock_dodger": "躲石小勇士"
+    "badge.rock_dodger": "躲石小勇士",
+    "level.sunny_park_03": "岩石怪的挑战",
+    "adventure.instruction_03": "用攻击键打小怪，用盾牌挡住！",
+    "adventure.shield_hint": "它要喷泥球了，按盾牌！",
+    "adventure.rescued": "你救出了一个小伙伴！",
+    "adventure.boss_open": "打它背上发光的地方！",
+    "adventure.boss_shell": "护罩挡住了，用闪电技能！",
+    "adventure.boss_phase": "干得好！它还想再来！",
+    "adventure.boss_done": "岩石怪累坐下了，向你挥手！",
+    "badge.giant_friend": "岩石怪的朋友",
+    "adventure.helping": "我来帮帮你，慢一点点。"
   }
 }

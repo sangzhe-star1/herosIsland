@@ -1,5 +1,45 @@
 # Changelog
 
+## Phase C: monsters that telegraph, and a giant to beat — 25 July 2026
+
+Third stage of the rebuild. Level 3, 岩石怪的挑战, and everything that fights.
+
+- **Monsters that wind up first, always.** A ring closes in on the monster for
+  the whole telegraph before it lunges or spits; nothing it does during the
+  wind-up can touch you. Three kinds, each teaching one idea: the walker
+  teaches the attack button, the spitter teaches the shield, the armoured one
+  teaches that hitting harder is sometimes the wrong idea (its glowing spot is
+  only open from above).
+- **The shield is real now.** It was a light show; it is a 2.2-second window
+  that eats hits, follows the hero, and expires. The lightning skill became a
+  real beam that reaches across the screen -- and it is the only thing that
+  breaks the giant's shell.
+- **The rock giant**: three phases, three hits each, nine countable pips on
+  its bar. Phase one slams the ground behind a shadow; phase two throws three
+  announced stones; phase three shells itself and must be opened with the
+  beam. Beaten, it sits down and waves -- nothing on this island dies.
+  Walking past it is impossible, so the fight is the door.
+- **Rescue**: a caged friend freed with the interact key, who then trots along
+  behind you forever. Nothing to protect, nothing to lose. The reward for
+  being kind is company.
+- **Two falls and the island leans in** (spec §5): longer warnings, slower
+  monsters, a shorter boss fight, and a hand pointing at whatever is in the
+  way. No menu, no question -- a child who has just lost twice should not be
+  ASKED whether they would like it easier.
+- **The result screen shows the three doors**: finished / found the secret /
+  kept your hearts, as pictures. Undone ones are dim, never crossed out.
+  "Two stars" is a grade; a dim gem beside a bright chest is an invitation.
+
+Bugs the probe caught before any child could:
+- The armoured monster was literally unhittable. The swing lands 80 px above
+  the hero's feet and a monster's origin is at its own feet, so a hit from
+  above measured 217 px away from a 176 px circle. Swings now use a forgiving
+  capsule around the monster's middle.
+- A beaten monster's node is freed by its own farewell tween, and the loop
+  assigned it to a typed variable before checking validity -- which is an
+  error in itself, so the guard never ran.
+- The cage's interact key floated exactly where the hero's face was.
+
 ## Phase B: things that warn, and questions asked in place — 25 July 2026
 
 Second stage of the 54-level rebuild. Level 2, 落石小径 (Rockfall Path), and

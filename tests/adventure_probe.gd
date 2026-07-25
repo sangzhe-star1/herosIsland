@@ -20,7 +20,7 @@ extends Node
 ##   * a wrong plate resets the sequence without costing anything
 ##   * a wrong card answer dims a tile and nothing else
 
-const LEVELS := ["sunny_park_01", "sunny_park_02"]
+const LEVELS := ["sunny_park_01", "sunny_park_02", "sunny_park_03"]
 
 var _out: Array[String] = []
 var _lvl: Node
@@ -73,6 +73,9 @@ func _run_level(level_id: String) -> void:
 	await _check_gate_is_a_wall()
 	await _check_wrong_plate_costs_nothing()
 	await _check_crate_carries()
+	await _check_monsters_warn_first()
+	await _check_shield_blocks()
+	await _check_help_after_two_falls()
 	await _walk_the_level(level_id)
 	_report_result()
 
@@ -113,18 +116,21 @@ func _report_terrain() -> void:
 		"a %.0f px gap is too wide for a %.0f px jump" % [widest, reach])
 	_ok(flats.size() >= 4, "only %d ground segments -- the level is one slab" % flats.size())
 
-	print("  beats: orbs=%d gems=%d springs=%d switches=%d gates=%d rocks=%d vents=%d seq=%d cards=%d crates=%d flags=%d chest=%s" % [
+	print("  beats: orbs=%d gems=%d springs=%d switches=%d gates=%d rocks=%d vents=%d seq=%d cards=%d crates=%d foes=%d cages=%d boss=%s flags=%d chest=%s" % [
 		_lvl._orbs.size(), _lvl._gems.size(), _lvl._springs.size(),
 		_lvl._switches.size(), _lvl._gates.size(), _lvl._rocks.size(),
 		_lvl._vents.size(), _lvl._seq_groups.size(), _lvl._puzzles.size(),
-		_lvl._crates.size(), _lvl._checkpoints.size(),
+		_lvl._crates.size(), _lvl._foes.size(), _lvl._cages.size(),
+		"yes" if not _lvl._boss.is_empty() else "no", _lvl._checkpoints.size(),
 		"yes" if not _lvl._chest.is_empty() else "NO"])
 	var kinds := 0
 	for present in [_lvl._orbs.size() > 0, _lvl._gems.size() > 0,
 			_lvl._springs.size() > 0, _lvl._switches.size() > 0,
 			_lvl._rocks.size() > 0, _lvl._vents.size() > 0,
 			_lvl._seq_groups.size() > 0, _lvl._puzzles.size() > 0,
-			_lvl._crates.size() > 0, not _lvl._chest.is_empty()]:
+			_lvl._crates.size() > 0, _lvl._foes.size() > 0,
+			_lvl._cages.size() > 0, not _lvl._boss.is_empty(),
+			not _lvl._chest.is_empty()]:
 		if present:
 			kinds += 1
 	_ok(kinds >= 3, "a level needs at least three kinds of thing to do, found %d" % kinds)
@@ -308,10 +314,132 @@ func _check_wrong_plate_costs_nothing() -> void:
 	await get_tree().physics_frame
 
 
+## No monster may touch the hero without winding up first.
+##
+## Measured, not read off the config: the probe stands still in front of a
+## monster and watches, and the frame the telegraph ring appears must come at
+## least half a second before the frame a heart is lost. This is the promise
+## the whole combat design rests on -- a child who watches is never punished
+## for having watched.
+func _check_monsters_warn_first() -> void:
+	if _lvl._foes.is_empty():
+		return
+	var foe: Dictionary = _lvl._foes[0]
+	var hero: HeroController = _lvl._hero
+	hero.heal_full()
+	# Just inside its notice range, standing still, doing nothing.
+	hero.place_at(Vector2((foe["node"] as Node2D).position.x - 150.0, _lvl._ground_y))
+	var hearts_before: int = hero.hearts
+	var warned_at := -1
+	var hurt_at := -1
+	for frame in range(600):
+		await get_tree().physics_frame
+		if warned_at < 0 and foe.get("telegraph") != null:
+			warned_at = frame
+		if hurt_at < 0 and hero.hearts < hearts_before:
+			hurt_at = frame
+			break
+	if hurt_at < 0:
+		print("  a monster never landed a hit on a standing hero (fine)")
+		_ok(warned_at >= 0, "a monster never even wound up")
+	else:
+		_ok(warned_at >= 0, "a monster hit without any wind-up at all")
+		var lead: float = float(hurt_at - warned_at) / 60.0
+		print("  monster wound up %.2f s before it could hurt anyone" % lead)
+		_ok(warned_at >= 0 and lead >= 0.5,
+			"a monster's wind-up was only %.2f s" % lead)
+	hero.heal_full()
+	_lvl._hits_taken = 0
+	hero.place_at(Vector2(_lvl.SPAWN_X, _lvl._ground_y))
+	await get_tree().physics_frame
+
+
+## The shield must actually block, and must actually expire. A shield that
+## only looks like a shield is worse than none: the child presses it, trusts
+## it, and gets hit anyway.
+func _check_shield_blocks() -> void:
+	if _lvl._foes.is_empty() and _lvl._boss.is_empty():
+		return
+	var hero: HeroController = _lvl._hero
+	hero.heal_full()
+	_lvl._hits_taken = 0
+	_lvl._raise_shield()
+	_ok(_lvl._blocking(), "the shield must be up the moment it is pressed")
+
+	# Take a hit head-on while shielded: the hearts must not move.
+	var hearts_before: int = hero.hearts
+	if not _lvl._foes.is_empty():
+		var node: Node2D = _lvl._foes[0]["node"]
+		hero.place_at(node.position + Vector2(-30.0, 0.0))
+		for i in range(10):
+			await get_tree().physics_frame
+		_ok(hero.hearts == hearts_before,
+			"the shield let a hit through (%d -> %d hearts)" % [
+				hearts_before, hero.hearts])
+
+	# And it must run out, or it is not a skill, it is a setting.
+	_lvl._clock += _lvl.SHIELD_TIME + 0.1
+	_ok(not _lvl._blocking(), "the shield must expire, not last forever")
+	print("  shield blocks for %.1f s and then expires" % _lvl.SHIELD_TIME)
+
+	hero.heal_full()
+	_lvl._hits_taken = 0
+	hero.place_at(Vector2(_lvl.SPAWN_X, _lvl._ground_y))
+	await get_tree().physics_frame
+
+
+## Falling twice must make the island KINDER, not the same. The spec asks for
+## it in so many words, and it is the one mercy a stuck six-year-old cannot
+## ask for themselves.
+func _check_help_after_two_falls() -> void:
+	if _lvl._foes.is_empty() and _lvl._rocks.is_empty() and _lvl._boss.is_empty():
+		return
+	var before := {}
+	if not _lvl._foes.is_empty():
+		before["foe_warn"] = float(_lvl._foes[0]["warn"])
+		before["foe_speed"] = float(_lvl._foes[0]["speed"])
+	if not _lvl._boss.is_empty():
+		before["boss_total"] = int(_lvl._boss["total"])
+
+	_lvl._tries = 1
+	_lvl._on_died()                       # the second fall
+	await get_tree().physics_frame
+
+	if before.has("foe_warn"):
+		var warn_now: float = float(_lvl._foes[0]["warn"])
+		var speed_now: float = float(_lvl._foes[0]["speed"])
+		print("  after two falls: monster warn %.2f -> %.2f s, speed %.0f -> %.0f" % [
+			float(before["foe_warn"]), warn_now,
+			float(before["foe_speed"]), speed_now])
+		_ok(warn_now > float(before["foe_warn"]),
+			"two falls must lengthen the warning, not leave it")
+		_ok(speed_now < float(before["foe_speed"]),
+			"two falls must slow the monsters down")
+	if before.has("boss_total"):
+		_ok(int(_lvl._boss["total"]) < int(before["boss_total"]),
+			"two falls must shorten the boss fight")
+
+	# Put the level back to how a child would actually meet it.
+	_reset_level_state()
+	await get_tree().physics_frame
+
+
+## Undo the probe's own meddling so the walkthrough measures the LEVEL.
+func _reset_level_state() -> void:
+	var hero: HeroController = _lvl._hero
+	hero.heal_full()
+	_lvl._hits_taken = 0
+	_lvl._tries = 0
+	_lvl._deaths = 0
+	_lvl._refresh_hearts(hero.hearts)
+	hero.place_at(Vector2(_lvl.SPAWN_X, _lvl._ground_y))
+
+
 ## A shut gate is a wall, and only its opener opens it.
 func _check_gate_is_a_wall() -> void:
+	# Not every level has a door. Level three's wall is the giant itself,
+	# tested by the walkthrough having to beat it to get past.
 	if _lvl._gates.is_empty():
-		_out.append("the level has no gate to test")
 		return
 	var gate: Dictionary = _lvl._gates[0]
 	_ok(not bool(gate["open"]), "the gate must start shut")
@@ -438,13 +566,17 @@ func _walk_the_level(level_id: String) -> void:
 					met_gate = true
 
 		var goal: float = _goal_x(hero.position)
+		# Fighting comes first: with something alive in the way, walking on
+		# is not a thing a child would do, and not a thing the level allows.
+		goal = _fight(hero, goal)
 		hero.press_right(goal > hero.position.x + 20.0)
 		hero.press_left(goal < hero.position.x - 20.0)
 
 		if hero.grounded:
 			if _something_above(hero.position) or _gap_ahead(hero.position) \
 					or _plate_to_hop(hero.position, goal) \
-					or _crate_to_climb(hero.position, goal):
+					or _crate_to_climb(hero.position, goal) \
+					or _must_jump_to_hit(hero.position):
 				hero.press_jump()
 			else:
 				hero.release_jump()
@@ -547,6 +679,109 @@ func _next_plate(group: Dictionary) -> Dictionary:
 		if int(p["dots"]) == int(group["next"]):
 			return p
 	return {}
+
+
+# --- fighting ------------------------------------------------------------------
+
+## What a child does when something is in the way: hit it, block it, or back
+## off from it. Returns where to stand while doing so.
+##
+## Every decision here is one a six-year-old can make from what is on screen:
+## a monster ahead means swing; a ring closing means shield; a glowing back
+## means hit THAT. If any of these stops being readable, this stops working
+## and the walkthrough hangs -- which is the point of driving it this way.
+func _fight(hero: HeroController, goal: float) -> float:
+	# The giant first: it is the biggest thing on screen and the only one
+	# that stops the level.
+	var boss: Dictionary = _lvl._boss
+	if not boss.is_empty() and not bool(boss["beaten"]):
+		var node: Node2D = boss["node"]
+		if is_instance_valid(node) and hero.position.x > float(boss["left"]) - 500.0:
+			return _fight_boss(hero, boss, node)
+
+	var foe := _blocking_foe(hero, goal)
+	if foe.is_empty():
+		return goal
+	var fnode: Node2D = foe["node"]
+
+	# A spitter winding up, or goo in the air: get the shield up.
+	if _incoming(hero):
+		_lvl._on_skill(0)
+
+	if str(foe["kind"]) == "armoured":
+		# Force is the wrong idea: this one is only open from above, and the
+		# glowing spot on its head says so. Swing at the top of the hop.
+		if hero.position.y < _lvl._ground_y - 80.0:
+			_lvl._on_attack()
+		return fnode.position.x - 110.0 * signf(fnode.position.x - hero.position.x)
+	if absf(fnode.position.x - hero.position.x) < 150.0:
+		_lvl._on_attack()
+	# Stand at swinging distance, not inside it: touching a monster hurts.
+	return fnode.position.x - 96.0 * signf(fnode.position.x - hero.position.x)
+
+
+func _fight_boss(hero: HeroController, boss: Dictionary, node: Node2D) -> float:
+	var state := str(boss["state"])
+	var stand: float = node.position.x - 170.0
+	match state:
+		"warn":
+			# It is winding up. Shield, and stand off a little further.
+			_lvl._on_skill(0)
+			return node.position.x - 300.0
+		"shelled":
+			# The ordinary swing bounces off. The beam is the answer.
+			_lvl._on_skill(1)
+			return stand
+		"open":
+			if absf(node.position.x - hero.position.x) < 220.0:
+				_lvl._on_attack()
+			return stand
+		_:
+			return stand
+
+
+## The nearest monster between us and where we were going.
+func _blocking_foe(hero: HeroController, goal: float) -> Dictionary:
+	var dir: float = signf(goal - hero.position.x)
+	if dir == 0.0:
+		dir = 1.0
+	var best := {}
+	var best_d := 340.0
+	for foe in _lvl._foes:
+		if bool(foe["down"]):
+			continue
+		var node: Node2D = foe["node"]
+		if not is_instance_valid(node):
+			continue
+		var ahead: float = (node.position.x - hero.position.x) * dir
+		if ahead < -70.0 or ahead > best_d:
+			continue
+		best_d = maxf(ahead, 0.0)
+		best = foe
+	return best
+
+
+## Is something about to arrive that a shield would stop?
+func _incoming(hero: HeroController) -> bool:
+	for ball in _lvl._goo:
+		var node: Node2D = ball["node"]
+		if is_instance_valid(node) and node.position.distance_to(hero.position) < 320.0:
+			return true
+	for foe in _lvl._foes:
+		if not bool(foe["down"]) and foe.get("telegraph") != null:
+			return true
+	return false
+
+
+## Jump to reach a weak point that is only open from above.
+func _must_jump_to_hit(at: Vector2) -> bool:
+	for foe in _lvl._foes:
+		if bool(foe["down"]) or str(foe["kind"]) != "armoured":
+			continue
+		var node: Node2D = foe["node"]
+		if is_instance_valid(node) and absf(node.position.x - at.x) < 190.0:
+			return true
+	return false
 
 
 # --- when would a child jump? ---------------------------------------------------

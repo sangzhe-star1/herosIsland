@@ -51,6 +51,13 @@ func _ready() -> void:
 	if lvl._puzzles.size() > 0:
 		stops.append(["7-sign", float(lvl._puzzles[0]["at"])])
 		stops.append(["8-card", float(lvl._puzzles[0]["at"])])
+	if lvl._foes.size() > 0:
+		stops.append(["6-foes", (lvl._foes[0]["node"] as Node2D).position.x - 200.0])
+	if lvl._cages.size() > 0:
+		stops.append(["7-cage", float(lvl._cages[0]["at"]) - 60.0])
+	if not lvl._boss.is_empty():
+		stops.append(["8-boss", float(lvl._boss["at"]) - 340.0])
+		stops.append(["8-boss-shell", float(lvl._boss["at"]) - 340.0])
 	if lvl._gates.size() > 0:
 		stops.append(["9-gate", float(lvl._gates[0]["at"]) - 140.0])
 	if not lvl._chest.is_empty():
@@ -67,6 +74,16 @@ func _ready() -> void:
 		lvl._hero.place_at(Vector2(at, lvl._ground_y))
 		if name == "8-card" and lvl._puzzles.size() > 0:
 			lvl._open_card(lvl._puzzles[0])
+		if name == "8-boss" and not lvl._boss.is_empty():
+			# Catch the giant mid-wind-up: the telegraph is the thing worth
+			# looking at, and it is on screen for barely a second in play.
+			lvl._boss["state"] = "rest"
+			lvl._boss["t"] = 0.05
+		if name == "8-boss-shell" and not lvl._boss.is_empty():
+			lvl._boss["phase"] = 3
+			lvl._boss["state"] = "shelled"
+			lvl._boss_shell()
+			lvl._refresh_boss_bar()
 		# Let the camera catch up and the props finish bobbing into place.
 		for i in range(30):
 			await get_tree().physics_frame

@@ -82,6 +82,18 @@ var _puzzles: Array = []           # [{node, at, kind, gate, solved}]
 var _card: PuzzleCard = null
 var _warned := {}                  # one first-time callout per hazard family
 
+# --- Phase C: things that fight back ----------------------------------------
+var _foes: Array = []              # [{node, body, kind, at, hearts, state, t, ...}]
+var _goo: Array = []               # [{node, at, vel}]
+var _cages: Array = []             # [{node, bars, pet, at, freed}]
+var _pets: Array = []              # rescued friends, following along
+var _boss: Dictionary = {}
+var _boss_bar: Control
+var _boss_fill: Node2D
+var _shield_until := 0.0
+var _clock := 0.0
+var _tries := 0                    # deaths this run; two means the game helps
+
 var _orbs_needed := 5
 var _orbs_taken := 0
 var _gem_found := false
@@ -146,6 +158,13 @@ func _zone_width(section: Dictionary) -> float:
 			return 200.0 * float(clampi(int(section.get("count", 3)), 1, 4)) + 120.0
 		"collect":
 			return 420.0
+		"foes":
+			return 300.0 * float(clampi(int(section.get("count", 2)), 1, 4)) + 160.0
+		"boss":
+			# A boss arena: room to back off, room to run under a swing, and
+			# no pit anywhere in it. A fight fought on the lip of a hole is a
+			# fight lost to the hole.
+			return 1100.0
 		_:
 			return 260.0
 
@@ -427,6 +446,12 @@ func _build_sections(plan: Array) -> void:
 				_build_seq_plates(section, at)
 			"puzzle":
 				_build_puzzle(section, at)
+			"foes":
+				_build_foes(section, at)
+			"rescue":
+				_build_rescue(at)
+			"boss":
+				_build_boss(section, at)
 			"checkpoint":
 				_build_checkpoint(at)
 			"chest":
@@ -656,6 +681,70 @@ func _build_puzzle(section: Dictionary, at: float) -> void:
 		"solved": false})
 
 
+## A patrol of monsters. Kinds are mixed on purpose from level three onward:
+## a walker teaches the attack button, a spitter teaches the shield, and an
+## armoured one teaches that "hit it harder" is sometimes the wrong idea.
+func _build_foes(section: Dictionary, at: float) -> void:
+	var count: int = clampi(harder_i(int(section.get("count", 2)), 1), 1, 4)
+	var kinds: Array = section.get("kinds", ["walker"])
+	var zone := _flat_zone_near(at, _zone_width(section))
+	for i in range(count):
+		var kind := str(kinds[i % kinds.size()])
+		var parts: Dictionary
+		match kind:
+			"spitter":
+				parts = AdventureEnemies.spitter(_world)
+			"armoured":
+				parts = AdventureEnemies.armoured(_world)
+			_:
+				parts = AdventureEnemies.walker(_world)
+		var fx: float = lerpf(float(zone["left"]) + 120.0, float(zone["right"]) - 120.0,
+			0.5 if count == 1 else float(i) / float(count - 1))
+		(parts["node"] as Node2D).position = Vector2(fx, _ground_y)
+		_foes.append({
+			"node": parts["node"], "body": parts["body"], "weak": parts.get("weak"),
+			"kind": kind, "hearts": 2 if kind == "armoured" else 1,
+			"home": fx, "range": 130.0, "dir": 1.0,
+			# Slow. A monster a child cannot walk away from is a monster that
+			# turns exploring into a chase, and this is not a chase game.
+			"speed": harder(46.0, 1.18),
+			"state": "walk", "t": 0.0,
+			"warn": harder(1.10, 0.82),      # never below the half-second floor
+			"cool": harder(2.4, 0.85),
+			"telegraph": null, "down": false,
+		})
+
+
+## Someone to let out. The interact key opens the cage; the friend then
+## trots along behind, which is the whole reward -- company.
+func _build_rescue(at: float) -> void:
+	var parts := AdventureEnemies.cage(_world)
+	(parts["node"] as Node2D).position = Vector2(at, _ground_y)
+	_cages.append({"node": parts["node"], "bars": parts["bars"], "pet": parts["pet"],
+		"at": at, "freed": false})
+
+
+## The rock giant, and the arena it stands in.
+func _build_boss(section: Dictionary, at: float) -> void:
+	var zone := _flat_zone_near(at, _zone_width(section))
+	var arena_left: float = float(zone["left"]) + 80.0
+	var arena_right: float = float(zone["right"]) - 80.0
+	var parts := AdventureEnemies.rock_boss(_world)
+	(parts["node"] as Node2D).position = Vector2(arena_right - 200.0, _ground_y)
+	_boss = {
+		"node": parts["node"], "body": parts["body"], "arms": parts["arms"],
+		"weak": parts["weak"], "shell": parts["shell"],
+		"at": arena_right - 200.0, "left": arena_left, "right": arena_right,
+		# Three phases, three hits each: short enough to hold a six-year-old,
+		# long enough that beating it is a story they tell afterwards.
+		"phase": 1, "hearts": 3, "max_hearts": 3, "total": 9, "hit": 0,
+		"state": "rest", "t": 1.6, "shots": 0,
+		"warn": harder(1.25, 0.84), "rest": harder(1.9, 0.86),
+		"open": harder(3.0, 0.88),        # how long the weak point stays out
+		"telegraph": null, "beaten": false, "gate": {},
+	}
+
+
 func _build_checkpoint(at: float) -> void:
 	var parts := AdventureProps.checkpoint(_world)
 	(parts["node"] as Node2D).position = Vector2(at, _ground_y)
@@ -678,7 +767,16 @@ func _build_hero() -> void:
 	_world.add_child(_hero)
 	_hero.setup(GameData.current_skin(), _ground_y, 168.0)
 	_hero.use_terrain(_platforms, _ropes)
-	_hero.use_enemies(func(): return [])      # enemies arrive in a later phase
+	# What auto-aim turns toward: the monsters still standing, plus the boss.
+	_hero.use_enemies(func():
+		var targets: Array = []
+		for foe in _foes:
+			if not bool(foe["down"]) and is_instance_valid(foe["node"]):
+				targets.append(foe["node"])
+		if not _boss.is_empty() and not bool(_boss["beaten"]) \
+				and is_instance_valid(_boss["node"]):
+			targets.append(_boss["node"])
+		return targets)
 	_hero.place_at(Vector2(SPAWN_X, _ground_y))
 	_last_safe = _hero.position
 	_hero.hurt_taken.connect(_on_hurt)
@@ -713,6 +811,7 @@ func _build_hud() -> void:
 			_heart_icons.append(heart)
 
 	_build_task_strip()
+	_build_boss_bar()
 
 	_instruction = Label.new()
 	_instruction.text = I18n.t(str(level_data.get("config", {})
@@ -754,9 +853,18 @@ func _physics_process(delta: float) -> void:
 	# still inside what the fully-scrolled camera shows -- past THAT is space
 	# the child can stand in but never see themselves standing in.
 	_hero.position.x = clampf(_hero.position.x, -400.0, _length - 460.0)
+	# A giant standing in the path IS the door. Walking round it would make
+	# the whole fight optional, and a boss you can stroll past is not a boss.
+	if not _boss.is_empty() and not bool(_boss["beaten"]):
+		_hero.position.x = minf(_hero.position.x, float(_boss["right"]))
+	_clock += delta
 	_push_crates(delta)
 	_tick_rocks(delta)
 	_tick_vents(delta)
+	_tick_foes(delta)
+	_tick_goo(delta)
+	_tick_boss(delta)
+	_tick_pets(delta)
 	_watch_seq_plates()
 	_collect_orbs()
 	_collect_gems()
@@ -1145,6 +1253,445 @@ func _step_seq_plate(group: Dictionary, plate: Dictionary) -> void:
 		_say(I18n.t("adventure.seq_again"))
 
 
+# --- monsters -----------------------------------------------------------------
+
+## Every monster's turn, every frame.
+##
+## They walk their beat, and when the hero comes close they WIND UP -- a ring
+## closing in for the whole telegraph window -- before doing anything at all.
+## A walker lunges; a spitter throws. Nothing here ever touches the hero
+## during the wind-up, so a child who backs off on seeing the ring is always
+## right to have done it.
+func _tick_foes(delta: float) -> void:
+	for foe in _foes:
+		# Check the flag BEFORE typing the node. A beaten monster's node is
+		# freed a second later by its own farewell tween, and assigning a
+		# freed instance to a typed variable is an error in itself -- the
+		# is_instance_valid() guard never gets a chance to run.
+		if bool(foe["down"]) or not is_instance_valid(foe["node"]):
+			continue
+		var node: Node2D = foe["node"]
+		foe["t"] = float(foe["t"]) - delta
+		var to_hero: float = _hero.position.x - node.position.x
+		match str(foe["state"]):
+			"walk":
+				node.position.x += float(foe["dir"]) * float(foe["speed"]) * delta
+				if absf(node.position.x - float(foe["home"])) > float(foe["range"]):
+					foe["dir"] = -float(foe["dir"])
+					node.position.x = clampf(node.position.x,
+						float(foe["home"]) - float(foe["range"]),
+						float(foe["home"]) + float(foe["range"]))
+				_face_foe(foe, signf(to_hero) if absf(to_hero) < 460.0 else float(foe["dir"]))
+				var trigger: float = 380.0 if str(foe["kind"]) == "spitter" else 190.0
+				if absf(to_hero) < trigger and float(foe["t"]) <= 0.0 \
+						and absf(_hero.position.y - _ground_y) < 200.0:
+					foe["state"] = "warn"
+					foe["t"] = float(foe["warn"])
+					foe["telegraph"] = AdventureEnemies.telegraph(node,
+						Color(1.0, 0.55, 0.30))
+					(foe["telegraph"] as Node2D).position = Vector2(0, -80.0)
+					if str(foe["kind"]) == "spitter":
+						_warn_once("spitter", I18n.t("adventure.shield_hint"))
+			"warn":
+				_shrink_telegraph(foe, float(foe["warn"]))
+				if float(foe["t"]) <= 0.0:
+					_drop_telegraph(foe)
+					foe["state"] = "strike"
+					foe["t"] = 0.45
+					if str(foe["kind"]) == "spitter":
+						_spit(node)
+					else:
+						Juice.pop(foe["body"], 0.22)
+			"strike":
+				if str(foe["kind"]) != "spitter":
+					# The lunge: a short hop toward the hero, and only NOW
+					# does touching it cost anything.
+					node.position.x += signf(to_hero) * 190.0 * delta
+					_touch_test(foe, node)
+				if float(foe["t"]) <= 0.0:
+					foe["state"] = "walk"
+					foe["t"] = float(foe["cool"])
+		if str(foe["state"]) != "strike":
+			_touch_test(foe, node)
+
+
+## Walking into a monster costs a heart -- but the monster is never the one
+## that closed the distance except during its own telegraphed lunge.
+func _touch_test(foe: Dictionary, node: Node2D) -> void:
+	if bool(foe["down"]) or _hero.invulnerable():
+		return
+	if absf(_hero.position.x - node.position.x) > 62.0:
+		return
+	if _hero.position.y < _ground_y - 110.0:
+		return                       # sailing over its head is free
+	if _blocking():
+		_block_flash(node.position)
+		return
+	_hero.take_hit(node.position)
+
+
+func _face_foe(foe: Dictionary, dir: float) -> void:
+	var body: Node2D = foe["body"]
+	if is_instance_valid(body) and dir != 0.0:
+		body.scale.x = absf(body.scale.x) * signf(dir)
+
+
+func _shrink_telegraph(holder: Dictionary, window: float) -> void:
+	var ring: Node2D = holder["telegraph"]
+	if not is_instance_valid(ring):
+		return
+	var left: float = clampf(float(holder["t"]) / maxf(window, 0.01), 0.0, 1.0)
+	ring.scale = Vector2.ONE * lerpf(0.34, 1.25, left)
+	ring.modulate.a = lerpf(1.0, 0.55, left)
+
+
+func _drop_telegraph(holder: Dictionary) -> void:
+	var ring: Variant = holder.get("telegraph")
+	if ring is Node2D and is_instance_valid(ring):
+		(ring as Node2D).queue_free()
+	holder["telegraph"] = null
+
+
+func _spit(from: Node2D) -> void:
+	var ball := AdventureEnemies.goo_ball(_world)
+	ball.position = from.position + Vector2(signf(_hero.position.x - from.position.x)
+		* 56.0, -86.0)
+	var away: float = _hero.position.x - ball.position.x
+	_goo.append({"node": ball,
+		# Deliberately slow and arcing: it must be watchable all the way in.
+		"vel": Vector2(signf(away) * harder(250.0, 1.12), -180.0)})
+	AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+
+
+func _tick_goo(delta: float) -> void:
+	for ball in _goo.duplicate():
+		var node: Node2D = ball["node"]
+		if not is_instance_valid(node):
+			_goo.erase(ball)
+			continue
+		var vel: Vector2 = ball["vel"]
+		vel.y += 520.0 * delta
+		ball["vel"] = vel
+		node.position += vel * delta
+		node.rotation += delta * 3.0
+		if node.position.distance_to(_hero_core()) < 78.0:
+			if _blocking():
+				_block_flash(node.position)
+			else:
+				_hero.take_hit(node.position)
+			Juice.burst(_world, node.position, 10)
+			node.queue_free()
+			_goo.erase(ball)
+			continue
+		if node.position.y > _ground_y + 20.0:
+			Juice.dust(_world, Vector2(node.position.x, _ground_y), 4, 0.7)
+			node.queue_free()
+			_goo.erase(ball)
+
+
+## The shield: a real window, not a light show. Raised with skill 0, it eats
+## exactly the hits that land while it is up.
+func _blocking() -> bool:
+	return _clock < _shield_until
+
+
+func _block_flash(at: Vector2) -> void:
+	Juice.shockwave(_world, _hero.position + Vector2(0, -90.0), 130.0,
+		Color(0.55, 0.85, 1.0))
+	Juice.burst(_world, at, 8)
+	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+
+
+## The swing lands. Auto-aim already turned the hero toward the nearest
+## enemy; this decides what the swing actually reached.
+func _swing_hits(area: Dictionary) -> void:
+	var at: Vector2 = area["at"]
+	var radius: float = float(area["radius"])
+	for foe in _foes:
+		if bool(foe["down"]) or not is_instance_valid(foe["node"]):
+			continue
+		var node: Node2D = foe["node"]
+		# A CAPSULE, not a circle round the origin. A monster's origin is at
+		# its feet and the swing lands 80 px above the hero's; measured
+		# centre-to-centre with a circle, a hit from above came out 217 px
+		# away and the armoured monster was literally unhittable. Generous on
+		# purpose besides -- the design brief says big hitboxes, and a
+		# six-year-old aims with their whole arm.
+		if absf(node.position.x - at.x) > radius * 0.92:
+			continue
+		if absf((node.position.y - 46.0) - at.y) > 160.0:
+			continue
+		# The armoured one is the lesson that force is not always the answer:
+		# only a hit coming DOWN onto its glowing spot counts.
+		if str(foe["kind"]) == "armoured" and _hero.position.y > node.position.y - 70.0:
+			Juice.nudge(foe["body"])
+			var spot: Variant = foe.get("weak")
+			if spot is Node2D and is_instance_valid(spot):
+				Juice.pop(spot, 0.4)
+			AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+			continue
+		_hurt_foe(foe)
+	_hit_boss(at, radius)
+
+
+func _hurt_foe(foe: Dictionary) -> void:
+	foe["hearts"] = int(foe["hearts"]) - 1
+	var node: Node2D = foe["node"]
+	Juice.burst(_world, node.position + Vector2(0, -70.0), 14)
+	if int(foe["hearts"]) > 0:
+		Juice.nudge(foe["body"])
+		AudioManager.play_sfx("res://assets/audio/correct.ogg")
+		return
+	# Beaten, not killed: it sits down, waves, and pops away in sparkles.
+	foe["down"] = true
+	_drop_telegraph(foe)
+	score_correct()
+	AudioManager.play_sfx("res://assets/audio/star.ogg")
+	Juice.burst(_world, node.position + Vector2(0, -60.0), 26)
+	var body: Node2D = foe["body"]
+	if is_instance_valid(body) and Juice.motion_enabled():
+		var t := body.create_tween()
+		t.tween_property(body, "scale", Vector2(1.15, 0.72), 0.16)
+		t.tween_property(body, "rotation_degrees", -22.0, 0.3)
+		t.tween_interval(0.5)
+		t.parallel().tween_property(body, "modulate:a", 0.0, 0.5)
+		t.tween_callback(node.queue_free)
+	else:
+		node.queue_free()
+
+
+# --- the rock giant -----------------------------------------------------------
+
+## Three phases, each with one telegraphed attack and one plain opening to
+## hit back. The boss is slow everywhere: this is a puzzle about watching and
+## waiting, not a test of thumbs.
+func _tick_boss(delta: float) -> void:
+	if _boss.is_empty() or bool(_boss["beaten"]):
+		return
+	var node: Node2D = _boss["node"]
+	if not is_instance_valid(node):
+		return
+	# Asleep until the child walks into the arena: no six-year-old should be
+	# shot at by something still off the side of the screen.
+	if _hero.position.x < float(_boss["left"]) - 40.0:
+		return
+	_boss["t"] = float(_boss["t"]) - delta
+	_refresh_boss_bar()
+
+	match str(_boss["state"]):
+		"rest":
+			if float(_boss["t"]) <= 0.0:
+				_boss["state"] = "warn"
+				_boss["t"] = float(_boss["warn"])
+				_boss["shots"] = 0
+				var ring := AdventureEnemies.telegraph(node, Color(1.0, 0.5, 0.28))
+				ring.position = Vector2(0, -150.0)
+				ring.scale = Vector2(1.6, 1.6)
+				_boss["telegraph"] = ring
+				_raise_arms(true)
+				if int(_boss["phase"]) == 3:
+					_say(I18n.t("adventure.boss_shell"))
+		"warn":
+			_shrink_telegraph(_boss, float(_boss["warn"]))
+			if float(_boss["t"]) <= 0.0:
+				_drop_telegraph(_boss)
+				_raise_arms(false)
+				match int(_boss["phase"]):
+					1:
+						_boss_slam()
+					2:
+						_boss_throw()
+					_:
+						_boss_shell()
+				_boss["state"] = "open" if int(_boss["phase"]) != 3 else "shelled"
+				_boss["t"] = float(_boss["open"])
+				if int(_boss["phase"]) != 3:
+					_show_weak(true)
+					_say(I18n.t("adventure.boss_open"))
+		"open":
+			if float(_boss["t"]) <= 0.0:
+				_show_weak(false)
+				_boss["state"] = "rest"
+				_boss["t"] = float(_boss["rest"])
+		"shelled":
+			# Phase three waits, shelled, until the charged beam breaks it.
+			pass
+	_boss_touch()
+
+
+func _raise_arms(up: bool) -> void:
+	for arm in _boss["arms"]:
+		if not is_instance_valid(arm):
+			continue
+		if Juice.motion_enabled():
+			var t := (arm as Node2D).create_tween()
+			t.tween_property(arm, "rotation_degrees", -52.0 if up else 0.0, 0.35)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		else:
+			(arm as Node2D).rotation_degrees = -52.0 if up else 0.0
+
+
+func _show_weak(on: bool) -> void:
+	var weak: Node2D = _boss["weak"]
+	if not is_instance_valid(weak):
+		return
+	weak.visible = on
+	if on:
+		Juice.pop(weak, 0.4)
+
+
+## Phase one: it slams the ground. A shadow marks the spot for the whole
+## telegraph, exactly like a falling rock, because a child who learned the
+## rock in level two already knows how to read this.
+func _boss_slam() -> void:
+	var node: Node2D = _boss["node"]
+	var spot: float = clampf(_hero.position.x, float(_boss["left"]),
+		float(_boss["right"]))
+	Juice.shockwave(_world, Vector2(spot, _ground_y), 220.0, Color(0.95, 0.72, 0.42))
+	Juice.dust(_world, Vector2(spot, _ground_y), 10, 1.4)
+	AudioManager.play_sfx("res://assets/audio/beam.ogg")
+	if absf(_hero.position.x - spot) < 130.0 and _hero.grounded:
+		if _blocking():
+			_block_flash(Vector2(spot, _ground_y))
+		else:
+			_hero.take_hit(node.position)
+
+
+## Phase two: three stones, each announced by the same ring.
+func _boss_throw() -> void:
+	var node: Node2D = _boss["node"]
+	for i in range(3):
+		var when: float = 0.35 * float(i)
+		var t := node.create_tween()
+		t.tween_interval(when)
+		t.tween_callback(func():
+			if is_instance_valid(node) and not bool(_boss["beaten"]):
+				_spit(node))
+
+
+func _boss_shell() -> void:
+	var shell: Node2D = _boss["shell"]
+	if is_instance_valid(shell):
+		shell.visible = true
+		Juice.pop(shell, 0.3)
+	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+
+
+## Standing inside the giant is a bad idea, but a gently-signposted one: it
+## nudges you back rather than mauling you.
+func _boss_touch() -> void:
+	var node: Node2D = _boss["node"]
+	if _hero.invulnerable() or absf(_hero.position.x - node.position.x) > 110.0:
+		return
+	if _blocking():
+		_block_flash(node.position)
+		return
+	_hero.take_hit(node.position)
+
+
+func _hit_boss(at: Vector2, radius: float) -> void:
+	if _boss.is_empty() or bool(_boss["beaten"]):
+		return
+	var node: Node2D = _boss["node"]
+	if not is_instance_valid(node) or node.position.distance_to(at) > radius + 140.0:
+		return
+	var shell: Node2D = _boss["shell"]
+	if is_instance_valid(shell) and shell.visible:
+		# The shell shrugs off the ordinary swing. The lightning skill is the
+		# answer, and the game says so rather than leaving it to be guessed.
+		Juice.nudge(_boss["body"])
+		_say(I18n.t("adventure.boss_shell"))
+		AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+		return
+	if str(_boss["state"]) != "open":
+		Juice.nudge(_boss["body"])
+		AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+		return
+	_wound_boss()
+
+
+func _wound_boss() -> void:
+	_boss["hit"] = int(_boss["hit"]) + 1
+	_boss["hearts"] = int(_boss["hearts"]) - 1
+	score_correct()
+	Juice.burst(_world, (_boss["node"] as Node2D).position + Vector2(0, -150.0), 22)
+	Juice.nudge(_boss["body"])
+	AudioManager.play_sfx("res://assets/audio/correct.ogg")
+	_refresh_boss_bar()
+	if int(_boss["hearts"]) > 0:
+		return
+	# End of a phase: it staggers, and the next phase begins.
+	_show_weak(false)
+	_boss["phase"] = int(_boss["phase"]) + 1
+	_boss["hearts"] = int(_boss["max_hearts"])
+	_boss["state"] = "rest"
+	_boss["t"] = float(_boss["rest"]) + 0.8
+	if int(_boss["phase"]) > 3:
+		_finish_boss()
+	else:
+		_say(I18n.t("adventure.boss_phase"))
+		Juice.shockwave(_world, (_boss["node"] as Node2D).position + Vector2(0, -140.0),
+			260.0, Color(1.0, 0.86, 0.40))
+
+
+## Beaten, not beaten UP: it sits down, rubs its head, and waves.
+func _finish_boss() -> void:
+	_boss["beaten"] = true
+	_drop_telegraph(_boss)
+	var shell: Node2D = _boss["shell"]
+	if is_instance_valid(shell):
+		shell.visible = false
+	var body: Node2D = _boss["body"]
+	if is_instance_valid(body) and Juice.motion_enabled():
+		var t := body.create_tween()
+		t.tween_property(body, "scale", Vector2(1.12, 0.80), 0.4)\
+			.set_trans(Tween.TRANS_SINE)
+		t.tween_property(body, "rotation_degrees", 6.0, 0.5)
+		t.tween_property(body, "rotation_degrees", -6.0, 0.8)
+		t.set_loops()
+	Juice.burst(_world, (_boss["node"] as Node2D).position + Vector2(0, -160.0), 40)
+	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
+	_say(I18n.t("adventure.boss_done"))
+	if _boss_bar != null and is_instance_valid(_boss_bar):
+		_boss_bar.visible = false
+	if not _boss.get("gate", {}).is_empty():
+		_open_gate(_boss["gate"])
+
+
+func _refresh_boss_bar() -> void:
+	if _boss_bar == null or not is_instance_valid(_boss_bar):
+		return
+	if not _boss_bar.visible:
+		_boss_bar.visible = true
+	if _boss_fill == null or not is_instance_valid(_boss_fill):
+		return
+	for child in _boss_fill.get_children():
+		child.queue_free()
+	# Three pips per phase, and the phase number as pips too -- no digits.
+	var wide := 520.0
+	var per: float = wide / float(_boss["total"])
+	var left: int = int(_boss["total"]) - int(_boss["hit"])
+	for i in range(left):
+		Shapes.fill(_boss_fill, Shapes.rounded_rect(
+			Vector2(float(i) * per + 3.0, 3.0), Vector2(per - 6.0, 26.0), 6.0),
+			Color(0.96, 0.42, 0.38) if i < 3 else (
+				Color(1.0, 0.70, 0.32) if i < 6 else Color(1.0, 0.88, 0.42)), 0.0)
+
+
+# --- rescued friends ----------------------------------------------------------
+
+## A freed friend trots after the hero at a polite distance. It cannot be
+## hurt and cannot be lost; it is company, not an escort mission.
+func _tick_pets(delta: float) -> void:
+	for pet in _pets:
+		var node: Node2D = pet["node"]
+		if not is_instance_valid(node):
+			continue
+		var want: float = _hero.position.x - 96.0 * signf(_hero.facing)
+		node.position.x = lerpf(node.position.x, want, clampf(delta * 2.4, 0.0, 1.0))
+		node.position.y = _ground_y - 34.0 + sin(_clock * 6.0) * 5.0
+
+
 ## Callouts that should happen exactly once per level, the first time the
 ## thing is actually on screen -- a warning about rocks you cannot see yet is
 ## just noise.
@@ -1162,6 +1709,11 @@ func _warn_once(family: String, text: String) -> void:
 # --- interaction -------------------------------------------------------------
 
 ## Rebuild the "what is near me" answer every frame and let the bar show it.
+##
+## All prompts float at the same height, well clear of the hero's head. The
+## first version put each one near its own object, which floated the cage's
+## key exactly where the hero's face was -- a button covering the character
+## you are trying to look at.
 ## The key exists only while something is in reach, so the child never has a
 ## button that does nothing.
 func _offer_interaction() -> void:
@@ -1175,7 +1727,7 @@ func _offer_interaction() -> void:
 		if d < best:
 			best = d
 			_nearest = {"kind": "chest", "at": Vector2(float(_chest["at"]),
-				_ground_y - 130.0), "icon": "chest"}
+				_ground_y - 250.0), "icon": "chest"}
 			if not bool(_chest.get("told", false)):
 				_chest["told"] = true
 				_say(I18n.t("adventure.chest"))
@@ -1187,6 +1739,14 @@ func _offer_interaction() -> void:
 			best = d2
 			_nearest = {"kind": "puzzle", "at": Vector2(float(puzzle["at"]),
 				_ground_y - 250.0), "icon": "magnifier", "puzzle": puzzle}
+	for cage in _cages:
+		if bool(cage["freed"]):
+			continue
+		var d3: float = absf(_hero.position.x - float(cage["at"]))
+		if d3 < best:
+			best = d3
+			_nearest = {"kind": "cage", "at": Vector2(float(cage["at"]),
+				_ground_y - 250.0), "icon": "lock", "cage": cage}
 	if _bar == null or not is_instance_valid(_bar):
 		return
 	if _nearest.is_empty():
@@ -1204,6 +1764,40 @@ func _on_interact() -> void:
 			_open_chest()
 		"puzzle":
 			_open_card(_nearest["puzzle"])
+		"cage":
+			_free_pet(_nearest["cage"])
+
+
+## Let someone out. The bars fly apart, the friend bounces, and from then on
+## it trots along behind you. There is nothing to protect and nothing to
+## lose -- the reward for being kind is company, and that is enough.
+func _free_pet(cage: Dictionary) -> void:
+	if bool(cage["freed"]):
+		return
+	cage["freed"] = true
+	score_correct()
+	var bars: Node2D = cage["bars"]
+	var pet: Node2D = cage["pet"]
+	if is_instance_valid(bars):
+		if Juice.motion_enabled():
+			var t := bars.create_tween().set_parallel(true)
+			t.tween_property(bars, "scale", Vector2(1.35, 1.25), 0.4)
+			t.tween_property(bars, "modulate:a", 0.0, 0.4)
+			t.chain().tween_callback(bars.queue_free)
+		else:
+			bars.queue_free()
+	Juice.burst(_world, Vector2(float(cage["at"]), _ground_y - 80.0), 26)
+	AudioManager.play_sfx("res://assets/audio/star.ogg")
+	_say(I18n.t("adventure.rescued"))
+	if is_instance_valid(pet):
+		# Hand the friend to the world so it can follow us anywhere, rather
+		# than staying a child of a cage that is busy disappearing.
+		var keep := pet.global_position
+		pet.get_parent().remove_child(pet)
+		_world.add_child(pet)
+		pet.global_position = keep
+		Juice.pop(pet, 0.4)
+		_pets.append({"node": pet})
 
 
 ## The knowledge card, asked in place. The hero freezes mid-level, the hands
@@ -1257,6 +1851,7 @@ func _open_chest() -> void:
 func _on_attack() -> void:
 	if _hero.attack():
 		var area: Dictionary = _hero.attack_area()
+		_swing_hits(area)
 		# The swing, drawn: an arc of light where the reach actually is.
 		var arc := Node2D.new()
 		arc.position = area["at"]
@@ -1282,25 +1877,77 @@ func _on_skill(slot: int) -> void:
 		return
 	match slot:
 		0:
-			# Shield: a bubble that blocks the next hit. Nothing to block yet
-			# on level one, so it is a light show and a rehearsal.
-			var ring := Node2D.new()
-			ring.position = _hero.position
-			_world.add_child(ring)
-			Shapes.glow(ring, Vector2(0, -100.0), 170.0, Color(0.55, 0.85, 1.0), 4, 0.3)
-			if Juice.motion_enabled():
-				var t := ring.create_tween().set_parallel(true)
-				t.tween_property(ring, "scale", Vector2(1.2, 1.2), 1.4)
-				t.tween_property(ring, "modulate:a", 0.0, 1.4)
-				t.chain().tween_callback(ring.queue_free)
-			else:
-				var gone := ring.create_tween()
-				gone.tween_interval(1.4)
-				gone.tween_callback(ring.queue_free)
+			_raise_shield()
 		1:
-			_hero.figure().power_up()
-			Juice.shockwave(_world, _hero.position, 190.0, Color(1.0, 0.86, 0.40))
+			_fire_beam()
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+
+
+## The shield: a REAL window, and a visible one. It follows the hero for its
+## whole duration rather than being a ring left behind on the ground, because
+## a child who presses shield and then steps sideways has every right to
+## still be shielded.
+const SHIELD_TIME := 2.2
+
+func _raise_shield() -> void:
+	_shield_until = _clock + SHIELD_TIME
+	var ring := Node2D.new()
+	_hero.add_child(ring)
+	ring.position = Vector2(0, -90.0)
+	Shapes.glow(ring, Vector2.ZERO, 170.0, Color(0.55, 0.85, 1.0), 4, 0.34)
+	var bubble := Line2D.new()
+	bubble.points = Shapes.circle_points(Vector2.ZERO, 96.0, 30)
+	bubble.closed = true
+	bubble.width = 7.0
+	bubble.default_color = Color(0.66, 0.92, 1.0, 0.92)
+	bubble.antialiased = true
+	ring.add_child(bubble)
+	var t := ring.create_tween()
+	t.tween_interval(SHIELD_TIME - 0.4)
+	t.tween_property(ring, "modulate:a", 0.0, 0.4)
+	t.tween_callback(ring.queue_free)
+
+
+## The charged beam: the answer to the boss's shell, and a satisfying thing
+## to fire at anything else. Reaches across the screen, so a child never has
+## to stand inside a monster to use it.
+func _fire_beam() -> void:
+	_hero.figure().power_up()
+	var from: Vector2 = _hero_core()
+	var to: Vector2 = from + Vector2(_hero.facing * 620.0, 0.0)
+	var beam := Node2D.new()
+	_world.add_child(beam)
+	Shapes.fill(beam, Shapes.taper(from, to, 34.0, 14.0), Color(1.0, 0.92, 0.55), 0.0)
+	Shapes.glow(beam, (from + to) * 0.5, 260.0, Color(1.0, 0.86, 0.40), 5, 0.42)
+	var t := beam.create_tween()
+	t.tween_interval(0.22)
+	t.tween_property(beam, "modulate:a", 0.0, 0.22)
+	t.tween_callback(beam.queue_free)
+	Juice.shockwave(_world, from, 190.0, Color(1.0, 0.86, 0.40))
+	AudioManager.play_sfx("res://assets/audio/beam.ogg")
+
+	# The beam is what breaks the boss's shell -- the one thing an ordinary
+	# swing cannot do.
+	if not _boss.is_empty() and not bool(_boss["beaten"]):
+		var shell: Node2D = _boss["shell"]
+		var node: Node2D = _boss["node"]
+		if is_instance_valid(shell) and shell.visible and is_instance_valid(node) \
+				and absf(node.position.x - from.x) < 700.0:
+			shell.visible = false
+			_boss["state"] = "open"
+			_boss["t"] = float(_boss["open"])
+			_show_weak(true)
+			Juice.burst(_world, node.position + Vector2(0, -140.0), 30)
+			Juice.shockwave(_world, node.position + Vector2(0, -100.0), 300.0,
+				Color(0.55, 0.85, 1.0))
+			_say(I18n.t("adventure.boss_open"))
+	# And it knocks over any ordinary monster in its path.
+	for foe in _foes:
+		if bool(foe["down"]) or not is_instance_valid(foe["node"]):
+			continue
+		var fx: float = (foe["node"] as Node2D).position.x
+		if signf(fx - from.x) == signf(_hero.facing) and absf(fx - from.x) < 620.0:
+			_hurt_foe(foe)
 
 
 # --- being hurt, and the end -------------------------------------------------
@@ -1313,11 +1960,52 @@ func _on_hurt(remaining: int) -> void:
 
 func _on_died() -> void:
 	_deaths += 1
+	_tries += 1
 	_hero.heal_full()
 	_refresh_hearts(_hero.hearts)
 	_hero.place_at(_last_safe)
 	Juice.dust(_world, _last_safe, 8)
 	_say(I18n.t("adventure.again"))
+	# Two falls in one run and the island quietly leans in. Not a menu, not a
+	# question -- a six-year-old who has just lost twice does not want to be
+	# ASKED whether they would like it easier.
+	if _tries >= 2:
+		_offer_help()
+
+
+## Everything that can be made kinder without changing what the level is:
+## longer warnings, slower monsters, a gentler giant, and a hand pointing at
+## whatever is currently in the way.
+func _offer_help() -> void:
+	if bool(_warned.get("helped", false)):
+		return
+	_warned["helped"] = true
+	for foe in _foes:
+		foe["warn"] = float(foe["warn"]) * 1.45
+		foe["cool"] = float(foe["cool"]) * 1.35
+		foe["speed"] = float(foe["speed"]) * 0.7
+	for rock in _rocks:
+		rock["warn"] = float(rock["warn"]) * 1.45
+		rock["cool"] = float(rock["cool"]) * 1.3
+	for vent in _vents:
+		vent["warn"] = float(vent["warn"]) * 1.45
+		vent["idle"] = float(vent["idle"]) * 1.3
+	if not _boss.is_empty():
+		_boss["warn"] = float(_boss["warn"]) * 1.4
+		_boss["rest"] = float(_boss["rest"]) * 1.3
+		_boss["open"] = float(_boss["open"]) * 1.5
+		# One phase shorter, so a stuck child still gets to the end of the
+		# story rather than to the end of their patience.
+		_boss["total"] = maxi(int(_boss["total"]) - int(_boss["max_hearts"]), 3)
+		if int(_boss["phase"]) < 3:
+			_boss["phase"] = 3
+			_boss["hearts"] = int(_boss["max_hearts"])
+		_refresh_boss_bar()
+	_say(I18n.t("adventure.helping"))
+	for gate in _gates:
+		if not bool(gate["open"]):
+			_point_at_plate(gate)
+			break
 
 
 func _refresh_hearts(remaining: int) -> void:
@@ -1326,6 +2014,32 @@ func _refresh_hearts(remaining: int) -> void:
 		if is_instance_valid(heart):
 			heart.modulate = Color(1, 1, 1) if i < remaining \
 				else Color(0.35, 0.38, 0.48, 0.7)
+
+
+## The giant's health, as a row of pips rather than a number or a smooth bar.
+## Pips can be counted, and "three more to go" is a thought a six-year-old can
+## actually have. Hidden until the giant wakes up.
+func _build_boss_bar() -> void:
+	var holder := Control.new()
+	holder.position = Vector2(380, 168)
+	holder.size = Vector2(520, 32)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.visible = false
+	_hud.add_child(holder)
+	_boss_bar = holder
+
+	var back := Node2D.new()
+	holder.add_child(back)
+	Shapes.fill(back, Shapes.rounded_rect(Vector2.ZERO, Vector2(520, 32), 10.0),
+		Color(0.06, 0.09, 0.18, 0.72), 0.0)
+	_boss_fill = Node2D.new()
+	holder.add_child(_boss_fill)
+
+	var face: Control = UiKit.picture("monster", 54)
+	if face != null:
+		face.position = Vector2(-66, -12)
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.add_child(face)
 
 
 ## The three things this level wants, in pictures, top centre, always on

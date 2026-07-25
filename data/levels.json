@@ -2283,5 +2283,77 @@
         }
       ]
     }
+  },
+  {
+    "id": "sunny_park_03",
+    "world": "sunny_park",
+    "name_key": "level.sunny_park_03",
+    "game_type": "platform_adventure",
+    "difficulty": 3,
+    "duration_seconds": 360,
+    "requires": "sunny_park_02",
+    "target": {},
+    "reward": {
+      "coins": 40,
+      "badge": "giant_friend"
+    },
+    "config": {
+      "instruction_key": "adventure.instruction_03",
+      "length": 4200,
+      "gap_max": 96,
+      "seg_min": 400,
+      "sections": [
+        {
+          "kind": "foes",
+          "count": 2,
+          "kinds": [
+            "walker"
+          ]
+        },
+        {
+          "kind": "foes",
+          "count": 1,
+          "kinds": [
+            "spitter"
+          ]
+        },
+        {
+          "kind": "checkpoint"
+        },
+        {
+          "kind": "foes",
+          "count": 3,
+          "kinds": [
+            "walker",
+            "armoured",
+            "spitter"
+          ]
+        },
+        {
+          "kind": "rescue"
+        },
+        {
+          "kind": "collect",
+          "count": 3,
+          "spread": 340
+        },
+        {
+          "kind": "spring",
+          "id": "bounce"
+        },
+        {
+          "kind": "gem",
+          "above": "bounce",
+          "offset": 150,
+          "height": 290
+        },
+        {
+          "kind": "boss"
+        },
+        {
+          "kind": "chest"
+        }
+      ]
+    }
   }
 ]
