@@ -1547,6 +1547,30 @@
     }
   },
   {
+    "id": "adventure_valley_04",
+    "world": "adventure_valley",
+    "name_key": "level.adventure_valley_04",
+    "game_type": "platformer",
+    "difficulty": 3,
+    "requires": "adventure_valley_03",
+    "config": {
+      "length": 3200,
+      "gap_max": 150,
+      "seg_min": 210,
+      "coins": 13,
+      "moving": true,
+      "springs": 1,
+      "weather": "snow"
+    },
+    "target": {
+      "correct": 1
+    },
+    "reward": {
+      "coins": 35,
+      "badge": ""
+    }
+  },
+  {
     "id": "adventure_valley_challenge",
     "world": "adventure_valley",
     "name_key": "level.adventure_valley_challenge",

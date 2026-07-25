@@ -194,7 +194,8 @@
     "badge.mountain_hero": "Mountain Hero",
     "character.bluey": "Bluey",
     "level.hero_city_07": "Rooftop Run",
-    "level.rescue_forest_06": "Forest Dash"
+    "level.rescue_forest_06": "Forest Dash",
+    "level.adventure_valley_04": "Snowy Trail"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -391,6 +392,7 @@
     "badge.mountain_hero": "登山小英雄",
     "character.bluey": "布鲁伊",
     "level.hero_city_07": "屋顶夜奔",
-    "level.rescue_forest_06": "森林大冲刺"
+    "level.rescue_forest_06": "森林大冲刺",
+    "level.adventure_valley_04": "雪山小道"
   }
 }

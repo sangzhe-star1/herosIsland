@@ -263,9 +263,19 @@ func apply_config(config: Dictionary) -> WorldStyle:
 				haze = Color(0.72, 0.76, 0.82, 0.5)
 				light_glow *= 0.4
 			"snow":
+				# Snow is a MAP change, not just weather: the ground and the
+				# distant bands whiten, so a snowy level reads as a different
+				# place on the same island. This is the "switch the map" knob:
+				# any level may set "weather" in its config and get a new look
+				# for the same world, with no art.
 				mote_kind = "snow"
 				mote_color = Color(1.0, 1.0, 1.0, 0.85)
 				clouds = 0.9
+				ground_top = ground_top.lerp(Color(0.93, 0.95, 1.0), 0.55)
+				ground_bottom = ground_bottom.lerp(Color(0.72, 0.78, 0.88), 0.40)
+				for i in range(band_colors.size()):
+					band_colors[i] = band_colors[i].lerp(Color(0.92, 0.95, 1.0), 0.35)
+				haze = Color(0.94, 0.96, 1.0, 0.55)
 			"storm":
 				mote_kind = "rain"
 				clouds = 1.0

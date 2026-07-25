@@ -1,5 +1,22 @@
 # Changelog
 
+## Trail beauty pass, and switchable maps — 25 July 2026
+
+- **Set dressing along every trail**, coloured from the world's own palette:
+  flowers, bushes and pines in the green worlds; in the city the slabs ARE
+  rooftops now — window grids on their faces, lamps and roof vents on top.
+  Floating ledges grow hanging roots. All of it small, sparse, and behind
+  the action.
+- **The finish line is a landmark**: a tall pole with a waving star pennant,
+  a gold cap, stones at its foot, and a glow visible from half a screen away.
+- **Switchable maps via one config knob**: `"weather"` in any level's config
+  re-lights the whole world with no art — and `snow` now whitens the ground
+  and the distant ranges, so a snowy level is a different PLACE, not just
+  falling flakes. New level: Snowy Trail (雪山小道), Adventure Valley's
+  fourth stage.
+- Smoke test: 43 levels, 397 checks.
+
+
 ## The trails spread across the island — 25 July 2026
 
 - **Bounce mushrooms**: land on the cap and launch twice a jump's height,

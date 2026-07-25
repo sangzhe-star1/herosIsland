@@ -136,15 +136,17 @@ func _add_ground(x: float, width: float) -> void:
 		Vector2(width, 22.0), 8.0), _stage.style.ground_top, 0.0)
 	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 4.0),
 		Vector2(width, 7.0), 3.0), _stage.style.ground_top.lightened(0.20), 0.0)
-	# A few grass tufts so the lip is not a bare stripe.
-	var rng := Shapes.rng_for("tufts%f" % x)
-	for i in range(int(width / 90.0)):
-		var tx: float = x + rng.randf_range(14.0, width - 14.0)
-		Shapes.fill(holder, PackedVector2Array([
-			Vector2(tx - 7.0, _ground_y - 2.0),
-			Vector2(tx + rng.randf_range(-4.0, 4.0), _ground_y - 16.0),
-			Vector2(tx + 7.0, _ground_y - 2.0),
-		]), _stage.style.ground_top.lightened(0.10), 0.0)
+	var rng := Shapes.rng_for("decor%f" % x)
+	if _stage.style.ground_kind != "plaza":
+		# Grass tufts so the lip is not a bare stripe.
+		for i in range(int(width / 90.0)):
+			var tx: float = x + rng.randf_range(14.0, width - 14.0)
+			Shapes.fill(holder, PackedVector2Array([
+				Vector2(tx - 7.0, _ground_y - 2.0),
+				Vector2(tx + rng.randf_range(-4.0, 4.0), _ground_y - 16.0),
+				Vector2(tx + 7.0, _ground_y - 2.0),
+			]), _stage.style.ground_top.lightened(0.10), 0.0)
+	_decorate_ground(holder, x, width, rng)
 	_platforms.append({"rect": Rect2(x, _ground_y, width, 190.0), "node": null})
 
 
@@ -155,6 +157,14 @@ func _add_ledge(x: float, y: float, width: float, rng: RandomNumberGenerator) ->
 		_slab_color(), 0.9)
 	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y - 3.0),
 		Vector2(width, 15.0), 7.0), _stage.style.ground_top.lightened(0.06), 0.0)
+	# Little roots and grass hang under a floating ledge -- the cheap line
+	# that says "torn out of a hillside" instead of "UI element in the sky".
+	if _stage.style.ground_kind != "plaza":
+		for k in range(maxi(int(width / 110.0), 1)):
+			var vx: float = x + rng.randf_range(18.0, width - 18.0)
+			Shapes.fill(holder, Shapes.taper(Vector2(vx, y + 26.0),
+				Vector2(vx + rng.randf_range(-5.0, 5.0), y + 26.0 + rng.randf_range(12.0, 28.0)),
+				5.0, 1.8), _slab_color().lightened(0.08), 0.0)
 	var entry := {"rect": Rect2(x, y, width, 30.0), "node": null}
 	# In the windier levels some ledges drift up and down, slowly. Vertical
 	# only, two-second period: a moving target, never a moving trap.
@@ -208,16 +218,37 @@ func _build_coins() -> void:
 		_coins.append({"node": coin, "x": spot.x, "y": spot.y, "taken": false})
 
 
+## The finish line is a landmark, not an icon: a tall pole, a pennant that
+## waves, a gold cap, and a few stones at the foot. Visible from half a
+## screen away, which is the point of a goal.
 func _build_flag() -> void:
 	var flag := Node2D.new()
 	flag.position = Vector2(_flag_x, _ground_y)
 	_world.add_child(flag)
-	Shapes.glow(flag, Vector2(0, -70.0), 120.0, Color(1.0, 0.92, 0.55), 5, 0.30)
-	var icon: Control = UiKit.picture("flag", 120)
-	if icon != null:
-		icon.position = Vector2(-60, -128)
-		flag.add_child(icon)
-	Shapes.ground_shadow(flag, Vector2.ZERO, 110.0, 0.2)
+	var rng := Shapes.rng_for(str(level_data.get("id", "flag")) + ":flag")
+	Shapes.ground_shadow(flag, Vector2.ZERO, 130.0, 0.22)
+	for offs in [Vector2(-36, -5), Vector2(30, -7), Vector2(8, -3)]:
+		Shapes.lit(flag, Shapes.blob(offs as Vector2, Vector2(rng.randf_range(12.0, 19.0), 9.0),
+			rng, 0.2, 3, 12), Color(0.62, 0.63, 0.70), 0.8)
+	Shapes.glow(flag, Vector2(0, -120.0), 130.0, Color(1.0, 0.92, 0.55), 5, 0.26)
+	Shapes.fill(flag, Shapes.taper(Vector2(0, 0), Vector2(0, -176.0), 9.0, 5.5),
+		Color(0.52, 0.42, 0.30), 0.9)
+	Shapes.lit(flag, Shapes.circle_points(Vector2(0, -180.0), 7.5, 12),
+		Color(1.0, 0.84, 0.30), 0.8)
+	var pennant := Node2D.new()
+	pennant.position = Vector2(2.0, -172.0)
+	flag.add_child(pennant)
+	Shapes.lit(pennant, PackedVector2Array([
+		Vector2(2, 0), Vector2(92, 16), Vector2(68, 32), Vector2(92, 48), Vector2(2, 62),
+	]), Color(0.90, 0.34, 0.36), 1.0)
+	Shapes.fill(pennant, Shapes.star_points(Vector2(34, 30), 13.0, 0.45, 5),
+		Color(1.0, 0.92, 0.55), 0.0)
+	if Juice.motion_enabled():
+		var t := pennant.create_tween().set_loops()
+		t.tween_property(pennant, "rotation_degrees", 4.0, 1.1)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		t.tween_property(pennant, "rotation_degrees", -3.0, 1.1)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _build_hero() -> void:
@@ -231,6 +262,103 @@ func _build_hero() -> void:
 
 func _slab_color() -> Color:
 	return _stage.style.ground_bottom.darkened(0.22)
+
+
+## Set dressing along the trail: flowers, bushes and pines in the green
+## worlds; lit windows, lamps and roof vents in the city, where the slabs ARE
+## rooftops. Small, sparse, behind the action, and coloured from the world's
+## own palette -- the difference between a runway and a place. Placement
+## avoids the middle band of each segment, which is where the mushrooms go.
+func _decorate_ground(holder: Node2D, x: float, width: float,
+		rng: RandomNumberGenerator) -> void:
+	if _stage.style.ground_kind == "plaza":
+		# Window grid on the slab face: the run is across the tops of
+		# buildings, so the buildings get to say so.
+		var wy: float = _ground_y + 30.0
+		while wy < _ground_y + 140.0:
+			var wx: float = x + 26.0
+			while wx < x + width - 42.0:
+				if rng.randf() < 0.55:
+					var lit: bool = rng.randf() < 0.62
+					Shapes.fill(holder, Shapes.rounded_rect(Vector2(wx, wy),
+						Vector2(18.0, 24.0), 4.0),
+						Color(1.0, 0.86, 0.52, rng.randf_range(0.5, 0.9)) if lit
+							else Color(0.0, 0.02, 0.10, 0.28), 0.0)
+				wx += 52.0
+			wy += 54.0
+	var count := int(width / 250.0)
+	for i in range(count):
+		var fx: float = x + width * (rng.randf_range(0.05, 0.44) if rng.randf() < 0.5
+			else rng.randf_range(0.80, 0.94))
+		var d := Node2D.new()
+		d.position = Vector2(fx, _ground_y)
+		holder.add_child(d)
+		if _stage.style.ground_kind == "plaza":
+			if rng.randf() < 0.6:
+				_decor_lamp(d)
+			else:
+				_decor_vent(d, rng)
+		else:
+			var roll: float = rng.randf()
+			if roll < 0.42:
+				_decor_flower(d, rng)
+			elif roll < 0.72:
+				_decor_bush(d, rng)
+			else:
+				_decor_pine(d, rng)
+
+
+func _decor_flower(d: Node2D, rng: RandomNumberGenerator) -> void:
+	var h: float = rng.randf_range(20.0, 32.0)
+	Shapes.fill(d, Shapes.taper(Vector2.ZERO, Vector2(rng.randf_range(-4.0, 4.0), -h),
+		3.6, 2.2), _stage.style.ground_top.darkened(0.10), 0.0)
+	var petal: Color = [Color(0.98, 0.62, 0.70), Color(1.0, 0.84, 0.36),
+		Color(0.80, 0.72, 0.98)][rng.randi() % 3]
+	for k in range(5):
+		var a: float = TAU * float(k) / 5.0
+		Shapes.fill(d, Shapes.circle_points(Vector2(0, -h) + Vector2(cos(a), sin(a)) * h * 0.16,
+			h * 0.13, 8), petal, 0.0)
+	Shapes.fill(d, Shapes.circle_points(Vector2(0, -h), h * 0.10, 8),
+		Color(1.0, 0.94, 0.62), 0.0)
+
+
+func _decor_bush(d: Node2D, rng: RandomNumberGenerator) -> void:
+	var r: float = rng.randf_range(16.0, 26.0)
+	var leaf: Color = _stage.style.ground_top.darkened(0.08)
+	Shapes.lit(d, Shapes.blob(Vector2(-r * 0.4, -r * 0.5), Vector2(r, r * 0.8), rng, 0.16, 3, 14),
+		leaf, 0.8)
+	Shapes.lit(d, Shapes.blob(Vector2(r * 0.4, -r * 0.45), Vector2(r * 0.8, r * 0.7), rng, 0.16, 3, 14),
+		leaf.lightened(0.08), 0.8)
+
+
+func _decor_pine(d: Node2D, rng: RandomNumberGenerator) -> void:
+	var h: float = rng.randf_range(46.0, 72.0)
+	Shapes.fill(d, Shapes.taper(Vector2.ZERO, Vector2(0, -h * 0.4), h * 0.10, h * 0.07),
+		Color(0.46, 0.33, 0.24), 0.8)
+	var leaf: Color = _stage.style.ground_top.darkened(0.16)
+	for k in range(2):
+		var t: float = float(k) * 0.5
+		var w: float = h * lerpf(0.36, 0.22, t)
+		Shapes.lit(d, PackedVector2Array([
+			Vector2(-w, -h * (0.32 + t * 0.3)), Vector2(0, -h * (0.66 + t * 0.34)),
+			Vector2(w, -h * (0.32 + t * 0.3)),
+		]), leaf.lightened(t * 0.08), 0.8)
+
+
+func _decor_lamp(d: Node2D) -> void:
+	Shapes.fill(d, Shapes.taper(Vector2.ZERO, Vector2(0, -52.0), 7.0, 4.5),
+		Color(0.30, 0.32, 0.42), 0.8)
+	Shapes.glow(d, Vector2(0, -58.0), 46.0, Color(1.0, 0.86, 0.52), 4, 0.32)
+	Shapes.fill(d, Shapes.circle_points(Vector2(0, -58.0), 6.5, 10),
+		Color(1.0, 0.93, 0.70), 0.0)
+
+
+func _decor_vent(d: Node2D, rng: RandomNumberGenerator) -> void:
+	Shapes.lit(d, Shapes.rounded_rect(Vector2(-16.0, -15.0), Vector2(32.0, 15.0), 5.0),
+		Color(0.34, 0.37, 0.48), 0.8)
+	if rng.randf() < 0.6:
+		Shapes.fill(d, Shapes.rounded_rect(Vector2(-10.0, -11.0), Vector2(20.0, 4.0), 2.0),
+			Color(1.0, 0.86, 0.52, 0.7), 0.0)
 
 
 ## Bounce mushrooms: land on the cap and get launched high -- pure joy, no
