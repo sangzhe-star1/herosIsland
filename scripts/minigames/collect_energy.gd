@@ -212,8 +212,7 @@ func _tick_things(delta: float) -> void:
 # --- tapping ------------------------------------------------------------
 
 func _on_thing_input(event: InputEvent, thing: Dictionary) -> void:
-	var pressed: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
-		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
+	var pressed: bool = UiKit.is_press(event)
 	if not pressed:
 		return
 	var node: Control = thing["node"]

@@ -11,9 +11,12 @@ func _ok(condition: bool, description: String) -> void:
 		_failures.append(description)
 
 
+## A tap speaks the language the engine actually delivers. With
+## pointing/emulate_touch_from_mouse on, that is a screen touch -- the mouse
+## copy is the duplicate UiKit.is_press() now discards, so a probe that
+## synthesised only mouse events would test a path no finger ever takes.
 func _tap(echo: Node, index: int) -> void:
-	var ev := InputEventMouseButton.new()
-	ev.button_index = MOUSE_BUTTON_LEFT
+	var ev := InputEventScreenTouch.new()
 	ev.pressed = true
 	echo._on_pad_input(ev, index)
 

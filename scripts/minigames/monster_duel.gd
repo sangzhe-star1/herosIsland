@@ -443,10 +443,7 @@ func _build_ult_picker(choices: Array) -> void:
 		card.add_child(name_label)
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 		card.gui_input.connect(func(event: InputEvent):
-			var pressed: bool = (event is InputEventMouseButton \
-				and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
-				or (event is InputEventScreenTouch and event.pressed)
-			if pressed and not _started:
+			if UiKit.is_press(event) and not _started:
 				_ult_type = kind
 				_started = true
 				Juice.pop(card, 0.2)
@@ -491,8 +488,7 @@ func _process(delta: float) -> void:
 # --- skills -------------------------------------------------------------
 
 func _tap(event: InputEvent) -> bool:
-	return (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
-		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
+	return UiKit.is_press(event)
 
 
 func _on_beam_input(event: InputEvent) -> void:

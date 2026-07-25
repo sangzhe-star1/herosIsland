@@ -12,9 +12,7 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var pressed: bool = (event is InputEventMouseButton \
-		and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
-		or (event is InputEventScreenTouch and event.pressed)
+	var pressed: bool = UiKit.is_press(event)
 	if not pressed or not Juice.motion_enabled():
 		return
 

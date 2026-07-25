@@ -162,8 +162,7 @@ func _build_card(index: int, icon_name: String, at: Vector2) -> Dictionary:
 # --- play -----------------------------------------------------------------
 
 func _on_card_input(event: InputEvent, index: int) -> void:
-	var pressed: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
-		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
+	var pressed: bool = UiKit.is_press(event)
 	if not pressed or _busy:
 		return
 	var card: Dictionary = _cards[index]

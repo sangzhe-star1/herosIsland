@@ -443,3 +443,47 @@ static func pictogram(items: Array, tile: float = 78.0) -> Control:
 
 	strip.set_meta("tiles", tiles)
 	return strip
+
+
+# --- one finger, one press ------------------------------------------------
+
+## Did this input event begin a press?
+##
+## Read this before writing another `event is InputEventMouseButton ... or
+## event is InputEventScreenTouch` by hand, because that idiom is wrong here
+## and it cost this project a fortnight of "the buttons don't work".
+##
+## project.godot sets pointing/emulate_touch_from_mouse so the desktop build
+## can be played like a tablet. The emulation does not REPLACE the mouse
+## event, it ADDS a touch event -- so one click arrives at the same
+## gui_input TWICE, once as each type. Anything that merely counts presses
+## then counts double.
+##
+## In most levels that was invisible or merely generous. In the Light Song
+## it was fatal: tap the right pad and the real event advanced the phrase
+## while its ghost, judged a millisecond later against the NEXT note, came
+## back wrong. Tap correctly, be told you are wrong, hear the song restart,
+## forever. "Tapping does nothing" -- and he was right.
+##
+## So: the touch is the truth, and the mouse duplicate is ignored whenever
+## the engine is emulating. With emulation off (a plain desktop build), the
+## mouse is the truth and there is no duplicate to ignore.
+static func is_press(event: InputEvent) -> bool:
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).pressed
+	if event is InputEventMouseButton:
+		var button := event as InputEventMouseButton
+		return button.pressed and button.button_index == MOUSE_BUTTON_LEFT \
+			and not Input.is_emulating_touch_from_mouse()
+	return false
+
+
+## The other half: did this event END a press? Same duplication, same rule.
+static func is_release(event: InputEvent) -> bool:
+	if event is InputEventScreenTouch:
+		return not (event as InputEventScreenTouch).pressed
+	if event is InputEventMouseButton:
+		var button := event as InputEventMouseButton
+		return not button.pressed and button.button_index == MOUSE_BUTTON_LEFT \
+			and not Input.is_emulating_touch_from_mouse()
+	return false

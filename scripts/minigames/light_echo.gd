@@ -472,8 +472,7 @@ func _sing_pad(index: int) -> void:
 # --- the echo -----------------------------------------------------------
 
 func _on_pad_input(event: InputEvent, index: int) -> void:
-	var pressed: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
-		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
+	var pressed: bool = UiKit.is_press(event)
 	if not pressed:
 		return
 	if not _listening:

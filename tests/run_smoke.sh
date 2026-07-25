@@ -157,6 +157,29 @@ if ! grep -q "DUEL PROBE PASSED" "$DUEL_OUT"; then
 fi
 rm -f "$DUEL_OUT"
 
+# The tap probe pushes ONE real click through the input pipeline and counts
+# how many presses a pad hears. Touch emulation makes a click arrive twice;
+# UiKit.is_press() is what keeps it at one, and this is its regression.
+# Needs a window, so it is skipped on a headless box with no xvfb.
+if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run >/dev/null 2>&1; then
+  echo
+  echo "Running tap probe..."
+  TAP_RUNNER=()
+  if [[ "$(uname)" == "Linux" ]] && [[ -z "${DISPLAY:-}" ]]; then
+    TAP_RUNNER=(xvfb-run -a -s "-screen 0 1280x720x24")
+    export LIBGL_ALWAYS_SOFTWARE=1
+  fi
+  TAP_OUT=$(mktemp)
+  "${TAP_RUNNER[@]}" "$GODOT" --path . --rendering-driver opengl3 \
+    res://tests/TapProbe.tscn 2>&1 | tee "$TAP_OUT"
+  if ! grep -q "TAP PROBE PASSED" "$TAP_OUT"; then
+    rm -f "$TAP_OUT"
+    echo "Tap probe failed."
+    exit 1
+  fi
+  rm -f "$TAP_OUT"
+fi
+
 # The echo probe drives Dance Mode / Light Song the way thumbs do: phrase
 # generation, the handover, the note lamps, and a completed phrase scoring.
 echo

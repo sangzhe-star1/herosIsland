@@ -71,9 +71,7 @@ func _ready() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch and event.pressed:
-		_start()
-	elif event is InputEventMouseButton and event.pressed:
+	if UiKit.is_press(event):
 		_start()
 
 

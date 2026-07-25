@@ -204,22 +204,24 @@ func _go_page(index: int) -> void:
 ## drag of a finger-width turns the page. The arrows remain the primary way --
 ## this is for the child who tries the gesture the tablet taught them.
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_drag_from = event.position
-		elif _drag_from.x >= 0.0:
-			var dx: float = event.position.x - _drag_from.x
-			_drag_from = Vector2(-1, -1)
-			if absf(dx) >= SWIPE:
-				_go_page(_page + (1 if dx < 0.0 else -1))
-	elif event is InputEventScreenTouch:
-		if event.pressed:
-			_drag_from = event.position
-		elif _drag_from.x >= 0.0:
-			var dx2: float = event.position.x - _drag_from.x
-			_drag_from = Vector2(-1, -1)
-			if absf(dx2) >= SWIPE:
-				_go_page(_page + (1 if dx2 < 0.0 else -1))
+	# One press, one release, through the shared rule -- the hand-rolled
+	# version handled mouse AND touch, and with touch emulation on that made
+	# every drag turn two pages.
+	if UiKit.is_press(event):
+		_drag_from = _event_position(event)
+	elif UiKit.is_release(event) and _drag_from.x >= 0.0:
+		var dx: float = _event_position(event).x - _drag_from.x
+		_drag_from = Vector2(-1, -1)
+		if absf(dx) >= SWIPE:
+			_go_page(_page + (1 if dx < 0.0 else -1))
+
+
+func _event_position(event: InputEvent) -> Vector2:
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).position
+	if event is InputEventMouseButton:
+		return (event as InputEventMouseButton).position
+	return Vector2.ZERO
 
 
 # --- the island's contents --------------------------------------------------

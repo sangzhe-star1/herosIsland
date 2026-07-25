@@ -255,9 +255,7 @@ func _refresh_hint() -> void:
 func _on_step_input(event: InputEvent, index: int) -> void:
 	if _resolving:
 		return
-	var pressed: bool = (event is InputEventMouseButton \
-		and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
-		or (event is InputEventScreenTouch and event.pressed)
+	var pressed: bool = UiKit.is_press(event)
 	if not pressed:
 		return
 
@@ -271,9 +269,7 @@ func _on_step_input(event: InputEvent, index: int) -> void:
 func _on_hazard_input(event: InputEvent, hazard: Control) -> void:
 	if _resolving:
 		return
-	var pressed: bool = (event is InputEventMouseButton \
-		and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
-		or (event is InputEventScreenTouch and event.pressed)
+	var pressed: bool = UiKit.is_press(event)
 	if not pressed:
 		return
 	_instruction.text = I18n.t("rescue.avoid")

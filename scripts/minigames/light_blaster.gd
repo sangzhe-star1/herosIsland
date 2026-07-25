@@ -258,9 +258,7 @@ func _clear_spot(spot: Dictionary) -> void:
 # --- shooting ----------------------------------------------------------------
 
 func _on_range_input(event: InputEvent) -> void:
-	var pressed: bool = (event is InputEventMouseButton \
-		and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
-		or (event is InputEventScreenTouch and event.pressed)
+	var pressed: bool = UiKit.is_press(event)
 	if not pressed or _finished:
 		return
 	if _clock < _fire_ready:

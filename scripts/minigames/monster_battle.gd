@@ -231,8 +231,7 @@ func _spawn_spark() -> void:
 
 
 func _on_spark_input(event: InputEvent, node: Panel, dud: bool) -> void:
-	var pressed: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
-		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
+	var pressed: bool = UiKit.is_press(event)
 	if not pressed or _won or not is_instance_valid(node):
 		return
 	if dud:
@@ -349,9 +348,7 @@ func _throw_goo() -> void:
 	_play_area.add_child(goo)
 
 	goo.gui_input.connect(func(event: InputEvent):
-		var pressed: bool = (event is InputEventMouseButton \
-			and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
-			or (event is InputEventScreenTouch and event.pressed)
+		var pressed: bool = UiKit.is_press(event)
 		if pressed and is_instance_valid(goo):
 			Juice.burst(_play_area, goo.position + goo_size / 2.0, 12)
 			goo.queue_free()
