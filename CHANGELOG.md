@@ -1,5 +1,15 @@
 # Changelog
 
+## Mac packaging — 25 July 2026
+
+`tools/build_mac.command`: double-click to export, unzip, de-quarantine and
+reveal `Little Heroes Growth Island.app` (universal, ad-hoc signed, family
+build). Ships with a pre-configured macOS export preset and a proper app
+icon — the chibi hero on the island's morning sky, rendered by
+`tests/IconShot.tscn` into a full .icns. DEPLOYMENT.md gained the macOS
+section.
+
+
 ## Trail beauty pass, and switchable maps — 25 July 2026
 
 - **Set dressing along every trail**, coloured from the world's own palette:

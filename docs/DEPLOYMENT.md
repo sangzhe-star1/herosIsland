@@ -35,6 +35,22 @@ re-plugging would annoy you; the free tier is fine for trying it out.
 
 ---
 
+## macOS (this computer — the two-minute path)
+
+One-time: open the project in Godot once, then *Editor → Manage Export
+Templates → Download and Install* (~1 GB, per Godot version).
+
+Then **double-click `tools/build_mac.command`**. It exports with the bundled
+"macOS" preset (universal binary, the drawn-hero app icon, ad-hoc signed),
+unzips `build/Little Heroes Growth Island.app`, strips the quarantine flag,
+and opens the folder. Drag the .app to /Applications; it launches like any
+app from then on. If macOS still complains on first open: right-click the
+.app → Open → Open.
+
+The same preset works from the editor UI (*Project → Export → macOS →
+Export Project*) if you prefer buttons. `export_presets.cfg` ships
+pre-configured; it is gitignored, so it stays local to this machine.
+
 ## Android (free, no account)
 
 One-time setup in Godot: *Editor → Manage Export Templates → Download*, and
