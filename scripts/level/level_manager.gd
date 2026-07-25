@@ -50,6 +50,26 @@ func bump_target(key: String, extra: int) -> void:
 	level_data["target"] = target
 
 
+## The world this level takes place in, drawn.
+##
+## Every template calls this and nothing else to get its scenery. Before the
+## architecture pass each template drew its own sky, or loaded whatever PNG its
+## `background_art` key named, which is why the game contained a photographic
+## night city, a flat pastel village and a grey rectangle at the same time.
+##
+## `calm` quiets the scenery for templates whose gameplay is a reading task --
+## a sorting grid over a busy meadow is harder to look at than it is pretty.
+func build_world(parent: Node, calm: float = 0.0) -> Stage:
+	var world_id: String = str(level_data.get("world", "island"))
+	var config: Dictionary = level_data.get("config", {})
+	var style: WorldStyle = WorldStyle.for_world(world_id)
+	style.calm = calm
+	style.apply_config(config)
+	# Seeded on the level id, so a child who replays a level comes back to the
+	# same place rather than a freshly shuffled one.
+	return Stage.build(parent, style, str(level_data.get("id", world_id)))
+
+
 ## Override in subclasses. Read level_data for difficulty knobs.
 func setup_level() -> void:
 	pass

@@ -13,7 +13,7 @@ var _badges: Dictionary = {}  # character_id -> the "this one is chosen" star
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Palette.SKY, "res://assets/backgrounds/home.png")
+	UiKit.world_background(self, "rescue_forest", "hero_house", 0.30)
 
 	var root := UiKit.screen_root(self)
 	root.add_theme_constant_override("separation", 16)
@@ -109,45 +109,23 @@ func _build_card(character_id: String, entry: Dictionary) -> PanelContainer:
 	inner.custom_minimum_size = Vector2(300, 400)
 	card.add_child(inner)
 
-	# A character with painted card art (the spotlight cards from the asset
-	# bundle) gets it as the whole card face. Characters without one -- the
-	# drawn Light Hero -- get the live SkinnedCharacter standing on a plain
-	# card, so every hero is presented, art or no art.
-	var card_art := "res://assets/ui/character_card_%s.png" % character_id
-	if ResourceLoader.exists(card_art):
-		card.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-		var face := TextureRect.new()
-		face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		face.texture = load(card_art)
-		face.set_anchors_preset(Control.PRESET_FULL_RECT)
-		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		inner.add_child(face)
+	# Every hero is presented the same way: the live drawn figure, standing on
+	# a card, breathing. Two of the three used to be a photographic spotlight
+	# card from an asset bundle and the third a drawn figure, which made the
+	# choice screen look like a shop selling two different products.
+	var preview := SkinnedCharacter.new()
+	var preview_skin: CharacterSkin = GameData.skin_for(character_id)
+	if preview_skin != null:
+		preview.skin = preview_skin
+	preview.position = Vector2(150, 300)
+	inner.add_child(preview)
+	preview.set_height(250.0)
 
-		# Name in the card art's bottom bar.
-		var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 34)
-		name_label.add_theme_color_override("font_color", Palette.ON_COLOR)
-		name_label.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.75))
-		name_label.add_theme_constant_override("outline_size", 8)
-		name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-		name_label.offset_top = -64
-		name_label.offset_bottom = -14
-		inner.add_child(name_label)
-	else:
-		var preview := SkinnedCharacter.new()
-		var skin_path: String = str(entry.get("skin", ""))
-		if skin_path != "" and ResourceLoader.exists(skin_path):
-			preview.skin = load(skin_path)
-		preview.position = Vector2(150, 165)
-		preview.scale = Vector2(2.0, 2.0)
-		inner.add_child(preview)
-		Juice.idle_bob(preview, 5.0)
-
-		var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 34)
-		name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-		name_label.offset_top = -64
-		name_label.offset_bottom = -14
-		inner.add_child(name_label)
+	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 34)
+	name_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	name_label.offset_top = -64
+	name_label.offset_bottom = -14
+	inner.add_child(name_label)
 
 	# "This is who you are right now": a gold star pinned to the chosen card.
 	# A badge rather than a border, because at six a THING on the card reads

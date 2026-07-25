@@ -57,12 +57,7 @@ func _build_ui(config: Dictionary) -> void:
 	_play_area.theme = UiKit.theme()
 	layer.add_child(_play_area)
 
-	var bg := ColorRect.new()
-	bg.color = Color.from_string(str(config.get("background", "#efe7d8")), Color(0.93, 0.9, 0.84))
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(bg)
-	UiKit.scene_art(_play_area, config)
+	build_world(_play_area, 0.6)
 
 	var back := UiKit.back_button(func(): quit_level())
 	back.position = Vector2(24, 24)
@@ -124,21 +119,27 @@ func _build_card(index: int, icon_name: String, at: Vector2) -> Dictionary:
 	node.pivot_offset = CARD_SIZE / 2.0
 	node.mouse_filter = Control.MOUSE_FILTER_STOP
 
-	var back_style: StyleBox = UiKit.texture_style("res://assets/ui/level_card.png", 36.0, 12.0)
-	if back_style == null:
-		var flat := StyleBoxFlat.new()
-		flat.bg_color = Color(0.13, 0.22, 0.42)
-		flat.set_corner_radius_all(22)
-		flat.border_width_bottom = 6
-		flat.border_color = Color(0.08, 0.14, 0.30)
-		back_style = flat
+	# A drawn card back in the game's own palette. It used to be a navy
+	# nine-patch from an asset bundle, which is why a grid of memory cards
+	# looked like it had been imported from a different game.
+	var back_style := StyleBoxFlat.new()
+	back_style.bg_color = Palette.BLUE
+	back_style.set_corner_radius_all(22)
+	back_style.border_width_bottom = 8
+	back_style.border_width_left = 4
+	back_style.border_width_right = 4
+	back_style.border_width_top = 4
+	back_style.border_color = Palette.edge(Palette.BLUE)
+	back_style.shadow_color = Color(0.0, 0.06, 0.16, 0.22)
+	back_style.shadow_size = 8
+	back_style.shadow_offset = Vector2(0, 5)
 	node.add_theme_stylebox_override("panel", back_style)
 
 	# Back face: a question spark, "something is hiding here".
 	var back_icon: Control = UiKit.picture("spark", CARD_SIZE.x * 0.40)
 	if back_icon != null:
 		back_icon.position = CARD_SIZE * 0.30
-		back_icon.modulate = Color(1, 1, 1, 0.5)
+		back_icon.modulate = Color(1, 1, 1, 0.75)
 		node.add_child(back_icon)
 
 	# Front face: white card with the item picture; hidden until flipped.

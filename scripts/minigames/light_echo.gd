@@ -60,12 +60,7 @@ func _build_scene(config: Dictionary) -> void:
 	_play_area.theme = UiKit.theme()
 	layer.add_child(_play_area)
 
-	var bg := ColorRect.new()
-	bg.color = Color.from_string(str(config.get("background", "#101c33")), Color(0.06, 0.11, 0.2))
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(bg)
-	UiKit.scene_art(_play_area, config)
+	build_world(_play_area, 0.0)
 
 	var back := UiKit.back_button(func(): quit_level())
 	back.position = Vector2(24, 24)
@@ -75,6 +70,7 @@ func _build_scene(config: Dictionary) -> void:
 	_instruction.text = I18n.t("echo.listen")
 	_instruction.add_theme_font_size_override("font_size", 38)
 	_instruction.add_theme_color_override("font_color", Palette.ON_COLOR)
+	UiKit.on_art(_instruction)
 	_instruction.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.75))
 	_instruction.add_theme_constant_override("outline_size", 8)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -86,6 +82,7 @@ func _build_scene(config: Dictionary) -> void:
 	_progress = Label.new()
 	_progress.add_theme_font_size_override("font_size", 32)
 	_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
+	UiKit.on_art(_progress)
 	_progress.position = Vector2(1020, 44)
 	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_progress)
@@ -97,7 +94,6 @@ func _build_scene(config: Dictionary) -> void:
 	_hero.position = Vector2(170, 560)
 	_hero.scale = Vector2(1.4, 1.4)
 	_play_area.add_child(_hero)
-	Juice.idle_bob(_hero)
 
 	# Pads in a gentle arc, big and forgiving.
 	var colors: Array = config.get("colors", DEFAULT_COLORS)

@@ -54,12 +54,7 @@ func _build_ui(config: Dictionary) -> void:
 	_play_area.theme = UiKit.theme()
 	layer.add_child(_play_area)
 
-	var bg := ColorRect.new()
-	bg.color = Color.from_string(str(config.get("background", "#cfe4f2")), Color(0.81, 0.89, 0.95))
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(bg)
-	UiKit.scene_art(_play_area, config)
+	build_world(_play_area, 0.55)
 
 	var back := UiKit.back_button(func(): quit_level())
 	back.position = Vector2(24, 24)
@@ -132,6 +127,7 @@ func _build_bins(definitions: Array) -> void:
 			label.text = label_text
 			label.add_theme_font_size_override("font_size", 30 if bin_icon != null else 34)
 			label.add_theme_color_override("font_color", Color.WHITE)
+			UiKit.on_art(label)
 			label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
 			label.add_theme_constant_override("outline_size", 6)
 			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -288,36 +284,29 @@ func _render_shape(definition: Dictionary) -> Control:
 	var centre := ITEM_SIZE / 2.0
 	var radius := 48.0
 
-	var polygon := Polygon2D.new()
-	polygon.color = color
-	var points := PackedVector2Array()
-	match shape:
-		"square":
-			points = PackedVector2Array([
-				centre + Vector2(-radius, -radius), centre + Vector2(radius, -radius),
-				centre + Vector2(radius, radius), centre + Vector2(-radius, radius),
-			])
-		"triangle":
-			points = PackedVector2Array([
-				centre + Vector2(0, -radius),
-				centre + Vector2(radius, radius * 0.8),
-				centre + Vector2(-radius, radius * 0.8),
-			])
-		"star":
-			for i in range(10):
-				var a: float = -PI / 2.0 + TAU * float(i) / 10.0
-				var r: float = radius if i % 2 == 0 else radius * 0.45
-				points.append(centre + Vector2(cos(a), sin(a)) * r)
-		_:
-			for i in range(24):
-				var a: float = TAU * float(i) / 24.0
-				points.append(centre + Vector2(cos(a), sin(a)) * radius)
-	polygon.polygon = points
-
 	var holder := Control.new()
 	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(polygon)
+
+	# Drawn through Shapes so a colour-sorting square is made of the same
+	# material as a tree, a button and a hero: rounded corners, one outline
+	# colour, lit from the same direction as everything else on screen.
+	var points := PackedVector2Array()
+	match shape:
+		"square":
+			points = Shapes.rounded_rect(centre - Vector2(radius, radius),
+				Vector2(radius * 2.0, radius * 2.0), radius * 0.28)
+		"triangle":
+			points = PackedVector2Array([
+				centre + Vector2(0, -radius * 1.05),
+				centre + Vector2(radius, radius * 0.78),
+				centre + Vector2(-radius, radius * 0.78),
+			])
+		"star":
+			points = Shapes.star_points(centre, radius * 1.05, 0.46, 5)
+		"circle", _:
+			points = Shapes.circle_points(centre, radius)
+	Shapes.lit(holder, points, color, 1.0)
 	return holder
 
 
@@ -466,6 +455,7 @@ func _bump_bin_count(bin_id: String, bin: Control) -> void:
 		chip.name = "count_chip"
 		chip.add_theme_font_size_override("font_size", 24)
 		chip.add_theme_color_override("font_color", Color.WHITE)
+		UiKit.on_art(chip)
 		chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		chip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		var style := StyleBoxFlat.new()

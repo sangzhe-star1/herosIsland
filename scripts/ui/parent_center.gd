@@ -12,6 +12,11 @@ var _b := 0
 
 func _ready() -> void:
 	theme = UiKit.theme()
+	# The one screen with no world behind it. That is deliberate: this side of
+	# the parent gate belongs to an adult, and it should look like a settings
+	# page rather than like the game -- a child who gets this far should be in
+	# no doubt they have left the island. It is still built from the same
+	# palette and the same buttons, so it is recognisably the same product.
 	UiKit.background(self, Palette.SURFACE_SUNK)
 	_build_gate()
 
@@ -26,20 +31,51 @@ func _build_gate() -> void:
 	_gate.add_theme_constant_override("separation", 20)
 	add_child(_gate)
 
-	_gate.add_child(UiKit.title(I18n.t("parent.question") % [_a, _b], 48))
+	# The gate sits on a card rather than floating on a flat grey field, which
+	# is what it did before -- the only screen in the game that looked like an
+	# unstyled engine default.
+	var card := UiKit.card()
+	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var card_box := VBoxContainer.new()
+	card_box.add_theme_constant_override("separation", 18)
+	card_box.custom_minimum_size = Vector2(560, 0)
+	card.add_child(card_box)
+	var card_holder := CenterContainer.new()
+	card_holder.add_child(card)
+	_gate.add_child(card_holder)
+
+	var lock: Control = UiKit.picture("lock", 84)
+	if lock != null:
+		var lock_row := CenterContainer.new()
+		lock_row.add_child(lock)
+		card_box.add_child(lock_row)
+
+	card_box.add_child(UiKit.title(I18n.t("parent.question") % [_a, _b], 44))
 
 	_answer = LineEdit.new()
 	_answer.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_answer.custom_minimum_size = Vector2(280, 80)
 	_answer.add_theme_font_size_override("font_size", 40)
+	_answer.add_theme_color_override("font_color", Palette.INK)
+	_answer.add_theme_color_override("caret_color", Palette.INK)
+	var field := StyleBoxFlat.new()
+	field.bg_color = Palette.SURFACE_SUNK
+	field.set_corner_radius_all(16)
+	field.set_content_margin_all(12)
+	field.border_width_bottom = 4
+	field.border_color = Palette.MUTED
+	_answer.add_theme_stylebox_override("normal", field)
+	var focused: StyleBoxFlat = field.duplicate()
+	focused.border_color = Palette.BLUE
+	_answer.add_theme_stylebox_override("focus", focused)
 	var center := CenterContainer.new()
 	center.add_child(_answer)
-	_gate.add_child(center)
+	card_box.add_child(center)
 	_answer.text_submitted.connect(func(_t): _check())
 
 	_feedback = UiKit.title("", 30)
 	_feedback.add_theme_color_override("font_color", Palette.RED)
-	_gate.add_child(_feedback)
+	card_box.add_child(_feedback)
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -50,7 +86,7 @@ func _build_gate() -> void:
 	var back := UiKit.big_button(I18n.t("common.back"), Palette.SLATE)
 	back.pressed.connect(func(): SceneManager.goto_home())
 	row.add_child(back)
-	_gate.add_child(row)
+	card_box.add_child(row)
 
 
 func _check() -> void:

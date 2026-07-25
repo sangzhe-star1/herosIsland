@@ -4,7 +4,7 @@ extends Control
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Palette.DUSK, "res://assets/backgrounds/victory.png")
+	UiKit.world_background(self, "hero_city", "result")
 
 	var result: LevelResult = GameManager.get_last_result()
 	var stars: int = result.stars() if result != null else 0
@@ -74,10 +74,22 @@ func _ready() -> void:
 
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons.add_theme_constant_override("separation", 32)
+	buttons.add_theme_constant_override("separation", 20)
 	box.add_child(buttons)
 
-	var again := UiKit.big_button(I18n.t("common.again"), Palette.GREEN)
+	# "Next" first and breathing: it is the one button a child should be able
+	# to find without reading, and going forward is what they actually want
+	# after a win. Replaying and the map stay available beside it.
+	var next_id: String = GameManager.next_level_id()
+	if next_id != "":
+		var next_button := UiKit.big_button(I18n.t("result.next"), Palette.GREEN)
+		next_button.custom_minimum_size = Vector2(260, 120)
+		next_button.pressed.connect(func(): GameManager.start_level(next_id))
+		buttons.add_child(next_button)
+		UiKit.breathe(next_button, 0.035, 0.9)
+
+	var again := UiKit.big_button(I18n.t("common.again"),
+		Palette.SLATE if next_id != "" else Palette.GREEN)
 	again.pressed.connect(func(): GameManager.start_level(GameManager.current_level_id))
 	buttons.add_child(again)
 
@@ -85,17 +97,20 @@ func _ready() -> void:
 	to_map.pressed.connect(func(): SceneManager.goto_world_map())
 	buttons.add_child(to_map)
 
+	if next_id == "":
+		var all_done := UiKit.title_on_art(I18n.t("result.all_done"), 30)
+		box.add_child(all_done)
+
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 
 	# The hero celebrates WITH the child. Same skin they just played as; the
 	# cheer pose (arms up) if that skin has one.
 	var hero := SkinnedCharacter.new()
 	hero.skin = GameData.current_skin()
-	hero.position = Vector2(212, 520)
-	hero.scale = Vector2(2.4, 2.4)
+	hero.position = Vector2(150, Stage.ground_line())
 	add_child(hero)
-	Juice.idle_bob(hero)
-	hero.celebrate()
+	hero.set_height(330.0)
+	hero.victory()
 
 	# A full three stars earns a proper celebration; one or two do not. The
 	# child should be able to feel the difference without counting.

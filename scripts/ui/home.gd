@@ -12,7 +12,7 @@ var _hold_bar: ProgressBar
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Palette.SKY, "res://assets/backgrounds/home.png")
+	UiKit.world_background(self, "piglet_town", "home", 0.18)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -162,9 +162,8 @@ func _build_hero() -> void:
 	var hero := SkinnedCharacter.new()
 	hero.skin = GameData.current_skin()
 	hero.position = Vector2(120, 245)
-	hero.scale = Vector2(2.0, 2.0)
 	holder.add_child(hero)
-	Juice.idle_bob(hero)
+	hero.set_height(240.0)
 
 	# Every so often the hero cheers on their own -- the screen invites play
 	# instead of waiting for it. Skipped entirely under reduce-motion: that
@@ -178,14 +177,26 @@ func _build_hero() -> void:
 			hero.celebrate()
 	)
 
+	# Tapping the hero earns a trick, and the trick varies -- a hop, a cheer,
+	# a tumble and back. Variety is what makes a child tap twice, and a child
+	# who taps twice has learned the hero is THEIRS to poke.
+	var trick := 0
 	holder.gui_input.connect(func(event: InputEvent):
 		var pressed: bool = (event is InputEventMouseButton \
 			and event.button_index == MOUSE_BUTTON_LEFT and event.pressed) \
 			or (event is InputEventScreenTouch and event.pressed)
-		if pressed:
-			hero.celebrate()
-			Juice.burst(holder, Vector2(120, 150), 14)
-			AudioManager.play_sfx("res://assets/audio/star.ogg")
+		if not pressed:
+			return
+		match trick % 3:
+			0:
+				hero.hop()
+			1:
+				hero.celebrate()
+			2:
+				hero.roll(110.0 if hero.position.x < 120.0 else -110.0, 0.5)
+		trick += 1
+		Juice.burst(holder, Vector2(120, 150), 14)
+		AudioManager.play_sfx("res://assets/audio/star.ogg")
 	)
 
 
@@ -235,11 +246,54 @@ func _on_play() -> void:
 
 ## Advisory only. There is no lock and no countdown -- it is a suggestion the
 ## child can dismiss, and the real limit is the parent in the room.
+##
+## Built from the game's own parts rather than an AcceptDialog. Godot's dialog
+## is an OS window with the engine's default grey theme: it ignored the palette
+## entirely, and the one moment the game asks a six-year-old to stop playing is
+## the worst possible moment to suddenly look like a system error.
 func _show_break_message() -> void:
-	var dialog := AcceptDialog.new()
-	dialog.title = I18n.t("limit.title")
-	dialog.dialog_text = I18n.t("limit.body")
-	dialog.ok_button_text = I18n.t("common.continue")
-	add_child(dialog)
-	dialog.confirmed.connect(func(): SceneManager.goto_world_map())
-	dialog.popup_centered()
+	var scrim := ColorRect.new()
+	scrim.color = Color(0.05, 0.08, 0.16, 0.0)
+	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(scrim)
+	var fade := scrim.create_tween()
+	fade.tween_property(scrim, "color:a", 0.55, 0.25)
+
+	var holder := CenterContainer.new()
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scrim.add_child(holder)
+
+	var card := UiKit.card()
+	card.custom_minimum_size = Vector2(760, 0)
+	holder.add_child(card)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 18)
+	card.add_child(column)
+
+	# A moon, because "night, sleep, stop" is a picture a pre-reader already
+	# owns and a paragraph of Chinese is not.
+	var moon: Control = UiKit.picture("moon", 108)
+	if moon != null:
+		var moon_row := CenterContainer.new()
+		moon_row.add_child(moon)
+		column.add_child(moon_row)
+
+	column.add_child(UiKit.title(I18n.t("limit.title"), 46))
+
+	var body := UiKit.title(I18n.t("limit.body"), 30, Palette.INK_SOFT)
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.custom_minimum_size = Vector2(680, 0)
+	column.add_child(body)
+
+	var button_row := CenterContainer.new()
+	var ok := UiKit.big_button(I18n.t("common.continue"), Palette.GREEN)
+	ok.pressed.connect(func():
+		scrim.queue_free()
+		SceneManager.goto_world_map()
+	)
+	button_row.add_child(ok)
+	column.add_child(button_row)
+	UiKit.breathe(ok, 0.03, 1.0)

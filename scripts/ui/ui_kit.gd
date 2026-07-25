@@ -78,41 +78,50 @@ static func card(fill: Color = Palette.SURFACE) -> PanelContainer:
 	return p
 
 
-## Nine-patch stylebox from bundle UI art (panels, level cards, progress
-## bars). Returns null when the art is missing so callers keep their drawn
-## fallback -- same contract as every other slot in the pipeline.
-static func texture_style(path: String, margin: float, content_margin: float = 16.0,
-		tint: Color = Color.WHITE) -> StyleBoxTexture:
-	if not ResourceLoader.exists(path):
-		return null
-	var style := StyleBoxTexture.new()
-	style.texture = load(path)
-	style.set_texture_margin_all(margin)
-	style.set_content_margin_all(content_margin)
-	style.modulate_color = tint
+## A progress track: a sunk well with the fill sitting inside it. Drawn rather
+## than nine-patched from imported art, so a bar in the Reward Centre and a
+## button on Home are made of the same material.
+static func track_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.10, 0.14, 0.24, 0.30)
+	style.set_corner_radius_all(15)
+	style.set_content_margin_all(5)
 	return style
 
 
-## Full-screen background. Uses assets/backgrounds/<name>.png when that art
-## exists, and a flat colour when it does not, so screens look finished now and
-## better later without any code change.
-static func background(parent: Control, color: Color, art: String = "") -> Control:
-	var node: Control
-	if art != "" and ResourceLoader.exists(art):
-		var tex := TextureRect.new()
-		tex.texture = load(art)
-		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		node = tex
-	else:
-		var rect := ColorRect.new()
-		rect.color = color
-		node = rect
-	node.set_anchors_preset(Control.PRESET_FULL_RECT)
-	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(node)
-	parent.move_child(node, 0)
-	return node
+static func fill_style(color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.set_corner_radius_all(11)
+	return style
+
+
+## Flat colour behind a screen. Used only where a screen deliberately has no
+## world behind it -- the Parent Center, which is for an adult and should look
+## like a settings page, not like the game.
+static func background(parent: Control, color: Color) -> Control:
+	var rect := ColorRect.new()
+	rect.color = color
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(rect)
+	parent.move_child(rect, 0)
+	return rect
+
+
+## The world behind a screen.
+##
+## This is the only way scenery reaches a shell screen, exactly as
+## LevelManager.build_world() is the only way it reaches a level. Before the
+## architecture pass each screen named its own PNG, which is how the home
+## screen, the map and the result screen all ended up showing the same
+## photograph of a night skyline while the sorting levels showed a pastel
+## village.
+static func world_background(parent: Control, world_id: String,
+		seed_key: String = "", calm: float = 0.0) -> Stage:
+	var style: WorldStyle = WorldStyle.for_world(world_id)
+	style.calm = calm
+	return Stage.build(parent, style, seed_key if seed_key != "" else world_id)
 
 
 ## Full-screen vertical layout with breathing room at the edges, so nothing sits
@@ -206,14 +215,10 @@ static func picture(reference: String, size: float) -> Control:
 		# with the same base name, so a half-finished art pass still runs.
 		return IconLibrary.build(reference.get_file().get_basename(), size)
 
-	# A bare name checks for real artwork first -- "star" uses
-	# assets/icons/star.png the moment that file exists -- and draws its
-	# IconLibrary version until then. This is what makes the art checklist's
-	# "drop the file in and it appears" promise true for icons.
-	var art := "res://assets/icons/%s.png" % reference
-	if ResourceLoader.exists(art):
-		return picture(art, size)
-
+	# A bare name is DRAWN. It used to check assets/icons/<name>.png first and
+	# use that if present, which quietly meant the whole game rendered a set of
+	# imported navy badge discs instead of its own icons -- five different
+	# visual languages on one screen. Artwork now has to be asked for by path.
 	return IconLibrary.build(reference, size)
 
 
@@ -268,21 +273,6 @@ static func breathe(control: Control, amount: float = 0.03, period: float = 0.9)
 		control.resized.connect(start, CONNECT_ONE_SHOT)
 
 
-## Full-screen scene art behind gameplay, when a level's config names one.
-## The shared pattern for every template: colour fallback stays underneath.
-static func scene_art(parent: Control, config: Dictionary) -> void:
-	var path: String = str(config.get("background_art", ""))
-	if path == "" or not ResourceLoader.exists(path):
-		return
-	var art := TextureRect.new()
-	art.texture = load(path)
-	art.set_anchors_preset(Control.PRESET_FULL_RECT)
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(art)
-
-
 static func back_button(target: Callable) -> Button:
 	var b := big_button("<", Palette.SLATE)
 	b.custom_minimum_size = Vector2(112, 96)
@@ -305,9 +295,21 @@ static func title(text: String, size: int = 60, color: Color = Palette.INK) -> L
 ## Title over artwork or a dark background, where a plain label would be lost.
 static func title_on_art(text: String, size: int = 60) -> Label:
 	var l := title(text, size, Palette.ON_COLOR)
-	l.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.75))
-	l.add_theme_constant_override("outline_size", 10)
-	return l
+	return on_art(l, 10)
+
+
+## Makes any label survive whatever is behind it.
+##
+## Every screen now has a drawn world underneath, and a world has bright bits
+## and dark bits and things that drift across. A white instruction that is
+## legible over a dusk skyline is invisible over a midday cloud. An outline in
+## the ink colour costs one theme override and is the difference between an
+## instruction a six-year-old can read and one they cannot -- which, in a game
+## where the instruction is the whole level, is not a cosmetic detail.
+static func on_art(label: Label, size: int = 8) -> Label:
+	label.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.80))
+	label.add_theme_constant_override("outline_size", size)
+	return label
 
 
 # --- stars --------------------------------------------------------------
@@ -334,41 +336,13 @@ static func star(filled: bool, size: int = 72) -> Control:
 	# layout pass, so a caller computing the pivot would scale from the corner.
 	holder.pivot_offset = Vector2(size, size) / 2.0
 
-	var art := "res://assets/icons/%s.png" % ("star" if filled else "star_empty")
-	if ResourceLoader.exists(art):
-		var tex := TextureRect.new()
-		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # before size; see picture()
-		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tex.texture = load(art)
-		tex.size = Vector2(size, size)
-		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if not filled:
-			# The empty badge is navy-on-navy on the map panels; lift it so
-			# "still to earn" stays visible, which is the whole point of
-			# showing empty stars at all.
-			tex.modulate = Color(1.7, 1.7, 1.85)
-		holder.add_child(tex)
-		return holder
-
-	var points := PackedVector2Array()
 	var centre := Vector2(size, size) / 2.0
-	var outer: float = size * 0.48
-	var inner: float = size * 0.21
-	for i in range(10):
-		var angle: float = -PI / 2.0 + TAU * float(i) / 10.0
-		var radius: float = outer if i % 2 == 0 else inner
-		points.append(centre + Vector2(cos(angle), sin(angle)) * radius)
-
-	var poly := Polygon2D.new()
-	poly.polygon = points
-	poly.color = Palette.STAR_ON if filled else Palette.STAR_OFF
-	holder.add_child(poly)
-
+	var points := Shapes.star_points(centre, size * 0.46, 0.44, 5)
 	if filled:
-		var outline := Line2D.new()
-		outline.points = points
-		outline.closed = true
-		outline.width = maxf(2.0, size * 0.045)
-		outline.default_color = Palette.STAR_ON.darkened(0.35)
-		holder.add_child(outline)
+		Shapes.glow(holder, centre, size * 0.9, Palette.STAR_ON, 4, 0.34)
+		Shapes.lit(holder, points, Palette.STAR_ON, 1.0)
+	else:
+		# An empty star stays clearly visible: seeing what is still there to
+		# earn is the entire reason for drawing it at all.
+		Shapes.fill(holder, points, Color(1, 1, 1, 0.34), 1.0)
 	return holder

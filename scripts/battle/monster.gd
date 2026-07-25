@@ -1,41 +1,67 @@
+class_name Monster
 extends Node2D
-## A cartoon monster for the battle levels, drawn from primitives.
+## A monster for the arena levels, drawn.
 ##
-## Deliberately silly rather than scary: blob body, stubby limbs, huge eyes.
-## The same genre-vocabulary trick as the drawn hero -- horns, spikes and a
-## belly patch say "kaiju" without copying any particular one -- and the same
-## art seam: drop a PNG at assets/characters/monsters/<id>.png (feet at the
-## bottom edge) and it replaces the drawing, keeping every animation.
+## Deliberately appealing rather than scary, and *specifically* appealing
+## rather than merely inoffensive: the first version was a purple ball with
+## triangle spikes and two white circles, which is a monster shape without
+## being a character. What makes a creature likeable at six is the same short
+## list every time, and all of it is here now:
+##
+##   * a big head low on the body, and a body wider at the bottom than the top
+##   * eyes with lids and highlights, not discs -- lids are what carry mood
+##   * eyebrows, which do more for expression than anything else on the face
+##   * cheeks, a soft belly, rounded paws: nothing pointed except the horns
+##   * every edge outlined and every mass lit from the same sun as the scenery
 ##
 ## The monster is never hurt, only startled. Hits make it flinch and blink;
 ## winning makes it happy and it hops away waving. The battle ends with a
 ## friend leaving, not a body -- at six, that is the difference between
 ## exciting and upsetting.
 ##
-## Origin is at the feet, centre. Levels place it on the ground line and
-## scale it; all drawing happens upward in negative y.
+## Origin is at the feet, centre; everything is drawn upward in negative y.
 
 signal left()
 
 var config: Dictionary = {}
 
 var _rig: Node2D          # everything visual, so squash never fights placement
-var _eye_pupils: Array = []
-var _eye_whites: Array = []
+var _eye_whites: Array[Node2D] = []
+var _eye_pupils: Array[Node2D] = []
+var _lids: Array[Polygon2D] = []
+## How far each lid has to travel to cover its eye, in local units.
+var _lid_drops: Array[float] = []
+var _brows: Array[Node2D] = []
+var _ears: Array[Node2D] = []
 var _mouth: Polygon2D
+var _tongue: Polygon2D
 var _flinching := false
+
+var _h := 300.0
+var _w := 246.0
+var _body: Color
+var _belly: Color
+var _accent: Color
+var _rng: RandomNumberGenerator
 
 
 func build(monster_config: Dictionary) -> void:
 	config = monster_config
 	for child in get_children():
 		child.queue_free()
-	_eye_pupils.clear()
 	_eye_whites.clear()
+	_eye_pupils.clear()
+	_lids.clear()
+	_lid_drops.clear()
+	_brows.clear()
+	_ears.clear()
 
 	_rig = Node2D.new()
 	add_child(_rig)
 
+	# A hand-painted monster can still be dropped in at
+	# assets/characters/monsters/<id>.png, feet at the bottom edge. It keeps
+	# every animation below except the ones that move a face.
 	var art := "res://assets/characters/monsters/%s.png" % str(config.get("id", ""))
 	if ResourceLoader.exists(art):
 		_build_textured(art)
@@ -55,181 +81,323 @@ func _build_textured(art: String) -> void:
 	_rig.add_child(sprite)
 
 
+# --- the drawing ---------------------------------------------------------
+
 func _build_drawn() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(str(config.get("id", "monster")))
+	_rng = Shapes.rng_for(str(config.get("id", "monster")))
+	_h = float(config.get("height", 300.0))
+	_w = _h * float(config.get("width", 0.82))
+	_body = Color.from_string(str(config.get("body_color", "#8a5fc9")), Color(0.54, 0.37, 0.79))
+	_belly = Color.from_string(str(config.get("belly_color", "#c9aef2")), Color(0.79, 0.68, 0.95))
+	_accent = Color.from_string(str(config.get("accent_color", "#5e3f96")), _body.darkened(0.25))
 
-	var h := float(config.get("height", 300.0))
-	var w: float = h * float(config.get("width", 0.82))
-	var body_color := Color.from_string(str(config.get("body_color", "#d98a4a")), Color(0.85, 0.54, 0.29))
-	var belly_color := Color.from_string(str(config.get("belly_color", "#f2c489")), Color(0.95, 0.77, 0.54))
-	var accent := Color.from_string(str(config.get("accent_color", "#a8632f")), body_color.darkened(0.25))
+	# Back to front, so every join is covered by the piece in front of it.
+	# The tail and arms go in FRONT of the body: behind it they were almost
+	# entirely hidden, and the only part that showed was the tail tip, which
+	# read as a rock floating in mid-air.
+	_draw_ears()
+	_draw_horns()
+	_draw_spikes()
+	_draw_legs()
+	_draw_body()
+	_draw_tail()
+	_draw_arms()
+	_draw_face()
 
-	# --- legs, under everything ---
+
+func _draw_tail() -> void:
+	# Out of the lower right of the body and curling up, so the whole curve is
+	# visible against the background rather than buried behind the belly.
+	var root := Vector2(_w * 0.34, -_h * 0.24)
+	var tip := Vector2(_w * 0.62, -_h * 0.54)
+	var curve := PackedVector2Array([
+		root,
+		root + Vector2(_w * 0.16, -_h * 0.02),
+		root + Vector2(_w * 0.28, -_h * 0.16),
+		tip,
+	])
+	Shapes.fill(_rig, Shapes.ribbon(curve, _w * 0.11, 8), _body.darkened(0.08), 1.0)
+	Shapes.lit(_rig, Shapes.blob(tip, Vector2(_w * 0.11, _w * 0.11), _rng, 0.14, 3, 16),
+		_belly, 1.0)
+
+
+func _draw_ears() -> void:
 	for side in [-1.0, 1.0]:
-		var leg := Polygon2D.new()
-		leg.polygon = PackedVector2Array([
-			Vector2(side * w * 0.30, -h * 0.16), Vector2(side * w * 0.12, -h * 0.16),
-			Vector2(side * w * 0.10, -h * 0.02), Vector2(side * w * 0.34, 0),
+		var ear := Node2D.new()
+		ear.position = Vector2(side * _w * 0.40, -_h * 0.78)
+		_rig.add_child(ear)
+		Shapes.lit(ear, Shapes.oval_points(Vector2(side * _w * 0.10, 0),
+			Vector2(_w * 0.15, _w * 0.19), 18), _body.darkened(0.06), 1.0)
+		Shapes.fill(ear, Shapes.oval_points(Vector2(side * _w * 0.10, _w * 0.01),
+			Vector2(_w * 0.08, _w * 0.11), 14), _belly, 0.8)
+		_ears.append(ear)
+
+
+func _draw_horns() -> void:
+	var horns := int(config.get("horns", 0))
+	if horns <= 0:
+		return
+	if horns == 1:
+		# One horn on a round head reads as a pin stuck in it. An antenna with
+		# a little lamp on the end reads as part of the creature, and it gives
+		# the monster something that glows when it is about to throw.
+		var stalk := Vector2(0, -_h * 0.90)
+		Shapes.fill(_rig, Shapes.taper(stalk + Vector2(0, _h * 0.03),
+			stalk + Vector2(_w * 0.05, -_h * 0.13), _w * 0.045, _w * 0.028),
+			_accent, 1.0)
+		Shapes.glow(_rig, stalk + Vector2(_w * 0.05, -_h * 0.14), _w * 0.34,
+			Color(1.0, 0.86, 0.52), 5, 0.34)
+		Shapes.lit(_rig, Shapes.circle_points(stalk + Vector2(_w * 0.05, -_h * 0.14),
+			_w * 0.075, 16), Color(1.0, 0.88, 0.54), 1.0)
+		return
+
+	var places: Array = [-0.28, 0.28]
+	for place in places:
+		var base := Vector2(float(place) * _w, -_h * 0.86)
+		var lean: float = signf(float(place)) if place != 0.0 else 0.0
+		# A curved horn rather than a triangle: three segments narrowing to a
+		# rounded tip, which reads as grown rather than glued on.
+		var curve := PackedVector2Array([
+			base,
+			base + Vector2(lean * _w * 0.09, -_h * 0.10),
+			base + Vector2(lean * _w * 0.22, -_h * 0.17),
+			base + Vector2(lean * _w * 0.36, -_h * 0.21),
 		])
-		leg.color = body_color.darkened(0.08)
-		_rig.add_child(leg)
-		# Three chubby toes.
-		for t in range(3):
-			var toe := Polygon2D.new()
-			var tx: float = side * w * (0.14 + 0.09 * float(t))
-			toe.polygon = _blob(Vector2(tx, -h * 0.005), w * 0.045, 8, rng, 0.15)
-			toe.color = belly_color
-			_rig.add_child(toe)
+		var horn := PackedVector2Array()
+		var left := PackedVector2Array()
+		for i in range(curve.size()):
+			var t: float = float(i) / float(curve.size() - 1)
+			var width: float = _w * lerpf(0.14, 0.025, t)
+			var dir: Vector2 = (curve[mini(i + 1, curve.size() - 1)]
+				- curve[maxi(i - 1, 0)]).normalized()
+			if dir.length() < 0.01:
+				dir = Vector2.UP
+			var side_v := Vector2(-dir.y, dir.x) * width
+			horn.append(curve[i] + side_v)
+			left.append(curve[i] - side_v)
+		for i in range(left.size() - 1, -1, -1):
+			horn.append(left[i])
+		Shapes.lit(_rig, horn, Color(0.96, 0.93, 0.86), 1.0)
 
-	# --- body: a rounded blob, wider at the bottom, organic bumps ---
-	var body := Polygon2D.new()
-	var points := PackedVector2Array()
-	var steps := 26
-	for i in range(steps):
-		var a: float = TAU * float(i) / float(steps)
-		var rx: float = w * 0.5 * (1.0 + 0.16 * sin(a * 1.0 + 2.2))
-		var ry: float = h * 0.42
-		var bump: float = 1.0 + rng.randf_range(-0.03, 0.05)
-		# Pear shape: fatter below the middle.
-		var squish: float = 1.0 + 0.22 * clampf(sin(a), 0.0, 1.0)
-		points.append(Vector2(cos(a) * rx * bump * squish, -h * 0.52 + sin(a) * ry * bump))
-	body.polygon = points
-	body.color = body_color
-	_rig.add_child(body)
 
-	# --- back spikes, behind-ish (drawn over body but along the crown) ---
+func _draw_spikes() -> void:
 	var spikes := int(config.get("spikes", 0))
 	for i in range(spikes):
-		var t: float = float(i) / maxf(float(spikes - 1), 1.0)
-		var a: float = lerpf(-2.55, -0.6, t)
-		var base := Vector2(cos(a) * w * 0.46, -h * 0.52 + sin(a) * h * 0.40)
-		var dir := (base - Vector2(0, -h * 0.52)).normalized()
-		var spike := Polygon2D.new()
-		var tip := base + dir * h * rng.randf_range(0.10, 0.16)
-		var side := Vector2(-dir.y, dir.x) * w * 0.06
-		spike.polygon = PackedVector2Array([base + side, tip, base - side])
-		spike.color = accent
-		_rig.add_child(spike)
+		var t: float = (float(i) + 0.5) / float(maxi(spikes, 1))
+		var a: float = lerpf(-2.5, -0.7, t)
+		var base := Vector2(cos(a) * _w * 0.48, -_h * 0.52 + sin(a) * _h * 0.42)
+		var dir: Vector2 = (base - Vector2(0, -_h * 0.52)).normalized()
+		var tip: Vector2 = base + dir * _h * 0.12
+		var side_v := Vector2(-dir.y, dir.x) * _w * 0.075
+		# Rounded shoulders on the spike so it reads soft, not sharp. This is
+		# a friendly monster; nothing on it should look like it would hurt.
+		Shapes.lit(_rig, PackedVector2Array([
+			base + side_v, base + side_v * 0.7 + dir * _h * 0.05,
+			tip, base - side_v * 0.7 + dir * _h * 0.05, base - side_v,
+		]), _accent, 1.0)
 
-	# --- belly patch ---
-	var belly := Polygon2D.new()
-	belly.polygon = _blob(Vector2(0, -h * 0.36), w * 0.30, 18, rng, 0.06, 1.25)
-	belly.color = belly_color
-	_rig.add_child(belly)
 
-	# --- stubby arms ---
+func _draw_legs() -> void:
 	for side in [-1.0, 1.0]:
-		var arm := Polygon2D.new()
-		arm.polygon = _blob(Vector2(side * w * 0.52, -h * 0.44), w * 0.11, 10, rng, 0.12, 1.7)
-		arm.color = body_color.darkened(0.05)
-		_rig.add_child(arm)
+		var hip := Vector2(side * _w * 0.24, -_h * 0.22)
+		Shapes.lit(_rig, Shapes.rounded_rect(hip - Vector2(_w * 0.15, 0),
+			Vector2(_w * 0.30, _h * 0.22), _w * 0.13), _body.darkened(0.08), 1.0)
+		# A rounded foot, wider than the leg: what makes a creature look
+		# planted instead of balanced on posts.
+		var foot := Vector2(side * _w * 0.26, -_h * 0.05)
+		Shapes.lit(_rig, Shapes.oval_points(foot, Vector2(_w * 0.21, _w * 0.10), 20),
+			_belly.darkened(0.04), 1.0)
+		for t in range(3):
+			var tx: float = foot.x + (float(t) - 1.0) * _w * 0.11
+			Shapes.fill(_rig, Shapes.oval_points(Vector2(tx, foot.y + _w * 0.03),
+				Vector2(_w * 0.045, _w * 0.035), 12), _belly.lightened(0.16), 0.7)
 
-	# --- horns ---
-	var horns := int(config.get("horns", 0))
-	if horns == 1:
-		_horn(Vector2(0, -h * 0.90), h, w, 0.0, accent)
-	elif horns >= 2:
-		_horn(Vector2(-w * 0.22, -h * 0.86), h, w, -0.35, accent)
-		_horn(Vector2(w * 0.22, -h * 0.86), h, w, 0.35, accent)
 
-	# --- eyes: enormous, close-set, instantly readable ---
-	var eyes := int(config.get("eyes", 2))
-	var eye_r: float = w * (0.14 if eyes <= 2 else 0.11)
-	var eye_y: float = -h * 0.68
+## The body and the head are one mass. A separate head on a neck reads as a
+## person in a costume; one pear-shaped lump reads as a creature.
+func _draw_body() -> void:
+	var centre := Vector2(0, -_h * 0.52)
+	var points := PackedVector2Array()
+	var steps := 34
+	for i in range(steps):
+		var a: float = TAU * float(i) / float(steps)
+		# Wider below the middle, slightly narrower at the crown.
+		var squish: float = 1.0 + 0.20 * clampf(sin(a), 0.0, 1.0) - 0.10 * clampf(-sin(a), 0.0, 1.0)
+		var wobble: float = 1.0 + 0.022 * sin(a * 3.0 + 1.4)
+		points.append(centre + Vector2(
+			cos(a) * _w * 0.50 * squish * wobble,
+			sin(a) * _h * 0.44 * wobble))
+	Shapes.lit(_rig, points, _body, 1.0)
+
+	# Belly patch: a soft lighter shape low and centred. It gives the eye
+	# somewhere to rest and stops a big single-colour mass reading as flat.
+	Shapes.fill(_rig, Shapes.blob(Vector2(0, -_h * 0.33),
+		Vector2(_w * 0.30, _h * 0.20), _rng, 0.06, 3, 24), _belly, 0.8)
+
+
+func _draw_arms() -> void:
+	for side in [-1.0, 1.0]:
+		var shoulder := Vector2(side * _w * 0.40, -_h * 0.56)
+		var paw := Vector2(side * _w * 0.62, -_h * 0.30)
+		Shapes.lit(_rig, Shapes.ribbon(PackedVector2Array([
+			shoulder,
+			shoulder.lerp(paw, 0.5) + Vector2(side * _w * 0.09, -_h * 0.02),
+			paw,
+		]), _w * 0.17, 8), _body.darkened(0.06), 1.0)
+		Shapes.lit(_rig, Shapes.blob(paw, Vector2(_w * 0.13, _w * 0.12), _rng, 0.12, 3, 16),
+			_belly.darkened(0.04), 1.0)
+		# Three little claws on each paw, so the hands read as hands.
+		for k in range(3):
+			Shapes.fill(_rig, Shapes.oval_points(
+				paw + Vector2(side * _w * 0.10, (float(k) - 1.0) * _w * 0.07),
+				Vector2(_w * 0.035, _w * 0.028), 10), _belly.lightened(0.20), 0.6)
+
+
+func _draw_face() -> void:
+	var eyes := maxi(int(config.get("eyes", 2)), 1)
+	var eye_r: float = _w * (0.155 if eyes <= 2 else 0.115)
+	var eye_y: float = -_h * 0.66
+
 	for i in range(eyes):
 		var ex: float
 		if eyes == 1:
 			ex = 0.0
 		elif eyes == 2:
-			ex = (-0.5 + float(i)) * w * 0.36
+			ex = (-0.5 + float(i)) * _w * 0.40
 		else:
-			ex = (float(i) - float(eyes - 1) / 2.0) * w * 0.26
-		var ey: float = eye_y - (h * 0.05 if (eyes == 3 and i == 1) else 0.0)
+			ex = (float(i) - float(eyes - 1) / 2.0) * _w * 0.28
+		var ey: float = eye_y - (_h * 0.04 if (eyes == 3 and i == 1) else 0.0)
+		_draw_eye(Vector2(ex, ey), eye_r)
 
-		var white := Polygon2D.new()
-		white.polygon = _blob(Vector2(0, 0), eye_r, 14, rng, 0.02, 1.15)
-		white.position = Vector2(ex, ey)
-		white.color = Color(0.99, 0.99, 0.97)
-		_rig.add_child(white)
-		_eye_whites.append(white)
+	_draw_mouth()
 
-		var pupil := Polygon2D.new()
-		pupil.polygon = _blob(Vector2(0, 0), eye_r * 0.42, 10, rng, 0.02)
-		pupil.position = Vector2(ex, ey + eye_r * 0.18)
-		pupil.color = Color(0.13, 0.12, 0.16)
-		_rig.add_child(pupil)
-		_eye_pupils.append(pupil)
-
-		var glint := Polygon2D.new()
-		glint.polygon = _blob(Vector2(0, 0), eye_r * 0.13, 8, rng, 0.02)
-		glint.position = Vector2(ex + eye_r * 0.18, ey - eye_r * 0.05)
-		glint.color = Color(1, 1, 1, 0.9)
-		_rig.add_child(glint)
-
-	# --- mouth: a wide friendly wobble, with two blunt teeth ---
-	_mouth = Polygon2D.new()
-	_mouth.polygon = _mouth_shape(w, h, 0.10)
-	_mouth.color = Color(0.30, 0.16, 0.20)
-	_rig.add_child(_mouth)
+	# Cheeks: two soft warm patches under the eyes. One of the cheapest and
+	# most reliable ways to make a drawn creature read as friendly.
 	for side in [-1.0, 1.0]:
-		var tooth := Polygon2D.new()
-		tooth.polygon = PackedVector2Array([
-			Vector2(side * w * 0.13 - w * 0.035, -h * 0.475),
-			Vector2(side * w * 0.13 + w * 0.035, -h * 0.475),
-			Vector2(side * w * 0.13, -h * 0.44),
-		])
-		tooth.color = Color(0.99, 0.99, 0.95)
-		_rig.add_child(tooth)
+		Shapes.fill(_rig, Shapes.oval_points(
+			Vector2(side * _w * 0.38, -_h * 0.55), Vector2(_w * 0.10, _w * 0.07), 16),
+			Color(1.0, 0.58, 0.62, 0.32), 0.0)
 
 
-func _horn(at: Vector2, h: float, w: float, lean: float, color: Color) -> void:
-	var horn := Polygon2D.new()
-	horn.polygon = PackedVector2Array([
-		at + Vector2(-w * 0.07, 0),
-		at + Vector2(lean * w * 0.3, -h * 0.14),
-		at + Vector2(w * 0.07, 0),
-	])
-	horn.color = color
-	_rig.add_child(horn)
+func _draw_eye(at: Vector2, r: float) -> void:
+	var eye := Node2D.new()
+	eye.position = at
+	_rig.add_child(eye)
+
+	# A dark socket rim rather than a white disc floating on the body.
+	Shapes.fill(eye, Shapes.oval_points(Vector2.ZERO, Vector2(r * 1.10, r * 1.24), 22),
+		_body.darkened(0.22), 0.0)
+	Shapes.fill(eye, Shapes.oval_points(Vector2.ZERO, Vector2(r, r * 1.14), 22),
+		Color(0.99, 0.99, 0.97), 0.9)
+	_eye_whites.append(eye)
+
+	var pupil := Node2D.new()
+	pupil.position = Vector2(0, r * 0.14)
+	eye.add_child(pupil)
+	Shapes.fill(pupil, Shapes.oval_points(Vector2.ZERO, Vector2(r * 0.46, r * 0.52), 18),
+		Color(0.13, 0.12, 0.18), 0.0)
+	# Two highlights, one big and one small: the standard trick that turns a
+	# black dot into an eye that is looking at you.
+	Shapes.fill(pupil, Shapes.circle_points(Vector2(r * 0.18, -r * 0.20), r * 0.16, 12),
+		Color(1, 1, 1, 0.95), 0.0)
+	Shapes.fill(pupil, Shapes.circle_points(Vector2(-r * 0.16, r * 0.18), r * 0.08, 10),
+		Color(1, 1, 1, 0.55), 0.0)
+	_eye_pupils.append(pupil)
+
+	# The lid, parked above the eye. Blinking drops it; mood tilts it. A lid
+	# does far more for expression than moving the pupil.
+	var lid: Polygon2D = Shapes.fill(eye, Shapes.oval_points(
+		Vector2(0, -r * 2.2), Vector2(r * 1.14, r * 1.22), 20), _body, 0.0)
+	_lids.append(lid)
+	_lid_drops.append(r * 2.2)
+
+	# Eyebrow: a short thick arc above the eye, on its own node so it can be
+	# angled. Nothing else on a face says "surprised" or "cross" this cheaply.
+	var brow := Node2D.new()
+	brow.position = Vector2(0, -r * 1.45)
+	eye.add_child(brow)
+	Shapes.fill(brow, Shapes.rounded_rect(Vector2(-r * 0.72, -r * 0.11),
+		Vector2(r * 1.44, r * 0.26), r * 0.13), _accent.darkened(0.10), 0.0)
+	_brows.append(brow)
 
 
-static func _blob(centre: Vector2, radius: float, steps: int,
-		rng: RandomNumberGenerator, wobble: float, squash_y: float = 1.0) -> PackedVector2Array:
+func _draw_mouth() -> void:
+	var y: float = -_h * 0.47
+	_mouth = Shapes.fill(_rig, _mouth_shape(0.10), Color(0.28, 0.14, 0.20), 0.9)
+	_tongue = Shapes.fill(_rig, Shapes.oval_points(Vector2(0, y + _h * 0.02),
+		Vector2(_w * 0.11, _h * 0.02), 16), Color(0.92, 0.44, 0.50), 0.0)
+	# Two blunt fangs at the corners of the smile, pointing DOWN from the top
+	# lip -- small enough to be charming rather than threatening.
+	for side in [-1.0, 1.0]:
+		Shapes.fill(_rig, PackedVector2Array([
+			Vector2(side * _w * 0.14 - _w * 0.032, y),
+			Vector2(side * _w * 0.14 + _w * 0.032, y),
+			Vector2(side * _w * 0.14, y + _h * 0.035),
+		]), Color(0.99, 0.99, 0.95), 0.7)
+
+
+## A smile: a shallow arc for the top lip and a deeper one for the bottom.
+## `open_amount` is how far the jaw drops, which is the whole mood range from
+## "content" to "delighted".
+func _mouth_shape(open_amount: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
-	for i in range(steps):
-		var a: float = TAU * float(i) / float(steps)
-		var r: float = radius * (1.0 + rng.randf_range(-wobble, wobble))
-		points.append(centre + Vector2(cos(a) * r, sin(a) * r * squash_y))
-	return points
-
-
-func _mouth_shape(w: float, h: float, open_amount: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
-	var y := -h * 0.50
-	for i in range(9):
-		var t: float = float(i) / 8.0
-		points.append(Vector2(lerpf(-w * 0.20, w * 0.20, t), y + sin(t * PI) * h * 0.02))
-	for i in range(9):
-		var t: float = 1.0 - float(i) / 8.0
-		points.append(Vector2(lerpf(-w * 0.20, w * 0.20, t), y + sin(t * PI) * h * (0.02 + open_amount)))
+	var y: float = -_h * 0.47
+	var half: float = _w * 0.20
+	for i in range(11):
+		var t: float = float(i) / 10.0
+		points.append(Vector2(lerpf(-half, half, t), y + sin(t * PI) * _h * 0.012))
+	for i in range(11):
+		var t: float = 1.0 - float(i) / 10.0
+		points.append(Vector2(lerpf(-half, half, t),
+			y + sin(t * PI) * _h * (0.012 + open_amount)))
 	return points
 
 
 # --- states ---------------------------------------------------------------
 
-## Gentle side-to-side sway so the monster is alive while waiting.
+## Gentle side-to-side sway, plus ears that lag behind it, so the monster is
+## alive while the child is deciding what to do.
 func _sway() -> void:
 	if not Juice.motion_enabled():
 		return
 	var t := create_tween().set_loops()
-	t.tween_property(_rig, "rotation_degrees", 2.0, 1.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_property(_rig, "rotation_degrees", -2.0, 1.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(_rig, "rotation_degrees", 2.0, 1.6)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(_rig, "rotation_degrees", -2.0, 1.6)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	for i in range(_ears.size()):
+		var ear: Node2D = _ears[i]
+		var swing: float = 5.0 if i % 2 == 0 else -5.0
+		var e := ear.create_tween().set_loops()
+		e.tween_property(ear, "rotation_degrees", swing, 1.3)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		e.tween_property(ear, "rotation_degrees", -swing, 1.3)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_blink_loop()
 
 
-## Startled, not hurt: a squash, a blink, a step back. Reads as "gotcha!"
+func _blink_loop() -> void:
+	if not is_inside_tree() or not Juice.motion_enabled():
+		return
+	var wait: float = randf_range(2.4, 5.0)
+	var timer := get_tree().create_timer(wait)
+	timer.timeout.connect(func():
+		if not is_instance_valid(self) or not is_inside_tree():
+			return
+		_blink(0.12)
+		_blink_loop()
+	)
+
+
+## Startled, not hurt: a squash, a blink, brows up, a step back. Reads as
+## "gotcha!" rather than "ouch".
 func flinch() -> void:
-	_blink(0.35)
+	_blink(0.30)
+	_set_brows(-16.0)
+	get_tree().create_timer(0.5).timeout.connect(func():
+		if is_instance_valid(self):
+			_set_brows(0.0)
+	)
 	if _flinching or not Juice.motion_enabled():
 		return
 	_flinching = true
@@ -242,43 +410,64 @@ func flinch() -> void:
 	t.tween_callback(func(): _flinching = false)
 
 
+## A blink is the lid sliding down over the eye and back up. It parks above the
+## eye the rest of the time, which is why it never needs hiding.
 func _blink(duration: float) -> void:
-	for eye in _eye_whites:
-		if is_instance_valid(eye):
-			eye.scale = Vector2(1.0, 0.15)
-	for pupil in _eye_pupils:
-		if is_instance_valid(pupil):
-			pupil.visible = false
-	var timer := get_tree().create_timer(duration)
-	timer.timeout.connect(func():
-		for eye in _eye_whites:
-			if is_instance_valid(eye):
-				eye.scale = Vector2.ONE
-		for pupil in _eye_pupils:
-			if is_instance_valid(pupil):
-				pupil.visible = true
-	)
+	for i in range(_lids.size()):
+		var lid: Polygon2D = _lids[i]
+		if not is_instance_valid(lid):
+			continue
+		var drop: float = _lid_drops[i] if i < _lid_drops.size() else 40.0
+		if not Juice.motion_enabled():
+			continue
+		var t := lid.create_tween()
+		t.tween_property(lid, "position:y", drop, 0.06).set_trans(Tween.TRANS_SINE)
+		t.tween_interval(duration)
+		t.tween_property(lid, "position:y", 0.0, 0.09).set_trans(Tween.TRANS_SINE)
 
 
-## Winding up to throw -- a puff, so the child sees it coming.
+## Winding up to throw -- a puff and a scrunch, so the child sees it coming
+## and has time to raise the shield. Telegraphing is what makes a defence
+## button fair.
 func puff_up() -> void:
+	_set_brows(14.0)
+	get_tree().create_timer(0.7).timeout.connect(func():
+		if is_instance_valid(self):
+			_set_brows(0.0)
+	)
 	if not Juice.motion_enabled():
 		return
 	var t := create_tween()
-	t.tween_property(_rig, "scale", Vector2(1.10, 1.10), 0.30).set_trans(Tween.TRANS_SINE)
+	t.tween_property(_rig, "scale", Vector2(1.12, 1.10), 0.30).set_trans(Tween.TRANS_SINE)
 	t.tween_property(_rig, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_SINE)
 
 
-## The end of every battle: tired, happy, and off home. Two little jumps, a
-## wave (the whole body rocks), then it hops away and the `left` signal fires.
+## Angle both eyebrows. Positive leans them inward (cross, concentrating),
+## negative outward (surprised, delighted).
+func _set_brows(degrees: float) -> void:
+	for i in range(_brows.size()):
+		var brow: Node2D = _brows[i]
+		if not is_instance_valid(brow):
+			continue
+		var target: float = degrees * (1.0 if i % 2 == 0 else -1.0)
+		if not Juice.motion_enabled():
+			brow.rotation_degrees = target
+			continue
+		var t := brow.create_tween()
+		t.tween_property(brow, "rotation_degrees", target, 0.14)
+
+
+## The end of every battle: tired, happy, and off home. A big grin, two little
+## jumps, a wave, then it hops away and the `left` signal fires.
 func leave_happy() -> void:
+	_set_brows(-12.0)
+	if _mouth != null and is_instance_valid(_mouth):
+		_mouth.polygon = _mouth_shape(0.26)
+	if _tongue != null and is_instance_valid(_tongue):
+		_tongue.position.y = _h * 0.04
 	for pupil in _eye_pupils:
 		if is_instance_valid(pupil):
-			pupil.position.y -= 6.0   # eyes smile upward
-	if _mouth != null and is_instance_valid(_mouth):
-		_mouth.polygon = _mouth_shape(
-			float(config.get("height", 300.0)) * float(config.get("width", 0.82)),
-			float(config.get("height", 300.0)), 0.22)
+			pupil.position.y -= 4.0   # eyes smile upward
 
 	if not Juice.motion_enabled():
 		left.emit()
@@ -286,11 +475,14 @@ func leave_happy() -> void:
 
 	var t := create_tween()
 	for i in range(2):
-		t.tween_property(_rig, "position:y", -46.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		t.tween_property(_rig, "position:y", 0.0, 0.20).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		t.tween_property(_rig, "position:y", -46.0, 0.22)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		t.tween_property(_rig, "position:y", 0.0, 0.20)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	t.tween_property(_rig, "rotation_degrees", -8.0, 0.18)
 	t.tween_property(_rig, "rotation_degrees", 8.0, 0.18)
 	t.tween_property(_rig, "rotation_degrees", 0.0, 0.14)
-	t.tween_property(self, "position:x", position.x + 420.0, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	t.tween_property(self, "position:x", position.x + 420.0, 0.9)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	t.parallel().tween_property(self, "modulate:a", 0.0, 0.9)
 	t.tween_callback(func(): left.emit())

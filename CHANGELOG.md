@@ -1,5 +1,267 @@
 # Changelog
 
+## The trails spread across the island — 25 July 2026
+
+- **Bounce mushrooms**: land on the cap and launch twice a jump's height,
+  with a cap-squash and sparks. No danger — they are the way up to the
+  highest coins, a discovery rather than a decoration. (`"springs": n` in a
+  level's config; challenges grow one per two ranks.)
+- **Two new adventure stages in the old worlds**: Rooftop Run (Hero City at
+  dusk, stone slabs, lit windows sliding past) and Forest Dash (golden
+  afternoon). The platform slabs now take their colours from the world, so
+  one template serves a green valley, a night rooftop and an autumn forest
+  with zero per-level art.
+- **Trail coins are kept coins**: everything collected on a run goes into
+  the pouch on top of the level reward.
+- Pad buttons made near-opaque — translucent rounded styleboxes show their
+  corner seams as diagonal lines.
+- Smoke test now covers 42 levels (391 checks).
+
+
+## Adventure Valley: the platform trails — 25 July 2026
+
+A sixth world and a seventh template: **`platformer`**, the side-scrolling
+adventure run — run, jump, collect the coins, reach the flag, with the camera
+following the hero and the alpine horizon parallaxing behind (new
+`Stage.parallax()`). Four levels in **Adventure Valley** (crisp alpine
+morning, tall pale crags), including a Challenge that grows a longer trail
+each time it is beaten. Terrain is generated from the level's seed — replays
+return to the same valley — and each level is a handful of JSON knobs
+(`length`, `gap_max`, `coins`, `moving`).
+
+The house rules bind the genre, not the other way round: falling into a gap
+floats the hero back to the last safe ledge — one mistake, no lives, no lost
+coins, no fail state. Nothing is an enemy; the hazards are geometry. A ledge
+always floats over any gap too wide to walk. Controls are three chunky pad
+buttons in the thumb corners (left/right and jump, with coyote time and a
+jump buffer sized for small hands) plus arrow keys/space on desktop.
+
+Three new badges (Valley Explorer, Cloud Jumper, Mountain Hero), the island
+grew a sixth region with a snow-capped peak, and the smoke test now covers
+40 levels.
+
+**Drop-in characters.** `GameData` now registers a playable character from
+nothing but two PNGs: put `hero_idle.png` (transparent, ~256×384, feet at the
+bottom edge) and optionally `hero_cheer.png` into
+`assets/characters/bluey/`, restart, and Bluey appears in the Hero House.
+No .tres, no JSON edit. Licensed characters stay in this house, same rule as
+the photo skins — see README §13.
+
+
+## The tap-ratchet bug, and the chibi hero — 25 July 2026
+
+**The bug.** `Juice.pop` read a node's *current* scale as its base, so a tap
+landing while the previous pop was still in flight adopted the inflated size
+as the new normal. Ten fast taps grew the Tap-to-Cross button without limit,
+until it had swallowed a quarter of the screen and the hero behind it. Fixed
+at the root: the base scale is remembered once in metadata, every pop returns
+to it, and a new pop kills the one in flight — which fixes every button in the
+game at once. The same disease existed in `Juice.nudge` (rapid wrong-answers
+walked a node sideways) and in the hero's own jump (each landing "returned" to
+the stretched launch scale, growing him five percent per hop): both now return
+to a remembered rest state. `celebrate()` refuses to run mid-jump, and the
+crossing ignores taps until the landing hop finishes.
+
+**The hero, third pass: chibi.** The second pass fixed the marionette
+problems but kept heroic 4.5-head proportions — still an adult in armour. The
+research on what small children actually find likeable is unambiguous: the
+baby schema. The figure is now ~2.2 heads tall — the head is nearly half of
+it — with enormous LOW-SET eyes (below the head's midline; this is the
+single biggest lever), blush cheeks, a tiny mouth, stub limbs with mitten
+hands, and boots nearly as big as the legs. The hero identity survives in the
+crest, the chest core, the colours and the poses. Raised-arm poses (CHEER,
+JUMP) now angle up-and-out, because the head is wider than the shoulders.
+The hero and the monsters finally look like they come from the same game.
+
+
+## The hero learns to move — 25 July 2026
+
+Second pass on the character: redesigned figure, and a real motion vocabulary.
+Full character sheet: `docs/CHARACTER_DESIGN.md`.
+
+**The figure.** Joints now hide under overlapping segments instead of sitting
+between them as rivets; the torso is one silhouette with a waist instead of
+stacked boxes; the shoulder caps are domes the arm slides out from under; the
+eyes are large tilted glowing almonds with catchlights; boots and gauntlets
+have real shapes (shaft, trim band, sole); each suit carries exactly one chest
+pattern. The marionette look is gone.
+
+**The motion.** Poses added: JUMP (asymmetric, mid-leap) and TUCK (rolled into
+a ball), plus a crouch. New verbs on SkinnedCharacter, used by every screen so
+the physics is shared: `jump()` (crouch → spring → hang → land with dust and a
+settle bounce), `hop()`, `roll()` (one full tumble around the body's centre,
+speed lines trailing), `entrance()` (drops from the sky, lands with a
+shockwave), `victory()` (leap, then cheer at the top of the bounce). New Juice
+primitives: `dust`, `shockwave`, `speed_lines` — all drawn, all silent under
+reduce-motion.
+
+**Where it fires.** The boot screen's hero now ARRIVES — drops out of the sky
+and lands in front of the title. Wins on the result screen are a leap.
+Tapping the home-screen hero cycles three tricks (hop, cheer, tumble). The
+traffic-crossing hero finally *walks* the crossing (the rig had a walk cycle;
+the hero glided) and hops on the safe kerb. Both arena templates open with the
+entrance, and the duel's special move starts with a leap into the brace.
+`Juice.idle_bob` no longer runs on drawn heroes — it fought the rig's own
+breathing and the new position tweens.
+
+**New harness:** `tests/MotionPreview.tscn` captures a five-frame filmstrip
+(mid-fall, landing dust, mid-roll, mid-leap, settled), because motion cannot
+be judged from a single still.
+
+
+## The reward wall becomes readable — 25 July 2026
+
+The badge shelf was a grid of grey slabs reading "?" until earned and a line of
+Chinese afterwards. A child who cannot read learned nothing from either state:
+not what they had won, and not what was left to win. That breaks the rule the
+whole game is built on -- *nothing important is carried by words alone* -- and
+it was breaking it on the one screen whose entire job is to make a child feel
+they have collected something.
+
+- **Every badge is a medal now**: ribbon, scalloped rim, and its own picture in
+  the middle. Twenty-two badges, twenty-two pictures, assigned in
+  `data/rewards.json` rather than in code.
+- **A locked badge shows its own picture in silhouette behind a padlock**, so
+  the wall reads as a display of things to go and get instead of a row of
+  question marks. Same reasoning as drawing the empty stars: seeing what is
+  still out there is the point of showing it at all.
+- **The heading counts**: "7 / 22". A six-year-old cannot read "Badges" but can
+  absolutely read the gap between two numbers, and that gap is the reason to
+  come back.
+- **An earned badge is worth touching** -- it pops, sparkles and chimes.
+- **The growth bars grew pictures too**: courage, wisdom, kindness, focus and
+  safety were five unreadable words next to five identical bars.
+- Eight new drawn icons: eye, umbrella, magnifier, compass, leaf, music, medal,
+  traffic light. Safety uses the traffic light because the bare tick is drawn
+  near-white and vanished against a cream card -- found by looking at the
+  render, which is the whole argument for `tests/shots.sh`.
+- `tests/rewards_preview.gd` renders the page with progress already made,
+  because on a fresh save every badge is locked and the earned state is never
+  seen.
+
+
+## First-play fixes — 25 July 2026
+
+Four things found by actually playing it.
+
+- **The daily-limit message was an engine dialog.** Godot's `AcceptDialog` is
+  an OS window with the default grey theme, so the one moment the game asks a
+  six-year-old to stop playing was also the one moment it looked like a system
+  error. It is now a card built from the game's own parts, with a drawn moon.
+- **There was no way to reach the next level.** The result screen offered
+  "Play Again" and "Back to Map" and nothing else, so continuing meant going
+  back to the map and finding the next one. `GameManager.next_level_id()` now
+  walks the level list — same world first, then onward — and the result screen
+  leads with a breathing **Next Level** button. Verified across all 36 levels
+  by `tests/next_probe.gd`.
+- **The duel's skill buttons did not answer a tap.** A press that fired
+  produced almost nothing visible; a press refused because the skill was
+  cooling produced *nothing at all*, which is indistinguishable from a broken
+  game. Now: every tap answers. A firing skill flashes an expanding ring, pops,
+  braces the hero and flares the chest light; a refused one rocks the button
+  and clicks. Cooldown is a drawn wedge that sweeps away, and a skill coming
+  back online pops and flashes. The three buttons moved onto a control pad in
+  the corner, clear of the monster.
+- **The duel had no stakes.** The monster's attacks did nothing at all if they
+  landed. The hero now has a three-pip **light bar**: an unblocked hit costs a
+  pip and counts as a mistake, which is what makes the shield worth pressing.
+  It cannot end the level — emptying it makes the hero stumble and the light
+  returns on its own. The cost of being hit is stars, and stars never go below
+  one.
+- **The monsters were not appealing.** A purple ball with triangle spikes and
+  two white discs is a monster shape without being a character. Rebuilt on
+  `Shapes` with the things that actually make a creature likeable: eyelids that
+  blink and carry mood, eyebrows, cheeks, a belly, rounded paws with claws,
+  ears that wiggle, a visible tail, curved horns instead of triangles, and
+  highlights in the eyes.
+- Hero and monster are now sized against each other (`set_height`), so a duel
+  looks like two giants rather than a child facing a kaiju.
+
+
+## The rendering architecture pass — 25 July 2026
+
+**The game draws its own world now. No background images, no imported UI art,
+no character photographs.**
+
+The full reasoning is in `docs/ARCHITECTURE_REVIEW.md`. In short: the project
+had a good logic architecture and no rendering architecture. Each screen chose
+its own scenery, mostly by naming a PNG, and the PNG always won — so the game
+showed a photographic night skyline, a flat pastel village, a cartoon owl, a
+set of imported navy badge discs, two licensed render cut-outs and a screen of
+bare grey rectangles, all at the same time.
+
+### New — `scripts/world/`
+
+- **`shapes.gd`** — the drawing language. One outline colour, one weight rule,
+  one light direction, one rounding convention, one contact shadow, one glow,
+  one star. Everything drawn in the game goes through it, which is what makes
+  a 24px berry and a 400px building look like the same hand drew them.
+- **`world_style.gd`** — the five worlds as five hours of one day: Piglet Town
+  late morning, Safety Bureau noon, Rescue Forest golden afternoon, Hero City
+  dusk, Monster Arena night. Same shapes, only the light changes.
+- **`stage.gd`** — the layered parallax renderer: sky, sun or moon, stars,
+  cloud, three horizon bands, haze, ground, props, motes, weather, fringe.
+  All polygons, seeded per level so a replay returns to the same place.
+  Publishes `ground_y()`, so every actor in the game stands on one floor.
+- **`hero_art.gd`** — jointed heroes with five poses and real transitions. A
+  skin is now a design (proportions, crest, chest pattern, four colours), not
+  a pair of pictures.
+- **`island_map.gd`** — Growth Island as one island, generated from the level
+  data, with a path that runs through the actual markers.
+- **`energy_tower.gd`** — the Hero City landmark, as an object that can be
+  broken, recoloured and repaired.
+
+### Changed
+
+- Every screen and every level template now gets its scenery from
+  `build_world()` or `UiKit.world_background()`. There is no third path.
+- **The world map is a map.** It was a scrolling list of navy cards over a
+  photograph, with a dot-to-dot line baked into the image that had nothing to
+  do with any level. It is now one island with the levels standing on it, and
+  it opens scrolled to whichever level is next.
+- **The heroes are drawn.** `tiga` and `zero` are original designs in the
+  game's own style; the licensed render cut-outs moved to
+  `resources/skins/photo/`, unreferenced and opt-in.
+- **Hero House** presents all three heroes the same way — the live drawn
+  figure, breathing — instead of two photographic spotlight cards and one
+  drawn placeholder.
+- **Icons are drawn by default.** A bare name always draws; artwork has to be
+  asked for by path. The previous rule was the reverse, so the imported navy
+  badge discs silently replaced the whole `IconLibrary`. Thirteen icons added
+  (lock, coin, heart, shield, lightning, orb, rock, sound on/off, retry,
+  pause, chest, star_empty) and the set now goes through `Shapes`.
+- **Parent Center is styled.** It was the one screen still on engine defaults.
+- **The energy tower repairs itself** instead of swapping between two PNGs,
+  and its lamp is a real light the level recolours.
+- **Traffic Crossing has a world.** It was grey and green rectangles; it now
+  has a town on the far kerb, a horizon raised to match the camera, and a
+  drawn crossing.
+- **Text over the world is outlined** through `UiKit.on_art()`.
+- Characters are sized with `set_height(pixels)` rather than a scale factor.
+- `background_art` removed from 26 levels and from `UiKit`. Art direction is
+  no longer a per-level data field.
+
+### New — `tests/shots.sh`
+
+Renders all seventeen screens to PNG in about twenty seconds, headless, on a
+machine with no GPU. `PLAN.md` opens by naming "I cannot see the output" as
+the project's most expensive constraint; this removes it. During this pass it
+caught scenery drawing on top of buttons, a splash screen coming out solid
+navy, signposts 720 pixels tall, heroes at the wrong size, and buildings
+standing on the sea — every one of which passed `tools_check.py` and the smoke
+test.
+
+### Verified
+
+```
+python3 tools_check.py   ->  0 errors, 0 warnings
+./tests/run_smoke.sh     ->  355 checks, 0 failures (all 36 levels boot)
+./tests/shots.sh         ->  17 screens rendered and reviewed
+```
+
+No gameplay rule was changed.
+
+
 ## 2026-07-24 (arena upgrade) — Real 1v1 duels with a skill wheel
 
 - **Template #8, `monster_duel`** — the Honor-of-Kings loop, filed smooth

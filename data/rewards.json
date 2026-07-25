@@ -2,113 +2,130 @@
   "badges": {
     "road_guardian": {
       "name_key": "badge.road_guardian",
-      "icon": ""
+      "icon": "car"
     },
     "all_weather_walker": {
       "name_key": "badge.all_weather_walker",
-      "icon": ""
+      "icon": "umbrella"
     },
     "sharp_eyes": {
       "name_key": "badge.sharp_eyes",
-      "icon": ""
+      "icon": "eye"
     },
     "exit_finder": {
       "name_key": "badge.exit_finder",
-      "icon": ""
+      "icon": "flag"
     },
     "energy_collector": {
       "name_key": "badge.energy_collector",
-      "icon": ""
+      "icon": "orb"
     },
     "tower_engineer": {
       "name_key": "badge.tower_engineer",
-      "icon": ""
+      "icon": "gear"
     },
     "color_expert": {
       "name_key": "badge.color_expert",
-      "icon": ""
+      "icon": "crayon"
     },
     "tidy_helper": {
       "name_key": "badge.tidy_helper",
-      "icon": ""
+      "icon": "blocks"
     },
     "tracker": {
       "name_key": "badge.tracker",
-      "icon": ""
+      "icon": "paw"
     },
     "rescue_planner": {
       "name_key": "badge.rescue_planner",
-      "icon": ""
+      "icon": "bandage"
     },
     "storm_guardian": {
       "name_key": "badge.storm_guardian",
-      "icon": ""
+      "icon": "lightning"
     },
     "rainbow_charger": {
       "name_key": "badge.rainbow_charger",
-      "icon": ""
+      "icon": "spark"
     },
     "super_sorter": {
       "name_key": "badge.super_sorter",
-      "icon": ""
+      "icon": "sort"
     },
     "danger_detective": {
       "name_key": "badge.danger_detective",
-      "icon": ""
+      "icon": "magnifier"
     },
     "night_walker": {
       "name_key": "badge.night_walker",
-      "icon": ""
+      "icon": "moon"
     },
     "trail_master": {
       "name_key": "badge.trail_master",
-      "icon": ""
+      "icon": "compass"
     },
     "brave_defender": {
       "name_key": "badge.brave_defender",
-      "icon": ""
+      "icon": "shield"
     },
     "monster_friend": {
       "name_key": "badge.monster_friend",
-      "icon": ""
+      "icon": "monster"
     },
     "memory_master": {
       "name_key": "badge.memory_master",
-      "icon": ""
+      "icon": "picture_book"
     },
     "forest_friend": {
       "name_key": "badge.forest_friend",
-      "icon": ""
+      "icon": "leaf"
     },
     "little_musician": {
       "name_key": "badge.little_musician",
-      "icon": ""
+      "icon": "music"
     },
     "arena_champion": {
       "name_key": "badge.arena_champion",
-      "icon": ""
+      "icon": "medal"
+    },
+    "valley_explorer": {
+      "name_key": "badge.valley_explorer",
+      "icon": "compass"
+    },
+    "cloud_jumper": {
+      "name_key": "badge.cloud_jumper",
+      "icon": "moon"
+    },
+    "mountain_hero": {
+      "name_key": "badge.mountain_hero",
+      "icon": "rock"
     }
   },
   "growth_attributes": [
     {
       "id": "courage",
-      "name_key": "growth.courage"
+      "name_key": "growth.courage",
+      "icon": "shield"
     },
     {
       "id": "wisdom",
-      "name_key": "growth.wisdom"
+      "name_key": "growth.wisdom",
+      "icon": "picture_book"
     },
     {
       "id": "kindness",
-      "name_key": "growth.kindness"
+      "name_key": "growth.kindness",
+      "icon": "heart"
     },
     {
       "id": "focus",
-      "name_key": "growth.focus"
+      "name_key": "growth.focus",
+      "icon": "eye"
     },
     {
       "id": "safety",
-      "name_key": "growth.safety"
+      "name_key": "growth.safety",
+      "icon": "traffic_light"
     }
   ],
   "stickers": [

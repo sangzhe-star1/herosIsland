@@ -22,14 +22,15 @@ extends LevelManager
 ## ends the way every battle here ends: the monster tired, happy, waving.
 
 const GROUND_Y := 620.0
-const HERO_POS := Vector2(240, 565)
-const MONSTER_POS := Vector2(860, GROUND_Y)   # clear of the skill wheel
+const HERO_POS := Vector2(250, 620)
+const MONSTER_POS := Vector2(690, GROUND_Y)   # clear of the skill pad, bottom right
+## How many unblocked hits the hero can take before the light bar empties.
+const LIGHT_PIPS := 3
 
 const BEAM_ART := "res://assets/effects/energy_beam.png"
 const HIT_ART := "res://assets/effects/hit_burst.png"
 const SMOKE_ART := "res://assets/effects/smoke.png"
 const RING_ART := "res://assets/effects/power_up.png"
-const DISC_ART := "res://assets/ui/disc.png"
 
 var _beam_cooldown := 1.2
 var _shield_cooldown := 6.0
@@ -53,14 +54,17 @@ var _play_area: Control
 var _instruction: Label
 var _hero: SkinnedCharacter
 var _monster: Node2D
-var _shield_bubble: TextureRect
+var _shield_bubble: Control
 var _meter_cells: Array = []
 var _beam_button: Control
-var _beam_sweep: TextureProgressBar
 var _shield_button: Control
-var _shield_sweep: TextureProgressBar
 var _ult_button: Control
-var _ult_ring: TextureProgressBar
+## name -> {button, pie, radius, colour, ready}. One place holds the state of
+## every skill, so "is this pressable right now" is asked and answered the same
+## way for all three.
+var _skills: Dictionary = {}
+var _light_pips: Array[Control] = []
+var _light_left := LIGHT_PIPS
 var _threats: Array = []          # goo and roar nodes in flight
 
 
@@ -106,12 +110,7 @@ func _build_scene(config: Dictionary) -> void:
 	_play_area.theme = UiKit.theme()
 	layer.add_child(_play_area)
 
-	var bg := ColorRect.new()
-	bg.color = Color.from_string(str(config.get("background", "#101c33")), Color(0.06, 0.11, 0.2))
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(bg)
-	UiKit.scene_art(_play_area, config)
+	build_world(_play_area, 0.0)
 
 	_monster = preload("res://scripts/battle/monster.gd").new()
 	_monster.position = MONSTER_POS
@@ -122,9 +121,9 @@ func _build_scene(config: Dictionary) -> void:
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
 	_hero.position = HERO_POS
-	_hero.scale = Vector2(1.7, 1.7)
 	_play_area.add_child(_hero)
-	Juice.idle_bob(_hero)
+	_hero.set_height(330.0)
+	_hero.entrance(340.0, 0.15)
 
 	var back := UiKit.back_button(func(): quit_level())
 	back.position = Vector2(24, 24)
@@ -134,6 +133,7 @@ func _build_scene(config: Dictionary) -> void:
 	_instruction.text = I18n.t(str(config.get("instruction_key", "duel.instruction")))
 	_instruction.add_theme_font_size_override("font_size", 36)
 	_instruction.add_theme_color_override("font_color", Palette.ON_COLOR)
+	UiKit.on_art(_instruction)
 	_instruction.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.75))
 	_instruction.add_theme_constant_override("outline_size", 8)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -143,6 +143,7 @@ func _build_scene(config: Dictionary) -> void:
 	_play_area.add_child(_instruction)
 
 	_build_meter()
+	_build_light_bar()
 	_build_skill_wheel()
 
 
@@ -156,7 +157,10 @@ func _build_meter() -> void:
 		var cell: Control = UiKit.picture("spark", 38.0)
 		if cell == null:
 			cell = UiKit.star(true, 38)
-		cell.modulate = Color(1, 1, 1, 0.28)
+		# An unlit cell stays clearly visible: seeing how many are still to
+		# come is the point of a progress meter, and 0.28 alpha over a night
+		# sky was effectively nothing.
+		cell.modulate = Color(0.62, 0.66, 0.80, 0.75)
 		meter.add_child(cell)
 		_meter_cells.append(cell)
 	meter.position = Vector2(640.0 - float(total) * 22.0, 88)
@@ -168,68 +172,229 @@ func _update_meter() -> void:
 		if not is_instance_valid(cell):
 			continue
 		var lit: bool = i < result.correct
-		cell.modulate = Color(1, 1, 1, 1.0) if lit else Color(1, 1, 1, 0.28)
+		cell.modulate = Color(1, 1, 1, 1.0) if lit else Color(0.62, 0.66, 0.80, 0.75)
 		if lit and i == result.correct - 1:
 			Juice.pop(cell, 0.3)
 
 
-## The thumb corner: ult, shield, beam -- beam biggest and rightmost,
-## exactly where a landscape tablet's right thumb already rests.
+## The thumb corner: ult, shield, beam -- beam biggest and rightmost, exactly
+## where a landscape tablet's right thumb already rests.
+##
+## Three things were wrong with the first version and all three are fixed here:
+## the buttons sat on top of the monster with nothing to separate UI from
+## world; a tap that landed produced almost no visible reaction; and a tap that
+## was refused because the skill was cooling produced *none at all*, so a child
+## could not tell a dead button from a broken game. Every tap now answers.
 func _build_skill_wheel() -> void:
-	_ult_button = _skill_button(Vector2(830, 545), 118, "star", Color(0.95, 0.75, 0.25))
-	_ult_ring = _sweep_for(_ult_button, 118, Color(1.0, 0.83, 0.35, 0.55))
-	_ult_ring.value = 0.0
+	var pad := Panel.new()
+	pad.position = Vector2(890, 552)
+	pad.size = Vector2(384, 168)
+	var pad_style := StyleBoxFlat.new()
+	pad_style.bg_color = Color(0.06, 0.09, 0.20, 0.42)
+	pad_style.corner_radius_top_left = 46
+	pad_style.corner_radius_bottom_left = 46
+	pad_style.corner_radius_top_right = 46
+	pad_style.corner_radius_bottom_right = 46
+	pad.add_theme_stylebox_override("panel", pad_style)
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_area.add_child(pad)
+
+	_ult_button = _skill_button("ult", Vector2(912, 596), 100, "star",
+		Color(0.98, 0.78, 0.28))
 	_ult_button.gui_input.connect(_on_ult_input)
 
-	_shield_button = _skill_button(Vector2(975, 480), 108, "shield", Color(0.45, 0.7, 0.95))
-	_shield_sweep = _sweep_for(_shield_button, 108, Color(0, 0, 0, 0.45))
-	_shield_sweep.value = 0.0
+	_shield_button = _skill_button("shield", Vector2(1024, 574), 108, "shield",
+		Color(0.48, 0.74, 0.98))
 	_shield_button.gui_input.connect(_on_shield_input)
 
-	_beam_button = _skill_button(Vector2(1105, 555), 134, "spark", Color(1.0, 0.85, 0.4))
-	_beam_sweep = _sweep_for(_beam_button, 134, Color(0, 0, 0, 0.45))
-	_beam_sweep.value = 0.0
+	_beam_button = _skill_button("beam", Vector2(1140, 584), 124, "spark",
+		Color(1.0, 0.86, 0.40))
 	_beam_button.gui_input.connect(_on_beam_input)
 
+	_set_skill_ready("ult", false)
+	_set_skill_ready("shield", true)
+	_set_skill_ready("beam", true)
 
-func _skill_button(at: Vector2, size: float, icon_name: String, ring: Color) -> Control:
+
+func _skill_button(key: String, at: Vector2, size: float, icon_name: String,
+		ring: Color) -> Control:
 	var button := Panel.new()
 	button.size = Vector2(size, size)
 	button.position = at
 	button.pivot_offset = button.size / 2.0
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.07, 0.13, 0.26, 0.88)
+	style.bg_color = Color(0.09, 0.15, 0.30, 0.94)
 	style.set_corner_radius_all(int(size / 2.0))
-	style.border_width_bottom = 5
-	style.border_width_top = 5
-	style.border_width_left = 5
-	style.border_width_right = 5
+	style.border_width_bottom = 7
+	style.border_width_top = 6
+	style.border_width_left = 6
+	style.border_width_right = 6
 	style.border_color = ring
+	style.shadow_color = Color(0.0, 0.04, 0.12, 0.45)
+	style.shadow_size = 10
+	style.shadow_offset = Vector2(0, 6)
 	button.add_theme_stylebox_override("panel", style)
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 
-	var icon: Control = UiKit.picture(icon_name, size * 0.62)
+	var icon: Control = UiKit.picture(icon_name, size * 0.58)
 	if icon != null:
-		icon.position = Vector2(size * 0.19, size * 0.19)
+		icon.position = Vector2(size * 0.21, size * 0.21)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(icon)
+
+	# The cooldown wedge, drawn rather than a nine-patch texture: a dark pie
+	# that sweeps away as the skill comes back. A child reads "the dark is
+	# shrinking, it is nearly ready" without being told.
+	var pie := Polygon2D.new()
+	pie.color = Color(0.02, 0.05, 0.12, 0.62)
+	pie.position = Vector2(size / 2.0, size / 2.0)
+	pie.antialiased = true
+	button.add_child(pie)
+
 	_play_area.add_child(button)
+	_skills[key] = {
+		"button": button, "pie": pie, "radius": size * 0.5, "colour": ring, "ready": true,
+	}
 	return button
 
 
-## The cooldown/charge sweep laid over a skill button, HoK-style.
-func _sweep_for(button: Control, size: float, tint: Color) -> TextureProgressBar:
-	var sweep := TextureProgressBar.new()
-	sweep.fill_mode = TextureProgressBar.FILL_CLOCKWISE
-	if ResourceLoader.exists(DISC_ART):
-		sweep.texture_progress = load(DISC_ART)
-	sweep.tint_progress = tint
-	sweep.min_value = 0.0
-	sweep.max_value = 100.0
-	sweep.size = Vector2(size, size)
-	sweep.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(sweep)
-	return sweep
+## The dark wedge over a cooling skill. `fraction` is how much is left.
+func _set_skill_cooldown(key: String, fraction: float) -> void:
+	var skill: Dictionary = _skills.get(key, {})
+	if skill.is_empty():
+		return
+	var pie: Polygon2D = skill["pie"]
+	if not is_instance_valid(pie):
+		return
+	var left: float = clampf(fraction, 0.0, 1.0)
+	if left <= 0.001:
+		pie.polygon = PackedVector2Array()
+		return
+	var radius: float = float(skill["radius"])
+	var points := PackedVector2Array([Vector2.ZERO])
+	var steps := maxi(int(28.0 * left), 2)
+	for i in range(steps + 1):
+		var a: float = -PI * 0.5 + TAU * left * float(i) / float(steps)
+		points.append(Vector2(cos(a), sin(a)) * radius)
+	pie.polygon = points
+
+
+## Ready or not, said in brightness rather than only in a wedge -- brightness
+## is the part a six-year-old reads from across the table.
+func _set_skill_ready(key: String, ready: bool) -> void:
+	var skill: Dictionary = _skills.get(key, {})
+	if skill.is_empty() or bool(skill["ready"]) == ready:
+		return
+	skill["ready"] = ready
+	var button: Control = skill["button"]
+	if not is_instance_valid(button):
+		return
+	button.modulate = Color(1, 1, 1, 1) if ready else Color(0.62, 0.66, 0.76, 0.85)
+	if ready:
+		# Coming back online is worth a small celebration: it is an invitation
+		# to press again.
+		Juice.pop(button, 0.14)
+		_flash_ring(key)
+
+
+## A ring that expands and fades off a button. This is the "yes, that landed"
+## signal -- the single thing most missing from the first version.
+func _flash_ring(key: String) -> void:
+	var skill: Dictionary = _skills.get(key, {})
+	if skill.is_empty() or not Juice.motion_enabled():
+		return
+	var button: Control = skill["button"]
+	if not is_instance_valid(button):
+		return
+	var radius: float = float(skill["radius"])
+	var holder := Node2D.new()
+	holder.position = button.position + button.size / 2.0
+	holder.z_index = 3
+	_play_area.add_child(holder)
+	var line := Line2D.new()
+	line.points = Shapes.circle_points(Vector2.ZERO, radius, 28)
+	line.closed = true
+	line.width = 8.0
+	line.default_color = skill["colour"]
+	line.antialiased = true
+	holder.add_child(line)
+	var t := create_tween().set_parallel(true)
+	t.tween_property(holder, "scale", Vector2(2.1, 2.1), 0.38)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(holder, "modulate:a", 0.0, 0.38)
+	t.chain().tween_callback(holder.queue_free)
+
+
+## A refused tap. Small, quiet and immediate: the button rocks and dims for a
+## beat. Never a buzz or a red flash -- the rule everywhere else in the game.
+func _refuse(key: String) -> void:
+	var skill: Dictionary = _skills.get(key, {})
+	if skill.is_empty():
+		return
+	var button: Control = skill["button"]
+	if not is_instance_valid(button):
+		return
+	Juice.nudge(button, 7.0)
+	AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+
+
+## The hero's light. Three pips: every hit that gets through costs one and
+## counts as a mistake, which is what makes shielding matter -- before this the
+## monster's attacks had no consequence at all and the duel had no stakes.
+##
+## It cannot run out in a way that ends the game. Emptying it makes the hero
+## stumble, then the light comes back on its own. There is no losing here; the
+## cost of being hit is stars, and stars never go below one.
+func _build_light_bar() -> void:
+	var row := HBoxContainer.new()
+	row.position = Vector2(150, 34)
+	row.add_theme_constant_override("separation", 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_area.add_child(row)
+	for i in range(LIGHT_PIPS):
+		var pip := Control.new()
+		pip.custom_minimum_size = Vector2(46, 46)
+		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var glow := Shapes.glow(pip, Vector2(23, 23), 42.0, Color(0.45, 0.92, 1.0), 4, 0.5)
+		glow.name = "Glow"
+		Shapes.lit(pip, Shapes.circle_points(Vector2(23, 23), 16.0, 20),
+			Color(0.45, 0.92, 1.0), 1.0)
+		row.add_child(pip)
+		_light_pips.append(pip)
+
+
+func _refresh_light_bar() -> void:
+	for i in range(_light_pips.size()):
+		var pip: Control = _light_pips[i]
+		if not is_instance_valid(pip):
+			continue
+		var lit: bool = i < _light_left
+		pip.modulate = Color(1, 1, 1, 1) if lit else Color(0.35, 0.40, 0.52, 0.55)
+
+
+## A hit got through. Costs a pip and a star's worth of accuracy; never the
+## level.
+func _lose_light() -> void:
+	if _won:
+		return
+	score_mistake()
+	_light_left = maxi(_light_left - 1, 0)
+	_refresh_light_bar()
+	_hero.stumble()
+	if _light_left > 0:
+		return
+	# Out of light: a beat of trouble, then it comes back. The tension is
+	# real; the failure is not.
+	if _light_pips.size() > 0 and is_instance_valid(_light_pips[0]):
+		Juice.pop(_light_pips[0], 0.35)
+	get_tree().create_timer(1.6).timeout.connect(func():
+		if not is_inside_tree() or _won:
+			return
+		_light_left = LIGHT_PIPS
+		_refresh_light_bar()
+		_hero.power_up()
+		AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+	)
 
 
 ## Pre-battle choice of special move -- two big picture cards, no timer.
@@ -252,13 +417,17 @@ func _build_ult_picker(choices: Array) -> void:
 		card.size = Vector2(190, 220)
 		card.position = offsets[i]
 		card.pivot_offset = card.size / 2.0
-		var style: StyleBox = UiKit.texture_style("res://assets/ui/level_card.png", 36.0, 12.0,
-			Color(1.35, 1.3, 1.2))
-		if style == null:
-			var flat := StyleBoxFlat.new()
-			flat.bg_color = Color(0.13, 0.22, 0.42)
-			flat.set_corner_radius_all(22)
-			style = flat
+		var style := StyleBoxFlat.new()
+		style.bg_color = Palette.PURPLE
+		style.set_corner_radius_all(22)
+		style.border_width_bottom = 8
+		style.border_width_left = 4
+		style.border_width_right = 4
+		style.border_width_top = 4
+		style.border_color = Palette.edge(Palette.PURPLE)
+		style.shadow_color = Color(0.0, 0.05, 0.15, 0.28)
+		style.shadow_size = 10
+		style.shadow_offset = Vector2(0, 6)
 		card.add_theme_stylebox_override("panel", style)
 		var icon: Control = UiKit.picture(str(icons.get(kind, "star")), 110)
 		if icon != null:
@@ -293,8 +462,14 @@ func _build_ult_picker(choices: Array) -> void:
 func _process(delta: float) -> void:
 	super._process(delta)
 	_clock += delta
-	_beam_sweep.value = clampf((_beam_ready_at - _clock) / _beam_cooldown, 0.0, 1.0) * 100.0
-	_shield_sweep.value = clampf((_shield_ready_at - _clock) / _shield_cooldown, 0.0, 1.0) * 100.0
+	var beam_left: float = clampf((_beam_ready_at - _clock) / _beam_cooldown, 0.0, 1.0)
+	var shield_left: float = clampf((_shield_ready_at - _clock) / _shield_cooldown, 0.0, 1.0)
+	_set_skill_cooldown("beam", beam_left)
+	_set_skill_cooldown("shield", shield_left)
+	_set_skill_ready("beam", beam_left <= 0.0)
+	_set_skill_ready("shield", shield_left <= 0.0)
+	_set_skill_cooldown("ult", 1.0 - float(_ult_charge) / float(maxi(_ult_needed, 1)))
+	_set_skill_ready("ult", ult_ready())
 	if _shield_bubble != null and is_instance_valid(_shield_bubble) and _clock > _shield_until:
 		_shield_bubble.queue_free()
 		_shield_bubble = null
@@ -336,38 +511,54 @@ func _on_ult_input(event: InputEvent) -> void:
 
 
 func fire_beam_skill() -> bool:
-	if not _started or _won or _clock < _beam_ready_at:
+	if not _started or _won:
+		return false
+	if _clock < _beam_ready_at:
+		_refuse("beam")
 		return false
 	_beam_ready_at = _clock + _beam_cooldown
+	# The hero visibly does something: braces, the chest light flares, and the
+	# button flashes a ring. Before this, a tap produced a thin beam somewhere
+	# off to the right and nothing else.
+	_hero.brace()
+	_hero.power_up()
+	_flash_ring("beam")
 	var target: Vector2 = _monster.position + Vector2(randf_range(-40, 40), -190.0 * _monster.scale.x + randf_range(-40, 40))
 	_draw_beam(_hero.core_position(), target)
 	_impact(target)
 	_land_hit(1)
 	AudioManager.play_sfx("res://assets/audio/beam.ogg")
-	Juice.pop(_beam_button, 0.12)
+	Juice.pop(_beam_button, 0.16)
 	return true
 
 
 func activate_shield() -> bool:
-	if not _started or _won or _clock < _shield_ready_at:
+	if not _started or _won:
+		return false
+	if _clock < _shield_ready_at:
+		_refuse("shield")
 		return false
 	_shield_ready_at = _clock + _shield_cooldown
 	_shield_until = _clock + _shield_duration
-	Juice.pop(_shield_button, 0.12)
+	Juice.pop(_shield_button, 0.16)
+	_flash_ring("shield")
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
 
-	_shield_bubble = TextureRect.new()
-	_shield_bubble.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_shield_bubble.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	if ResourceLoader.exists(RING_ART):
-		_shield_bubble.texture = load(RING_ART)
-	elif ResourceLoader.exists(DISC_ART):
-		_shield_bubble.texture = load(DISC_ART)
-	_shield_bubble.size = Vector2(300, 300)
-	_shield_bubble.position = HERO_POS - Vector2(150, 150) - Vector2(0, 60)
-	_shield_bubble.modulate = Color(0.55, 0.85, 1.0, 0.65)
+	# A drawn bubble: a filled dome with a bright rim, so "I am protected right
+	# now" is unmistakable at a glance.
+	_shield_bubble = Control.new()
 	_shield_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shield_bubble.position = HERO_POS - Vector2(0, 60)
 	_play_area.add_child(_shield_bubble)
+	Shapes.fill(_shield_bubble, Shapes.circle_points(Vector2.ZERO, 145.0, 32),
+		Color(0.55, 0.86, 1.0, 0.22), 0.0)
+	var rim := Line2D.new()
+	rim.points = Shapes.circle_points(Vector2.ZERO, 145.0, 32)
+	rim.closed = true
+	rim.width = 7.0
+	rim.default_color = Color(0.72, 0.94, 1.0, 0.9)
+	rim.antialiased = true
+	_shield_bubble.add_child(rim)
 	if Juice.motion_enabled():
 		var t := _shield_bubble.create_tween().set_loops()
 		t.tween_property(_shield_bubble, "modulate:a", 0.4, 0.5)
@@ -384,13 +575,21 @@ func ult_ready() -> bool:
 
 
 func fire_ult() -> bool:
-	if not _started or _won or not ult_ready():
-		if not ult_ready():
-			Juice.nudge(_ult_button, 8.0)
+	if not _started or _won:
+		return false
+	if not ult_ready():
+		_refuse("ult")
 		return false
 	_ult_charge = 0
-	_ult_ring.value = 0.0
-	_hero.celebrate()
+	_set_skill_cooldown("ult", 1.0)
+	_flash_ring("ult")
+	# The special move begins with a leap and lands in the brace -- wind-up,
+	# then delivery.
+	_hero.jump(64.0, 0.45)
+	get_tree().create_timer(0.55).timeout.connect(func():
+		if is_inside_tree() and is_instance_valid(_hero):
+			_hero.brace()
+	)
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	if _ult_type == "burst":
 		_ult_burst()
@@ -451,7 +650,6 @@ func _land_hit(amount: int, charges: bool = true) -> void:
 	_monster.call("flinch")
 	if charges:
 		_ult_charge = mini(_ult_charge + amount, _ult_needed)
-		_ult_ring.value = float(_ult_charge) / float(_ult_needed) * 100.0
 		if ult_ready():
 			UiKit.breathe(_ult_button, 0.06, 0.6)
 	for i in range(amount):
@@ -536,8 +734,8 @@ func _threat_arrives(threat: Control) -> void:
 
 	_splat(threat.position + threat.size / 2.0)
 	threat.queue_free()
-	Juice.nudge(_hero, 10.0)
 	_beam_ready_at = maxf(_beam_ready_at, _clock) + 0.7
+	_lose_light()
 
 
 # --- shared effects -----------------------------------------------------

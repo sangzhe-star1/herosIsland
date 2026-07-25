@@ -55,6 +55,17 @@ Also run the static checker after editing any data file:
 python3 tools_check.py
 ```
 
+And **look at the game** after any visual change:
+
+```bash
+./tests/shots.sh              # every screen -> /tmp/heroes-shots/*.png
+```
+
+Twenty seconds, no keyboard, works headless. This project spent months unable
+to see its own output, which is the most expensive thing in its history — see
+`docs/ARCHITECTURE_REVIEW.md` §5 for the list of bugs this caught that every
+static check passed.
+
 ## 3. Open and run
 
 1. Launch Godot → **Import** → select this folder's `project.godot` → **Import & Edit**.
@@ -132,23 +143,29 @@ every translation key, level/badge/world references, and autoload ordering.
 
 ---
 
-## 6. Swapping the character art
+## 6. The heroes, and how to make another one
 
-> Full art specification with every filename and size: `ART_CHECKLIST.md`.
+> Full art notes: `ART_CHECKLIST.md`. The reasoning: `docs/ARCHITECTURE_REVIEW.md` §4.
 
-Level code never names a character. It only reads a `CharacterSkin`
-(`resources/skins/light_hero.tres`). Today that skin has no textures, so
-`SkinnedCharacter` draws a placeholder hero from primitives — body, crest, and a
-glowing chest core that levels can recolor.
+Level code never names a character. It only reads a `CharacterSkin`, and a
+skin is a **design**, not a pair of pictures:
 
-To use real art: open the `.tres` in Godot, drop a texture into `idle_texture`.
-Nothing in `scripts/minigames/` changes.
+```
+build_width    76        # one number resizes the whole figure
+crest_kind     fin | twin | horns      # the silhouette from across the room
+chest_pattern  blade | chevron | bands
+body_color / accent_color / trim_color / eye_color / core_color
+```
 
-This is the seam that lets your son's drawings become the hero: scan at roughly
-**128×192 px, transparent PNG**, drop into `assets/characters/`, assign to the
-skin.
+`HeroArt` draws that: jointed limbs, five poses, a chest core the game
+recolours mid-level, breathing while it waits. Three heroes ship — `light_hero`,
+`tiga`, `zero` — and a fourth is a new `.tres` in `resources/skins/`, no code.
 
----
+A skin **may** carry pictures instead (`prefer_texture = true`). That is the
+seam for a scan of your son's own drawing — roughly 128×192 px, transparent
+PNG. It is opt-in rather than the default because a picture cannot be posed,
+cannot be lit to match a scene, and cannot have its chest light recoloured,
+which the colour-matching levels depend on.
 
 ## 7. Fonts and Chinese text
 
@@ -200,31 +217,70 @@ older tablets.
 
 ## 10. Visual design
 
-**Nothing important is conveyed by words alone.** Home buttons, map level
-buttons, sorting items and sorting bins all carry a picture, with the word kept
-alongside. This is the difference between a game a six-year-old can play by
-himself and one where he needs you next to him reading labels — and it is why
-`scripts/ui/icon_library.gd` exists: 34 icons drawn from primitives, no art
-files required. Words remain so they are learned by association.
+**The game draws its own world.** There are no background images, no imported
+UI art and no character photographs in the running game. Every pixel of scenery
+is generated from `scripts/world/`, which buys four things a picture cannot:
+the world can be lit per world, generated per level, animated, and recoloured
+at runtime — and the last of those matters, because in the colour-matching
+levels the hero's chest light and the tower's lamp **are** the instruction.
+
+`docs/ARCHITECTURE_REVIEW.md` is the full reasoning. The short version:
+
+| File | What it owns |
+|---|---|
+| `scripts/world/shapes.gd` | the drawing language: one outline, one weight rule, one light direction, one shadow, one glow |
+| `scripts/world/world_style.gd` | five worlds as five hours of one day |
+| `scripts/world/stage.gd` | the layered parallax renderer every screen puts behind itself |
+| `scripts/world/hero_art.gd` | the heroes, jointed and posable |
+| `scripts/world/island_map.gd` | Growth Island, generated from `data/levels.json` |
+| `scripts/world/energy_tower.gd` | the landmark that breaks and gets repaired |
+
+There are exactly two ways scenery reaches the screen, and no third:
+
+```gdscript
+build_world(_play_area, calm)                        # inside any level template
+UiKit.world_background(self, world_id, seed, calm)   # on a shell screen
+```
+
+A level may nudge its own world through its `config` — `weather`, `calm`,
+`damaged` — but it cannot name a picture. That door is what let the game end up
+with a photographic night city, a flat pastel village and a grey rectangle on
+screen at the same time.
+
+**Every world is the same island at a different hour.** Piglet Town is late
+morning, the Safety Bureau is flat noon, Rescue Forest is golden afternoon,
+Hero City is dusk when the windows light up, Monster Arena is night. Same
+shapes, same ground line, same sun direction — only the light changes. That is
+what gives each world its own feeling without any of them leaving the style.
+
+**Everything stands on one floor.** `Stage.ground_y()` is the ground line for
+the whole game, and characters are sized with `set_height(pixels)` rather than
+a scale factor, so a hero is the same size in the forest as in the city.
 
 Colours live in `scripts/ui/palette.gd` and nowhere else. Every text pairing is
-verified against WCAG AA (4.5:1 body, 3:1 for large button text) — the orange
-was darkened specifically to clear it, and disabled buttons use dark ink on a
-light surface rather than white on grey for the same reason.
+verified against WCAG AA (4.5:1 body, 3:1 for large button text). Text over the
+world goes through `UiKit.on_art()`, which outlines it — a white instruction
+that is legible over a dusk skyline is invisible over a midday cloud.
 
 Buttons are drawn as physically raised slabs: a thick bottom edge in a darker
 shade of the button's own colour, which shrinks on press while the label slides
 down, so the button visibly squashes. For a child who cannot read, that motion
-is what confirms a tap landed — more legible to them than any colour change.
+is what confirms a tap landed. The map's level markers are round rather than
+slabs, but use the same physics — a child who has learned one button has
+learned all of them.
 
-Backgrounds accept optional artwork: `UiKit.background(self, colour, art_path)`
-uses the image when it exists and the flat colour when it does not, so adding
-art later needs no code change.
+Icons are drawn from primitives in `scripts/ui/icon_library.gd`, forty-five of
+them, all through `Shapes`. A bare icon name is always drawn; artwork has to be
+asked for by full path. (The previous rule was the reverse, which quietly meant
+the whole game rendered a set of imported navy badge discs instead of its own
+icons.)
 
 Celebration lives in `scripts/ui/juice.gd`, under two rules: reward motion is
 generous and correction motion is not (confetti for right, a small nudge for
 wrong — never a buzz, screen shake or red flash), and all of it can be switched
-off from Parent Center for children who find particles overwhelming.
+off from Parent Center. Every animation in `scripts/world/` checks
+`Juice.motion_enabled()` too, including the drifting clouds and the hero's
+breathing.
 
 ## 11. Design rules encoded in the code
 
@@ -244,164 +300,69 @@ just written down:
 
 ## 12. Known caveats
 
-- **The two newest templates have never been run.** `item_sorting` and
-  `collect_energy` were written and validated statically (`tools_check.py`:
-  0 errors) but no one has watched them execute. `traffic_crossing` and the
-  screens around it are confirmed working. See §13 for what to check first.
-- Every art slot now has SOMETHING real in it — bundle art for the heroes and
-  Hero City, generated badge icons for all items and navigation, painted
-  town/forest/room scenes, synthesized SFX and an original music loop — but
-  the generated pieces are meant to be outgrown: drop richer art on the same
-  filenames any time (see `ART_CHECKLIST.md`). Voice lines are one
-  double-click away in `tools/make_voice.command`.
-- `Hero House` is now the character-select room: the child taps a hero (Tiga,
-  Zero, or the original Light Hero) and plays as them everywhere. The
-  furniture idea from PLAN.md Phase 5 can still move in later.
+- **Nothing here has been played by a child yet.** All 36 levels boot clean and
+  every screen has been rendered and looked at, but `tests/shots.sh` cannot
+  tell you whether a level is fun.
+- **`scripts/battle/monster.gd` is the last thing not on the house style.**
+  The creatures are drawn from primitives already and they read fine, but they
+  use their own outline and shading conventions rather than `Shapes`, so they
+  are close to the style rather than in it. See the review's §7.
+- **Sorting bins and number tiles are still flat rounded rectangles** — the
+  gameplay objects that have not been drawn as world objects yet.
+- **`assets/backgrounds/`, `assets/icons/`, `assets/ui/` and
+  `assets/characters/` are no longer loaded by the running game.** They are
+  left in place because the licensed hero art is still reachable through
+  `resources/skins/photo/`, and because deleting a folder is your call, not
+  mine. Nothing breaks if you remove the rest.
 
 ## 13. On character likenesses
 
 Ultraman, Peppa Pig and PAW Patrol are owned properties, and there are no
 open-source asset libraries for them — anything labelled that way is fan art,
-which cannot be licensed to you. This project ships an **original light hero**
-instead: the transformation, the crest, the glowing chest core that changes
-color are tropes, not protected expression, and they are yours to release.
+which cannot be licensed to you.
 
-Because of the skin system, if you do use licensed art in a private family
-build, it lives in one `.tres` file and swapping it out later is a two-minute
-job — not a rewrite.
+This project now ships **original drawn heroes**. The transformation, the
+crest, the glowing chest core that changes colour are genre tropes, not
+protected expression, and they are yours to release. `tiga` and `zero` are
+original designs in the game's own style that borrow the *vocabulary* a child
+recognises — a fin crest, twin blades, red-and-silver, blue-and-silver — and
+copy no particular character's expression.
 
-That is exactly what the integrated bundle does: the `tiga` and `zero` skins
-in `resources/skins/` are recognisable Tsuburaya characters and belong in this
-household only. A build that leaves the house must drop those two entries from
-`data/characters.json` (the original `light_hero` stays, and the game falls
-back to it cleanly). The shared world art — city, tower, orbs, icons, effects
-— carries no character likeness and can stay.
+The licensed photographic render cut-outs from the asset bundle are still in
+`resources/skins/photo/`, unreferenced. To use them in a private family build,
+point `data/characters.json` at `photo/tiga_photo.tres` instead of `tiga.tres`.
+**Do not do that for a build that leaves the house.** Nothing else has to
+change either way, which is the entire point of the skin seam.
 
----
+**Drop-in characters** are the two-PNG version of the same seam: save a
+transparent `hero_idle.png` (~256×384, feet at the bottom edge, and
+`hero_cheer.png` if you have one) into `assets/characters/bluey/`, restart,
+and Bluey appears in the Hero House as a playable character. The same rule
+applies: a favourite licensed character is for this household's build only.
+The id list lives in `GameData.DROPIN_CHARACTERS`; add an id there and a
+folder for it to add another.
 
-## 14. Where things stand, and what to check first
+## 14. Where things stand
 
-`traffic_crossing` and the whole shell — boot, home, map, result, rewards,
-parent center — are confirmed working; you played them. The two templates added
-since have not been run once. Statically they are clean, but static checking
-cannot catch a container that lays out wrong or a signal that never fires.
+Verified, in this order, after the rendering rewrite:
 
-**Test in this order** — each takes about a minute:
+```
+python3 tools_check.py     ->  0 errors, 0 warnings
+./tests/run_smoke.sh       ->  355 checks, 0 failures  (all 36 levels boot)
+./tests/shots.sh           ->  17 screens rendered and looked at
+```
 
-1. **Colour Sorting** (Happy Piglet Town 1) — simplest use of `item_sorting`.
-   Check: does an item appear in the centre? Does dragging it onto a bin work?
-   Does *tapping* the item and then a bin also work? Both paths are implemented
-   and the tap path is the one a child will actually use on a tablet.
-2. **Counting to Ten** (Piglet Town 2) — same template, dot-cluster rendering
-   and five bins. Mainly a layout check: do five bins fit across the screen?
-3. **Spot the Danger** (Safety Bureau) — two bins, text items.
-4. **Collect Energy Orbs** (Hero City 1) — simplest `collect_energy`. Do orbs
-   fall? Does tapping one pop it and raise the counter?
-5. **Repair the Energy Tower** (Hero City 3) — the most complex thing built so
-   far: four colours, hazards, and a target colour that changes every three
-   collects and drives the hero's chest core.
-
-**Most likely failure points**, in rough order of probability:
-
-- `item_sorting` drag: the item follows `get_global_mouse_position()` while a
-  release is caught in `_input()`. If dragging does nothing, that release
-  handler is the first place to look.
-- `item_sorting` bins: they are absolutely positioned for a 1280x720 viewport.
-  With five bins (Counting) they may crowd or clip.
-- `collect_energy` taps: orbs are `Panel` controls with `MOUSE_FILTER_STOP`
-  inside a `MOUSE_FILTER_IGNORE` parent. If taps do not register, that filter
-  chain is the cause.
-- `_resolving` in `item_sorting` guards against double-answers during the
-  award animation. If the game locks up after one correct answer, that flag is
-  not being cleared.
-
-Paste any red line from the **Debugger** panel and it can be fixed quickly.
-
-### A note on the text-label items
-
-`Spot the Danger`, `Tidy Up the Room` and `Choose Rescue Tools` currently render
-items as **words**. A six-year-old who cannot read cannot play them unaided —
-right now they are really a reading exercise wearing a sorting costume.
-
-Colour Sorting and Counting have no such problem: colour and dot-count are the
-whole instruction, which is why those two are the ones to put in front of him
-first. The text levels need icons before they are real. The renderer already
-supports it — add `"render": "icon"` handling in `_build_item()` and point it at
-a texture, and the data files need no changes beyond swapping `text_key` for an
-icon path.
-
-### Why `animal_rescue` was left unbuilt
-
-It is the path-planning template, the most intricate of the four, and three
-untested minigames landing at once is a bad trade: debugging effort compounds
-when you cannot tell which of three new systems broke. Better to confirm these
-two work first.
+What has never happened: **a child has played it.** That is Phase 4 in
+`PLAN.md` and it is still the only thing that can tell you which levels are
+worth more work. Put it in front of him, watch without helping, and note which
+level he asks to replay.
 
 ### Git housekeeping
 
-Two stale lock files may be sitting in `.git/` (`index.lock`, `HEAD.lock`) along
-with some `tmp_obj_*` files, left by a sandbox that could not delete files.
-Commits went through fine, but your local git may refuse to run until you clear
-them:
+If a sandbox left lock files behind, git may refuse to run until they are gone:
 
 ```bash
 rm -f .git/index.lock .git/HEAD.lock
 rm -f .git/objects/*/tmp_obj_*
-git status          # should be clean
-git log --oneline   # should show three commits
+git status
 ```
-
----
-
-## 15. Overnight session — what changed, and what to check
-
-Five commits after the blank-screen fix. **None of it has been run.** The
-static checker passes (0 errors, and it now catches cross-file member and
-signal mistakes), but static checking cannot see a layout that overflows or a
-particle system that misbehaves.
-
-### Test order, about six minutes
-
-1. **Home** — four picture buttons: flag, star, house, gear. Check the icons
-   sit above the words rather than overlapping them. This is the layout most
-   likely to be wrong, because `icon_button()` positions the icon by fraction
-   of button size and pushes the label down with a content margin.
-2. **Growth Island** — level buttons now show a car / sorting shapes / spark,
-   with per-world star tallies in each header. Buttons grew from 130px to
-   200px tall; check four of them still fit a row without ugly wrapping.
-3. **Colour Sorting** — confetti should burst at the bin on a correct answer.
-   If nothing appears, the culprit is `CPUParticles2D` property names in
-   `juice.gd`.
-4. **Spot the Danger** — the real test. Items show a picture with the word
-   under it, and the bins show a green check and a yellow warning triangle.
-   Ask yourself whether your son could play this without you reading anything
-   aloud. If not, that is the bug worth reporting.
-5. **Result screen** — coins tick up one at a time; three stars fires a
-   double confetti burst that one or two stars does not.
-6. **Parent Center** — new "Reduce motion" toggle at the bottom. Switch it on
-   and replay a level: confetti should vanish, the count-up should jump
-   straight to the total, and the hero should stop bobbing.
-
-### Most likely failures
-
-- `icon_button()` label/icon overlap on Home — fractional positioning was
-  never measured against real rendered text.
-- Map row wrapping at the new button height.
-- `CPUParticles2D` property names in `juice.gd` (`scale_amount_min`,
-  `angular_velocity_min`) — correct for Godot 4.x as I understand it, but
-  unverified against 4.7 specifically.
-- Icons are drawn blind. Some almost certainly read poorly at 96px. The
-  scissors and the socket are my main suspicions.
-
-### Judgement calls made while you slept
-
-- **Stopped at three templates.** `animal_rescue` is still unbuilt. Adding a
-  fourth untested minigame would have made it harder to tell which system
-  broke, not easier.
-- **Icons drawn from primitives rather than waiting for art.** They are meant
-  to be outgrown — swapping in real textures is a data change.
-- **Words kept next to every picture.** Replacing words entirely would have
-  made the game more usable today and taught him nothing.
-- **UI/UX Pro Max not used** — it needs a Claude restart to load. Worth
-  revisiting for palette and typography once installed, but it has no Godot
-  knowledge, so expect vocabulary rather than code.

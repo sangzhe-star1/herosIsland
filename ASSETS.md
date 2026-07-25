@@ -1,3 +1,11 @@
+> **Read this first.** As of 25 July 2026 the game **draws its own world** and
+> loads no artwork at runtime — no backgrounds, no UI art, no icon files, no
+> character images. See `docs/ARCHITECTURE_REVIEW.md`. The only asset slots
+> that are still live are **fonts** and **audio**, and both are listed below.
+> Everything else in this document describes a pipeline that no longer exists;
+> it is kept because the font and audio sections are still correct and still
+> the highest-value things you can add.
+
 # Art and font shopping list
 
 > **Status update (July 2026):** much of this list is now filled in-repo —

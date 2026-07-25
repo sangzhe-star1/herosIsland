@@ -11,12 +11,14 @@ extends LevelManager
 ## why, and the child tries again. Only the star count reflects mistakes, and
 ## finishing always earns at least one star.
 
-const ROAD_TOP := 150.0
-const ROAD_BOTTOM := 520.0
+# The road takes a little over a third of the screen. It used to take half,
+# which left the town on the far side as a strip too thin to read as a place.
+const ROAD_TOP := 236.0
+const ROAD_BOTTOM := 528.0
 const CROSSWALK_LEFT := 545.0
 const CROSSWALK_RIGHT := 735.0
 const NEAR_SIDE_Y := 615.0
-const FAR_SIDE_Y := 95.0
+const FAR_SIDE_Y := 190.0
 const WALK_SECONDS := 1.7
 ## How far ahead we look for traffic when the child taps. Roughly the time the
 ## hero needs to be inside the road.
@@ -90,30 +92,63 @@ func setup_level() -> void:
 # --- construction -------------------------------------------------------
 
 func _build_scene() -> void:
-	var bg := ColorRect.new()
-	bg.color = Color(0.55, 0.75, 0.55) if not _rain else Color(0.42, 0.52, 0.50)
-	bg.size = Vector2(1280, 720)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	# The crossing is the one place in the game the camera looks DOWN a street
+	# rather than along it, so the horizon is raised to the far kerb and the
+	# scenery -- shops, lamps, trees -- lines up on the other side of the road
+	# where a child waiting to cross would actually see it.
+	var style: WorldStyle = WorldStyle.for_world(str(level_data.get("world", "safety")))
+	style.horizon = (ROAD_TOP - 26.0) / 720.0
+	style.prop_band = 0.05
+	style.ground_kind = "grass"
+	style.prop_density = 1.4
+	if _rain:
+		style.apply_config({"weather": "rain"})
+	Stage.build(self, style, str(level_data.get("id", "crossing")))
 
+	# The road itself is gameplay geometry, not scenery: the lane positions
+	# below are the same numbers the cars drive along, so it is drawn here
+	# rather than by the world.
 	var road := ColorRect.new()
-	road.color = Color(0.30, 0.30, 0.33) if not _rain else Color(0.22, 0.23, 0.27)
+	road.color = Color(0.32, 0.32, 0.36) if not _rain else Color(0.24, 0.25, 0.29)
 	road.position = Vector2(0, ROAD_TOP)
 	road.size = Vector2(1280, ROAD_BOTTOM - ROAD_TOP)
 	road.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(road)
 
-	# Zebra stripes mark the only safe place to cross.
+	# Kerbs, lit along their top edge like every other surface in the game.
+	for edge in [ROAD_TOP, ROAD_BOTTOM - 10.0]:
+		var kerb := ColorRect.new()
+		kerb.color = Color(0.80, 0.79, 0.75)
+		kerb.position = Vector2(0, edge)
+		kerb.size = Vector2(1280, 10)
+		kerb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(kerb)
+
+	# Lane divider, dashed, and never across the crossing itself.
+	var span := ROAD_BOTTOM - ROAD_TOP
+	for i in range(_lanes - 1):
+		var y: float = ROAD_TOP + span * float(i + 1) / float(_lanes)
+		var x := 20.0
+		while x < 1280.0:
+			if x + 40.0 < CROSSWALK_LEFT - 20.0 or x > CROSSWALK_RIGHT + 20.0:
+				var dash := ColorRect.new()
+				dash.color = Color(1.0, 0.94, 0.66, 0.8)
+				dash.position = Vector2(x, y - 3.0)
+				dash.size = Vector2(40, 6)
+				dash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				add_child(dash)
+			x += 74.0
+
+	# Zebra stripes mark the only safe place to cross. Rounded, like every
+	# other shape in the game -- a hard-edged rectangle here would be the one
+	# thing on screen that came from somewhere else.
 	for i in range(6):
-		var stripe := ColorRect.new()
-		stripe.color = Color(0.95, 0.95, 0.92, 0.9)
-		stripe.position = Vector2(CROSSWALK_LEFT + i * 32.0, ROAD_TOP)
-		stripe.size = Vector2(20, ROAD_BOTTOM - ROAD_TOP)
-		stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(stripe)
+		Shapes.fill(self, Shapes.rounded_rect(
+			Vector2(CROSSWALK_LEFT + float(i) * 32.0, ROAD_TOP + 4.0),
+			Vector2(20, ROAD_BOTTOM - ROAD_TOP - 8.0), 5.0),
+			Color(0.97, 0.97, 0.94, 0.92), 0.0)
 
 	_lane_ys.clear()
-	var span := ROAD_BOTTOM - ROAD_TOP
 	for i in range(_lanes):
 		_lane_ys.append(ROAD_TOP + span * (float(i) + 0.5) / float(_lanes))
 
@@ -125,8 +160,8 @@ func _build_scene() -> void:
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
 	_hero.position = Vector2(640, NEAR_SIDE_Y)
-	_hero.scale = Vector2(1.15, 1.15)
 	add_child(_hero)
+	_hero.set_height(150.0)
 
 
 func _build_traffic_light() -> void:
@@ -172,6 +207,7 @@ func _build_ui() -> void:
 	_progress = Label.new()
 	_progress.add_theme_font_size_override("font_size", 34)
 	_progress.add_theme_color_override("font_color", Color.WHITE)
+	UiKit.on_art(_progress)
 	# Right-aligned inside a fixed box that ends 24px short of the right edge,
 	# so the text grows leftward and can never run off-screen. At x=980 with no
 	# box it overflowed by 18px in every traffic level (the smoke test's one
@@ -186,6 +222,7 @@ func _build_ui() -> void:
 	_instruction.text = I18n.t("traffic.instruction")
 	_instruction.add_theme_font_size_override("font_size", 38)
 	_instruction.add_theme_color_override("font_color", Color.WHITE)
+	UiKit.on_art(_instruction)
 	_instruction.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
 	_instruction.add_theme_constant_override("outline_size", 8)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -305,6 +342,10 @@ func _tick_cars(delta: float) -> void:
 # --- the decision -------------------------------------------------------
 
 func _on_cross_pressed() -> void:
+	# Mid-hop taps wait: a walk starting while the landing is still playing
+	# left two tweens fighting over the hero's position.
+	if _hero != null and _hero.is_moving():
+		return
 	if _walking:
 		return
 
@@ -359,10 +400,15 @@ func _walk_across() -> void:
 	_cross_button.disabled = true
 	var destination := FAR_SIDE_Y if not _at_far_side else NEAR_SIDE_Y
 
+	# Legs actually walk while the crossing happens -- the rig has a walk
+	# cycle, and a hero who glides across a road is teaching levitation, not
+	# road safety.
+	_hero.walk(true)
 	var t := create_tween()
 	t.tween_property(_hero, "position:y", destination, WALK_SECONDS)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await t.finished
+	_hero.walk(false)
 
 	_at_far_side = not _at_far_side
 	_walking = false
@@ -370,7 +416,8 @@ func _walk_across() -> void:
 	_instruction.text = I18n.t("traffic.well_done")
 	AudioManager.play_voice("res://assets/audio/voice/level/well_done.ogg")
 	Juice.burst(self, _hero.position)
-	_hero.celebrate()
+	# A little hop on the safe kerb: relief with feet.
+	_hero.hop()
 	score_correct()
 	_update_progress()
 

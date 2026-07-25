@@ -13,8 +13,11 @@ extends RefCounted
 ## tonight with nothing to download. Swapping in real artwork later means
 ## pointing `icon` at a texture; nothing else changes.
 
-const OUTLINE := Color(0.10, 0.14, 0.20, 0.55)
 
+## Every icon is drawn through Shapes, which is what makes a 96px teddy on a
+## sorting bin and a 400px tree in the background look like they were drawn by
+## the same hand: same outline colour, same weight for their size, same light
+## direction, same rounding.
 
 ## Returns a Control drawing `name`, or null if there is no icon for it.
 ## Callers fall back to their text label when null comes back.
@@ -31,27 +34,35 @@ static func build(icon_name: String, size: float = 96.0) -> Control:
 
 
 static func has(icon_name: String) -> bool:
-	return icon_name in [
-		"teddy", "ball", "blocks", "picture_book", "comic", "socks", "tshirt",
-		"hat", "knife", "matches", "scissors", "medicine", "socket", "crayon",
-		"pillow", "bandage", "plaster", "berries", "fish", "carrot", "blanket",
-		"scarf",
-		# abstract, used on bins rather than items
-		"check", "warning",
-		# navigation, so the home screen and map can be read without words
-		"flag", "house", "gear", "star", "car", "spark", "sort", "paw",
-		"monster",
-	]
+	return icon_name in NAMES
+
+
+const NAMES := [
+	# sorting items
+	"teddy", "ball", "blocks", "picture_book", "comic", "socks", "tshirt",
+	"hat", "knife", "matches", "scissors", "medicine", "socket", "crayon",
+	"pillow", "bandage", "plaster", "berries", "fish", "carrot", "blanket",
+	"scarf",
+	# abstract, used on bins rather than items
+	"check", "warning",
+	# navigation and status, so every screen can be read without words
+	"flag", "house", "home", "gear", "star", "star_empty", "car", "spark",
+	"sort", "paw", "monster", "lock", "coin", "heart", "shield", "lightning",
+	"orb", "rock", "sound_on", "sound_off", "retry", "pause", "chest", "moon",
+	# badge pictures: every award a child can earn has a face of its own
+	"eye", "umbrella", "magnifier", "compass", "leaf", "music", "medal",
+	"traffic_light",
+]
 
 
 # --- primitive helpers --------------------------------------------------
 
 static func _circle(parent: Control, centre: Vector2, radius: float, color: Color) -> void:
-	var points := PackedVector2Array()
-	for i in range(20):
-		var a: float = TAU * float(i) / 20.0
-		points.append(centre + Vector2(cos(a), sin(a)) * radius)
-	_poly(parent, points, color)
+	Shapes.fill(parent, Shapes.circle_points(centre, radius), color, 1.0)
+
+
+static func _lit_circle(parent: Control, centre: Vector2, radius: float, color: Color) -> void:
+	Shapes.lit(parent, Shapes.circle_points(centre, radius), color, 1.0)
 
 
 static func _rect(parent: Control, at: Vector2, box: Vector2, color: Color,
@@ -67,22 +78,19 @@ static func _rect(parent: Control, at: Vector2, box: Vector2, color: Color,
 	_poly(parent, points, color)
 
 
-static func _poly(parent: Control, points: PackedVector2Array, color: Color) -> void:
-	var polygon := Polygon2D.new()
-	polygon.polygon = points
-	polygon.color = color
-	parent.add_child(polygon)
+## Rounded box. Preferred over _rect for anything a child looks at directly --
+## nothing in this game has a sharp corner unless it means to.
+static func _round_rect(parent: Control, at: Vector2, box: Vector2, color: Color,
+		radius: float = -1.0) -> void:
+	Shapes.fill(parent, Shapes.rounded_rect(at - box / 2.0, box, radius), color, 1.0)
 
-	var outline := Line2D.new()
-	outline.points = points
-	outline.closed = true
-	outline.width = 2.5
-	outline.default_color = OUTLINE
-	parent.add_child(outline)
+
+static func _poly(parent: Control, points: PackedVector2Array, color: Color) -> void:
+	Shapes.fill(parent, points, color, 1.0)
 
 
 static func _tri(parent: Control, a: Vector2, b: Vector2, c: Vector2, color: Color) -> void:
-	_poly(parent, PackedVector2Array([a, b, c]), color)
+	Shapes.fill(parent, PackedVector2Array([a, b, c]), color, 1.0)
 
 
 # --- the icons ----------------------------------------------------------
@@ -204,7 +212,7 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				c + Vector2(-s * 0.19, -s * 0.28), c + Vector2(s * 0.30, -s * 0.16),
 				c + Vector2(-s * 0.19, -s * 0.04),
 			]), Color(0.88, 0.34, 0.32))
-		"house":
+		"house", "home":
 			_tri(p, c + Vector2(0, -s * 0.34), c + Vector2(s * 0.38, -s * 0.02),
 				c + Vector2(-s * 0.38, -s * 0.02), Color(0.84, 0.38, 0.32))
 			_rect(p, c + Vector2(0, s * 0.16), Vector2(s * 0.56, s * 0.36), Color(0.96, 0.90, 0.78))
@@ -217,12 +225,8 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 			_circle(p, c, s * 0.24, Color(0.64, 0.68, 0.74))
 			_circle(p, c, s * 0.10, Color(0.34, 0.38, 0.44))
 		"star":
-			var pts := PackedVector2Array()
-			for i in range(10):
-				var ang: float = -PI / 2.0 + TAU * float(i) / 10.0
-				var r: float = s * 0.38 if i % 2 == 0 else s * 0.17
-				pts.append(c + Vector2(cos(ang), sin(ang)) * r)
-			_poly(p, pts, Color(1.0, 0.80, 0.18))
+			Shapes.lit(p, Shapes.star_points(c, s * 0.40, 0.44, 5),
+				Color(1.0, 0.80, 0.18), 1.0)
 		"car":
 			_rect(p, c + Vector2(0, s * 0.02), Vector2(s * 0.66, s * 0.22), Color(0.32, 0.58, 0.86))
 			_poly(p, PackedVector2Array([
@@ -273,6 +277,228 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				_tri(p, c + Vector2(dx * s * 0.10 - s * 0.03, s * 0.18),
 					c + Vector2(dx * s * 0.10 + s * 0.03, s * 0.18),
 					c + Vector2(dx * s * 0.10, s * 0.24), Color(0.99, 0.99, 0.95))
+		"lock":
+			_round_rect(p, c + Vector2(0, s * 0.14), Vector2(s * 0.56, s * 0.42),
+				Color(0.98, 0.82, 0.32), s * 0.10)
+			# The shackle, drawn as a ring with the bottom hidden behind the body.
+			var shackle := PackedVector2Array()
+			for i in range(13):
+				var a: float = PI + PI * float(i) / 12.0
+				shackle.append(c + Vector2(cos(a), sin(a)) * s * 0.19 + Vector2(0, -s * 0.08))
+			for i in range(12, -1, -1):
+				var a2: float = PI + PI * float(i) / 12.0
+				shackle.append(c + Vector2(cos(a2), sin(a2)) * s * 0.11 + Vector2(0, -s * 0.08))
+			_poly(p, shackle, Color(0.72, 0.75, 0.80))
+			_circle(p, c + Vector2(0, s * 0.12), s * 0.06, Color(0.42, 0.34, 0.16))
+		"coin":
+			_lit_circle(p, c, s * 0.34, Color(1.0, 0.80, 0.24))
+			_circle(p, c, s * 0.24, Color(1.0, 0.88, 0.42))
+			_poly(p, Shapes.star_points(c, s * 0.16, 0.45, 5), Color(0.94, 0.68, 0.16))
+		"heart":
+			_poly(p, PackedVector2Array([
+				c + Vector2(0, s * 0.34), c + Vector2(-s * 0.36, -s * 0.04),
+				c + Vector2(-s * 0.30, -s * 0.24), c + Vector2(-s * 0.14, -s * 0.28),
+				c + Vector2(0, -s * 0.14), c + Vector2(s * 0.14, -s * 0.28),
+				c + Vector2(s * 0.30, -s * 0.24), c + Vector2(s * 0.36, -s * 0.04),
+			]), Color(0.90, 0.34, 0.40))
+		"shield":
+			Shapes.lit(p, PackedVector2Array([
+				c + Vector2(0, -s * 0.36), c + Vector2(s * 0.30, -s * 0.22),
+				c + Vector2(s * 0.26, s * 0.12), c + Vector2(0, s * 0.38),
+				c + Vector2(-s * 0.26, s * 0.12), c + Vector2(-s * 0.30, -s * 0.22),
+			]), Color(0.34, 0.58, 0.86), 1.0)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.16, -s * 0.02), c + Vector2(-s * 0.05, s * 0.10),
+				c + Vector2(s * 0.17, -s * 0.16), c + Vector2(s * 0.21, -s * 0.05),
+				c + Vector2(-s * 0.04, s * 0.22), c + Vector2(-s * 0.21, s * 0.03),
+			]), Color(0.98, 0.99, 0.98))
+		"lightning":
+			_poly(p, PackedVector2Array([
+				c + Vector2(s * 0.06, -s * 0.38), c + Vector2(-s * 0.22, s * 0.06),
+				c + Vector2(-s * 0.02, s * 0.04), c + Vector2(-s * 0.08, s * 0.38),
+				c + Vector2(s * 0.22, -s * 0.06), c + Vector2(s * 0.02, -s * 0.04),
+			]), Color(1.0, 0.82, 0.24))
+		"orb":
+			Shapes.glow(p, c, s * 0.52, Color(0.55, 0.88, 1.0), 5, 0.5)
+			_lit_circle(p, c, s * 0.28, Color(0.55, 0.86, 1.0))
+			Shapes.fill(p, Shapes.oval_points(c + Vector2(-s * 0.09, -s * 0.10),
+				Vector2(s * 0.08, s * 0.05), 12), Color(1, 1, 1, 0.8), 0.0)
+		"rock":
+			Shapes.lit(p, PackedVector2Array([
+				c + Vector2(-s * 0.34, s * 0.16), c + Vector2(-s * 0.22, -s * 0.20),
+				c + Vector2(s * 0.06, -s * 0.32), c + Vector2(s * 0.30, -s * 0.10),
+				c + Vector2(s * 0.32, s * 0.16), c + Vector2(0, s * 0.28),
+			]), Color(0.58, 0.58, 0.64), 1.0)
+		"sound_on", "sound_off":
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.30, -s * 0.10), c + Vector2(-s * 0.14, -s * 0.10),
+				c + Vector2(s * 0.02, -s * 0.30), c + Vector2(s * 0.02, s * 0.30),
+				c + Vector2(-s * 0.14, s * 0.10), c + Vector2(-s * 0.30, s * 0.10),
+			]), Color(0.42, 0.46, 0.56))
+			if icon_name == "sound_on":
+				for i in range(2):
+					var ring := PackedVector2Array()
+					var rr: float = s * (0.16 + 0.11 * float(i))
+					for k in range(9):
+						var aa: float = -PI * 0.34 + PI * 0.68 * float(k) / 8.0
+						ring.append(c + Vector2(s * 0.06, 0) + Vector2(cos(aa), sin(aa)) * rr)
+					var line := Line2D.new()
+					line.points = ring
+					line.width = maxf(2.0, s * 0.045)
+					line.default_color = Color(0.42, 0.46, 0.56)
+					line.antialiased = true
+					p.add_child(line)
+			else:
+				for sign in [-1.0, 1.0]:
+					_rect(p, c + Vector2(s * 0.22, 0), Vector2(s * 0.26, s * 0.07),
+						Color(0.86, 0.34, 0.32), sign * 0.78)
+		"retry":
+			var arc := PackedVector2Array()
+			for i in range(17):
+				var a3: float = -PI * 0.35 + TAU * 0.82 * float(i) / 16.0
+				arc.append(c + Vector2(cos(a3), sin(a3)) * s * 0.28)
+			var stroke := Line2D.new()
+			stroke.points = arc
+			stroke.width = maxf(3.0, s * 0.10)
+			stroke.default_color = Color(0.34, 0.60, 0.86)
+			stroke.joint_mode = Line2D.LINE_JOINT_ROUND
+			stroke.antialiased = true
+			p.add_child(stroke)
+			_tri(p, c + Vector2(s * 0.34, -s * 0.28), c + Vector2(s * 0.10, -s * 0.24),
+				c + Vector2(s * 0.28, -s * 0.02), Color(0.34, 0.60, 0.86))
+		"pause":
+			for dx in [-0.13, 0.13]:
+				_round_rect(p, c + Vector2(s * dx, 0), Vector2(s * 0.13, s * 0.46),
+					Color(0.42, 0.46, 0.56), s * 0.05)
+		"chest":
+			_round_rect(p, c + Vector2(0, s * 0.16), Vector2(s * 0.66, s * 0.32),
+				Color(0.64, 0.44, 0.26), s * 0.06)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.33, -s * 0.01), c + Vector2(-s * 0.26, -s * 0.24),
+				c + Vector2(s * 0.26, -s * 0.24), c + Vector2(s * 0.33, -s * 0.01),
+			]), Color(0.76, 0.52, 0.30))
+			_round_rect(p, c + Vector2(0, s * 0.02), Vector2(s * 0.14, s * 0.18),
+				Color(1.0, 0.82, 0.30), s * 0.04)
+		"traffic_light":
+			# Safety, as the one object every one of those levels is about. A
+			# bare tick was used here before and it is drawn near-white, so on
+			# a cream card it vanished -- the exact failure this screen was
+			# being fixed for.
+			_rect(p, c + Vector2(0, s * 0.34), Vector2(s * 0.07, s * 0.24),
+				Color(0.42, 0.44, 0.52))
+			_round_rect(p, c + Vector2(0, -s * 0.06), Vector2(s * 0.40, s * 0.62),
+				Color(0.30, 0.32, 0.40), s * 0.10)
+			for i in range(3):
+				var lamp: Color = [Color(0.92, 0.32, 0.30), Color(1.0, 0.82, 0.28),
+					Color(0.34, 0.76, 0.44)][i]
+				Shapes.fill(p, Shapes.circle_points(
+					c + Vector2(0, -s * 0.24 + float(i) * s * 0.18), s * 0.075, 12), lamp, 0.0)
+		"eye":
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.40, 0),
+				c + Vector2(-s * 0.18, -s * 0.22), c + Vector2(0, -s * 0.26),
+				c + Vector2(s * 0.18, -s * 0.22), c + Vector2(s * 0.40, 0),
+				c + Vector2(s * 0.18, s * 0.22), c + Vector2(0, s * 0.26),
+				c + Vector2(-s * 0.18, s * 0.22),
+			]), Color(0.98, 0.98, 0.96))
+			_circle(p, c, s * 0.17, Color(0.32, 0.60, 0.86))
+			_circle(p, c, s * 0.08, Color(0.13, 0.13, 0.18))
+			Shapes.fill(p, Shapes.circle_points(c + Vector2(-s * 0.06, -s * 0.06),
+				s * 0.05, 10), Color(1, 1, 1, 0.9), 0.0)
+		"umbrella":
+			var dome := PackedVector2Array()
+			for i in range(13):
+				var au: float = PI + PI * float(i) / 12.0
+				dome.append(c + Vector2(cos(au), sin(au)) * s * 0.40 + Vector2(0, s * 0.04))
+			# A scalloped hem, which is what stops a half-circle reading as a hill.
+			for i in range(4):
+				var t: float = 1.0 - float(i) / 3.0
+				dome.append(c + Vector2(lerpf(-s * 0.40, s * 0.40, t), s * 0.04)
+					+ Vector2(0, sin(t * PI * 3.0) * s * 0.05))
+			_poly(p, dome, Color(0.88, 0.36, 0.38))
+			_rect(p, c + Vector2(0, s * 0.22), Vector2(s * 0.05, s * 0.38),
+				Color(0.60, 0.46, 0.32))
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.14, s * 0.40), c + Vector2(-s * 0.12, s * 0.32),
+				c + Vector2(-s * 0.02, s * 0.34), c + Vector2(-s * 0.02, s * 0.42),
+			]), Color(0.60, 0.46, 0.32))
+		"magnifier":
+			_circle(p, c + Vector2(-s * 0.06, -s * 0.08), s * 0.24, Color(0.72, 0.90, 0.98))
+			var rim := Line2D.new()
+			rim.points = Shapes.circle_points(c + Vector2(-s * 0.06, -s * 0.08), s * 0.24, 22)
+			rim.closed = true
+			rim.width = maxf(3.0, s * 0.075)
+			rim.default_color = Color(0.36, 0.40, 0.50)
+			rim.antialiased = true
+			p.add_child(rim)
+			_rect(p, c + Vector2(s * 0.20, s * 0.20), Vector2(s * 0.10, s * 0.30),
+				Color(0.52, 0.40, 0.28), -0.78)
+			Shapes.fill(p, Shapes.oval_points(c + Vector2(-s * 0.14, -s * 0.16),
+				Vector2(s * 0.08, s * 0.05), 12), Color(1, 1, 1, 0.85), 0.0)
+		"compass":
+			_lit_circle(p, c, s * 0.36, Color(0.94, 0.93, 0.90))
+			_circle(p, c, s * 0.28, Color(0.34, 0.58, 0.82))
+			_poly(p, PackedVector2Array([
+				c + Vector2(0, -s * 0.24), c + Vector2(s * 0.10, 0), c + Vector2(0, s * 0.24),
+				c + Vector2(-s * 0.10, 0),
+			]), Color(0.98, 0.98, 0.96))
+			_tri(p, c + Vector2(0, -s * 0.24), c + Vector2(s * 0.10, 0),
+				c + Vector2(-s * 0.10, 0), Color(0.90, 0.32, 0.30))
+			_circle(p, c, s * 0.05, Color(0.30, 0.30, 0.36))
+		"leaf":
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.30, s * 0.30), c + Vector2(-s * 0.24, -s * 0.10),
+				c + Vector2(0, -s * 0.34), c + Vector2(s * 0.28, -s * 0.20),
+				c + Vector2(s * 0.20, s * 0.12), c + Vector2(-s * 0.06, s * 0.30),
+			]), Color(0.36, 0.68, 0.38))
+			var vein := Line2D.new()
+			vein.points = PackedVector2Array([
+				c + Vector2(-s * 0.26, s * 0.28), c + Vector2(-s * 0.04, s * 0.02),
+				c + Vector2(s * 0.18, -s * 0.20),
+			])
+			vein.width = maxf(2.0, s * 0.05)
+			vein.default_color = Color(0.24, 0.50, 0.28)
+			vein.antialiased = true
+			p.add_child(vein)
+		"music":
+			_circle(p, c + Vector2(-s * 0.16, s * 0.22), s * 0.13, Color(0.52, 0.42, 0.78))
+			_circle(p, c + Vector2(s * 0.22, s * 0.12), s * 0.13, Color(0.52, 0.42, 0.78))
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.05, s * 0.24), c + Vector2(-s * 0.05, -s * 0.28),
+				c + Vector2(s * 0.33, -s * 0.36), c + Vector2(s * 0.33, s * 0.14),
+				c + Vector2(s * 0.24, s * 0.14), c + Vector2(s * 0.24, -s * 0.24),
+				c + Vector2(s * 0.04, -s * 0.20), c + Vector2(s * 0.04, s * 0.24),
+			]), Color(0.40, 0.32, 0.64))
+		"medal":
+			for side in [-1.0, 1.0]:
+				_poly(p, PackedVector2Array([
+					c + Vector2(side * s * 0.06, -s * 0.34),
+					c + Vector2(side * s * 0.26, -s * 0.34),
+					c + Vector2(side * s * 0.20, s * 0.02),
+					c + Vector2(side * s * 0.02, s * 0.02),
+				]), Color(0.86, 0.32, 0.32) if side < 0.0 else Color(0.34, 0.54, 0.84))
+			_lit_circle(p, c + Vector2(0, s * 0.14), s * 0.26, Color(1.0, 0.80, 0.24))
+			_poly(p, Shapes.star_points(c + Vector2(0, s * 0.14), s * 0.15, 0.44, 5),
+				Color(1.0, 0.94, 0.62))
+		"moon":
+			# A crescent: the full disc with a second disc bitten out of it.
+			# Drawn as one polygon so it outlines like everything else, rather
+			# than as a light circle with a background-coloured circle on top,
+			# which only works over one background.
+			var crescent := PackedVector2Array()
+			for i in range(20):
+				var a4: float = -PI * 0.5 + PI * float(i) / 19.0
+				crescent.append(c + Vector2(cos(a4), sin(a4)) * s * 0.36)
+			for i in range(19, -1, -1):
+				var a5: float = -PI * 0.5 + PI * float(i) / 19.0
+				crescent.append(c + Vector2(-s * 0.14, 0)
+					+ Vector2(cos(a5), sin(a5)) * s * 0.34)
+			Shapes.lit(p, crescent, Color(0.99, 0.94, 0.68), 1.0)
+			for star_at in [Vector2(0.24, -0.26), Vector2(0.32, 0.06), Vector2(0.14, 0.30)]:
+				_poly(p, Shapes.star_points(c + (star_at as Vector2) * s, s * 0.07, 0.4, 4),
+					Color(1.0, 0.88, 0.42))
+		"star_empty":
+			_poly(p, Shapes.star_points(c, s * 0.38, 0.44, 5), Color(0.86, 0.87, 0.90))
 		_:
 			return false
 	return true

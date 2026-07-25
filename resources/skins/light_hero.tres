@@ -6,8 +6,13 @@
 script = ExtResource("1")
 id = "light_hero"
 display_name_key = "character.light_hero"
-body_color = Color(0.87, 0.89, 0.92, 1)
-accent_color = Color(0.91, 0.27, 0.27, 1)
+build_width = 76.0
+crest_kind = "twin"
+chest_pattern = "bands"
+body_color = Color(0.9, 0.92, 0.95, 1)
+accent_color = Color(0.91, 0.29, 0.3, 1)
+trim_color = Color(1, 0.84, 0.35, 1)
+eye_color = Color(1, 0.95, 0.66, 1)
 core_color = Color(0.35, 0.88, 1, 1)
 voice_dir = "res://assets/audio/voice/light_hero/"
 body_size = Vector2(64, 96)

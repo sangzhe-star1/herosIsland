@@ -1,21 +1,18 @@
-[gd_resource type="Resource" script_class="CharacterSkin" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/skin/character_skin.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/characters/zero/hero_idle.png" id="2"]
-[ext_resource type="Texture2D" path="res://assets/characters/zero/hero_cheer.png" id="3"]
-[ext_resource type="Texture2D" path="res://assets/characters/zero/hero_portrait.png" id="4"]
 
 [resource]
 script = ExtResource("1")
 id = "zero"
 display_name_key = "character.zero"
-idle_texture = ExtResource("2")
-cheer_texture = ExtResource("3")
-portrait = ExtResource("4")
-body_color = Color(0.87, 0.89, 0.92, 1)
-accent_color = Color(0.2, 0.4, 0.85, 1)
-core_color = Color(0.35, 0.88, 1, 1)
-core_offset = Vector2(-9, -100)
-core_radius = 14.0
+build_width = 74.0
+crest_kind = "horns"
+chest_pattern = "blade"
+body_color = Color(0.87, 0.89, 0.93, 1)
+accent_color = Color(0.22, 0.42, 0.86, 1)
+trim_color = Color(0.9, 0.32, 0.3, 1)
+eye_color = Color(0.82, 0.97, 1, 1)
+core_color = Color(0.45, 0.95, 1, 1)
 voice_dir = "res://assets/audio/voice/zero/"
 body_size = Vector2(64, 96)

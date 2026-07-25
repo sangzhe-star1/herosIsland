@@ -79,21 +79,7 @@ func _build_scene(config: Dictionary) -> void:
 	_play_area.theme = UiKit.theme()
 	layer.add_child(_play_area)
 
-	var bg := ColorRect.new()
-	bg.color = Color.from_string(str(config.get("background", "#101c33")), Color(0.06, 0.11, 0.2))
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(bg)
-
-	var art_path: String = str(config.get("background_art", "res://assets/backgrounds/city.png"))
-	if ResourceLoader.exists(art_path):
-		var art := TextureRect.new()
-		art.texture = load(art_path)
-		art.set_anchors_preset(Control.PRESET_FULL_RECT)
-		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play_area.add_child(art)
+	build_world(_play_area)
 
 	# The monster, on the city side it is bothering.
 	_monster = preload("res://scripts/battle/monster.gd").new()
@@ -105,10 +91,10 @@ func _build_scene(config: Dictionary) -> void:
 	# The hero, facing it. Same skin the child chose in the Hero House.
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
-	_hero.position = Vector2(250, 555)
-	_hero.scale = Vector2(1.5, 1.5)
+	_hero.position = Vector2(250, GROUND_Y)
 	_play_area.add_child(_hero)
-	Juice.idle_bob(_hero)
+	_hero.set_height(320.0)
+	_hero.entrance(340.0, 0.15)
 
 	var back := UiKit.back_button(func(): quit_level())
 	back.position = Vector2(24, 24)
@@ -118,6 +104,7 @@ func _build_scene(config: Dictionary) -> void:
 	_instruction.text = I18n.t(str(config.get("instruction_key", "battle.instruction")))
 	_instruction.add_theme_font_size_override("font_size", 36)
 	_instruction.add_theme_color_override("font_color", Palette.ON_COLOR)
+	UiKit.on_art(_instruction)
 	_instruction.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.75))
 	_instruction.add_theme_constant_override("outline_size", 8)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

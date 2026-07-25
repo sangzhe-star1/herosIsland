@@ -63,12 +63,7 @@ func _build_ui(config: Dictionary) -> void:
 	_play_area.theme = UiKit.theme()
 	layer.add_child(_play_area)
 
-	var bg := ColorRect.new()
-	bg.color = Color.from_string(str(config.get("background", "#cfe6d2")), Color(0.81, 0.90, 0.82))
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(bg)
-	UiKit.scene_art(_play_area, config)
+	build_world(_play_area, 0.25)
 
 	var back := UiKit.back_button(func(): quit_level())
 	back.position = Vector2(24, 24)

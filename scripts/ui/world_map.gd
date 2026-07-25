@@ -1,276 +1,294 @@
 extends Control
-## Growth Island. Every world and level is drawn from data/levels.json --
-## adding a level here means adding a JSON entry, never editing this file.
+## Growth Island: the island itself, with the levels standing on it.
 ##
-## Styled the way the good children's apps do it (BabyBus, Toca Boca, Khan
-## Kids): the scene art carries the mood, the chrome sits on top as bright
-## rounded cards with white outlined text, a padlock BADGE marks locked
-## levels instead of a word, and progress is a bar that fills plus stars to
-## collect -- everything readable with zero reading.
+## Every world and level is drawn from data/levels.json -- adding a level here
+## means adding a JSON entry, never editing this file. The island grows a new
+## marker, the path bends to include it, and the coastline stretches to fit.
+##
+## Why this is a map now and not a list: this is the only screen that shows a
+## child the shape of the whole game. A stack of panels says "here are some
+## categories". One island with a path running along it says "you started
+## there, you are here, and the road keeps going" -- which is the entire
+## motivation structure of a level-based game, delivered without a word.
+##
+## The screen opens scrolled to whichever level is next, so a child never has
+## to go looking for their place.
+
+const MARKER := 148.0
+
+var _island: IslandMap
+var _scroll: ScrollContainer
+var _frontier_x := 0.0
+
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.background(self, Palette.MEADOW, "res://assets/backgrounds/map.png")
+	# Sea and sky behind the island, so the edges of the scroll never show a
+	# bare background colour.
+	UiKit.world_background(self, "island", "map")
 
-	var root := UiKit.screen_root(self)
-	root.add_theme_constant_override("separation", 12)
-
-	var header := HBoxContainer.new()
-	header.add_child(UiKit.back_button(func(): SceneManager.goto_home()))
-	var title := UiKit.title_on_art(I18n.t("map.title"), 52)
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(title)
-	var stars := UiKit.title_on_art(I18n.t("map.stars") % SaveManager.total_stars(), 36)
-	stars.custom_minimum_size = Vector2(220, 0)
-	header.add_child(stars)
-	root.add_child(header)
-
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root.add_child(scroll)
-
-	var list := VBoxContainer.new()
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.add_theme_constant_override("separation", 24)
-	scroll.add_child(list)
+	_scroll = ScrollContainer.new()
+	_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	add_child(_scroll)
 
 	var worlds: Array = GameData.worlds.duplicate()
 	worlds.sort_custom(func(a, b): return int(a.get("order", 0)) < int(b.get("order", 0)))
-	var section_index := 0
+
+	var levels_by_world := {}
 	for world in worlds:
-		var section := _build_world_section(world)
-		list.add_child(section)
-		# Islands drift in one after another instead of appearing as a wall.
-		if Juice.motion_enabled():
-			section.modulate.a = 0.0
-			var t := section.create_tween()
-			t.tween_interval(0.07 * float(section_index))
-			t.tween_property(section, "modulate:a", 1.0, 0.25)
-		section_index += 1
+		levels_by_world[str(world.get("id", ""))] = GameData.get_levels_for_world(
+			str(world.get("id", "")))
+
+	_island = IslandMap.new()
+	_island.build(worlds, levels_by_world)
+
+	var canvas := Control.new()
+	canvas.custom_minimum_size = _island.canvas_size()
+	canvas.mouse_filter = Control.MOUSE_FILTER_PASS
+	canvas.add_child(_island)
+	_scroll.add_child(canvas)
+
+	for world in worlds:
+		var levels: Array = levels_by_world.get(str(world.get("id", "")), [])
+		_add_region_banner(canvas, world, levels)
+		_add_markers(canvas, world, levels)
+
+	_add_header()
+	# Wait for layout before scrolling: the scroll bar has no range until the
+	# canvas has been sized.
+	call_deferred("_scroll_to_frontier")
 
 
-func _build_world_section(world: Dictionary) -> Control:
-	var world_color := Color.from_string(world.get("color", "#888888"), Color.GRAY)
+## The header floats over the island rather than pushing it down, so the map
+## keeps the full height of the screen.
+func _add_header() -> void:
+	var bar := HBoxContainer.new()
+	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	bar.offset_left = 24
+	bar.offset_right = -24
+	bar.offset_top = 20
+	bar.add_theme_constant_override("separation", 16)
+	add_child(bar)
 
-	var panel := PanelContainer.new()
-	# The bundle's navy panel, tinted faintly toward the world's colour so the
-	# five islands stay tellable-apart at a glance. Flat translucent fallback.
-	var style: StyleBox = UiKit.texture_style(
-		"res://assets/ui/panel.png", 46.0, 22.0, world_color.lerp(Color.WHITE, 0.55))
-	if style == null:
-		var flat := StyleBoxFlat.new()
-		flat.bg_color = world_color
-		flat.bg_color.a = 0.28
-		flat.set_corner_radius_all(24)
-		flat.set_content_margin_all(20)
-		style = flat
-	panel.add_theme_stylebox_override("panel", style)
+	bar.add_child(UiKit.back_button(func(): SceneManager.goto_home()))
 
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	panel.add_child(box)
+	var title := UiKit.title_on_art(I18n.t("map.title"), 48)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(title)
 
-	# Header: world name, per-world star tally, and a progress bar that fills
-	# as stars are earned -- which island still has treasure left in it is
-	# visible from across the room.
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 12)
+	var tally := UiKit.card(Color(1.0, 0.99, 0.96, 0.94))
+	tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tally_row := HBoxContainer.new()
+	tally_row.add_theme_constant_override("separation", 8)
+	tally_row.add_child(UiKit.star(true, 38))
+	var count := Label.new()
+	count.text = str(SaveManager.total_stars())
+	count.add_theme_font_size_override("font_size", 34)
+	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tally_row.add_child(count)
+	tally.add_child(tally_row)
+	bar.add_child(tally)
 
-	var name_label := UiKit.title_on_art(I18n.t(world.get("name_key", "")), 40)
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(name_label)
 
-	var world_levels: Array = GameData.get_levels_for_world(world.get("id", ""))
+## A world's name on a signpost planted in its own stretch of coast, with the
+## stars still to be found there. Replaces the panel that used to wrap a whole
+## world and, in doing so, cut it off from the rest of the island.
+func _add_region_banner(canvas: Control, world: Dictionary, levels: Array) -> void:
+	var world_id: String = str(world.get("id", ""))
+	var tint := Color.from_string(str(world.get("color", "#888888")), Color.GRAY)
+	var at: Vector2 = _island.region_centre(world_id)
+
 	var earned := 0
-	for level in world_levels:
-		earned += int(SaveManager.get_level_progress(level.get("id", "")).get("stars", 0))
-	var possible: int = world_levels.size() * 3
+	for level in levels:
+		earned += int(SaveManager.get_level_progress(str(level.get("id", ""))).get("stars", 0))
+	var possible: int = levels.size() * 3
 
-	header.add_child(UiKit.star(earned > 0, 40))
-	var tally := UiKit.title_on_art("%d / %d" % [earned, possible], 30)
-	tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	header.add_child(tally)
-	box.add_child(header)
+	# A fixed-size holder. A PanelContainer dropped straight onto a plain
+	# Control grows to the parent's size, and the parent here is the whole
+	# island -- which is how the first version got signposts 720px tall.
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(240, 116)
+	holder.size = Vector2(240, 116)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	box.add_child(_progress_bar(earned, possible))
-
-	var row := HFlowContainer.new()
-	row.add_theme_constant_override("h_separation", 16)
-	row.add_theme_constant_override("v_separation", 16)
-	box.add_child(row)
-
-	for level in world_levels:
-		row.add_child(_build_level_button(level))
-
-	# When every arena monster has been befriended, they come back to wave
-	# from the panel header -- the reward for finishing a world is getting to
-	# SEE that its story ended happily.
-	if str(world.get("id", "")) == "monster_arena":
-		_maybe_add_parade(header, world_levels)
-
-	return panel
-
-
-func _maybe_add_parade(header: HBoxContainer, world_levels: Array) -> void:
-	for level in world_levels:
-		if not SaveManager.get_level_progress(str(level.get("id", ""))).get("completed", false):
-			return
-	var monsters := [
-		{"id": "rocky", "body_color": "#d98a4a", "belly_color": "#f2c489", "accent_color": "#a8632f",
-			"height": 300, "width": 0.85, "horns": 1, "eyes": 2, "spikes": 0},
-		{"id": "blobbi", "body_color": "#7ec66a", "belly_color": "#b9e6a5", "accent_color": "#4f9e4a",
-			"height": 270, "width": 0.95, "horns": 0, "eyes": 3, "spikes": 0},
-		{"id": "spikelor", "body_color": "#8a5fc9", "belly_color": "#c9aef2", "accent_color": "#5e3f96",
-			"height": 330, "width": 0.88, "horns": 2, "eyes": 2, "spikes": 5},
-	]
-	for config in monsters:
-		var holder := Control.new()
-		holder.custom_minimum_size = Vector2(64, 76)
-		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var monster: Node2D = preload("res://scripts/battle/monster.gd").new()
-		monster.position = Vector2(32, 74)
-		monster.scale = Vector2.ONE * (66.0 / float(config["height"]))
-		holder.add_child(monster)
-		monster.build(config)
-		header.add_child(holder)
-
-
-## The bundle's progress frame and fill as a real bar; plain styleboxes when
-## the art is missing. Godot draws the fill inside the background's content
-## margins, so the frame's border width doubles as the fill inset.
-func _progress_bar(earned: int, possible: int) -> ProgressBar:
-	var bar := ProgressBar.new()
-	bar.max_value = maxf(float(possible), 1.0)
-	bar.value = float(earned)
-	bar.show_percentage = false
-	bar.custom_minimum_size = Vector2(0, 30)
-
-	var frame: StyleBox = UiKit.texture_style("res://assets/ui/progress_frame.png", 24.0, 7.0)
-	var fill: StyleBox = UiKit.texture_style("res://assets/ui/progress_fill.png", 18.0, 0.0)
-	if frame == null or fill == null:
-		var back := StyleBoxFlat.new()
-		back.bg_color = Color(0.08, 0.12, 0.22, 0.55)
-		back.set_corner_radius_all(15)
-		back.set_content_margin_all(5)
-		frame = back
-		var flat_fill := StyleBoxFlat.new()
-		flat_fill.bg_color = Palette.STAR_ON
-		flat_fill.set_corner_radius_all(10)
-		fill = flat_fill
-	bar.add_theme_stylebox_override("background", frame)
-	bar.add_theme_stylebox_override("fill", fill)
-	return bar
-
-
-func _build_level_button(level: Dictionary) -> Control:
-	var level_id: String = level.get("id", "")
-	var progress := SaveManager.get_level_progress(level_id)
-	var unlocked := SaveManager.is_level_unlocked(level_id)
-	var scene_path := GameData.get_minigame_scene(level.get("game_type", ""))
-	var implemented := scene_path != "" and ResourceLoader.exists(scene_path)
-	var playable := implemented and unlocked
+	var sign_post := PanelContainer.new()
+	sign_post.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var style := UiKit.panel_style(tint.lerp(Color(1.0, 0.99, 0.96), 0.72), 20)
+	style.border_width_bottom = 6
+	style.border_color = tint.darkened(0.25)
+	style.set_content_margin_all(14)
+	sign_post.add_theme_stylebox_override("panel", style)
+	sign_post.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var column := VBoxContainer.new()
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.add_theme_constant_override("separation", 4)
+	sign_post.add_child(column)
 
-	var label := I18n.t(level.get("name_key", ""))
-	if not implemented:
-		label += "\n(" + I18n.t("common.coming_soon") + ")"
+	var name_label := Label.new()
+	name_label.text = I18n.t(str(world.get("name_key", "")))
+	name_label.add_theme_font_size_override("font_size", 28)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(name_label)
 
-	# The picture tells a pre-reader what kind of game this is before they can
-	# read its name -- and a padlock, not a word, says "not yet".
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 6)
+	row.add_child(UiKit.star(earned > 0, 30))
+	var tally := Label.new()
+	tally.text = "%d / %d" % [earned, possible]
+	tally.add_theme_font_size_override("font_size", 24)
+	tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(tally)
+	column.add_child(row)
+
+	holder.add_child(sign_post)
+	canvas.add_child(holder)
+	holder.position = at - Vector2(120, 130)
+
+
+func _add_markers(canvas: Control, world: Dictionary, levels: Array) -> void:
+	var world_id: String = str(world.get("id", ""))
+	for i in range(levels.size()):
+		var marker := _build_marker(levels[i], world_id, i)
+		canvas.add_child(marker)
+		marker.position = _island.node_position(world_id, i) \
+			- Vector2((MARKER + 40.0) * 0.5, MARKER * 0.54)
+
+
+## A level as a stone on the path: round, chunky, carrying the picture that
+## says what kind of game it is, with its stars underneath. Round because
+## everything else a child taps in this game is a slab -- the map should not
+## feel like another menu.
+func _build_marker(level: Dictionary, world_id: String, index: int) -> Control:
+	var level_id: String = str(level.get("id", ""))
+	var progress: Dictionary = SaveManager.get_level_progress(level_id)
+	var unlocked: bool = SaveManager.is_level_unlocked(level_id)
+	var scene_path: String = GameData.get_minigame_scene(str(level.get("game_type", "")))
+	var implemented: bool = scene_path != "" and ResourceLoader.exists(scene_path)
+	var playable: bool = implemented and unlocked
+	var completed: bool = bool(progress.get("completed", false))
+	var challenge: bool = bool(level.get("challenge", false))
+
+	var column := VBoxContainer.new()
+	column.custom_minimum_size = Vector2(MARKER + 40.0, 0)
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 2)
+
 	var icons := {
-		"traffic_crossing": "car",
-		"item_sorting": "sort",
-		"collect_energy": "spark",
-		"animal_rescue": "paw",
-		"monster_battle": "monster",
-		"memory_match": "blocks",
-		"light_echo": "sound_on",
-		"monster_duel": "shield",
+		"traffic_crossing": "car", "item_sorting": "sort", "collect_energy": "spark",
+		"animal_rescue": "paw", "monster_battle": "monster", "memory_match": "blocks",
+		"light_echo": "sound_on", "monster_duel": "shield",
 	}
-	var icon_name: String = str(icons.get(level.get("game_type", ""), ""))
-	var challenge := bool(level.get("challenge", false))
+	var icon_name: String = str(icons.get(str(level.get("game_type", "")), "flag"))
+	var face: Color = Palette.BLUE
 	if challenge:
-		# Challenges wear the gold star and show their rank: this is the
-		# level that grows every time it is beaten.
 		icon_name = "star"
-		var rank := SaveManager.get_challenge_rank(level_id)
-		if rank > 0:
-			label += "  %d" % (rank + 1)
+		face = Palette.ORANGE
+	if completed:
+		face = Palette.GREEN
 	if not playable:
 		icon_name = "lock"
+		face = Palette.MUTED
 
-	var button := _card_button(label, icon_name, playable)
-	if challenge and playable:
-		button.modulate = Color(1.10, 1.04, 0.86)
+	var button := _stone_button(icon_name, face, playable)
 	if playable:
 		button.pressed.connect(func(): GameManager.start_level(level_id))
-		# The frontier level -- playable but not yet cleared -- breathes
-		# gently: "this one is next". At most a couple per screen, since
-		# each world has a single frontier.
-		if not progress.get("completed", false):
-			UiKit.breathe(button, 0.025, 1.1)
+		if not completed:
+			# The frontier -- playable but not yet cleared -- breathes gently:
+			# "this one is next". One per world, so the screen never pulses.
+			UiKit.breathe(button, 0.035, 1.0)
+			if _frontier_x <= 0.0:
+				_frontier_x = _island.node_position(world_id, index).x
 	column.add_child(button)
 
-	column.add_child(UiKit.star_row(int(progress.get("stars", 0)), 3, 40))
+	var label := Label.new()
+	label.text = I18n.t(str(level.get("name_key", "")))
+	if challenge:
+		var rank: int = SaveManager.get_challenge_rank(level_id)
+		if rank > 0:
+			label.text += "  %d" % (rank + 1)
+	if not implemented:
+		label.text = I18n.t("common.coming_soon")
+	label.add_theme_font_size_override("font_size", 21)
+	label.add_theme_color_override("font_color", Palette.ON_COLOR)
+	label.add_theme_color_override("font_outline_color", Color(0.06, 0.14, 0.10, 0.85))
+	label.add_theme_constant_override("outline_size", 7)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size = Vector2(MARKER + 40.0, 0)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(label)
+
+	var stars := UiKit.star_row(int(progress.get("stars", 0)), 3, 28)
+	stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(stars)
 	return column
 
 
-## A level as one of the bundle's navy spotlight cards: icon badge on top,
-## white name beneath, the card itself the touch target. Falls back to the
-## drawn chunky button when the card art is missing.
-func _card_button(text: String, icon_name: String, playable: bool) -> Button:
-	var box := Vector2(300, 200)
-	var normal: StyleBoxTexture = UiKit.texture_style("res://assets/ui/level_card.png", 40.0, 16.0)
-	if normal == null:
-		var fallback := UiKit.icon_button(text, icon_name,
-			Palette.BLUE if playable else Palette.MUTED, box)
-		fallback.add_theme_font_size_override("font_size", 26)
-		fallback.disabled = not playable
-		return fallback
+func _stone_button(icon_name: String, face: Color, playable: bool) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(MARKER, MARKER)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.focus_mode = Control.FOCUS_NONE
+	b.disabled = not playable
 
-	var button := Button.new()
-	button.text = text
-	button.custom_minimum_size = box
-	button.focus_mode = Control.FOCUS_NONE
-	button.disabled = not playable
-	button.add_theme_font_size_override("font_size", 26)
-	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
-		button.add_theme_color_override(state, Palette.ON_COLOR)
-	button.add_theme_color_override("font_disabled_color", Color(0.75, 0.78, 0.88, 0.9))
-	button.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.7))
-	button.add_theme_constant_override("outline_size", 6)
+	# A raised disc with the same "thick bottom edge that squashes on press"
+	# physics as every other button in the game, so a child who has learned how
+	# one button behaves already knows how this one behaves.
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = face
+	normal.set_corner_radius_all(int(MARKER * 0.5))
+	normal.border_width_bottom = 9
+	normal.border_width_left = 5
+	normal.border_width_right = 5
+	normal.border_width_top = 5
+	normal.border_color = Palette.edge(face)
+	normal.shadow_color = Color(0.0, 0.08, 0.20, 0.28)
+	normal.shadow_size = 10
+	normal.shadow_offset = Vector2(0, 6)
 
-	# Playable cards glow brighter than the panel; locked ones sink well below
-	# it. The gap between the two is the affordance -- a pre-reader picks the
-	# pressable card by brightness alone, before the lock badge even registers.
-	normal.modulate_color = Color(1.35, 1.32, 1.28)
-	var hover: StyleBoxTexture = UiKit.texture_style("res://assets/ui/level_card.png", 40.0, 16.0,
-		Color(1.55, 1.5, 1.42))
-	var pressed: StyleBoxTexture = UiKit.texture_style("res://assets/ui/level_card.png", 40.0, 16.0,
-		Color(1.1, 1.08, 1.05))
-	var disabled: StyleBoxTexture = UiKit.texture_style("res://assets/ui/level_card.png", 40.0, 16.0,
-		Color(0.42, 0.44, 0.54, 0.85))
-	button.add_theme_stylebox_override("normal", normal)
-	button.add_theme_stylebox_override("hover", hover)
-	button.add_theme_stylebox_override("pressed", pressed)
-	button.add_theme_stylebox_override("disabled", disabled)
+	var pressed: StyleBoxFlat = normal.duplicate()
+	pressed.bg_color = face.darkened(0.06)
+	pressed.border_width_bottom = 3
+	var hover: StyleBoxFlat = normal.duplicate()
+	hover.bg_color = Palette.lift(face)
+	var disabled: StyleBoxFlat = normal.duplicate()
+	disabled.bg_color = Palette.MUTED
+	disabled.border_color = Palette.edge(Palette.MUTED)
+	disabled.shadow_size = 4
 
-	# Icon badge above, label pushed to the card's lower band.
-	var icon: Control = UiKit.picture(icon_name, box.x * 0.36)
+	b.add_theme_stylebox_override("normal", normal)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", pressed)
+	b.add_theme_stylebox_override("disabled", disabled)
+
+	var icon: Control = UiKit.picture(icon_name, MARKER * 0.56)
 	if icon != null:
-		icon.position = Vector2(box.x * 0.32, box.y * 0.10)
+		icon.position = Vector2(MARKER * 0.22, MARKER * 0.20)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if not playable:
-			icon.modulate = Color(1, 1, 1, 0.85)
-		button.add_child(icon)
-		for state in ["normal", "hover", "pressed", "disabled"]:
-			var style := button.get_theme_stylebox(state)
-			if style is StyleBoxTexture:
-				(style as StyleBoxTexture).content_margin_top = box.y * 0.62
-	button.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
-	return button
+		b.add_child(icon)
+	b.resized.connect(func(): b.pivot_offset = b.size / 2.0)
+	if playable:
+		b.pressed.connect(func(): Juice.pop(b, 0.08))
+	return b
+
+
+## Open where the child left off. Without this the map always starts at the
+## first island, and a child several worlds in has to swipe past everything
+## they have already finished to reach the level they actually want.
+func _scroll_to_frontier() -> void:
+	if _scroll == null or not is_instance_valid(_scroll):
+		return
+	if _frontier_x <= 0.0:
+		return
+	var target: int = int(maxf(_frontier_x - 560.0, 0.0))
+	if not Juice.motion_enabled():
+		_scroll.scroll_horizontal = target
+		return
+	var t := create_tween()
+	t.tween_property(_scroll, "scroll_horizontal", target, 0.5)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

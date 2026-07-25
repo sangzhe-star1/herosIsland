@@ -33,5 +33,12 @@
     "growth_attribute": "courage",
     "color": "#8a5fc9",
     "order": 5
+  },
+  {
+    "id": "adventure_valley",
+    "name_key": "world.adventure_valley",
+    "growth_attribute": "courage",
+    "color": "#3aa6a0",
+    "order": 6
   }
 ]

@@ -67,6 +67,51 @@ func current_level_data() -> Dictionary:
 	return GameData.get_level(current_level_id)
 
 
+## The level to offer after this one, or "" when there is nothing further.
+##
+## Walks data/levels.json in order from the level just finished and returns the
+## first one that is unlocked and actually implemented. Same world first, so a
+## child works through Hero City before being sent to Piglet Town, and the
+## whole list afterwards so finishing a world does not dead-end.
+##
+## Why this exists: the result screen offered "Play Again" and "Back to Map"
+## and nothing else, so the only way to reach the next level was to go back to
+## the map and find it. For a six-year-old that is the difference between a
+## game that carries them forward and one that stops after every level.
+func next_level_id() -> String:
+	var levels: Array = GameData.levels
+	var index := -1
+	for i in range(levels.size()):
+		if str(levels[i].get("id", "")) == current_level_id:
+			index = i
+			break
+	if index < 0:
+		return ""
+	var world: String = str(levels[index].get("world", ""))
+
+	var same_world := _first_playable_after(levels, index, world)
+	if same_world != "":
+		return same_world
+	return _first_playable_after(levels, index, "")
+
+
+func _first_playable_after(levels: Array, index: int, world: String) -> String:
+	for i in range(index + 1, levels.size()):
+		var level: Dictionary = levels[i]
+		if world != "" and str(level.get("world", "")) != world:
+			continue
+		var id: String = str(level.get("id", ""))
+		if id == "" or id == current_level_id:
+			continue
+		if not SaveManager.is_level_unlocked(id):
+			continue
+		var scene: String = GameData.get_minigame_scene(str(level.get("game_type", "")))
+		if scene == "" or not ResourceLoader.exists(scene):
+			continue
+		return id
+	return ""
+
+
 func daily_limit_reached() -> bool:
 	var limit_minutes: float = float(SaveManager.get_setting("daily_limit_minutes", 30))
 	if limit_minutes <= 0.0:

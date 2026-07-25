@@ -1,3 +1,11 @@
+> **Superseded, 25 July 2026.** Every slot in this checklist has been filled by
+> drawn art generated at runtime, and the game no longer loads image files. Do
+> not work through it. The equivalent document now is `docs/ARCHITECTURE_REVIEW.md`
+> (why) plus `scripts/world/` (how) — and the way to change how something looks
+> is to edit the code that draws it, then run `./tests/shots.sh` and look.
+>
+> Kept for the record of what the pipeline used to be.
+
 # Complete art checklist
 
 Every image slot in the game, with the exact filename and size to produce.

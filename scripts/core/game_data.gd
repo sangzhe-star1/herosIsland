@@ -22,6 +22,7 @@ func _ready() -> void:
 		_worlds_by_id[w.get("id", "")] = w
 	for l in levels:
 		_levels_by_id[l.get("id", "")] = l
+	_register_dropin_characters()
 	print("[autoload] GameData ok: %d worlds, %d levels" % [worlds.size(), levels.size()])
 
 
@@ -37,18 +38,63 @@ func _load_json(path: String, fallback: Variant) -> Variant:
 	return parsed
 
 
-## The skin of the character the child currently plays as, or null when its
-## resource is missing (SkinnedCharacter then falls back to the drawn hero).
-## The single place this lookup happens; levels and screens all come here.
-func current_skin() -> CharacterSkin:
-	var character_id: String = SaveManager.get_profile().get(
-		"character_id", str(characters.get("default", "light_hero"))
-	)
+## Drop-in characters: a family's own pictures as playable heroes.
+##
+## Drop two transparent PNGs into assets/characters/<id>/ -- hero_idle.png
+## (required, roughly 256x384, feet at the bottom edge) and hero_cheer.png
+## (optional) -- and the character appears in the Hero House on the next run.
+## No .tres, no JSON edit, no code. This is the seam for a saved picture of a
+## favourite character (which stays in this house, like the photo skins) or a
+## scan of the child's own drawing.
+##
+## The ids are listed here rather than scanned from disk so the static checker
+## can see the name keys, and so a stray folder cannot add a character nobody
+## asked for.
+const DROPIN_CHARACTERS := {"bluey": "character.bluey"}
+
+var _dropin_skins: Dictionary = {}
+
+
+func _register_dropin_characters() -> void:
+	for id in DROPIN_CHARACTERS:
+		var idle := "res://assets/characters/%s/hero_idle.png" % id
+		if not ResourceLoader.exists(idle):
+			continue
+		var skin := CharacterSkin.new()
+		skin.id = id
+		skin.display_name_key = str(DROPIN_CHARACTERS[id])
+		skin.prefer_texture = true
+		skin.idle_texture = load(idle)
+		var cheer := "res://assets/characters/%s/hero_cheer.png" % id
+		if ResourceLoader.exists(cheer):
+			skin.cheer_texture = load(cheer)
+		skin.body_size = Vector2(64, 96)
+		_dropin_skins[id] = skin
+		var entries: Dictionary = characters.get("characters", {})
+		entries[id] = {"name_key": str(DROPIN_CHARACTERS[id]), "skin": "", "unlocked": true}
+		characters["characters"] = entries
+		print("[autoload] GameData: drop-in character '%s' found" % id)
+
+
+## The one place a character id becomes a CharacterSkin: drop-ins first, then
+## .tres resources. Levels and screens all come here.
+func skin_for(character_id: String) -> CharacterSkin:
+	if character_id in _dropin_skins:
+		return _dropin_skins[character_id]
 	var entry: Dictionary = characters.get("characters", {}).get(character_id, {})
 	var path: String = str(entry.get("skin", ""))
 	if path != "" and ResourceLoader.exists(path):
 		return load(path) as CharacterSkin
 	return null
+
+
+## The skin of the character the child currently plays as, or null when its
+## resource is missing (SkinnedCharacter then falls back to the drawn hero).
+func current_skin() -> CharacterSkin:
+	var character_id: String = SaveManager.get_profile().get(
+		"character_id", str(characters.get("default", "light_hero"))
+	)
+	return skin_for(character_id)
 
 
 func get_level(level_id: String) -> Dictionary:
@@ -79,5 +125,6 @@ func get_minigame_scene(game_type: String) -> String:
 		"memory_match": "res://scenes/minigames/memory_match/MemoryMatch.tscn",
 		"light_echo": "res://scenes/minigames/light_echo/LightEcho.tscn",
 		"monster_duel": "res://scenes/minigames/monster_duel/MonsterDuel.tscn",
+		"platformer": "res://scenes/minigames/platformer/Platformer.tscn",
 	}
 	return map.get(game_type, "")
