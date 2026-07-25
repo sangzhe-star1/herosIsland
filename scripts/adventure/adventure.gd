@@ -7,10 +7,14 @@ extends LevelManager
 ##
 ##   collect     -- gather N energy orbs
 ##   switch      -- a floor plate that opens a gate
-##   crate       -- push a box to reach a shelf
-##   rescue      -- free someone; the interact key appears when close
-##   chest       -- the reward, and the end of the level
-##   (later phases) hazard, enemy, puzzle, boss
+##   spring      -- a bounce pad up to the high places
+##   gem         -- the one hidden treasure (star two)
+##   crate_shelf -- push a solid box to reach a too-high shelf
+##   rocks/fire  -- hazards that ALWAYS warn before they hurt
+##   seq_plates  -- step the dot-plates in order; wrong = relight, never lose
+##   puzzle      -- a picture-question card, asked without leaving the level
+##   checkpoint / chest
+##   (later phases) enemy, rescue, boss
 ##
 ## The point of the beat list is that a child never does the same thing
 ## twice in one level. tools_check.py enforces at least three distinct kinds
@@ -35,6 +39,10 @@ const CAMERA_LEAD := 480.0
 ## has already scrolled past zero, so the hero is centred from frame one.
 const SPAWN_X := 520.0
 const SECTION_MIN_GAP := 420.0
+## Plain running between one beat and the next: room for a pit, a ledge, and
+## a couple of seconds of nothing being asked of you. Without it every beat
+## butts against the next and the level reads as a corridor of chores.
+const BEAT_BREATHER := 300.0
 
 
 ## How high a single jump actually gets, in pixels, plus the ledge magnet.
@@ -61,10 +69,18 @@ var _gems: Array = []
 var _gates: Array = []             # [{node, left, right, open, at}]
 var _switches: Array = []          # [{node, plate, at, pressed, gate}]
 var _springs: Array = []           # [{node, at}]
-var _crates: Array = []            # [{node, at, held}]
+var _crates: Array = []            # [{node, at, platform}]
 var _checkpoints: Array = []       # [{node, flag, at, claimed}]
 var _chest: Dictionary = {}
 var _interactables: Array = []     # [{at, icon, act}] rebuilt as things change
+
+# --- Phase B: things that warn, things that think --------------------------
+var _rocks: Array = []             # [{x, state, t, warn, cool, shadow, node, rng, left, right}]
+var _vents: Array = []             # [{node, glow, flame, at, t, warn, blaze, idle}]
+var _seq_groups: Array = []        # [{plates: [...], next, gate, done}]
+var _puzzles: Array = []           # [{node, at, kind, gate, solved}]
+var _card: PuzzleCard = null
+var _warned := {}                  # one first-time callout per hazard family
 
 var _orbs_needed := 5
 var _orbs_taken := 0
@@ -99,16 +115,73 @@ func setup_level() -> void:
 	_world.name = "World"
 	add_child(_world)
 
-	_build_terrain(config)
-	_build_sections()
+	# Beats are planned BEFORE the ground exists, and the ground is then grown
+	# to fit them. The other way round -- generate terrain, then hunt for a
+	# segment wide enough -- looks reasonable and quietly ruins the level: the
+	# only stretch long enough for a three-plate puzzle is the opening meadow,
+	# so the puzzle, the crate and their gates all slid back to the start and
+	# the last two thirds of the level were an empty walk.
+	var plan := _plan_beats()
+	_build_terrain(config, plan)
+	_build_sections(plan)
 	_build_hero()
 	_build_hud()
 	_refresh_task()
 
 
+# --- planning ----------------------------------------------------------------
+
+## How much unbroken flat ground a beat needs to work. Point beats want a
+## little; a three-plate sequence wants a lot. Ground is generated to these
+## numbers, so a beat is never squeezed and never relocated.
+func _zone_width(section: Dictionary) -> float:
+	match str(section.get("kind", "")):
+		"seq_plates":
+			return PLATE_SPACING * float(clampi(int(section.get("count", 3)), 2, 4)) + 200.0
+		"crate_shelf":
+			return 700.0
+		"rocks":
+			return 620.0
+		"fire":
+			return 200.0 * float(clampi(int(section.get("count", 3)), 1, 4)) + 120.0
+		"collect":
+			return 420.0
+		_:
+			return 260.0
+
+
+## The beats, in order, spread evenly along the walkable middle of the level.
+##
+## A level author writes the ORDER and nothing else. Hand-written x positions
+## were tried first and quietly did not work: the terrain generator overshoots
+## its configured length to finish a segment, so every hand-picked number
+## drifted, and several beats ended up inside one 190 px stretch.
+func _plan_beats() -> Array:
+	var plan: Array = []
+	var cursor := 980.0
+	for section in _sections:
+		var kind := str(section.get("kind", ""))
+		if kind == "chest" or section.has("above"):
+			plan.append({"section": section, "x": 0.0, "want": 0.0, "placed": false})
+			continue
+		var want: float = _zone_width(section)
+		var x: float = cursor + want * 0.5
+		plan.append({"section": section, "x": x, "want": want, "placed": true})
+		# Each beat gets the room it needs and then a breather -- somewhere
+		# for a pit, a ledge, a few seconds of just running. Spacing beats
+		# evenly instead made their zones overlap, which merged the whole
+		# level into one flat slab with no gaps and no rhythm at all.
+		cursor = x + want * 0.5 + BEAT_BREATHER
+	# The level is exactly as long as its beats need, never shorter. Squeezing
+	# eight beats into a length written for four is how a three-plate puzzle
+	# came out with two plates.
+	_length = maxf(_length, cursor + 1150.0)
+	return plan
+
+
 # --- the ground -------------------------------------------------------------
 
-func _build_terrain(config: Dictionary) -> void:
+func _build_terrain(config: Dictionary, plan: Array = []) -> void:
 	var rng := Shapes.rng_for(str(level_data.get("id", "adventure")))
 	var gap_max: float = clampf(harder(float(config.get("gap_max", 110.0)), 1.16),
 		60.0, 210.0)
@@ -118,6 +191,18 @@ func _build_terrain(config: Dictionary) -> void:
 	# MIDDLE of it rather than at its left edge, because the camera cannot
 	# scroll past zero and a hero standing at screen x=180 stands underneath
 	# the left thumb pad -- which is exactly where a child's hand is.
+	# The stretches that must stay whole, because a beat is going to live
+	# there. Gaps are not cut inside them and segments are grown to cover
+	# them, so a rockfall is never dodged into a pit and a plate row is never
+	# split across one.
+	var zones: Array = []
+	for entry in plan:
+		if not bool(entry.get("placed", false)):
+			continue
+		var want: float = float(entry["want"]) + 150.0
+		zones.append({"left": float(entry["x"]) - want * 0.5,
+			"right": float(entry["x"]) + want * 0.5})
+
 	var x := -520.0
 	_add_ground(x, 1420.0, rng)
 	x += 1420.0
@@ -125,21 +210,50 @@ func _build_terrain(config: Dictionary) -> void:
 	while x < _length - 520.0:
 		var gap: float = rng.randf_range(70.0, gap_max)
 		var width: float = rng.randf_range(seg_min, seg_min + 260.0)
-		if gap > 95.0:
-			# Every real gap gets a ledge over it, so it is always crossable
-			# the easy way as well as the brave way.
-			_add_ledge(x + gap * 0.5 - 105.0, _ground_y - rng.randf_range(96.0, high * 0.8),
-				210.0, rng)
-		_add_pit(x, x + gap)
-		x += gap
+		var blocked: Dictionary = _zone_covering(zones, x, x + gap)
+		if blocked.is_empty():
+			if gap > 95.0:
+				# Every real gap gets a ledge over it, so it is always
+				# crossable the easy way as well as the brave way.
+				_add_ledge(x + gap * 0.5 - 105.0,
+					_ground_y - rng.randf_range(96.0, high * 0.8), 210.0, rng)
+			_add_pit(x, x + gap)
+			x += gap
+		# Grow this segment until it clears EVERY zone it lands in. Growing to
+		# clear only the first one found leaves the later beats sitting on
+		# whatever narrow scrap the generator happened to produce.
+		var edge: float = x + width
+		var guard := 0
+		var changed := true
+		while changed and guard < 12:
+			changed = false
+			guard += 1
+			for zone in zones:
+				if edge > float(zone["left"]) and x < float(zone["right"]) \
+						and float(zone["right"]) + 90.0 > edge:
+					edge = float(zone["right"]) + 90.0
+					changed = true
+		width = edge - x
 		_add_ground(x, width, rng)
+		# A ledge only if it does not hang over a beat: a shelf above a plate
+		# row is somewhere to stand that skips the puzzle.
 		if rng.randf() < 0.5:
-			_add_ledge(x + width * rng.randf_range(0.15, 0.5),
-				_ground_y - rng.randf_range(high * 0.62, high),
-				rng.randf_range(160.0, 220.0), rng)
+			var ledge_x: float = x + width * rng.randf_range(0.15, 0.5)
+			var ledge_w: float = rng.randf_range(160.0, 220.0)
+			if _zone_covering(zones, ledge_x, ledge_x + ledge_w).is_empty():
+				_add_ledge(ledge_x, _ground_y - rng.randf_range(high * 0.62, high),
+					ledge_w, rng)
 		x += width
 	_add_ground(x, 620.0, rng)
 	_length = x + 620.0
+
+
+## The first protected zone that overlaps [left, right], if any.
+func _zone_covering(zones: Array, left: float, right: float) -> Dictionary:
+	for zone in zones:
+		if right > float(zone["left"]) and left < float(zone["right"]):
+			return zone
+	return {}
 
 
 func _add_ground(x: float, width: float, rng: RandomNumberGenerator) -> void:
@@ -197,6 +311,37 @@ func _add_ledge(x: float, y: float, width: float, rng: RandomNumberGenerator) ->
 	_platforms.append({"rect": Rect2(x, y, width, 30.0), "node": null, "flat": false})
 
 
+## The stretch of unbroken flat ground nearest a hint -- for beats that are a
+## ZONE rather than a point: a rockfall, a row of vents, a row of plates.
+## Handing back one segment guarantees the zone contains no pit, so a child
+## dodging a rock is never dodging into a hole. Hazards may be scary; the
+## ground under a hazard is always honest.
+func _flat_zone_near(x: float, want: float) -> Dictionary:
+	# Plain nearest-segment, because `_build_terrain` has already grown the
+	# ground around this exact spot. An earlier version preferred whichever
+	# segment could FIT the zone, which sounds safer and was much worse: the
+	# opening meadow was the only stretch long enough, so every zone beat in
+	# the level slid back to the first screen.
+	var best: Rect2
+	var best_d := INF
+	for entry in _platforms:
+		if not bool(entry.get("flat", false)):
+			continue
+		var rect: Rect2 = entry["rect"]
+		if rect.size.x < 260.0:
+			continue
+		var d: float = absf(rect.position.x + rect.size.x * 0.5 - x)
+		if d < best_d:
+			best_d = d
+			best = rect
+	if best_d == INF:
+		return {"left": x - want * 0.5, "right": x + want * 0.5}
+	var width: float = minf(want, best.size.x - 120.0)
+	var left: float = clampf(x - width * 0.5, best.position.x + 60.0,
+		maxf(best.position.x + best.size.x - 60.0 - width, best.position.x + 60.0))
+	return {"left": left, "right": left + width}
+
+
 ## Where a section should actually stand: the flat ground nearest its hint.
 ## Designers write "around x=1600" and never a pixel.
 func _ground_near(x: float) -> float:
@@ -239,24 +384,10 @@ func _ground_near(x: float) -> float:
 ##     `"offset"`, taking the first one's FINAL position. That is how the gem
 ##     ends up over the spring rather than over where the spring was asked to
 ##     go.
-func _build_sections() -> void:
+func _build_sections(plan: Array) -> void:
 	var anchors := {}
-	var walkers := 0
-	for section in _sections:
-		if str(section.get("kind", "")) != "chest" and not section.has("above"):
-			walkers += 1
-
-	# The walkable beats stop well short of the chest, so the last thing that
-	# happens before the reward is a moment of plain walking toward it -- and
-	# so a gate never opens straight INTO the chest, which collapses "I solved
-	# the door" and "I won" into one unreadable second.
-	var first := 980.0
-	var last: float = _length - 1150.0
-	var step: float = (last - first) / float(maxi(walkers, 1))
-	var index := 0
-	var previous := -INF
-
-	for section in _sections:
+	for entry in plan:
+		var section: Dictionary = entry["section"]
 		var kind := str(section.get("kind", ""))
 		var at: float
 		var anchor := str(section.get("above", ""))
@@ -270,13 +401,9 @@ func _build_sections() -> void:
 			# jump button -- a thumb hiding the one thing the level walks to.
 			at = _length - 640.0
 		else:
-			at = _ground_near(first + step * (float(index) + 0.5))
-			# Snapping can shove two beats together even when the plan spread
-			# them; keep the guarantee that they stay apart.
-			if at < previous + SECTION_MIN_GAP:
-				at = _ground_near(previous + SECTION_MIN_GAP)
-			previous = at
-			index += 1
+			# The ground was grown around this exact spot, so the snap has
+			# almost nothing left to do -- it only nudges off a segment lip.
+			at = _ground_near(float(entry["x"]))
 		if section.has("id"):
 			anchors[str(section["id"])] = at
 		match kind:
@@ -290,6 +417,16 @@ func _build_sections() -> void:
 				_build_spring(at)
 			"crate":
 				_build_crate(at)
+			"crate_shelf":
+				_build_crate_shelf(section, at)
+			"rocks":
+				_build_rocks(section, at)
+			"fire":
+				_build_fire(section, at)
+			"seq_plates":
+				_build_seq_plates(section, at)
+			"puzzle":
+				_build_puzzle(section, at)
 			"checkpoint":
 				_build_checkpoint(at)
 			"chest":
@@ -368,10 +505,155 @@ func _build_spring(at: float) -> void:
 	_springs.append({"node": node, "at": at})
 
 
-func _build_crate(at: float) -> void:
+## A crate with a REASON: a shelf too high for any jump, treasure on the
+## shelf, and a box that can be walked to the foot of it. The child invents
+## the rest, which is the entire pleasure of a pushable box.
+func _build_crate_shelf(section: Dictionary, at: float) -> void:
+	var zone := _flat_zone_near(at, 700.0)
+	var left: float = float(zone["left"])
+	var right: float = float(zone["right"])
+	# The shelf sits one jump ABOVE the crate's roof and out of reach from
+	# the floor: that gap is the puzzle, and both halves of it are arithmetic
+	# rather than taste, so it cannot drift as the hero's jump is retuned.
+	var crate_top := 92.0
+	var shelf_h: float = crate_top + reach() - 40.0
+	var shelf_w := 240.0
+	var shelf_x: float = right - shelf_w
+	_add_ledge(shelf_x, _ground_y - shelf_h, shelf_w, Shapes.rng_for("shelf%d" % int(at)))
+	var gem := AdventureProps.gem(_world)
+	# Low over the shelf: standing on the shelf is the achievement, not a
+	# second precision jump on top of it.
+	gem.position = Vector2(shelf_x + shelf_w * 0.5, _ground_y - shelf_h - 60.0)
+	_gems.append({"node": gem, "at": gem.position, "taken": false})
+	# The crate starts at the far LEFT of the zone and is pushed right, so
+	# the child walks into it the way they are already walking.
+	_build_crate(left + 90.0, left + 40.0, shelf_x - 30.0)
+
+
+## The crate is SOLID: pushed by walking into it, ridden by jumping on it.
+## No interact key -- a box you push with a button is furniture, a box you
+## push with your body is a toy.
+func _build_crate(at: float, bound_left: float = -INF, bound_right: float = INF) -> void:
 	var node := AdventureProps.crate(_world)
 	node.position = Vector2(at, _ground_y)
-	_crates.append({"node": node, "at": at})
+	var platform := {"rect": Rect2(-46.0, -92.0, 92.0, 92.0), "node": node,
+		"base_y": -92.0, "flat": false}
+	_platforms.append(platform)
+	_crates.append({"node": node, "left": bound_left, "right": bound_right})
+
+
+## Falling rocks over one honest stretch of ground. Each rock loops:
+## rest -> a shadow grows on the ground for the whole warning -> the boulder
+## drops exactly onto its shadow -> dust -> rest. The shadow IS the warning
+## and its size IS the countdown; there is nothing to read and nothing that
+## arrives unannounced.
+func _build_rocks(section: Dictionary, at: float) -> void:
+	var zone := _flat_zone_near(at, 620.0)
+	var count: int = clampi(harder_i(int(section.get("count", 3)), 1), 1, 5)
+	var rng := Shapes.rng_for("%s-rocks" % str(level_data.get("id", "")))
+	for i in range(count):
+		var shadow := AdventureProps.rock_shadow(_world)
+		shadow.visible = false
+		_rocks.append({
+			"left": float(zone["left"]), "right": float(zone["right"]),
+			"state": "rest",
+			# Staggered starts, so the zone breathes instead of volleying.
+			"t": 1.2 + float(i) * 1.1,
+			"warn": harder(1.05, 0.80),      # GENTLE 1.3s, NORMAL 1.05, BRAVE 0.85
+			"cool": harder(2.6, 0.85),
+			"x": at, "shadow": shadow, "node": null, "rng": rng,
+		})
+
+
+## Fire vents in a row, blowing in order like a song: ground blushes red,
+## THEN the flame. The rhythm is the puzzle; running the row is the answer.
+func _build_fire(section: Dictionary, at: float) -> void:
+	var count: int = clampi(int(section.get("count", 3)), 1, 4)
+	var zone := _flat_zone_near(at, 200.0 * float(count))
+	var warn: float = harder(1.05, 0.82)
+	var blaze := 0.9
+	var idle: float = harder(1.7, 0.80)
+	var cycle: float = warn + blaze + idle
+	for i in range(count):
+		var parts := AdventureProps.fire_vent(_world)
+		var vent_x: float = lerpf(float(zone["left"]) + 80.0, float(zone["right"]) - 80.0,
+			0.5 if count == 1 else float(i) / float(count - 1))
+		(parts["node"] as Node2D).position = Vector2(vent_x, _ground_y)
+		_vents.append({"node": parts["node"], "glow": parts["glow"],
+			"flame": parts["flame"], "at": vent_x,
+			"t": cycle - float(i) * (cycle / float(count)),   # in order, left first
+			"warn": warn, "blaze": blaze, "idle": idle})
+
+
+## Three plates wearing one, two, three dots. Step them in dot order and the
+## gate opens; step wrong and they all just light up again -- a shrug, not a
+## slap. The plates sit in a row, so hopping OVER the ones not yet due is the
+## actual game.
+## The plates must stand further apart than the hero is wide, or standing on
+## one stands on its neighbours too and the "sequence" solves itself in a
+## single step. 200 px is comfortably more than the 52 px step radius on
+## either side, and leaves room to hop a plate that is not yet due -- which
+## is the actual skill the puzzle asks for.
+const PLATE_SPACING := 200.0
+
+
+func _build_seq_plates(section: Dictionary, at: float) -> void:
+	var count: int = clampi(int(section.get("count", 3)), 2, 4)
+	var zone := _flat_zone_near(at, PLATE_SPACING * float(count))
+	# However wide the ground actually turned out, honour the spacing and
+	# drop a plate instead: two plates a child can tell apart beat four in a
+	# heap. A puzzle that shrinks is fine; one that overlaps is broken.
+	var span: float = float(zone["right"]) - float(zone["left"]) - 140.0
+	count = clampi(int(span / PLATE_SPACING) + 1, 2, count)
+	var rng := Shapes.rng_for("%s-seq" % str(level_data.get("id", "")))
+	var dot_order: Array = []
+	for i in range(count):
+		dot_order.append(i + 1)
+	for i in range(count - 1, 0, -1):
+		var j: int = rng.randi_range(0, i)
+		var swap = dot_order[i]
+		dot_order[i] = dot_order[j]
+		dot_order[j] = swap
+
+	# Centred on the zone at the fixed spacing, rather than stretched to fill
+	# it: the gap between plates is a rule, not a leftover.
+	var row: float = PLATE_SPACING * float(count - 1)
+	var start: float = (float(zone["left"]) + float(zone["right"]) - row) * 0.5
+	var plates: Array = []
+	for i in range(count):
+		var px: float = start + PLATE_SPACING * float(i)
+		var parts := AdventureProps.seq_plate(_world, int(dot_order[i]))
+		(parts["node"] as Node2D).position = Vector2(px, _ground_y)
+		plates.append({"node": parts["node"], "lamp": parts["lamp"],
+			"at": px, "dots": int(dot_order[i]), "lit": false, "on": false})
+
+	var last_plate: float = start + row
+	var gate_at: float = _ground_near(last_plate
+		+ maxf(float(section.get("gate_gap", 240.0)), 150.0))
+	gate_at = maxf(gate_at, last_plate + 150.0)
+	var gate_parts := AdventureProps.gate(_world)
+	(gate_parts["node"] as Node2D).position = Vector2(gate_at, _ground_y)
+	var gate := {"node": gate_parts["node"], "left": gate_parts["left"],
+		"right": gate_parts["right"], "open": false, "at": gate_at}
+	_gates.append(gate)
+	_seq_groups.append({"plates": plates, "next": 1, "gate": gate, "done": false})
+
+
+## A question post and the gate it unlocks. Walking up shows the interact
+## key; pressing it asks one picture-question right there in the level.
+func _build_puzzle(section: Dictionary, at: float) -> void:
+	var node := AdventureProps.puzzle_sign(_world)
+	node.position = Vector2(at, _ground_y)
+	var gate_at: float = _ground_near(at + maxf(float(section.get("gate_gap", 240.0)), 150.0))
+	gate_at = maxf(gate_at, at + 150.0)
+	var gate_parts := AdventureProps.gate(_world)
+	(gate_parts["node"] as Node2D).position = Vector2(gate_at, _ground_y)
+	var gate := {"node": gate_parts["node"], "left": gate_parts["left"],
+		"right": gate_parts["right"], "open": false, "at": gate_at}
+	_gates.append(gate)
+	_puzzles.append({"node": node, "at": at,
+		"kind": str(section.get("puzzle", "color_match")), "gate": gate,
+		"solved": false})
 
 
 func _build_checkpoint(at: float) -> void:
@@ -472,6 +754,10 @@ func _physics_process(delta: float) -> void:
 	# still inside what the fully-scrolled camera shows -- past THAT is space
 	# the child can stand in but never see themselves standing in.
 	_hero.position.x = clampf(_hero.position.x, -400.0, _length - 460.0)
+	_push_crates(delta)
+	_tick_rocks(delta)
+	_tick_vents(delta)
+	_watch_seq_plates()
 	_collect_orbs()
 	_collect_gems()
 	_press_switches()
@@ -602,7 +888,9 @@ func _block_at_gates() -> void:
 			gate["nudging"] = true
 			Juice.nudge(node)
 			_say(I18n.t("adventure.gate_shut"))
-			get_tree().create_timer(1.6).timeout.connect(func(): gate["nudging"] = false)
+			var cool := node.create_tween()
+			cool.tween_interval(1.6)
+			cool.tween_callback(func(): gate["nudging"] = false)
 		# Pushing at a shut door for two seconds is a child who has not found
 		# the plate. Point at it. The house rule is that the game shows you
 		# rather than telling you, and never makes you feel slow for asking.
@@ -612,19 +900,39 @@ func _block_at_gates() -> void:
 			_point_at_plate(gate)
 
 
+## Point at whatever OPENS this gate: a pressure plate, the next plate in a
+## sequence, or the question post. The hand always knows, because a child
+## pushing at a locked door for two seconds is a child about to give up.
 func _point_at_plate(gate: Dictionary) -> void:
+	var spot := Vector2.ZERO
+	var wobble: Variant = null
 	for sw in _switches:
-		if sw["gate"] != gate or bool(sw["pressed"]):
-			continue
-		var hand := AdventureProps.hint_hand(_world)
-		hand.position = Vector2(float(sw["at"]), float(sw["y"]) - 34.0)
-		var plate: Node2D = sw["plate"]
-		if is_instance_valid(plate):
-			Juice.pop(plate, 0.34)
-		get_tree().create_timer(4.5).timeout.connect(func():
-			if is_instance_valid(hand):
-				hand.queue_free())
+		if sw["gate"] == gate and not bool(sw["pressed"]):
+			spot = Vector2(float(sw["at"]), float(sw["y"]) - 34.0)
+			wobble = sw["plate"]
+	for group in _seq_groups:
+		if group["gate"] == gate and not bool(group["done"]):
+			for p in group["plates"]:
+				if int(p["dots"]) == int(group["next"]):
+					spot = Vector2(float(p["at"]), _ground_y - 34.0)
+					wobble = p["node"]
+	for puzzle in _puzzles:
+		if puzzle["gate"] == gate and not bool(puzzle["solved"]):
+			spot = Vector2(float(puzzle["at"]), _ground_y - 230.0)
+			wobble = puzzle["node"]
+	if spot == Vector2.ZERO:
 		return
+	var hand := AdventureProps.hint_hand(_world)
+	hand.position = spot
+	if wobble is Node2D and is_instance_valid(wobble):
+		Juice.pop(wobble, 0.34)
+	# The hand cleans itself up with a tween it OWNS, so leaving the level
+	# takes the timer with it. A SceneTreeTimer outlives the node it was
+	# meant to tidy, and complains about it in the log on the way out.
+	var fade := hand.create_tween()
+	fade.tween_interval(4.0)
+	fade.tween_property(hand, "modulate:a", 0.0, 0.5)
+	fade.tween_callback(hand.queue_free)
 
 
 func _claim_checkpoints() -> void:
@@ -654,6 +962,203 @@ func _check_fall() -> void:
 	_say(I18n.t("adventure.oops"))
 
 
+# --- the moving parts --------------------------------------------------------
+
+## A crate is pushed by WALKING INTO IT. Beside it at ground level, the hero
+## leans on it and it slides at walking pace; from above it is a platform the
+## ordinary landing code already understands. It never leaves its zone, so it
+## can neither fall into a pit nor be shoved past the shelf it exists for.
+func _push_crates(delta: float) -> void:
+	for crate in _crates:
+		var node: Node2D = crate["node"]
+		if not is_instance_valid(node):
+			continue
+		# On top? The platform system is already carrying us; nothing to do.
+		if _hero.position.y < _ground_y - 60.0:
+			continue
+		var dx: float = _hero.position.x - node.position.x
+		if absf(dx) > 68.0:
+			continue
+		# Pushing means walking INTO it: moving, and toward the box. Read off
+		# the buttons rather than off velocity, because the contact clamp on
+		# the line below zeroes the velocity the moment they touch -- which is
+		# how the first version of this shoved the crate exactly 0 px.
+		var want: float = _hero.wish_dir()
+		if want != 0.0 and signf(-dx) == want:
+			var to: float = clampf(node.position.x + want * HeroController.MOVE_SPEED
+				* delta * 0.80, float(crate["left"]) + 56.0, float(crate["right"]) - 56.0)
+			if absf(to - node.position.x) > 0.1 and fmod(_elapsed, 0.3) < delta * 1.5:
+				Juice.dust(_world, Vector2(node.position.x - want * 50.0, _ground_y), 2, 0.5)
+			node.position.x = to
+		# Solid either way: stand the hero against the face of the box.
+		_hero.position.x = node.position.x + (68.0 if dx > 0.0 else -68.0)
+
+
+## The rockfall loop. Every rock is its own little clock; the shadow's size
+## is the countdown, and the boulder lands exactly where the shadow said.
+func _tick_rocks(delta: float) -> void:
+	for rock in _rocks:
+		rock["t"] = float(rock["t"]) - delta
+		match str(rock["state"]):
+			"rest":
+				if float(rock["t"]) <= 0.0:
+					rock["state"] = "warn"
+					rock["t"] = float(rock["warn"])
+					var rng: RandomNumberGenerator = rock["rng"]
+					rock["x"] = rng.randf_range(float(rock["left"]) + 70.0,
+						float(rock["right"]) - 70.0)
+					var shadow: Node2D = rock["shadow"]
+					if is_instance_valid(shadow):
+						shadow.position = Vector2(float(rock["x"]), _ground_y - 4.0)
+						shadow.scale = Vector2(0.25, 0.25)
+						shadow.visible = true
+					if _hero_can_see(float(rock["x"])):
+						_warn_once("rocks", I18n.t("adventure.rocks"))
+			"warn":
+				var shadow2: Node2D = rock["shadow"]
+				if is_instance_valid(shadow2):
+					var grown: float = 1.0 - float(rock["t"]) / float(rock["warn"])
+					shadow2.scale = Vector2(0.25, 0.25).lerp(Vector2.ONE, grown)
+				if float(rock["t"]) <= 0.0:
+					rock["state"] = "fall"
+					var node := AdventureProps.boulder(_world)
+					node.position = Vector2(float(rock["x"]), _ground_y - 840.0)
+					rock["node"] = node
+			"fall":
+				var node2: Node2D = rock["node"]
+				if not is_instance_valid(node2):
+					rock["state"] = "rest"
+					rock["t"] = float(rock["cool"])
+					continue
+				node2.position.y += 1250.0 * delta
+				node2.rotation += delta * 1.6
+				# The hurtbox is honest: the boulder's own width, nothing more.
+				if absf(_hero.position.x - float(rock["x"])) < 56.0 \
+						and node2.position.y > _hero.position.y - 175.0 \
+						and node2.position.y < _hero.position.y + 8.0:
+					_hero.take_hit(node2.position)
+				if node2.position.y >= _ground_y - 20.0:
+					node2.position.y = _ground_y - 20.0
+					rock["state"] = "shatter"
+					rock["t"] = 0.4
+					Juice.dust(_world, Vector2(float(rock["x"]), _ground_y), 7, 1.1)
+					var shadow3: Node2D = rock["shadow"]
+					if is_instance_valid(shadow3):
+						shadow3.visible = false
+			"shatter":
+				var node3: Node2D = rock["node"]
+				if is_instance_valid(node3):
+					node3.modulate.a = maxf(float(rock["t"]) / 0.4, 0.0)
+				if float(rock["t"]) <= 0.0:
+					if is_instance_valid(node3):
+						node3.queue_free()
+					rock["node"] = null
+					rock["state"] = "rest"
+					var rng2: RandomNumberGenerator = rock["rng"]
+					rock["t"] = float(rock["cool"]) * rng2.randf_range(0.8, 1.35)
+
+
+## The fire vents. One shared rhythm, staggered starts: red glow first,
+## always; then the column; then quiet. Standing in a warning costs nothing
+## -- only the flame itself has teeth.
+func _tick_vents(delta: float) -> void:
+	for vent in _vents:
+		var cycle: float = float(vent["warn"]) + float(vent["blaze"]) + float(vent["idle"])
+		vent["t"] = fmod(float(vent["t"]) + delta, cycle)
+		var t: float = float(vent["t"])
+		var glow: Node2D = vent["glow"]
+		var flame: Node2D = vent["flame"]
+		if t < float(vent["warn"]):
+			if is_instance_valid(glow):
+				glow.modulate.a = 0.35 + 0.45 * absf(sin(t * 9.0))
+			if is_instance_valid(flame):
+				flame.visible = false
+			if t < delta * 2.0 and _hero_can_see(float(vent["at"])):
+				_warn_once("fire", I18n.t("adventure.fire"))
+		elif t < float(vent["warn"]) + float(vent["blaze"]):
+			if is_instance_valid(glow):
+				glow.modulate.a = 1.0
+			if is_instance_valid(flame):
+				if not flame.visible:
+					flame.visible = true
+					AudioManager.play_sfx("res://assets/audio/beam.ogg")
+				flame.scale.y = 0.92 + 0.10 * absf(sin(t * 26.0))
+			if absf(_hero.position.x - float(vent["at"])) < 52.0 \
+					and _hero.position.y > _ground_y - 165.0:
+				_hero.take_hit(Vector2(float(vent["at"]), _ground_y))
+		else:
+			if is_instance_valid(glow):
+				glow.modulate.a = 0.0
+			if is_instance_valid(flame):
+				flame.visible = false
+
+
+## The step-in-order plates. Edge-triggered -- STANDING on a plate is one
+## step, not sixty a second -- and walking back over an already-green plate
+## is free, so pacing about while thinking costs nothing.
+func _watch_seq_plates() -> void:
+	for group in _seq_groups:
+		if bool(group["done"]):
+			continue
+		for plate in group["plates"]:
+			var on: bool = _hero.grounded \
+				and absf(_hero.position.x - float(plate["at"])) < 52.0 \
+				and absf(_hero.position.y - _ground_y) < 8.0
+			if on and not bool(plate["on"]):
+				plate["on"] = true
+				_step_seq_plate(group, plate)
+			elif not on:
+				plate["on"] = false
+
+
+func _step_seq_plate(group: Dictionary, plate: Dictionary) -> void:
+	if bool(plate["lit"]):
+		return                          # re-crossing a done plate is free
+	if int(plate["dots"]) == int(group["next"]):
+		plate["lit"] = true
+		group["next"] = int(group["next"]) + 1
+		var lamp: Node2D = plate["lamp"]
+		if is_instance_valid(lamp):
+			lamp.modulate = Color(0.55, 1.0, 0.62)
+			Juice.pop(plate["node"], 0.22)
+		AudioManager.play_sfx("res://assets/audio/notes/note_%d.ogg"
+			% clampi(int(plate["dots"]), 1, 5))
+		var all_done := true
+		for p in group["plates"]:
+			if not bool(p["lit"]):
+				all_done = false
+		if all_done:
+			group["done"] = true
+			Juice.burst(_world, Vector2(float(plate["at"]), _ground_y - 90.0), 22)
+			_open_gate(group["gate"])
+	else:
+		# Wrong order: everything just lights up again. A shrug. The child's
+		# hearts, progress and dignity are all exactly where they left them.
+		group["next"] = 1
+		for p in group["plates"]:
+			p["lit"] = false
+			var lamp2: Node2D = p["lamp"]
+			if is_instance_valid(lamp2):
+				lamp2.modulate = Color.WHITE
+		Juice.nudge(plate["node"])
+		AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+		_say(I18n.t("adventure.seq_again"))
+
+
+## Callouts that should happen exactly once per level, the first time the
+## thing is actually on screen -- a warning about rocks you cannot see yet is
+## just noise.
+func _hero_can_see(x: float) -> bool:
+	return absf(x - _hero.position.x) < 900.0
+
+
+func _warn_once(family: String, text: String) -> void:
+	if _warned.has(family):
+		return
+	_warned[family] = true
+	_say(text)
+
+
 # --- interaction -------------------------------------------------------------
 
 ## Rebuild the "what is near me" answer every frame and let the bar show it.
@@ -674,12 +1179,14 @@ func _offer_interaction() -> void:
 			if not bool(_chest.get("told", false)):
 				_chest["told"] = true
 				_say(I18n.t("adventure.chest"))
-	for crate in _crates:
-		var d2: float = absf(_hero.position.x - float(crate["at"]))
+	for puzzle in _puzzles:
+		if bool(puzzle["solved"]):
+			continue
+		var d2: float = absf(_hero.position.x - float(puzzle["at"]))
 		if d2 < best:
 			best = d2
-			_nearest = {"kind": "crate", "at": Vector2(float(crate["at"]),
-				_ground_y - 150.0), "icon": "tap", "crate": crate}
+			_nearest = {"kind": "puzzle", "at": Vector2(float(puzzle["at"]),
+				_ground_y - 250.0), "icon": "magnifier", "puzzle": puzzle}
 	if _bar == null or not is_instance_valid(_bar):
 		return
 	if _nearest.is_empty():
@@ -695,26 +1202,39 @@ func _on_interact() -> void:
 	match str(_nearest["kind"]):
 		"chest":
 			_open_chest()
-		"crate":
-			_push_crate(_nearest["crate"])
+		"puzzle":
+			_open_card(_nearest["puzzle"])
 
 
-func _push_crate(crate: Dictionary) -> void:
-	var node: Node2D = crate["node"]
-	if not is_instance_valid(node):
+## The knowledge card, asked in place. The hero freezes mid-level, the hands
+## disappear (there is nothing for them to do), the world dims, the question
+## comes up. Solving it opens the puzzle's gate and gives the hands back.
+func _open_card(puzzle: Dictionary) -> void:
+	if _card != null and is_instance_valid(_card):
 		return
-	var dir: float = signf(_hero.position.x - float(crate["at"])) * -1.0
-	if dir == 0.0:
-		dir = 1.0
-	crate["at"] = float(crate["at"]) + dir * 120.0
-	if Juice.motion_enabled():
-		var t := node.create_tween()
-		t.tween_property(node, "position:x", float(crate["at"]), 0.32)\
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	else:
-		node.position.x = float(crate["at"])
-	Juice.dust(_world, node.position, 4, 0.7)
-	AudioManager.play_sfx("res://assets/audio/coin.ogg")
+	_hero.freeze(true)
+	if _bar != null and is_instance_valid(_bar):
+		_bar.visible = false
+	_card = PuzzleCard.new()
+	_hud.add_child(_card)
+	_card.open(str(puzzle["kind"]),
+		Shapes.rng_for("%s-card" % str(level_data.get("id", ""))),
+		difficulty() == GENTLE)
+	_card.answered.connect(func(correct: bool):
+		if correct:
+			score_correct()
+		else:
+			score_mistake())
+	_card.solved.connect(func():
+		puzzle["solved"] = true
+		_card = null
+		_hero.freeze(false)
+		if _bar != null and is_instance_valid(_bar):
+			_bar.visible = true
+		var node: Node2D = puzzle["node"]
+		if is_instance_valid(node):
+			Juice.burst(_world, node.position + Vector2(0, -160.0), 20)
+		_open_gate(puzzle["gate"]))
 
 
 func _open_chest() -> void:
@@ -749,9 +1269,11 @@ func _on_attack() -> void:
 			t.tween_property(arc, "modulate:a", 0.0, 0.2)
 			t.chain().tween_callback(arc.queue_free)
 		else:
-			get_tree().create_timer(0.25).timeout.connect(func():
-				if is_instance_valid(arc):
-					arc.queue_free())
+			# Reduce-motion: the arc still has to go away, and the countdown
+			# still belongs to the arc rather than to the scene tree.
+			var gone := arc.create_tween()
+			gone.tween_interval(0.25)
+			gone.tween_callback(arc.queue_free)
 		AudioManager.play_sfx("res://assets/audio/beam.ogg")
 
 
@@ -772,9 +1294,9 @@ func _on_skill(slot: int) -> void:
 				t.tween_property(ring, "modulate:a", 0.0, 1.4)
 				t.chain().tween_callback(ring.queue_free)
 			else:
-				get_tree().create_timer(1.4).timeout.connect(func():
-					if is_instance_valid(ring):
-						ring.queue_free())
+				var gone := ring.create_tween()
+				gone.tween_interval(1.4)
+				gone.tween_callback(ring.queue_free)
 		1:
 			_hero.figure().power_up()
 			Juice.shockwave(_world, _hero.position, 190.0, Color(1.0, 0.86, 0.40))
@@ -882,12 +1404,16 @@ func _say(text: String) -> void:
 	if _instruction == null or not is_instance_valid(_instruction):
 		return
 	_instruction.text = text
-	var timer := get_tree().create_timer(2.6)
-	timer.timeout.connect(func():
+	# Timed off a tween the LABEL owns, not a SceneTreeTimer: a child who
+	# leaves mid-sentence takes the label and its countdown with them. A
+	# tree timer outlives the level and fires into a freed scene.
+	var back := I18n.t(str(level_data.get("config", {})
+		.get("instruction_key", "adventure.instruction")))
+	var t := _instruction.create_tween()
+	t.tween_interval(2.6)
+	t.tween_callback(func():
 		if is_instance_valid(_instruction) and not _finished:
-			_instruction.text = I18n.t(str(level_data.get("config", {})
-				.get("instruction_key", "adventure.instruction")))
-	)
+			_instruction.text = back)
 
 
 ## Three stars, three independent questions -- so a child who finished but

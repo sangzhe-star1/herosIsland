@@ -298,7 +298,13 @@
     "adventure.oops": "No problem. Back to your safe spot.",
     "adventure.again": "Let's try again. You've got this!",
     "adventure.chest": "Open the chest!",
-    "badge.first_steps": "First Steps"
+    "badge.first_steps": "First Steps",
+    "level.sunny_park_02": "Rockfall Path",
+    "adventure.instruction_02": "Mind the shadows and flames -- make it to the chest!",
+    "adventure.rocks": "Watch out -- falling rocks!",
+    "adventure.fire": "Red ground means fire is coming!",
+    "adventure.seq_again": "Not that order -- try again.",
+    "badge.rock_dodger": "Rock Dodger"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -599,6 +605,12 @@
     "adventure.oops": "没关系，回到安全点。",
     "adventure.again": "再来一次，你可以的！",
     "adventure.chest": "打开宝箱！",
-    "badge.first_steps": "第一步"
+    "badge.first_steps": "第一步",
+    "level.sunny_park_02": "落石小径",
+    "adventure.instruction_02": "小心阴影和火焰，一路走到宝箱！",
+    "adventure.rocks": "小心！有落石！",
+    "adventure.fire": "地面变红就要喷火了！",
+    "adventure.seq_again": "顺序不对，再试一次。",
+    "badge.rock_dodger": "躲石小勇士"
   }
 }

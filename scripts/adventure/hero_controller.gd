@@ -128,6 +128,16 @@ func freeze(on: bool) -> void:
 		velocity.x = 0.0
 
 
+## Which way the hands are ASKING to go, -1, 0 or 1 -- regardless of whether
+## anything is actually moving. A level needs this to tell "walking into a
+## crate" apart from "standing next to a crate": once contact with the box
+## clamps the hero in place, velocity reads zero for both.
+func wish_dir() -> float:
+	var left: bool = _dir_left or Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A)
+	var right: bool = _dir_right or Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D)
+	return (1.0 if right else 0.0) - (1.0 if left else 0.0)
+
+
 func can_attack() -> bool:
 	return _clock >= _attack_ready and not _frozen
 
@@ -146,11 +156,13 @@ func attack() -> bool:
 	_face()
 	if _hero != null and is_instance_valid(_hero):
 		_hero.set_pose(HeroArt.Pose.BEAM)
-		var back := get_tree().create_timer(0.26)
-		back.timeout.connect(func():
+		# Owned by the figure, so leaving the level takes the countdown with
+		# it rather than firing it into a freed hero.
+		var back := _hero.create_tween()
+		back.tween_interval(0.26)
+		back.tween_callback(func():
 			if is_instance_valid(_hero) and not _frozen:
-				_hero.set_pose(HeroArt.Pose.IDLE)
-		)
+				_hero.set_pose(HeroArt.Pose.IDLE))
 	attacked.emit(position + Vector2(facing * ATTACK_REACH * 0.5, -80.0), facing)
 	return true
 

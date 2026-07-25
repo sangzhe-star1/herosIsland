@@ -1,5 +1,46 @@
 # Changelog
 
+## Phase B: things that warn, and questions asked in place — 25 July 2026
+
+Second stage of the 54-level rebuild. Level 2, 落石小径 (Rockfall Path), and
+the five beat kinds it needed.
+
+- **Hazards that warn first, always.** A falling rock grows a shadow on the
+  ground where it will land, and the SIZE of the shadow is the countdown; a
+  fire vent blushes red before the column comes up. Difficulty may shorten
+  the fuse and may never remove it -- the probe measures a real rockfall with
+  a stopwatch (1.72 s from shadow to impact) rather than trusting the config.
+- **A crate you push with your body**, not with a button, solid from the side
+  and ridable from on top. It exists to reach a shelf exactly one jump above
+  its own roof, with the hidden gem on it -- both numbers derived from the
+  jump arc rather than chosen.
+- **Step-in-order plates**, wearing one, two, three DOTS (never digits).
+  Wrong order relights the row and costs nothing: not a heart, not an orb,
+  not the gate.
+- **PuzzleCard**: a picture-question asked without leaving the level. The
+  world dims, the card flips up, fifteen seconds later the child is back on
+  the path. This is how the twelve old minigames come back -- Phase B ships
+  the colour-match card from the old collect_energy levels.
+- **A hand that points.** Push at a shut gate for two seconds and the game
+  points at whatever opens it -- plate, next dot-plate, or question post.
+
+Bugs the probe caught before any child could:
+- Sequence plates could be built 50 px apart, closer than the hero is wide,
+  so one step hit all three and the "sequence" solved itself. Plates now sit
+  at a fixed 200 px and the count shrinks rather than the spacing.
+- Zone beats were placed by hunting for a wide enough ground segment, and the
+  only one long enough was the opening meadow -- so the crate, the plates and
+  their gates all slid back to the first screen and two thirds of the level
+  was an empty walk. Terrain is now GROWN around beats planned in advance,
+  and the level's length is derived from what its beats need.
+- The crate never moved: contact zeroes the hero's velocity, and the push
+  read velocity. It now reads the buttons (`HeroController.wish_dir()`).
+- SceneTreeTimers outliving the nodes they were meant to tidy, in six places
+  including every particle puff and every stumble. All now tweens owned by
+  the node, so leaving a level takes its countdowns with it.
+- The card's dimmer was invisible: `set_anchors_preset` keeps the current
+  rect, so a Control born at zero size stays there.
+
 ## The adventure template -- Phase A of the big rebuild — 25 July 2026
 
 The first stage of rebuilding all 54 levels into one side-scrolling adventure

@@ -65,12 +65,13 @@ static func burst(parent: Node, at: Vector2, amount: int = 22) -> void:
 	parent.add_child(particles)
 	particles.emitting = true
 
-	# Outlive the longest particle, then clean up.
-	var timer := parent.get_tree().create_timer(particles.lifetime + 0.4)
-	timer.timeout.connect(func():
-		if is_instance_valid(particles):
-			particles.queue_free()
-	)
+	# Outlive the longest particle, then clean up -- timed off a tween the
+	# emitter OWNS. A SceneTreeTimer survives the node it was meant to tidy,
+	# so leaving a level mid-puff fires a callback into freed memory (Godot
+	# says so, once per stray puff, in the log).
+	var timer := particles.create_tween()
+	timer.tween_interval(particles.lifetime + 0.4)
+	timer.tween_callback(particles.queue_free)
 
 
 ## Squash-and-stretch bounce. Works on any CanvasItem with a `scale`.
@@ -264,7 +265,6 @@ static func no_sign(parent: Node, at: Vector2, size: float = 150.0) -> void:
 		t.tween_property(holder, "modulate:a", 0.0, 0.30)
 		t.tween_callback(holder.queue_free)
 	else:
-		holder.get_tree().create_timer(1.1).timeout.connect(func():
-			if is_instance_valid(holder):
-				holder.queue_free()
-		)
+		var gone := holder.create_tween()
+		gone.tween_interval(1.1)
+		gone.tween_callback(holder.queue_free)

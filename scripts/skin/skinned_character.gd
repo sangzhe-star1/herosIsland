@@ -168,11 +168,12 @@ func celebrate() -> void:
 	t.tween_property(self, "scale", base * Vector2(1.10, 0.93), 0.16)
 	t.tween_property(self, "scale", base * Vector2(0.97, 1.07), 0.16)
 	t.tween_property(self, "scale", base, 0.16)
-	var back := get_tree().create_timer(1.6)
-	back.timeout.connect(func():
-		if is_instance_valid(self):
-			set_pose(HeroArt.Pose.IDLE)
-	)
+	# Timed off a tween this figure OWNS. A SceneTreeTimer outlives the node
+	# it was meant to reset, and fires into a freed character when a level is
+	# left mid-animation -- which is every level, every time.
+	var back := create_tween()
+	back.tween_interval(1.6)
+	back.tween_callback(func(): set_pose(HeroArt.Pose.IDLE))
 
 
 func brace() -> void:
@@ -318,20 +319,16 @@ func victory() -> void:
 	if not Juice.motion_enabled():
 		celebrate()
 		return
-	var timer := get_tree().create_timer(0.95)
-	timer.timeout.connect(func():
-		if is_instance_valid(self):
-			celebrate()
-	)
+	var timer := create_tween()
+	timer.tween_interval(0.95)
+	timer.tween_callback(celebrate)
 
 
 func stumble() -> void:
 	set_pose(HeroArt.Pose.HURT)
-	var back := get_tree().create_timer(0.7)
-	back.timeout.connect(func():
-		if is_instance_valid(self):
-			set_pose(HeroArt.Pose.IDLE)
-	)
+	var back := create_tween()
+	back.tween_interval(0.7)
+	back.tween_callback(func(): set_pose(HeroArt.Pose.IDLE))
 
 
 func _show_cheer_texture(hold_seconds: float = 1.5) -> void:

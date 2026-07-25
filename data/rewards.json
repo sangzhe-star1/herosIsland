@@ -111,6 +111,10 @@
     "first_steps": {
       "name_key": "badge.first_steps",
       "icon": "flag"
+    },
+    "rock_dodger": {
+      "name_key": "badge.rock_dodger",
+      "icon": "rock"
     }
   },
   "growth_attributes": [

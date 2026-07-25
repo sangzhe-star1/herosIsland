@@ -2224,5 +2224,64 @@
       ],
       "length": 3600
     }
+  },
+  {
+    "id": "sunny_park_02",
+    "world": "sunny_park",
+    "name_key": "level.sunny_park_02",
+    "game_type": "platform_adventure",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "sunny_park_01",
+    "target": {},
+    "reward": {
+      "coins": 30,
+      "badge": "rock_dodger"
+    },
+    "config": {
+      "instruction_key": "adventure.instruction_02",
+      "length": 4400,
+      "gap_max": 100,
+      "seg_min": 380,
+      "sections": [
+        {
+          "kind": "collect",
+          "count": 3,
+          "spread": 340
+        },
+        {
+          "kind": "rocks",
+          "count": 3
+        },
+        {
+          "kind": "checkpoint"
+        },
+        {
+          "kind": "crate_shelf"
+        },
+        {
+          "kind": "seq_plates",
+          "count": 3,
+          "gate_gap": 240
+        },
+        {
+          "kind": "fire",
+          "count": 3
+        },
+        {
+          "kind": "collect",
+          "count": 3,
+          "spread": 320
+        },
+        {
+          "kind": "puzzle",
+          "puzzle": "color_match",
+          "gate_gap": 240
+        },
+        {
+          "kind": "chest"
+        }
+      ]
+    }
   }
 ]

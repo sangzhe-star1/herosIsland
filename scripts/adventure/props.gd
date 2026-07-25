@@ -193,6 +193,145 @@ static func crate(parent: Node) -> Node2D:
 	return node
 
 
+# --- hazards ---------------------------------------------------------------
+#
+# The one law of every hazard on the island: IT WARNS FIRST, in the exact
+# place it is about to hurt. Difficulty may shorten the warning; nothing may
+# remove it. A danger that arrives unannounced teaches a six-year-old that
+# the game is out to get them, and after that no amount of charm gets the
+# trust back.
+
+## The warning half of a falling rock: a ground shadow that grows from
+## nothing to full size while the rock is still "far away". The level scales
+## this node from 0 to 1 over the warning time, so the SIZE of the shadow is
+## the countdown -- readable at any age, no numbers anywhere.
+static func rock_shadow(parent: Node) -> Node2D:
+	var node := Node2D.new()
+	parent.add_child(node)
+	Shapes.fill(node, Shapes.oval_points(Vector2.ZERO, Vector2(64.0, 16.0), 22),
+		Color(0.08, 0.10, 0.16, 0.42), 0.0)
+	var ring := Line2D.new()
+	ring.points = Shapes.oval_points(Vector2.ZERO, Vector2(64.0, 16.0), 26)
+	ring.closed = true
+	ring.width = 5.0
+	ring.default_color = Color(0.95, 0.45, 0.35, 0.85)
+	ring.antialiased = true
+	node.add_child(ring)
+	return node
+
+
+## The rock itself. Round enough to read as "boulder", craggy enough not to
+## read as "ball" -- a ball is something a child runs TOWARD.
+static func boulder(parent: Node) -> Node2D:
+	var node := Node2D.new()
+	parent.add_child(node)
+	Shapes.lit(node, PackedVector2Array([
+		Vector2(-40.0, 10.0), Vector2(-34.0, -22.0), Vector2(-10.0, -40.0),
+		Vector2(22.0, -34.0), Vector2(40.0, -8.0), Vector2(30.0, 22.0),
+		Vector2(-6.0, 30.0),
+	]), Color(0.58, 0.56, 0.62), 1.0)
+	Shapes.fill(node, PackedVector2Array([
+		Vector2(-18.0, -10.0), Vector2(-4.0, -22.0), Vector2(6.0, -8.0),
+	]), Color(0.70, 0.68, 0.74), 0.0)
+	return node
+
+
+## A fire vent: a stone grate that idles cold, blushes red as the warning,
+## then throws a flame column. The level owns the timing; this hands back the
+## three parts it animates.
+static func fire_vent(parent: Node) -> Dictionary:
+	var node := Node2D.new()
+	parent.add_child(node)
+	Shapes.ground_shadow(node, Vector2.ZERO, 110.0, 0.18)
+	Shapes.lit(node, Shapes.rounded_rect(Vector2(-48.0, -16.0), Vector2(96.0, 16.0), 7.0),
+		STONE.darkened(0.24), 1.0)
+	for slot in range(3):
+		Shapes.fill(node, Shapes.rounded_rect(
+			Vector2(-32.0 + float(slot) * 24.0, -12.0), Vector2(14.0, 8.0), 3.0),
+			Color(0.16, 0.14, 0.18), 0.0)
+
+	# The warning: a red glow pooled ON THE GROUND, where the flame will be.
+	var glow := Node2D.new()
+	node.add_child(glow)
+	Shapes.glow(glow, Vector2(0, -10.0), 96.0, Color(1.0, 0.42, 0.22), 4, 0.5)
+	glow.modulate.a = 0.0
+
+	# The flame column: three licks of fire, hidden until it blows.
+	var flame := Node2D.new()
+	flame.position = Vector2(0, -16.0)
+	node.add_child(flame)
+	Shapes.glow(flame, Vector2(0, -70.0), 120.0, Color(1.0, 0.60, 0.25), 4, 0.5)
+	for lick in [[-20.0, 96.0, Color(1.0, 0.55, 0.20)], [0.0, 140.0, Color(1.0, 0.72, 0.28)],
+			[20.0, 88.0, Color(1.0, 0.55, 0.20)]]:
+		Shapes.fill(flame, PackedVector2Array([
+			Vector2(float(lick[0]) - 16.0, 0.0),
+			Vector2(float(lick[0]) + rng_wobble(lick[0]), -float(lick[1])),
+			Vector2(float(lick[0]) + 16.0, 0.0),
+		]), lick[2], 0.0)
+	Shapes.fill(flame, PackedVector2Array([
+		Vector2(-8.0, 0.0), Vector2(0.0, -64.0), Vector2(8.0, 0.0),
+	]), Color(1.0, 0.92, 0.55), 0.0)
+	flame.visible = false
+	return {"node": node, "glow": glow, "flame": flame}
+
+
+## A tiny deterministic wiggle so three flame tips are not identical, without
+## dragging a whole RNG through the drawing call.
+static func rng_wobble(seed_val: float) -> float:
+	return fmod(absf(seed_val) * 7.31, 9.0) - 4.5
+
+
+## One plate of a step-in-order puzzle, wearing its position in the sequence
+## as a pattern of DOTS -- one, two, three -- never a written digit. Lit cyan
+## while waiting, green once stepped in the right turn.
+static func seq_plate(parent: Node, dots: int) -> Dictionary:
+	var node := Node2D.new()
+	parent.add_child(node)
+	Shapes.ground_shadow(node, Vector2.ZERO, 130.0, 0.20)
+	# A chunky plinth, so the plate reads as a machine standing on the path
+	# rather than a puddle painted on it. The first version was 18 px tall
+	# with 5 px dots and vanished into the grass in a screenshot.
+	Shapes.lit(node, Shapes.rounded_rect(Vector2(-54.0, -30.0), Vector2(108.0, 30.0), 9.0),
+		STONE.darkened(0.16), 1.0)
+	var lamp := Node2D.new()
+	lamp.position = Vector2(0, -30.0)
+	node.add_child(lamp)
+	Shapes.glow(lamp, Vector2(0, -14.0), 84.0, Color(0.45, 0.86, 1.0), 4, 0.42)
+	Shapes.lit(lamp, Shapes.rounded_rect(Vector2(-46.0, -30.0), Vector2(92.0, 30.0), 10.0),
+		Color(0.45, 0.86, 1.0), 0.9)
+	# The count, as dots a child can read across the screen -- never a digit.
+	var spots := [[Vector2.ZERO], [Vector2(-17.0, 0.0), Vector2(17.0, 0.0)],
+		[Vector2(-26.0, 0.0), Vector2.ZERO, Vector2(26.0, 0.0)],
+		[Vector2(-30.0, 0.0), Vector2(-10.0, 0.0), Vector2(10.0, 0.0), Vector2(30.0, 0.0)]]
+	for spot in spots[clampi(dots, 1, 4) - 1]:
+		var centre: Vector2 = (spot as Vector2) + Vector2(0, -15.0)
+		Shapes.fill(lamp, Shapes.circle_points(centre, 9.0, 14),
+			Color(0.05, 0.10, 0.24), 0.0)
+		Shapes.fill(lamp, Shapes.circle_points(centre + Vector2(-2.0, -2.5), 3.4, 10),
+			Color(1, 1, 1, 0.55), 0.0)
+	return {"node": node, "lamp": lamp}
+
+
+## The question post: where a knowledge card lives in the world. A wooden
+## sign with three little coloured tiles -- the picture of "a small quiz",
+## with not a word on it.
+static func puzzle_sign(parent: Node) -> Node2D:
+	var node := Node2D.new()
+	parent.add_child(node)
+	Shapes.ground_shadow(node, Vector2.ZERO, 100.0, 0.18)
+	Shapes.fill(node, Shapes.taper(Vector2.ZERO, Vector2(0, -120.0), 9.0, 6.0),
+		WOOD.darkened(0.08), 0.9)
+	Shapes.lit(node, Shapes.rounded_rect(Vector2(-58.0, -196.0), Vector2(116.0, 84.0), 12.0),
+		WOOD.lightened(0.10), 1.0)
+	var tints := [Color(0.95, 0.45, 0.40), Color(1.0, 0.85, 0.35), Color(0.45, 0.75, 0.98)]
+	for i in range(3):
+		Shapes.fill(node, Shapes.rounded_rect(
+			Vector2(-44.0 + float(i) * 32.0, -182.0), Vector2(24.0, 24.0), 7.0),
+			tints[i], 0.0)
+	Shapes.glow(node, Vector2(0, -240.0), 60.0, Color(1.0, 0.95, 0.70), 3, 0.4)
+	return node
+
+
 ## The teaching hand: a translucent finger that taps where the child should.
 ## Used for the opening beat of a level and for the demo after two failures.
 static func hint_hand(parent: Node) -> Node2D:
