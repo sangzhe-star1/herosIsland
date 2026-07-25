@@ -99,6 +99,10 @@
     "mountain_hero": {
       "name_key": "badge.mountain_hero",
       "icon": "rock"
+    },
+    "star_captain": {
+      "name_key": "badge.star_captain",
+      "icon": "star_bomb"
     }
   },
   "growth_attributes": [
@@ -176,6 +180,29 @@
     {
       "id": "monster",
       "cost": 22
+    }
+  ],
+  "items": [
+    {
+      "id": "heart_potion",
+      "icon": "potion",
+      "cost_stars": 6,
+      "name_key": "item.heart_potion",
+      "desc_key": "item.heart_potion_desc"
+    },
+    {
+      "id": "shield_charm",
+      "icon": "shield",
+      "cost_stars": 5,
+      "name_key": "item.shield_charm",
+      "desc_key": "item.shield_charm_desc"
+    },
+    {
+      "id": "star_bomb",
+      "icon": "star_bomb",
+      "cost_stars": 8,
+      "name_key": "item.star_bomb",
+      "desc_key": "item.star_bomb_desc"
     }
   ]
 }

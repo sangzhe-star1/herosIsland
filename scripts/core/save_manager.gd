@@ -46,6 +46,10 @@ func _default_data() -> Dictionary:
 			"coins": 0,
 			"badges": [],
 			"stickers": [],
+			# The star shop: lifetime stars stay untouched (they unlock worlds);
+			# spending only raises spent_stars. Items are consumables, id -> count.
+			"spent_stars": 0,
+			"items": {},
 		},
 		# Growth attributes. Displayed as growing plants/flags, never as combat stats.
 		"growth": {
@@ -200,6 +204,51 @@ func bump_challenge_rank(level_id: String) -> void:
 	data["challenges"][level_id] = get_challenge_rank(level_id) + 1
 	save_game()
 	progress_changed.emit()
+
+
+# --- the star shop ------------------------------------------------------
+#
+# Stars are two things at once: the lifetime achievement count that unlocks
+# worlds (total_stars(), which only ever rises) and, since the star shop, a
+# spendable allowance. Spending NEVER touches the lifetime count -- it only
+# raises rewards.spent_stars -- so buying a potion can never re-lock a world
+# or shrink the tally a child is proud of.
+
+func star_balance() -> int:
+	return maxi(total_stars() - int(data["rewards"].get("spent_stars", 0)), 0)
+
+
+func spend_stars(amount: int) -> bool:
+	if amount <= 0 or star_balance() < amount:
+		return false
+	data["rewards"]["spent_stars"] = int(data["rewards"].get("spent_stars", 0)) + amount
+	save_game()
+	progress_changed.emit()
+	return true
+
+
+## Battle items are consumable and counted: bought in the star shop, spent
+## in a fight, one at a time.
+func item_count(item_id: String) -> int:
+	return int(data["rewards"].get("items", {}).get(item_id, 0))
+
+
+func add_item(item_id: String, amount: int = 1) -> void:
+	var items: Dictionary = data["rewards"].get("items", {})
+	items[item_id] = int(items.get(item_id, 0)) + amount
+	data["rewards"]["items"] = items
+	save_game()
+	progress_changed.emit()
+
+
+## Items go out only through here, and only if one is really there.
+func use_item(item_id: String) -> bool:
+	if item_count(item_id) <= 0:
+		return false
+	data["rewards"]["items"][item_id] = item_count(item_id) - 1
+	save_game()
+	progress_changed.emit()
+	return true
 
 
 ## Coins go out only through here, and only if they are really there.

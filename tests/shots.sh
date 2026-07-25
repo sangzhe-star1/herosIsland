@@ -78,6 +78,8 @@ SHOTS=(
   "duel|res://scenes/minigames/monster_duel/MonsterDuel.tscn|monster_arena_04"
   "echo|res://scenes/minigames/light_echo/LightEcho.tscn|hero_city_06"
   "trail|res://scenes/minigames/platformer/Platformer.tscn|adventure_valley_01"
+  "shop|res://scenes/shop/ItemShop.tscn|"
+  "expedition|res://scenes/minigames/monster_expedition/MonsterExpedition.tscn|star_trials_01"
 )
 
 wanted=("$@")

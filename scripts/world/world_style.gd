@@ -225,6 +225,34 @@ static func for_world(world_id: String) -> WorldStyle:
 			s.mote_kind = "pollen"
 			s.mote_color = Color(1.0, 1.0, 1.0, 0.6)
 
+		"star_trials":
+			# The trial ground at first starlight: warmer than the arena's
+			# midnight, more serious than the valley's noon. Same island,
+			# the hour when the lanterns come on.
+			s.sky_top = Color(0.16, 0.20, 0.42)
+			s.sky_bottom = Color(0.80, 0.48, 0.38)
+			s.haze = Color(0.86, 0.56, 0.44, 0.42)
+			s.light_at = Vector2(0.82, 0.20)
+			s.light_radius = 44.0
+			s.light_color = Color(1.0, 0.88, 0.66)
+			s.light_glow = 0.34
+			s.star_density = 0.5
+			s.horizon_kind = "crags"
+			s.band_scale = 1.7
+			s.band_colors = [
+				Color(0.42, 0.34, 0.52), Color(0.32, 0.26, 0.44), Color(0.23, 0.19, 0.35),
+			]
+			s.ground_top = Color(0.55, 0.42, 0.48)
+			s.ground_bottom = Color(0.38, 0.28, 0.36)
+			s.ground_kind = "arena"
+			# Rocks only: banner poles and lamp posts kept sprouting exactly
+			# behind the monsters' heads, wearing them like hats.
+			s.props = ["rock"]
+			s.prop_density = 0.55
+			s.clouds = 0.25
+			s.mote_kind = "sparks"
+			s.mote_color = Color(1.0, 0.82, 0.5, 0.7)
+
 		# The island seen from the air, for the map and the shell screens.
 		# Same palette family as Piglet Town so arriving on the map feels like
 		# looking down at the place you were just standing in.

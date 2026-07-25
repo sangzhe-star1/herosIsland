@@ -18,10 +18,39 @@ func _ready() -> void:
 	var title := UiKit.title(I18n.t("rewards.title"), 52)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
-	# The treasure chest, sitting on the shelf where the treasure is counted.
-	var chest: Control = UiKit.picture("chest", 84)
+	# The treasure chest is now a DOOR: it opens the star shop. It sits where
+	# the decorative chest used to sit, so the child who tapped the picture
+	# out of hope (they all do) now gets a shop instead of nothing.
+	var shop := Button.new()
+	shop.custom_minimum_size = Vector2(220, 84)
+	shop.focus_mode = Control.FOCUS_NONE
+	var shop_style := StyleBoxFlat.new()
+	shop_style.bg_color = Palette.ORANGE
+	shop_style.set_corner_radius_all(26)
+	shop_style.border_width_bottom = 8
+	shop_style.border_color = Palette.edge(Palette.ORANGE)
+	var shop_pressed: StyleBoxFlat = shop_style.duplicate()
+	shop_pressed.border_width_bottom = 3
+	shop.add_theme_stylebox_override("normal", shop_style)
+	shop.add_theme_stylebox_override("hover", shop_style)
+	shop.add_theme_stylebox_override("pressed", shop_pressed)
+	var shop_row := HBoxContainer.new()
+	shop_row.position = Vector2(18, 10)
+	shop_row.add_theme_constant_override("separation", 10)
+	shop_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chest: Control = UiKit.picture("chest", 60)
 	if chest != null:
-		header.add_child(chest)
+		shop_row.add_child(chest)
+	var shop_label := Label.new()
+	shop_label.text = I18n.t("shop.title")
+	shop_label.add_theme_font_size_override("font_size", 30)
+	shop_label.add_theme_color_override("font_color", Color.WHITE)
+	shop_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	shop_row.add_child(shop_label)
+	shop.add_child(shop_row)
+	shop.pressed.connect(func():
+		SceneManager.goto_scene("res://scenes/shop/ItemShop.tscn"))
+	header.add_child(shop)
 	root.add_child(header)
 
 	var scroll := ScrollContainer.new()

@@ -32,6 +32,10 @@ var _region_x: Dictionary = {}
 var _region_w: Dictionary = {}
 var _width := 1280.0
 var _rng: RandomNumberGenerator
+## Compact mode: ONE world drawn as ONE island that fits a single 1280x720
+## page, markers on a serpentine path. The paged map uses this; the original
+## long-strip mode remains for anything that wants the whole archipelago.
+var _compact := false
 
 
 func canvas_size() -> Vector2:
@@ -50,14 +54,19 @@ func region_centre(world_id: String) -> Vector2:
 
 ## `worlds` in display order; `levels_by_world` maps world id -> Array of level
 ## dictionaries.
-func build(worlds: Array, levels_by_world: Dictionary) -> void:
+func build(worlds: Array, levels_by_world: Dictionary, compact: bool = false) -> void:
 	for c in get_children():
 		c.queue_free()
 	_positions.clear()
 	_region_centres.clear()
 	_region_x.clear()
 	_region_w.clear()
-	_rng = Shapes.rng_for("growth-island")
+	_compact = compact
+	# Seed per island in compact mode, so every world's coastline is its own.
+	var seed_key := "growth-island"
+	if compact and worlds.size() > 0:
+		seed_key = "island-" + str(worlds[0].get("id", ""))
+	_rng = Shapes.rng_for(seed_key)
 	_measure(worlds, levels_by_world)
 	_lay_out_nodes(worlds, levels_by_world)
 	_draw_sea()
@@ -71,6 +80,15 @@ func build(worlds: Array, levels_by_world: Dictionary) -> void:
 
 ## Each world gets as much coast as it needs.
 func _measure(worlds: Array, levels_by_world: Dictionary) -> void:
+	if _compact:
+		# One island, one page: fixed geometry, however many levels it holds
+		# (the serpentine below absorbs the count).
+		for world in worlds:
+			var world_id2: String = str(world.get("id", ""))
+			_region_x[world_id2] = 120.0
+			_region_w[world_id2] = 1040.0
+		_width = 1280.0
+		return
 	var x: float = 120.0
 	for world in worlds:
 		var world_id: String = str(world.get("id", ""))
@@ -93,6 +111,26 @@ func _lay_out_nodes(worlds: Array, levels_by_world: Dictionary) -> void:
 		var width: float = _region_w.get(world_id, REGION_MIN)
 		_region_centres[world_id] = Vector2(x0 + width * 0.5, SHORE_Y + 30.0)
 		var count: int = maxi(levels.size(), 1)
+		if _compact:
+			# A serpentine: up to four markers a row, the next row walking back
+			# the other way. The path drawn through them becomes the S-curve a
+			# one-page island needs -- eight levels with no scrolling at all.
+			var per_row: int = 4 if count <= 8 else 5
+			for i in range(count):
+				var row: int = i / per_row
+				var in_row: int = mini(per_row, count - row * per_row)
+				var tt: float = 0.5 if in_row == 1 else float(i % per_row) / float(in_row - 1)
+				if row % 2 == 1:
+					tt = 1.0 - tt
+				# Two rows with real air between them: a marker column (stone
+				# + name + stars) is ~215px tall, so the rows sit 226 apart
+				# and the first cut's cosy 144 -- which stacked row one's
+				# stars into row two's stones -- stays a lesson.
+				var sx: float = 240.0 + tt * 800.0
+				var sy: float = (358.0 if row == 0 else 584.0) \
+					+ sin(float(i) * 1.9) * 8.0
+				_positions["%s:%d" % [world_id, i]] = Vector2(sx, sy)
+			continue
 		for i in range(count):
 			var t: float = (float(i) + 0.5) / float(count)
 			# A meander rather than a row: the path has to look walked, not

@@ -198,7 +198,23 @@
     "character.yullian": "Yullian",
     "level.hero_city_07": "Rooftop Run",
     "level.rescue_forest_06": "Forest Dash",
-    "level.adventure_valley_04": "Snowy Trail"
+    "level.adventure_valley_04": "Snowy Trail",
+    "world.star_trials": "Star Trials",
+    "level.star_trials_01": "First Expedition",
+    "level.star_trials_02": "Two Tough Ones",
+    "level.star_trials_03": "The Big Trio",
+    "level.star_trials_challenge": "Captain's Trial",
+    "expedition.instruction": "Tap a monster to fire! Watch their hearts!",
+    "shop.title": "Star Shop",
+    "shop.hint": "Trade stars for expedition gear. Your star record stays yours forever!",
+    "shop.owned": "You have: x%d",
+    "item.heart_potion": "Heart Potion",
+    "item.heart_potion_desc": "Refills all your light",
+    "item.shield_charm": "Shield Charm",
+    "item.shield_charm_desc": "Blocks attacks for a while",
+    "item.star_bomb": "Star Burst",
+    "item.star_bomb_desc": "Hits every monster once",
+    "badge.star_captain": "Star Captain"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -399,6 +415,22 @@
     "character.yullian": "尤莉安",
     "level.hero_city_07": "屋顶夜奔",
     "level.rescue_forest_06": "森林大冲刺",
-    "level.adventure_valley_04": "雪山小道"
+    "level.adventure_valley_04": "雪山小道",
+    "world.star_trials": "星光试炼场",
+    "level.star_trials_01": "第一次远征",
+    "level.star_trials_02": "两个硬骨头",
+    "level.star_trials_03": "三怪小队",
+    "level.star_trials_challenge": "队长试炼",
+    "expedition.instruction": "点怪兽发光弹！看好它们的爱心！",
+    "shop.title": "星星商店",
+    "shop.hint": "用星星换远征道具，你的星星纪录永远不会少！",
+    "shop.owned": "已拥有：x%d",
+    "item.heart_potion": "爱心药水",
+    "item.heart_potion_desc": "把你的光补满",
+    "item.shield_charm": "护盾星章",
+    "item.shield_charm_desc": "帮你挡住攻击一小会儿",
+    "item.star_bomb": "星星飞弹",
+    "item.star_bomb_desc": "向每只怪兽都发一颗星星",
+    "badge.star_captain": "星光队长"
   }
 }

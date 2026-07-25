@@ -30,6 +30,9 @@ var _play_area: Control
 var _instruction: Label
 var _progress: Label
 var _hero: SkinnedCharacter
+var _ear_badge: Control        # "the island is singing -- listen"
+var _tap_badge: Control        # "your turn -- tap"
+var _replay: Button            # hear the song again, free, any time
 
 
 func setup_level() -> void:
@@ -88,6 +91,42 @@ func _build_scene(config: Dictionary) -> void:
 	_play_area.add_child(_progress)
 	_update_progress()
 
+	# The state, without the reading: an EAR medallion while the island
+	# sings, a TAPPING-FINGER medallion while it is the child's turn. The
+	# playtest that demanded this: the song played its two notes, the screen
+	# sat politely waiting, and a six-year-old concluded the game was broken
+	# -- "Listen..." and "Your turn!" were just letters to him.
+	_ear_badge = _state_badge("ear", Color(1.0, 0.78, 0.30))
+	_tap_badge = _state_badge("tap", Color(0.36, 0.78, 0.44))
+	_play_area.add_child(_ear_badge)
+	_play_area.add_child(_tap_badge)
+
+	# Hear it again, whenever, free. A wrong note already replays the song;
+	# this replays it BEFORE being wrong, which is what a child who looked
+	# away for two seconds actually needs.
+	_replay = Button.new()
+	_replay.custom_minimum_size = Vector2(104, 104)
+	_replay.position = Vector2(1120, 112)
+	_replay.focus_mode = Control.FOCUS_NONE
+	var rp_style := StyleBoxFlat.new()
+	rp_style.bg_color = Color(0.09, 0.15, 0.30, 0.92)
+	rp_style.set_corner_radius_all(52)
+	rp_style.border_width_bottom = 7
+	rp_style.border_width_top = 5
+	rp_style.border_width_left = 5
+	rp_style.border_width_right = 5
+	rp_style.border_color = Color(1.0, 0.78, 0.30)
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		_replay.add_theme_stylebox_override(st, rp_style)
+	var rp_icon: Control = UiKit.picture("sound_on", 62)
+	if rp_icon != null:
+		rp_icon.position = Vector2(21, 21)
+		rp_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_replay.add_child(rp_icon)
+	_replay.pivot_offset = Vector2(52, 52)
+	_replay.pressed.connect(_on_replay_pressed)
+	_play_area.add_child(_replay)
+
 	# The hero conducts from the side; the chest light sings every note.
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
@@ -113,6 +152,54 @@ func _build_scene(config: Dictionary) -> void:
 		pad.gui_input.connect(_on_pad_input.bind(i))
 		_play_area.add_child(pad)
 		_pads.append({"node": pad, "color": color, "note_index": i})
+
+
+## A big round state medallion: dark coaster, drawn icon, coloured ring.
+func _state_badge(icon_name: String, ring_color: Color) -> Control:
+	var box := Control.new()
+	var size := 104.0
+	box.custom_minimum_size = Vector2(size, size)
+	box.size = Vector2(size, size)
+	box.position = Vector2(640.0 - size * 0.5, 96.0)
+	box.pivot_offset = Vector2(size, size) / 2.0
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pad := Node2D.new()
+	box.add_child(pad)
+	Shapes.fill(pad, Shapes.circle_points(Vector2(size, size) / 2.0, size * 0.48, 28),
+		Color(0.05, 0.09, 0.20, 0.60), 0.0)
+	var art: Control = UiKit.picture(icon_name, size * 0.60)
+	if art != null:
+		art.position = Vector2(size, size) / 2.0 - Vector2(size * 0.30, size * 0.30)
+		box.add_child(art)
+	var ring := Line2D.new()
+	ring.points = Shapes.circle_points(Vector2(size, size) / 2.0, size * 0.48, 28)
+	ring.closed = true
+	ring.width = 7.0
+	ring.default_color = ring_color
+	ring.antialiased = true
+	box.add_child(ring)
+	return box
+
+
+## Which medallion is up. Swapping pops the incoming one so the change is an
+## event, not a detail.
+func _show_state(listening: bool) -> void:
+	if _ear_badge != null and is_instance_valid(_ear_badge):
+		_ear_badge.visible = not listening
+	if _tap_badge != null and is_instance_valid(_tap_badge):
+		_tap_badge.visible = listening
+		if listening:
+			Juice.pop(_tap_badge, 0.30)
+
+
+func _on_replay_pressed() -> void:
+	if not _listening:
+		# Already singing: point at the ear. The button never punishes.
+		if _ear_badge != null:
+			Juice.pop(_ear_badge, 0.25)
+		return
+	Juice.pop(_replay, 0.15)
+	_play_sequence()
 
 
 func _pad_style(color: Color, lit: bool) -> StyleBoxFlat:
@@ -148,6 +235,7 @@ func _play_sequence() -> void:
 	_listening = false
 	_position = 0
 	_instruction.text = I18n.t("echo.listen")
+	_show_state(false)
 	await get_tree().create_timer(0.8).timeout
 	for index in _sequence:
 		if not is_inside_tree():
@@ -156,6 +244,19 @@ func _play_sequence() -> void:
 		await get_tree().create_timer(NOTE_GAP).timeout
 	_listening = true
 	_instruction.text = I18n.t("echo.your_turn")
+	_show_state(true)
+	# The pads bow, one after another: "now these are yours to press".
+	if Juice.motion_enabled():
+		for i in range(_pads.size()):
+			var node: Panel = _pads[i]["node"]
+			if not is_instance_valid(node):
+				continue
+			var t := node.create_tween()
+			t.tween_interval(0.07 * float(i))
+			t.tween_property(node, "scale", Vector2(1.07, 1.07), 0.11)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			t.tween_property(node, "scale", Vector2.ONE, 0.16)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
 ## One pad lights, plays its note, and the hero's chest light turns its
@@ -179,13 +280,34 @@ func _sing_pad(index: int) -> void:
 			node.add_theme_stylebox_override("panel", _pad_style(color, false))
 	)
 
+	# A note floats off the pad -- the song made visible, so "the island is
+	# singing" does not depend on the speaker being loud enough.
+	if Juice.motion_enabled():
+		var glyph: Control = UiKit.picture("music", 44)
+		if glyph != null:
+			glyph.position = node.position + Vector2(PAD_SIZE.x * 0.5 - 22.0, -30.0)
+			glyph.modulate = color.lightened(0.25)
+			_play_area.add_child(glyph)
+			var g := glyph.create_tween().set_parallel(true)
+			g.tween_property(glyph, "position:y", glyph.position.y - 66.0, 0.65)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			g.tween_property(glyph, "modulate:a", 0.0, 0.65)
+			g.chain().tween_callback(glyph.queue_free)
+
 
 # --- the echo -----------------------------------------------------------
 
 func _on_pad_input(event: InputEvent, index: int) -> void:
 	var pressed: bool = (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT \
 		and event.pressed) or (event is InputEventScreenTouch and event.pressed)
-	if not pressed or not _listening:
+	if not pressed:
+		return
+	if not _listening:
+		# Tapped while the island is still singing. Not wrong, just early --
+		# the ear medallion pulses to say "listening time", and nothing else
+		# happens. A silently ignored tap reads as a broken game.
+		if _ear_badge != null and is_instance_valid(_ear_badge):
+			Juice.pop(_ear_badge, 0.25)
 		return
 
 	_sing_pad(index)

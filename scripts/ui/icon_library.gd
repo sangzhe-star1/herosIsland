@@ -52,6 +52,8 @@ const NAMES := [
 	# badge pictures: every award a child can earn has a face of its own
 	"eye", "umbrella", "magnifier", "compass", "leaf", "music", "medal",
 	"traffic_light",
+	# wordless-instruction states and the star shop's goods
+	"ear", "tap", "tower", "potion", "star_bomb",
 ]
 
 
@@ -499,6 +501,82 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 					Color(1.0, 0.88, 0.42))
 		"star_empty":
 			_poly(p, Shapes.star_points(c, s * 0.38, 0.44, 5), Color(0.86, 0.87, 0.90))
+		"ear":
+			# "Listen": an ear, warm and simple -- outer shell, inner curl, lobe.
+			var shell := Color(0.98, 0.80, 0.62)
+			_poly(p, Shapes.oval_points(c + Vector2(0, -s * 0.04), Vector2(s * 0.26, s * 0.34), 22), shell)
+			_poly(p, Shapes.oval_points(c + Vector2(s * 0.02, -s * 0.10), Vector2(s * 0.15, s * 0.20), 18),
+				shell.darkened(0.16))
+			_poly(p, Shapes.oval_points(c + Vector2(s * 0.03, -s * 0.06), Vector2(s * 0.08, s * 0.12), 14), shell)
+			_circle(p, c + Vector2(-s * 0.04, s * 0.26), s * 0.11, shell)
+			# Three sound arcs arriving from the left.
+			for k in range(3):
+				var arc_r: float = s * (0.34 + 0.10 * float(k))
+				var arc := PackedVector2Array()
+				for j in range(7):
+					var a6: float = PI * 0.72 + PI * 0.56 * float(j) / 6.0
+					arc.append(c + Vector2(-s * 0.18, 0) + Vector2(cos(a6), sin(a6)) * arc_r)
+				for j in range(6, -1, -1):
+					var a7: float = PI * 0.72 + PI * 0.56 * float(j) / 6.0
+					arc.append(c + Vector2(-s * 0.18, 0) + Vector2(cos(a7), sin(a7)) * (arc_r - s * 0.035))
+				_poly(p, arc, Color(0.44, 0.72, 0.95, 0.9 - 0.18 * float(k)))
+		"tap":
+			# "Your turn": a finger mid-tap, ripples where it lands.
+			var skin := Color(0.98, 0.80, 0.62)
+			for k in range(2):
+				var ring_r: float = s * (0.16 + 0.11 * float(k))
+				var ring := PackedVector2Array()
+				for j in range(14):
+					var a8: float = TAU * float(j) / 14.0
+					ring.append(c + Vector2(0, s * 0.30) + Vector2(cos(a8) * ring_r, sin(a8) * ring_r * 0.38))
+				for j in range(13, -1, -1):
+					var a9: float = TAU * float(j) / 14.0
+					ring.append(c + Vector2(0, s * 0.30)
+						+ Vector2(cos(a9) * (ring_r - s * 0.03), sin(a9) * (ring_r - s * 0.03) * 0.38))
+				_poly(p, ring, Color(0.44, 0.72, 0.95, 0.8 - 0.3 * float(k)))
+			_round_rect(p, c + Vector2(-s * 0.05, -s * 0.34), Vector2(s * 0.13, s * 0.42), skin, s * 0.06)
+			_poly(p, Shapes.blob(c + Vector2(s * 0.10, s * 0.10), Vector2(s * 0.17, s * 0.14),
+				Shapes.rng_for("tapfist"), 0.10, 2, 12), skin.darkened(0.06))
+			_circle(p, c + Vector2(0.0, -s * 0.34), s * 0.065, skin)
+		"tower":
+			# The energy tower, small enough for a map stone: body, lamp, glow.
+			var steel := Color(0.56, 0.60, 0.74)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.13, s * 0.40), c + Vector2(-s * 0.07, -s * 0.16),
+				c + Vector2(s * 0.07, -s * 0.16), c + Vector2(s * 0.13, s * 0.40),
+			]), steel)
+			_round_rect(p, c + Vector2(-s * 0.17, s * 0.34), Vector2(s * 0.34, s * 0.08), steel.darkened(0.15), s * 0.03)
+			_circle(p, c + Vector2(0, -s * 0.26), s * 0.13, Color(1.0, 0.86, 0.42))
+			_poly(p, Shapes.star_points(c + Vector2(0, -s * 0.26), s * 0.07, 0.45, 4), Color(1, 1, 1, 0.9))
+			for wy2 in range(2):
+				_round_rect(p, c + Vector2(-s * 0.045, -s * 0.04 + float(wy2) * s * 0.16),
+					Vector2(s * 0.09, s * 0.10), Color(0.94, 0.86, 0.58), s * 0.02)
+		"potion":
+			# The heart potion: a round flask with a heart glowing in it.
+			var glass := Color(0.72, 0.86, 0.96)
+			_circle(p, c + Vector2(0, s * 0.10), s * 0.28, glass)
+			_round_rect(p, c + Vector2(-s * 0.08, -s * 0.34), Vector2(s * 0.16, s * 0.20), glass, s * 0.04)
+			_round_rect(p, c + Vector2(-s * 0.11, -s * 0.40), Vector2(s * 0.22, s * 0.09),
+				Color(0.72, 0.52, 0.36), s * 0.03)
+			var heart := PackedVector2Array()
+			var hc := c + Vector2(0, s * 0.12)
+			for j in range(24):
+				var t2: float = TAU * float(j) / 24.0
+				heart.append(hc + Vector2(
+					s * 0.0100 * 16.0 * pow(sin(t2), 3.0),
+					-s * 0.0100 * (13.0 * cos(t2) - 5.0 * cos(2.0 * t2) - 2.0 * cos(3.0 * t2) - cos(4.0 * t2))))
+			_poly(p, heart, Color(0.94, 0.35, 0.44))
+			_circle(p, hc + Vector2(-s * 0.06, -s * 0.02), s * 0.035, Color(1, 1, 1, 0.75))
+		"star_bomb":
+			# The star burst: a gold star leaving a trail of sparks -- thrown, not lit.
+			for k in range(3):
+				_poly(p, Shapes.star_points(c + Vector2(-s * (0.20 + 0.10 * float(k)), s * (0.16 + 0.08 * float(k))),
+					s * (0.08 - 0.02 * float(k)), 0.42, 4), Color(1.0, 0.84, 0.36, 0.7 - 0.2 * float(k)))
+			_lit_circle(p, c + Vector2(s * 0.08, -s * 0.06), s * 0.235, Color(1.0, 0.62, 0.30))
+			_poly(p, Shapes.star_points(c + Vector2(s * 0.08, -s * 0.06), s * 0.30, 0.45, 5),
+				Color(1.0, 0.84, 0.30))
+			_poly(p, Shapes.star_points(c + Vector2(s * 0.08, -s * 0.06), s * 0.13, 0.45, 5),
+				Color(1.0, 0.96, 0.72))
 		_:
 			return false
 	return true

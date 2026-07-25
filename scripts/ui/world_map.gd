@@ -1,68 +1,80 @@
 extends Control
-## Growth Island: the island itself, with the levels standing on it.
+## Growth Island, one world per page.
 ##
-## Every world and level is drawn from data/levels.json -- adding a level here
-## means adding a JSON entry, never editing this file. The island grows a new
-## marker, the path bends to include it, and the coastline stretches to fit.
+## The first map was one continuous island in a free-scrolling strip. Watching
+## a six-year-old use it settled the argument: he slid, overshot, slid back,
+## and could not tell where one world ended and the next began. So the strip
+## is gone. Each world is now its OWN island on its own page, the page fits
+## the screen exactly, and moving between islands is one tap on a big arrow
+## (or a swipe) -- a page turn, not a scroll. Discrete beats continuous at
+## six, every time.
 ##
-## Why this is a map now and not a list: this is the only screen that shows a
-## child the shape of the whole game. A stack of panels says "here are some
-## categories". One island with a path running along it says "you started
-## there, you are here, and the road keeps going" -- which is the entire
-## motivation structure of a level-based game, delivered without a word.
-##
-## The screen opens scrolled to whichever level is next, so a child never has
-## to go looking for their place.
+## Every island and level is still drawn from data/levels.json: adding a level
+## grows that world's path; adding a world adds a page and a dot. Nothing here
+## is hand-placed.
 
 const MARKER := 148.0
+const PAGE_W := 1280.0
+const SWIPE := 90.0            # finger travel that counts as a page turn
 
-var _island: IslandMap
-var _scroll: ScrollContainer
-var _frontier_x := 0.0
+var _worlds: Array = []
+var _strip: Control            # all pages side by side; slides one page at a time
+var _pages: Array = []
+var _dots: Array = []
+var _left_arrow: Button
+var _right_arrow: Button
+var _page := 0
+var _frontier_page := -1
+var _drag_from := Vector2(-1, -1)
 
 
 func _ready() -> void:
 	theme = UiKit.theme()
-	# Sea and sky behind the island, so the edges of the scroll never show a
-	# bare background colour.
+	# Sea behind everything: the gap that shows for a moment mid page-turn is
+	# water between islands, which is exactly what it should be.
 	UiKit.world_background(self, "island", "map")
 
-	_scroll = ScrollContainer.new()
-	_scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	add_child(_scroll)
+	_worlds = GameData.worlds.duplicate()
+	_worlds.sort_custom(func(a, b): return int(a.get("order", 0)) < int(b.get("order", 0)))
 
-	var worlds: Array = GameData.worlds.duplicate()
-	worlds.sort_custom(func(a, b): return int(a.get("order", 0)) < int(b.get("order", 0)))
+	_strip = Control.new()
+	_strip.mouse_filter = Control.MOUSE_FILTER_PASS
+	_strip.size = Vector2(PAGE_W * _worlds.size(), 720)
+	add_child(_strip)
 
-	var levels_by_world := {}
-	for world in worlds:
-		levels_by_world[str(world.get("id", ""))] = GameData.get_levels_for_world(
-			str(world.get("id", "")))
+	for wi in range(_worlds.size()):
+		var world: Dictionary = _worlds[wi]
+		var world_id: String = str(world.get("id", ""))
+		var levels: Array = GameData.get_levels_for_world(world_id)
 
-	_island = IslandMap.new()
-	_island.build(worlds, levels_by_world)
+		var page := Control.new()
+		page.mouse_filter = Control.MOUSE_FILTER_PASS
+		page.position = Vector2(PAGE_W * float(wi), 0)
+		page.size = Vector2(PAGE_W, 720)
+		_strip.add_child(page)
+		_pages.append(page)
 
-	var canvas := Control.new()
-	canvas.custom_minimum_size = _island.canvas_size()
-	canvas.mouse_filter = Control.MOUSE_FILTER_PASS
-	canvas.add_child(_island)
-	_scroll.add_child(canvas)
+		var island := IslandMap.new()
+		island.build([world], {world_id: levels}, true)
+		page.add_child(island)
 
-	for world in worlds:
-		var levels: Array = levels_by_world.get(str(world.get("id", "")), [])
-		_add_region_banner(canvas, world, levels)
-		_add_markers(canvas, world, levels)
+		_add_region_banner(page, island, world, levels)
+		_add_markers(page, island, world, levels, wi)
 
 	_add_header()
-	# Wait for layout before scrolling: the scroll bar has no range until the
-	# canvas has been sized.
-	call_deferred("_scroll_to_frontier")
+	_add_arrows()
+	_add_dots()
+
+	# Open on the island where the child actually is: the first page holding a
+	# playable level that is not yet finished.
+	_page = maxi(_frontier_page, 0)
+	_strip.position.x = -PAGE_W * float(_page)
+	_refresh_paging()
 
 
-## The header floats over the island rather than pushing it down, so the map
-## keeps the full height of the screen.
+# --- chrome ---------------------------------------------------------------
+
+## The header floats over the island rather than pushing it down.
 func _add_header() -> void:
 	var bar := HBoxContainer.new()
 	bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -93,25 +105,143 @@ func _add_header() -> void:
 	bar.add_child(tally)
 
 
-## A world's name on a signpost planted in its own stretch of coast, with the
-## stars still to be found there. Replaces the panel that used to wrap a whole
-## world and, in doing so, cut it off from the rest of the island.
-func _add_region_banner(canvas: Control, world: Dictionary, levels: Array) -> void:
+## One big arrow on each edge. Mid-height, round, and colour-ringed like the
+## trail's control pad -- the same button language everywhere.
+func _add_arrows() -> void:
+	_left_arrow = _arrow_button(false)
+	_left_arrow.position = Vector2(16, 296)
+	add_child(_left_arrow)
+	_right_arrow = _arrow_button(true)
+	_right_arrow.position = Vector2(PAGE_W - 16.0 - 112.0, 296)
+	add_child(_right_arrow)
+
+
+func _arrow_button(forward: bool) -> Button:
+	var b := Button.new()
+	var size := 112.0
+	b.custom_minimum_size = Vector2(size, size)
+	b.focus_mode = Control.FOCUS_NONE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.09, 0.15, 0.30, 0.90)
+	style.set_corner_radius_all(int(size / 2.0))
+	style.border_width_bottom = 6
+	style.border_width_top = 5
+	style.border_width_left = 5
+	style.border_width_right = 5
+	style.border_color = Color(1.0, 0.86, 0.40)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		b.add_theme_stylebox_override(state, style)
+	var icon := Control.new()
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(icon)
+	var c := Vector2(size, size) / 2.0
+	var r: float = size * 0.23
+	var dir: float = 1.0 if forward else -1.0
+	Shapes.fill(icon, PackedVector2Array([
+		c + Vector2(-dir * r * 0.7, -r), c + Vector2(-dir * r * 0.7, r),
+		c + Vector2(dir * r * 1.1, 0),
+	]), Color(1.0, 0.94, 0.62), 0.0)
+	b.pivot_offset = Vector2(size, size) / 2.0
+	b.pressed.connect(func():
+		Juice.pop(b, 0.10)
+		_go_page(_page + (1 if forward else -1))
+	)
+	return b
+
+
+## One dot per island along the bottom: filled and world-coloured where you
+## are, hollow elsewhere. The whole game's shape in a row of dots.
+func _add_dots() -> void:
+	# Up in the sky under the title, where no island content ever reaches --
+	# at the bottom they sat exactly on the second row's star rows.
+	var row := HBoxContainer.new()
+	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.offset_top = 96
+	row.offset_bottom = 126
+	row.add_theme_constant_override("separation", 18)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(row)
+	for world in _worlds:
+		var dot := Control.new()
+		dot.custom_minimum_size = Vector2(26, 26)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var draw := Node2D.new()
+		dot.add_child(draw)
+		var tint := Color.from_string(str(world.get("color", "#888888")), Color.GRAY)
+		Shapes.fill(draw, Shapes.circle_points(Vector2(13, 13), 11.0, 16), tint, 0.6)
+		dot.set_meta("tint", tint)
+		row.add_child(dot)
+		_dots.append(dot)
+
+
+func _refresh_paging() -> void:
+	if _left_arrow != null:
+		_left_arrow.visible = _page > 0
+	if _right_arrow != null:
+		_right_arrow.visible = _page < _worlds.size() - 1
+	for i in range(_dots.size()):
+		var dot: Control = _dots[i]
+		dot.modulate = Color(1, 1, 1, 1.0) if i == _page else Color(1, 1, 1, 0.35)
+		dot.scale = Vector2(1.25, 1.25) if i == _page else Vector2.ONE
+
+
+func _go_page(index: int) -> void:
+	var target: int = clampi(index, 0, _worlds.size() - 1)
+	if target == _page:
+		return
+	_page = target
+	_refresh_paging()
+	if not Juice.motion_enabled():
+		_strip.position.x = -PAGE_W * float(_page)
+		return
+	var t := create_tween()
+	t.tween_property(_strip, "position:x", -PAGE_W * float(_page), 0.42)\
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+## Swipes: anywhere a marker or button does not swallow the touch, a sideways
+## drag of a finger-width turns the page. The arrows remain the primary way --
+## this is for the child who tries the gesture the tablet taught them.
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_drag_from = event.position
+		elif _drag_from.x >= 0.0:
+			var dx: float = event.position.x - _drag_from.x
+			_drag_from = Vector2(-1, -1)
+			if absf(dx) >= SWIPE:
+				_go_page(_page + (1 if dx < 0.0 else -1))
+	elif event is InputEventScreenTouch:
+		if event.pressed:
+			_drag_from = event.position
+		elif _drag_from.x >= 0.0:
+			var dx2: float = event.position.x - _drag_from.x
+			_drag_from = Vector2(-1, -1)
+			if absf(dx2) >= SWIPE:
+				_go_page(_page + (1 if dx2 < 0.0 else -1))
+
+
+# --- the island's contents --------------------------------------------------
+
+## The world's name on a signpost at the top of its island, with the stars
+## still to be found there.
+func _add_region_banner(page: Control, island: IslandMap, world: Dictionary,
+		levels: Array) -> void:
 	var world_id: String = str(world.get("id", ""))
 	var tint := Color.from_string(str(world.get("color", "#888888")), Color.GRAY)
-	var at: Vector2 = _island.region_centre(world_id)
+	var at: Vector2 = island.region_centre(world_id)
 
 	var earned := 0
 	for level in levels:
 		earned += int(SaveManager.get_level_progress(str(level.get("id", ""))).get("stars", 0))
 	var possible: int = levels.size() * 3
 
-	# A fixed-size holder. A PanelContainer dropped straight onto a plain
-	# Control grows to the parent's size, and the parent here is the whole
-	# island -- which is how the first version got signposts 720px tall.
+	# A fixed-size holder: a PanelContainer dropped straight onto a plain
+	# Control grows to the parent's size (once 720px of signpost).
 	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(240, 116)
-	holder.size = Vector2(240, 116)
+	holder.custom_minimum_size = Vector2(280, 116)
+	holder.size = Vector2(280, 116)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var sign_post := PanelContainer.new()
@@ -129,7 +259,7 @@ func _add_region_banner(canvas: Control, world: Dictionary, levels: Array) -> vo
 
 	var name_label := Label.new()
 	name_label.text = I18n.t(str(world.get("name_key", "")))
-	name_label.add_theme_font_size_override("font_size", 28)
+	name_label.add_theme_font_size_override("font_size", 30)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(name_label)
@@ -146,24 +276,26 @@ func _add_region_banner(canvas: Control, world: Dictionary, levels: Array) -> vo
 	column.add_child(row)
 
 	holder.add_child(sign_post)
-	canvas.add_child(holder)
-	holder.position = at - Vector2(120, 130)
+	page.add_child(holder)
+	holder.position = at - Vector2(140, 132)
 
 
-func _add_markers(canvas: Control, world: Dictionary, levels: Array) -> void:
+func _add_markers(page: Control, island: IslandMap, world: Dictionary,
+		levels: Array, world_index: int) -> void:
 	var world_id: String = str(world.get("id", ""))
 	for i in range(levels.size()):
-		var marker := _build_marker(levels[i], world_id, i)
-		canvas.add_child(marker)
-		marker.position = _island.node_position(world_id, i) \
+		var marker := _build_marker(levels[i], world_index)
+		page.add_child(marker)
+		marker.position = island.node_position(world_id, i) \
 			- Vector2((MARKER + 40.0) * 0.5, MARKER * 0.54)
 
 
-## A level as a stone on the path: round, chunky, carrying the picture that
-## says what kind of game it is, with its stars underneath. Round because
-## everything else a child taps in this game is a slab -- the map should not
-## feel like another menu.
-func _build_marker(level: Dictionary, world_id: String, index: int) -> Control:
+## A level as a stone on the path, carrying the picture of what KIND of game
+## it is -- an orb for collecting, a flag for the trail, a music note for the
+## song. The playtest complaint was exact: "the icons are all the same, I
+## don't know what's inside". A level may also name its own icon in JSON when
+## the type picture is not specific enough.
+func _build_marker(level: Dictionary, world_index: int) -> Control:
 	var level_id: String = str(level.get("id", ""))
 	var progress: Dictionary = SaveManager.get_level_progress(level_id)
 	var unlocked: bool = SaveManager.is_level_unlocked(level_id)
@@ -179,11 +311,14 @@ func _build_marker(level: Dictionary, world_id: String, index: int) -> Control:
 	column.add_theme_constant_override("separation", 2)
 
 	var icons := {
-		"traffic_crossing": "car", "item_sorting": "sort", "collect_energy": "spark",
-		"animal_rescue": "paw", "monster_battle": "monster", "memory_match": "blocks",
-		"light_echo": "sound_on", "monster_duel": "shield",
+		"traffic_crossing": "traffic_light", "item_sorting": "sort",
+		"collect_energy": "orb", "animal_rescue": "paw",
+		"monster_battle": "monster", "memory_match": "blocks",
+		"light_echo": "music", "monster_duel": "lightning",
+		"platformer": "flag", "monster_expedition": "compass",
 	}
-	var icon_name: String = str(icons.get(str(level.get("game_type", "")), "flag"))
+	var icon_name: String = str(level.get("icon",
+		icons.get(str(level.get("game_type", "")), "flag")))
 	var face: Color = Palette.BLUE
 	if challenge:
 		icon_name = "star"
@@ -199,10 +334,10 @@ func _build_marker(level: Dictionary, world_id: String, index: int) -> Control:
 		button.pressed.connect(func(): GameManager.start_level(level_id))
 		if not completed:
 			# The frontier -- playable but not yet cleared -- breathes gently:
-			# "this one is next". One per world, so the screen never pulses.
+			# "this one is next". Its island is the page the map opens on.
 			UiKit.breathe(button, 0.035, 1.0)
-			if _frontier_x <= 0.0:
-				_frontier_x = _island.node_position(world_id, index).x
+			if _frontier_page < 0:
+				_frontier_page = world_index
 	column.add_child(button)
 
 	var label := Label.new()
@@ -237,8 +372,7 @@ func _stone_button(icon_name: String, face: Color, playable: bool) -> Button:
 	b.disabled = not playable
 
 	# A raised disc with the same "thick bottom edge that squashes on press"
-	# physics as every other button in the game, so a child who has learned how
-	# one button behaves already knows how this one behaves.
+	# physics as every other button in the game.
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = face
 	normal.set_corner_radius_all(int(MARKER * 0.5))
@@ -275,20 +409,3 @@ func _stone_button(icon_name: String, face: Color, playable: bool) -> Button:
 	if playable:
 		b.pressed.connect(func(): Juice.pop(b, 0.08))
 	return b
-
-
-## Open where the child left off. Without this the map always starts at the
-## first island, and a child several worlds in has to swipe past everything
-## they have already finished to reach the level they actually want.
-func _scroll_to_frontier() -> void:
-	if _scroll == null or not is_instance_valid(_scroll):
-		return
-	if _frontier_x <= 0.0:
-		return
-	var target: int = int(maxf(_frontier_x - 560.0, 0.0))
-	if not Juice.motion_enabled():
-		_scroll.scroll_horizontal = target
-		return
-	var t := create_tween()
-	t.tween_property(_scroll, "scroll_horizontal", target, 0.5)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

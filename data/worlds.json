@@ -40,5 +40,12 @@
     "growth_attribute": "courage",
     "color": "#3aa6a0",
     "order": 6
+  },
+  {
+    "id": "star_trials",
+    "name_key": "world.star_trials",
+    "growth_attribute": "courage",
+    "color": "#e0623c",
+    "order": 7
   }
 ]

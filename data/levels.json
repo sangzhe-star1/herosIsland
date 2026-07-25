@@ -1660,5 +1660,220 @@
       "coins": 30,
       "badge": ""
     }
+  },
+  {
+    "id": "star_trials_01",
+    "world": "star_trials",
+    "name_key": "level.star_trials_01",
+    "game_type": "monster_expedition",
+    "difficulty": 2,
+    "requires": "monster_arena_01",
+    "target": {
+      "correct": 5
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "expedition.instruction",
+      "goo_interval": 3.4,
+      "monsters": [
+        {
+          "id": "puffle",
+          "hp": 2,
+          "scale": 0.85,
+          "body_color": "#7fb069",
+          "belly_color": "#cde6b2",
+          "accent_color": "#4f7d43",
+          "height": 300,
+          "width": 0.82,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 0
+        },
+        {
+          "id": "bumble",
+          "hp": 3,
+          "scale": 1.05,
+          "body_color": "#8a5fc9",
+          "belly_color": "#c9aef2",
+          "accent_color": "#5e3f96",
+          "height": 300,
+          "width": 0.82,
+          "horns": 1,
+          "eyes": 2,
+          "spikes": 0
+        }
+      ]
+    }
+  },
+  {
+    "id": "star_trials_02",
+    "world": "star_trials",
+    "name_key": "level.star_trials_02",
+    "game_type": "monster_expedition",
+    "difficulty": 2,
+    "requires": "star_trials_01",
+    "target": {
+      "correct": 7
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "expedition.instruction",
+      "goo_interval": 3.0,
+      "monsters": [
+        {
+          "id": "rollo",
+          "hp": 3,
+          "scale": 0.9,
+          "body_color": "#d98a4a",
+          "belly_color": "#f2c489",
+          "accent_color": "#a8632f",
+          "height": 300,
+          "width": 0.82,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 3
+        },
+        {
+          "id": "grump",
+          "hp": 4,
+          "scale": 1.15,
+          "body_color": "#4a7dd9",
+          "belly_color": "#9ec2f2",
+          "accent_color": "#2f56a8",
+          "height": 300,
+          "width": 0.82,
+          "horns": 2,
+          "eyes": 2,
+          "spikes": 0
+        }
+      ]
+    }
+  },
+  {
+    "id": "star_trials_03",
+    "world": "star_trials",
+    "name_key": "level.star_trials_03",
+    "game_type": "monster_expedition",
+    "difficulty": 2,
+    "requires": "star_trials_02",
+    "target": {
+      "correct": 10
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "expedition.instruction",
+      "goo_interval": 2.8,
+      "monsters": [
+        {
+          "id": "puffle",
+          "hp": 2,
+          "scale": 0.8,
+          "body_color": "#7fb069",
+          "belly_color": "#cde6b2",
+          "accent_color": "#4f7d43",
+          "height": 300,
+          "width": 0.82,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 0
+        },
+        {
+          "id": "rollo",
+          "hp": 3,
+          "scale": 0.95,
+          "body_color": "#d98a4a",
+          "belly_color": "#f2c489",
+          "accent_color": "#a8632f",
+          "height": 300,
+          "width": 0.82,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 3
+        },
+        {
+          "id": "boss_bu",
+          "hp": 5,
+          "scale": 1.2,
+          "body_color": "#c94f6d",
+          "belly_color": "#f2a9bc",
+          "accent_color": "#96324c",
+          "height": 300,
+          "width": 0.82,
+          "horns": 1,
+          "eyes": 1,
+          "spikes": 0
+        }
+      ]
+    }
+  },
+  {
+    "id": "star_trials_challenge",
+    "world": "star_trials",
+    "name_key": "level.star_trials_challenge",
+    "game_type": "monster_expedition",
+    "difficulty": 2,
+    "requires": "star_trials_03",
+    "challenge": true,
+    "target": {
+      "correct": 12
+    },
+    "reward": {
+      "coins": 40,
+      "badge": "star_captain"
+    },
+    "config": {
+      "instruction_key": "expedition.instruction",
+      "goo_interval": 2.6,
+      "monsters": [
+        {
+          "id": "grump",
+          "hp": 4,
+          "scale": 0.95,
+          "body_color": "#4a7dd9",
+          "belly_color": "#9ec2f2",
+          "accent_color": "#2f56a8",
+          "height": 300,
+          "width": 0.82,
+          "horns": 2,
+          "eyes": 2,
+          "spikes": 0
+        },
+        {
+          "id": "bumble",
+          "hp": 3,
+          "scale": 1.0,
+          "body_color": "#8a5fc9",
+          "belly_color": "#c9aef2",
+          "accent_color": "#5e3f96",
+          "height": 300,
+          "width": 0.82,
+          "horns": 1,
+          "eyes": 2,
+          "spikes": 0
+        },
+        {
+          "id": "boss_bu",
+          "hp": 5,
+          "scale": 1.25,
+          "body_color": "#c94f6d",
+          "belly_color": "#f2a9bc",
+          "accent_color": "#96324c",
+          "height": 300,
+          "width": 0.82,
+          "horns": 1,
+          "eyes": 1,
+          "spikes": 0
+        }
+      ]
+    }
   }
 ]
