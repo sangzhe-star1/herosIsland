@@ -362,28 +362,53 @@ func add_growth(attribute: String, amount: int) -> void:
 const BACKUP_PREFIX := "heroes_island_progress"
 
 
-## Writes the backup file and returns its absolute path ("" on failure).
-## Desktop: the Downloads folder, where a parent can actually find it.
-## Tablet: the app's own documents, which the Files app can see once the
-## iOS preset's file-sharing switches are on.
+## Writes the backup file and returns its absolute path ("" only if even the
+## app's own folder refuses, which means the disk is full or broken).
+##
+## Order matters, and the first version had it backwards. It wrote straight
+## to Downloads and gave up if that failed -- and on macOS it always failed:
+## Apple guards Downloads, Documents and Desktop behind TCC, so an app
+## without the matching usage-description entitlement is denied silently,
+## with no prompt and no explanation. Hence "could not write the backup
+## file" on a Mac with plenty of disk.
+##
+## So: write to user:// first, which no OS permission can take away (macOS
+## Application Support, the iPad's own Documents where the Files app can
+## see it). THEN try to also drop a copy somewhere friendlier, and report
+## that path if it lands. The backup always exists either way.
 func export_progress() -> String:
 	var stamp: Dictionary = Time.get_datetime_dict_from_system()
 	var file_name := "%s_%04d-%02d-%02d_%02d%02d.json" % [BACKUP_PREFIX,
 		stamp.year, stamp.month, stamp.day, stamp.hour, stamp.minute]
-	var dir: String = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
-	if dir == "" or not DirAccess.dir_exists_absolute(dir):
-		dir = OS.get_user_data_dir()
-	var path := dir.path_join(file_name)
-	var f := FileAccess.open(path, FileAccess.WRITE)
-	if f == null:
-		return ""
-	f.store_string(JSON.stringify({
+	var payload := JSON.stringify({
 		"heroes_island_backup": true,
 		"exported_at": Time.get_datetime_string_from_system(),
 		"data": data,
-	}, "\t"))
+	}, "\t")
+
+	var f := FileAccess.open("user://" + file_name, FileAccess.WRITE)
+	if f == null:
+		push_error("SaveManager: cannot write backup to user:// (error %d)"
+			% FileAccess.get_open_error())
+		return ""
+	f.store_string(payload)
 	f.close()
-	return path
+	var written := ProjectSettings.globalize_path("user://" + file_name)
+
+	# The nicety, not the deliverable: a copy where a parent looks first.
+	# Failure here is expected on locked-down systems and costs nothing.
+	for kind in [OS.SYSTEM_DIR_DOWNLOADS, OS.SYSTEM_DIR_DOCUMENTS]:
+		var dir: String = OS.get_system_dir(kind)
+		if dir == "" or not DirAccess.dir_exists_absolute(dir):
+			continue
+		var candidate: String = dir.path_join(file_name)
+		var out := FileAccess.open(candidate, FileAccess.WRITE)
+		if out == null:
+			continue
+		out.store_string(payload)
+		out.close()
+		return candidate
+	return written
 
 
 ## Every backup file this device can see, newest first.

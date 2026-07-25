@@ -209,6 +209,11 @@ func _on_export_pressed() -> void:
 		_backup_status.text = I18n.t("parent.export_fail")
 		return
 	_backup_status.text = I18n.t("parent.export_done") % path
+	# On a desktop, open the folder with the file selected. The backup used
+	# to land in a place a parent would never think to look (Application
+	# Support, six folders deep); pointing at it is most of the feature.
+	if OS.has_feature("pc") and OS.has_method("shell_show_in_file_manager"):
+		OS.shell_show_in_file_manager(path, true)
 
 
 func _on_import_pressed() -> void:

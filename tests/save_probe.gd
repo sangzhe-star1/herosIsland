@@ -52,6 +52,14 @@ func _ready() -> void:
 	# and prove the merge is best-of in both directions.
 	var exported := SaveManager.export_progress()
 	_ok(exported != "" and FileAccess.file_exists(exported), "export writes a file")
+	# Whatever else it manages, a copy must always land in the app's own
+	# folder -- the one place no OS permission can refuse. macOS denying
+	# Downloads is exactly how the first version came back empty-handed.
+	var mirrored := false
+	for entry in SaveManager.list_backups():
+		if str(entry["path"]).begins_with(OS.get_user_data_dir()):
+			mirrored = true
+	_ok(mirrored, "a backup copy always exists in the app's own folder")
 	SaveManager.data = SaveManager._default_data()
 	SaveManager.record_level_result("piglet_town_01", 2, 0.8)   # local-only progress
 	SaveManager.add_coins(10)

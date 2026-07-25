@@ -239,8 +239,8 @@
     "parent.backup_hint": "Export writes a small progress file (Downloads on a computer; the app's folder in Files on a tablet). Send it to the other device with AirDrop or WeChat, put it in Downloads or the app's Files folder there, then tap Import. Importing merges best-of: nothing is ever lost.",
     "parent.export": "Export progress",
     "parent.import": "Import progress",
-    "parent.export_done": "Saved: %s — now send this file to the other device.",
-    "parent.export_fail": "Could not write the backup file.",
+    "parent.export_done": "Saved: %s\n(On a computer the folder opens automatically.) Send this file to the other device, then tap Import there.",
+    "parent.export_fail": "Could not write the backup file — the disk may be full.",
     "parent.import_none": "No progress file found. Put it in Downloads or this app's Files folder first.",
     "parent.import_bad": "That file is not a Growth Island progress file.",
     "parent.import_done": "Imported %s — stars %d → %d."
@@ -485,8 +485,8 @@
     "parent.backup_hint": "导出会生成一个小小的进度文件（电脑在“下载”文件夹；平板在“文件”App 的本应用文件夹里）。用隔空投送或微信发到另一台设备，放进那边的“下载”或本应用文件夹，再点导入。导入按“取高”合并：星星只会变多，不会丢。",
     "parent.export": "导出进度",
     "parent.import": "导入进度",
-    "parent.export_done": "已保存：%s——把这个文件发到另一台设备吧。",
-    "parent.export_fail": "写入备份文件失败。",
+    "parent.export_done": "已保存：%s\n（电脑上会自动打开所在文件夹。）把这个文件发到另一台设备，在那边点“导入进度”。",
+    "parent.export_fail": "写入备份文件失败——可能是磁盘空间不足。",
     "parent.import_none": "没找到进度文件。先把它放进“下载”或本应用的“文件”文件夹。",
     "parent.import_bad": "这个文件不是成长岛的进度文件。",
     "parent.import_done": "已导入 %s——星星 %d → %d。"
