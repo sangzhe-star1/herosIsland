@@ -31,7 +31,9 @@ func _ready() -> void:
 
 	_ok(battle._monster != null, "monster was not built")
 	_ok(battle._hero != null, "hero was not built")
-	_ok(battle._meter_cells.size() == 12, "meter should have 12 cells for arena_03")
+	var goal: int = battle.target_value("correct", 12)
+	_ok(battle._meter_cells.size() == goal,
+		"the meter should have one cell per spark needed (%d)" % goal)
 	_ok(battle._hero.core_position() != Vector2.ZERO, "hero core position unavailable")
 
 	# Let sparks accumulate.
@@ -48,18 +50,22 @@ func _ready() -> void:
 	_ok(battle.result.correct == before_correct, "dud tap raised the score")
 	_ok(battle.result.mistakes == before_mistakes + 1, "dud tap did not register a mistake")
 
-	# Now win the level with real taps through the input handler.
-	for i in range(12):
+	# Now win the level with real taps through the input handler. Tap as
+	# many times as the LEVEL asks for -- the target moves whenever the
+	# island is retuned, and a probe that counts to a remembered number
+	# stops testing and starts hanging.
+	for i in range(goal):
 		battle._on_spark_input(tap, _make_fake_spark(battle), false)
 		await get_tree().process_frame
-	_ok(battle.result.correct >= 12, "12 spark taps did not reach the target (got %d)" % battle.result.correct)
+	_ok(battle.result.correct >= goal,
+		"%d spark taps did not reach the target (got %d)" % [goal, battle.result.correct])
 	_ok(battle._won, "level did not enter the won state")
 
 	var lit: int = 0
 	for cell in battle._meter_cells:
 		if is_instance_valid(cell) and cell.modulate.a > 0.9:
 			lit += 1
-	_ok(lit == 12, "meter shows %d lit cells, expected 12" % lit)
+	_ok(lit == goal, "meter shows %d lit cells, expected %d" % [lit, goal])
 
 	# The win sequence holds ~2.2s of real time before finish_level fires
 	# level_finished (and then swaps scenes, which would free this probe).

@@ -7,7 +7,7 @@
     "difficulty": 1,
     "duration_seconds": 180,
     "target": {
-      "correct": 8
+      "correct": 10
     },
     "reward": {
       "coins": 20,
@@ -16,8 +16,8 @@
     "config": {
       "instruction_key": "collect.instruction",
       "background": "#101c33",
-      "spawn_interval": 1.0,
-      "fall_speed": 120.0,
+      "spawn_interval": 0.82,
+      "fall_speed": 144,
       "orb_colors": [
         "#ffd23c"
       ],
@@ -35,7 +35,7 @@
     "duration_seconds": 180,
     "requires": "hero_city_01",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 20,
@@ -44,13 +44,14 @@
     "config": {
       "instruction_key": "collect.instruction_avoid",
       "background": "#141a2e",
-      "spawn_interval": 0.85,
-      "fall_speed": 150.0,
+      "spawn_interval": 0.7,
+      "fall_speed": 180,
       "orb_colors": [
         "#ffd23c"
       ],
-      "hazard_ratio": 0.35,
-      "color_target": false
+      "hazard_ratio": 0.45,
+      "color_target": false,
+      "wind": 70
     }
   },
   {
@@ -62,7 +63,7 @@
     "duration_seconds": 210,
     "requires": "hero_city_02",
     "target": {
-      "correct": 12
+      "correct": 14
     },
     "reward": {
       "coins": 25,
@@ -71,15 +72,15 @@
     "config": {
       "instruction_key": "collect.match_tower",
       "background": "#0e1b2b",
-      "spawn_interval": 0.75,
-      "fall_speed": 165.0,
+      "spawn_interval": 0.61,
+      "fall_speed": 198,
       "orb_colors": [
         "#ff5d5d",
         "#4fb8ff",
         "#7ee06a",
         "#ffd23c"
       ],
-      "hazard_ratio": 0.15,
+      "hazard_ratio": 0.2,
       "color_target": true
     }
   },
@@ -91,7 +92,7 @@
     "difficulty": 1,
     "duration_seconds": 180,
     "target": {
-      "correct": 8
+      "correct": 10
     },
     "reward": {
       "coins": 20,
@@ -199,7 +200,7 @@
     "duration_seconds": 180,
     "requires": "piglet_town_01",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 20,
@@ -298,7 +299,7 @@
     "duration_seconds": 180,
     "requires": "piglet_town_02",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 25,
@@ -382,14 +383,14 @@
     "voice_intro": "res://assets/audio/voice/level/safety_traffic_01_intro.ogg",
     "config": {
       "car_speed": 150.0,
-      "car_gap_min": 2.2,
-      "car_gap_max": 3.4,
+      "car_gap_min": 1.87,
+      "car_gap_max": 2.89,
       "green_seconds": 5.0,
       "red_seconds": 5.0,
       "lanes": 1
     },
     "target": {
-      "correct_crossings": 3
+      "correct_crossings": 4
     },
     "reward": {
       "coins": 20,
@@ -407,14 +408,14 @@
     "requires": "safety_traffic_01",
     "config": {
       "car_speed": 210.0,
-      "car_gap_min": 1.5,
-      "car_gap_max": 2.6,
+      "car_gap_min": 1.27,
+      "car_gap_max": 2.21,
       "green_seconds": 4.0,
       "red_seconds": 5.0,
       "lanes": 2
     },
     "target": {
-      "correct_crossings": 4
+      "correct_crossings": 5
     },
     "reward": {
       "coins": 22,
@@ -432,15 +433,15 @@
     "requires": "safety_traffic_02",
     "config": {
       "car_speed": 190.0,
-      "car_gap_min": 1.4,
-      "car_gap_max": 2.4,
+      "car_gap_min": 1.19,
+      "car_gap_max": 2.04,
       "green_seconds": 3.5,
       "red_seconds": 5.0,
       "lanes": 2,
       "rain": true
     },
     "target": {
-      "correct_crossings": 4
+      "correct_crossings": 5
     },
     "reward": {
       "coins": 25,
@@ -456,7 +457,7 @@
     "duration_seconds": 180,
     "requires": "safety_traffic_01",
     "target": {
-      "correct": 8
+      "correct": 10
     },
     "reward": {
       "coins": 20,
@@ -551,8 +552,8 @@
     "config": {
       "instruction_key": "rescue.instruction_fire",
       "background": "#f3e0d2",
-      "trail_length": 4,
-      "hazards": 2,
+      "trail_length": 5,
+      "hazards": 3,
       "hint": false,
       "goal_icon": "house"
     }
@@ -574,8 +575,8 @@
     "config": {
       "instruction_key": "rescue.instruction",
       "background": "#d6ecd8",
-      "trail_length": 3,
-      "hazards": 0,
+      "trail_length": 4,
+      "hazards": 1,
       "hint": true,
       "goal_icon": "paw"
     }
@@ -589,7 +590,7 @@
     "duration_seconds": 180,
     "requires": "rescue_forest_01",
     "target": {
-      "correct": 8
+      "correct": 10
     },
     "reward": {
       "coins": 20,
@@ -675,8 +676,8 @@
     "config": {
       "instruction_key": "rescue.instruction_route",
       "background": "#cde4d2",
-      "trail_length": 5,
-      "hazards": 3,
+      "trail_length": 6,
+      "hazards": 4,
       "hint": false,
       "goal_icon": "paw"
     }
@@ -690,7 +691,7 @@
     "duration_seconds": 200,
     "requires": "hero_city_03",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 25,
@@ -698,7 +699,7 @@
     },
     "config": {
       "instruction_key": "defense.instruction",
-      "targets": 10,
+      "targets": 12,
       "spawn_interval": 2.6,
       "speed": 36,
       "hp_min": 1,
@@ -728,6 +729,21 @@
           "eyes": 2,
           "spikes": 0,
           "scale": 0.58
+        },
+        {
+          "id": "boss_hum",
+          "body_color": "#5f8fd9",
+          "belly_color": "#b9d4f5",
+          "accent_color": "#3a5f9e",
+          "height": 240,
+          "width": 0.9,
+          "horns": 1,
+          "eyes": 2,
+          "spikes": 0,
+          "scale": 0.85,
+          "hp": 4,
+          "pace": 0.6,
+          "rarity": 0.16
         }
       ]
     }
@@ -741,7 +757,7 @@
     "duration_seconds": 220,
     "requires": "hero_city_04",
     "target": {
-      "correct": 6
+      "correct": 8
     },
     "reward": {
       "coins": 30,
@@ -762,7 +778,7 @@
     "duration_seconds": 180,
     "requires": "piglet_town_03",
     "target": {
-      "correct": 8
+      "correct": 10
     },
     "reward": {
       "coins": 25,
@@ -838,7 +854,7 @@
     "duration_seconds": 200,
     "requires": "safety_danger_01",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 25,
@@ -933,7 +949,9 @@
     },
     "config": {
       "instruction_key": "rescue.instruction",
-      "rounds": 4
+      "rounds": 4,
+      "trail_length": 5,
+      "hazards": 1
     }
   },
   {
@@ -954,8 +972,8 @@
     "config": {
       "instruction_key": "rescue.instruction_route",
       "background": "#cfe0d8",
-      "trail_length": 6,
-      "hazards": 4,
+      "trail_length": 7,
+      "hazards": 5,
       "hint": false,
       "goal_icon": "paw"
     }
@@ -969,7 +987,7 @@
     "duration_seconds": 200,
     "requires": "hero_city_02",
     "target": {
-      "correct": 8
+      "correct": 10
     },
     "reward": {
       "coins": 25,
@@ -978,8 +996,8 @@
     "config": {
       "instruction_key": "battle.instruction",
       "background": "#101c33",
-      "spark_interval": 1.4,
-      "spark_life": 6.0,
+      "spark_interval": 1.23,
+      "spark_life": 5.1,
       "dud_ratio": 0.0,
       "goo_interval": 0.0,
       "monster": {
@@ -1006,7 +1024,7 @@
     "duration_seconds": 210,
     "requires": "monster_arena_01",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 25,
@@ -1015,8 +1033,8 @@
     "config": {
       "instruction_key": "battle.instruction",
       "background": "#0f1a2c",
-      "spark_interval": 1.2,
-      "spark_life": 5.5,
+      "spark_interval": 1.06,
+      "spark_life": 4.67,
       "dud_ratio": 0.22,
       "goo_interval": 6.0,
       "monster": {
@@ -1042,7 +1060,7 @@
     "duration_seconds": 220,
     "requires": "monster_arena_02",
     "target": {
-      "correct": 12
+      "correct": 14
     },
     "reward": {
       "coins": 30,
@@ -1051,8 +1069,8 @@
     "config": {
       "instruction_key": "battle.instruction",
       "background": "#141024",
-      "spark_interval": 1.05,
-      "spark_life": 5.0,
+      "spark_interval": 0.92,
+      "spark_life": 4.25,
       "dud_ratio": 0.28,
       "goo_interval": 5.0,
       "beam_color": "#7fd4ff",
@@ -1079,7 +1097,7 @@
     "duration_seconds": 240,
     "requires": "piglet_town_03",
     "target": {
-      "correct": 4
+      "correct": 5
     },
     "reward": {
       "coins": 25,
@@ -1093,7 +1111,8 @@
         "teddy",
         "ball",
         "blocks",
-        "crayon"
+        "crayon",
+        "star"
       ]
     },
     "voice_intro": "res://assets/audio/voice/level/memory_intro.ogg"
@@ -1136,7 +1155,7 @@
     "duration_seconds": 240,
     "requires": "hero_city_05",
     "target": {
-      "correct": 12
+      "correct": 14
     },
     "reward": {
       "coins": 30,
@@ -1145,16 +1164,17 @@
     "config": {
       "instruction_key": "collect.match_tower",
       "background": "#0e1b2b",
-      "spawn_interval": 0.8,
-      "fall_speed": 170.0,
+      "spawn_interval": 0.66,
+      "fall_speed": 204,
       "orb_colors": [
         "#ff5d5d",
         "#4fb8ff",
         "#7ee06a",
         "#ffd23c"
       ],
-      "hazard_ratio": 0.2,
-      "color_target": true
+      "hazard_ratio": 0.26,
+      "color_target": true,
+      "wind": -90
     }
   },
   {
@@ -1167,7 +1187,7 @@
     "duration_seconds": 240,
     "requires": "monster_arena_03",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 30,
@@ -1176,8 +1196,8 @@
     "config": {
       "instruction_key": "battle.instruction",
       "background": "#141024",
-      "spark_interval": 1.1,
-      "spark_life": 5.5,
+      "spark_interval": 0.97,
+      "spark_life": 4.67,
       "dud_ratio": 0.25,
       "goo_interval": 5.5,
       "beam_color": "#7fd4ff",
@@ -1205,7 +1225,7 @@
     "duration_seconds": 300,
     "requires": "piglet_town_05",
     "target": {
-      "correct": 4
+      "correct": 8
     },
     "reward": {
       "coins": 30,
@@ -1238,7 +1258,7 @@
     "growth_attribute": "focus",
     "requires": "safety_traffic_04",
     "target": {
-      "correct_crossings": 4
+      "correct_crossings": 5
     },
     "reward": {
       "coins": 30,
@@ -1246,8 +1266,8 @@
     },
     "config": {
       "car_speed": 190.0,
-      "car_gap_min": 1.4,
-      "car_gap_max": 2.4,
+      "car_gap_min": 1.19,
+      "car_gap_max": 2.04,
       "green_seconds": 3.5,
       "red_seconds": 5.0,
       "lanes": 3,
@@ -1273,8 +1293,8 @@
     "config": {
       "instruction_key": "rescue.instruction_route",
       "background": "#cfe0d8",
-      "trail_length": 5,
-      "hazards": 3,
+      "trail_length": 6,
+      "hazards": 4,
       "hint": false,
       "goal_icon": "paw"
     }
@@ -1288,7 +1308,7 @@
     "duration_seconds": 240,
     "requires": "piglet_town_05",
     "target": {
-      "correct": 5
+      "correct": 6
     },
     "reward": {
       "coins": 25,
@@ -1298,7 +1318,7 @@
       "background": "#f6ead8",
       "pads": 4,
       "sequence_start": 2,
-      "sequence_max": 4
+      "sequence_max": 5
     }
   },
   {
@@ -1310,7 +1330,7 @@
     "duration_seconds": 260,
     "requires": "hero_city_03",
     "target": {
-      "correct": 6
+      "correct": 7
     },
     "reward": {
       "coins": 25,
@@ -1320,7 +1340,7 @@
       "background": "#0e1b2b",
       "pads": 5,
       "sequence_start": 2,
-      "sequence_max": 5,
+      "sequence_max": 6,
       "colors": [
         "#ff5d5d",
         "#ffd23c",
@@ -1339,7 +1359,7 @@
     "duration_seconds": 240,
     "requires": "monster_arena_03",
     "target": {
-      "correct": 8
+      "correct": 10
     },
     "reward": {
       "coins": 25,
@@ -1348,7 +1368,7 @@
     "config": {
       "instruction_key": "duel.instruction",
       "background": "#101c33",
-      "goo_interval": 6.0,
+      "goo_interval": 5.1,
       "roar_interval": 0.0,
       "beam_cooldown": 1.2,
       "ult": "barrage",
@@ -1376,7 +1396,7 @@
     "duration_seconds": 260,
     "requires": "monster_arena_04",
     "target": {
-      "correct": 10
+      "correct": 12
     },
     "reward": {
       "coins": 25,
@@ -1385,7 +1405,7 @@
     "config": {
       "instruction_key": "duel.instruction",
       "background": "#f6ead8",
-      "goo_interval": 4.5,
+      "goo_interval": 3.82,
       "roar_interval": 0.0,
       "beam_cooldown": 1.2,
       "ult_choices": [
@@ -1416,7 +1436,7 @@
     "duration_seconds": 280,
     "requires": "monster_arena_05",
     "target": {
-      "correct": 12
+      "correct": 14
     },
     "reward": {
       "coins": 30,
@@ -1425,7 +1445,7 @@
     "config": {
       "instruction_key": "duel.instruction",
       "background": "#dcedd8",
-      "goo_interval": 4.5,
+      "goo_interval": 3.82,
       "roar_interval": 9.0,
       "beam_cooldown": 1.2,
       "ult_choices": [
@@ -1456,7 +1476,7 @@
     "duration_seconds": 300,
     "requires": "monster_arena_06",
     "target": {
-      "correct": 14
+      "correct": 16
     },
     "reward": {
       "coins": 35,
@@ -1465,7 +1485,7 @@
     "config": {
       "instruction_key": "duel.instruction",
       "background": "#141024",
-      "goo_interval": 3.6,
+      "goo_interval": 3.06,
       "roar_interval": 7.0,
       "beam_cooldown": 1.2,
       "ult_choices": [
@@ -1527,10 +1547,10 @@
       "instruction_key": "echo.listen",
       "pads": 4,
       "sequence_start": 2,
-      "sequence_max": 5
+      "sequence_max": 6
     },
     "target": {
-      "correct": 5
+      "correct": 6
     },
     "reward": {
       "coins": 30,
@@ -1581,11 +1601,12 @@
         "leaf",
         "compass",
         "moon",
-        "rock"
+        "rock",
+        "star"
       ]
     },
     "target": {
-      "correct": 4
+      "correct": 5
     },
     "reward": {
       "coins": 35,
@@ -1688,7 +1709,7 @@
     "difficulty": 2,
     "requires": "monster_arena_01",
     "target": {
-      "correct": 5
+      "correct": 7
     },
     "reward": {
       "coins": 25,
@@ -1696,11 +1717,11 @@
     },
     "config": {
       "instruction_key": "expedition.instruction",
-      "goo_interval": 3.4,
+      "goo_interval": 2.99,
       "monsters": [
         {
           "id": "puffle",
-          "hp": 2,
+          "hp": 3,
           "scale": 0.85,
           "body_color": "#7fb069",
           "belly_color": "#cde6b2",
@@ -1713,7 +1734,7 @@
         },
         {
           "id": "bumble",
-          "hp": 3,
+          "hp": 4,
           "scale": 1.05,
           "body_color": "#8a5fc9",
           "belly_color": "#c9aef2",
@@ -1735,7 +1756,7 @@
     "difficulty": 2,
     "requires": "star_trials_01",
     "target": {
-      "correct": 7
+      "correct": 9
     },
     "reward": {
       "coins": 25,
@@ -1743,11 +1764,11 @@
     },
     "config": {
       "instruction_key": "expedition.instruction",
-      "goo_interval": 3.0,
+      "goo_interval": 2.64,
       "monsters": [
         {
           "id": "rollo",
-          "hp": 3,
+          "hp": 4,
           "scale": 0.9,
           "body_color": "#d98a4a",
           "belly_color": "#f2c489",
@@ -1760,7 +1781,7 @@
         },
         {
           "id": "grump",
-          "hp": 4,
+          "hp": 5,
           "scale": 1.15,
           "body_color": "#4a7dd9",
           "belly_color": "#9ec2f2",
@@ -1782,7 +1803,7 @@
     "difficulty": 2,
     "requires": "star_trials_02",
     "target": {
-      "correct": 10
+      "correct": 13
     },
     "reward": {
       "coins": 25,
@@ -1790,11 +1811,11 @@
     },
     "config": {
       "instruction_key": "expedition.instruction",
-      "goo_interval": 2.8,
+      "goo_interval": 2.46,
       "monsters": [
         {
           "id": "puffle",
-          "hp": 2,
+          "hp": 3,
           "scale": 0.8,
           "body_color": "#7fb069",
           "belly_color": "#cde6b2",
@@ -1807,7 +1828,7 @@
         },
         {
           "id": "rollo",
-          "hp": 3,
+          "hp": 4,
           "scale": 0.95,
           "body_color": "#d98a4a",
           "belly_color": "#f2c489",
@@ -1820,7 +1841,7 @@
         },
         {
           "id": "boss_bu",
-          "hp": 5,
+          "hp": 6,
           "scale": 1.2,
           "body_color": "#c94f6d",
           "belly_color": "#f2a9bc",
@@ -1843,7 +1864,7 @@
     "requires": "star_trials_03",
     "challenge": true,
     "target": {
-      "correct": 12
+      "correct": 15
     },
     "reward": {
       "coins": 40,
@@ -1851,11 +1872,11 @@
     },
     "config": {
       "instruction_key": "expedition.instruction",
-      "goo_interval": 2.6,
+      "goo_interval": 2.29,
       "monsters": [
         {
           "id": "grump",
-          "hp": 4,
+          "hp": 5,
           "scale": 0.95,
           "body_color": "#4a7dd9",
           "belly_color": "#9ec2f2",
@@ -1868,7 +1889,7 @@
         },
         {
           "id": "bumble",
-          "hp": 3,
+          "hp": 4,
           "scale": 1.0,
           "body_color": "#8a5fc9",
           "belly_color": "#c9aef2",
@@ -1881,7 +1902,7 @@
         },
         {
           "id": "boss_bu",
-          "hp": 5,
+          "hp": 6,
           "scale": 1.25,
           "body_color": "#c94f6d",
           "belly_color": "#f2a9bc",
@@ -1903,7 +1924,7 @@
     "difficulty": 1,
     "requires": "",
     "target": {
-      "correct": 8
+      "correct": 11
     },
     "reward": {
       "coins": 25,
@@ -1911,8 +1932,8 @@
     },
     "config": {
       "instruction_key": "keepy.instruction",
-      "bounces": 8,
-      "drift": 80
+      "bounces": 11,
+      "drift": 96
     }
   },
   {
@@ -1952,7 +1973,7 @@
     "difficulty": 1,
     "requires": "bluey_park_02",
     "target": {
-      "correct": 5
+      "correct": 6
     },
     "reward": {
       "coins": 25,
@@ -1962,7 +1983,7 @@
       "instruction_key": "echo.listen",
       "pads": 4,
       "sequence_start": 2,
-      "sequence_max": 5
+      "sequence_max": 6
     }
   },
   {
@@ -1973,7 +1994,7 @@
     "difficulty": 1,
     "requires": "bluey_park_03",
     "target": {
-      "correct": 4
+      "correct": 5
     },
     "reward": {
       "coins": 25,
@@ -1987,7 +2008,8 @@
         "balloon",
         "ball",
         "teddy",
-        "paw"
+        "paw",
+        "star"
       ]
     }
   },
@@ -2000,7 +2022,7 @@
     "requires": "bluey_park_04",
     "challenge": true,
     "target": {
-      "correct": 12
+      "correct": 15
     },
     "reward": {
       "coins": 40,
@@ -2008,8 +2030,8 @@
     },
     "config": {
       "instruction_key": "keepy.instruction",
-      "bounces": 12,
-      "drift": 110
+      "bounces": 15,
+      "drift": 132
     }
   },
   {
@@ -2070,7 +2092,7 @@
     "difficulty": 2,
     "requires": "star_trials_04",
     "target": {
-      "correct": 18
+      "correct": 20
     },
     "reward": {
       "coins": 25,
@@ -2078,7 +2100,7 @@
     },
     "config": {
       "instruction_key": "defense.instruction",
-      "targets": 18,
+      "targets": 20,
       "spawn_interval": 1.9,
       "speed": 46,
       "hp_min": 1,
@@ -2132,6 +2154,21 @@
           "eyes": 1,
           "spikes": 0,
           "scale": 0.7
+        },
+        {
+          "id": "boss_lug",
+          "body_color": "#c94f6d",
+          "belly_color": "#f2a9bc",
+          "accent_color": "#96324c",
+          "height": 260,
+          "width": 0.9,
+          "horns": 2,
+          "eyes": 1,
+          "spikes": 3,
+          "scale": 0.9,
+          "hp": 6,
+          "pace": 0.55,
+          "rarity": 0.18
         }
       ]
     }

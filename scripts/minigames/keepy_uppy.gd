@@ -42,6 +42,12 @@ func setup_level() -> void:
 	_target_bounces = int(config.get("bounces", 8))
 	_drift = float(config.get("drift", 90.0))
 
+	# Difficulty: the balloon wanders more and the goal is longer. Gravity
+	# is left alone -- a faster fall is not harder, it is just crueller.
+	_drift = harder(_drift, 1.30)
+	_target_bounces = maxi(harder_i(_target_bounces, 3), 4)
+	bump_target("correct", 3 * (difficulty() - NORMAL))
+
 	# Challenge scaling: more bounces, a touch more sideways drift. The fall
 	# speed never changes -- patience stays a winning strategy.
 	var rank := challenge_rank()

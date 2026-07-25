@@ -74,6 +74,16 @@ func setup_level() -> void:
 	# Cars that run a late green only appear once the basic rule is learned.
 	_late_cars = bool(config.get("late_cars", int(level_data.get("difficulty", 1)) >= 2))
 
+	# Difficulty: denser traffic and a shorter green. Car SPEED is left
+	# alone on purpose -- this level teaches patience at a kerb, and a
+	# faster car only makes the same lesson scarier.
+	_gap_min = maxf(harder(_gap_min, 0.86), 0.9)
+	_gap_max = maxf(harder(_gap_max, 0.86), _gap_min + 0.5)
+	_green_seconds = clampf(harder(_green_seconds, 0.88), 2.6, 9.0)
+	if difficulty() >= BRAVE:
+		_late_cars = true
+	bump_target("correct_crossings", difficulty() - NORMAL)
+
 	# Challenge scaling: more crossings and denser traffic. Deliberately NOT
 	# faster cars or shorter greens -- this level teaches patience, and rank
 	# must never turn it into a reflex test.

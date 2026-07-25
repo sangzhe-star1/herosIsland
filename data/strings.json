@@ -283,7 +283,11 @@
     "set.cowboy": "Cowboy!",
     "set.princess": "Princess!",
     "set.wizard": "Star Wizard!",
-    "house.set_on": "Full set: %s"
+    "house.set_on": "Full set: %s",
+    "parent.difficulty": "Difficulty",
+    "parent.diff_gentle": "Gentle",
+    "parent.diff_normal": "Normal",
+    "parent.diff_brave": "Brave"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -569,6 +573,10 @@
     "set.cowboy": "西部牛仔！",
     "set.princess": "小公主！",
     "set.wizard": "星星魔法师！",
-    "house.set_on": "整套：%s"
+    "house.set_on": "整套：%s",
+    "parent.difficulty": "游戏难度",
+    "parent.diff_gentle": "轻松",
+    "parent.diff_normal": "普通",
+    "parent.diff_brave": "挑战"
   }
 }

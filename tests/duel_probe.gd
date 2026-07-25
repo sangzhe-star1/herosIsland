@@ -45,7 +45,9 @@ func _ready() -> void:
 
 	_ok(duel._started, "a no-choice duel should start immediately")
 	_ok(duel._monster != null and duel._hero != null, "duel actors missing")
-	_ok(duel._meter_cells.size() == 8, "arena_04 meter should have 8 cells")
+	var goal: int = duel.target_value("correct", 8)
+	_ok(duel._meter_cells.size() == goal,
+		"the meter should have one cell per hit needed (%d)" % goal)
 
 	# Beam: fires once, then the cooldown gate holds.
 	_ok(duel.fire_beam_skill(), "first beam should fire")
@@ -141,7 +143,7 @@ func _ready() -> void:
 	# Wipe the probe's deliberate hits, then finish: the stored result must
 	# be the 3-star one an actually-clean run earns.
 	duel.result.mistakes = 0
-	while duel.result.correct < 8:
+	while duel.result.correct < goal:
 		duel._land_hit(1)
 	var stored: LevelResult = await GameManager.level_finished
 	_ok(stored != null and stored.stars() == 3, "a clean duel should store 3 stars")

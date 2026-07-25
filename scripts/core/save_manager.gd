@@ -56,6 +56,9 @@ func _default_data() -> Dictionary:
 			"sfx_volume": 1.0,
 			"voice_volume": 1.0,
 			"daily_limit_minutes": 30,
+			# 0 gentle / 1 normal / 2 brave. Set in the Parent Center; every
+			# template scales its own knobs off it (LevelManager.harder).
+			"difficulty": 1,
 			# Some children find particles and bouncing genuinely unpleasant.
 			"reduce_motion": false,
 		},

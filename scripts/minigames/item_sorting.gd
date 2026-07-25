@@ -36,6 +36,9 @@ var _progress: Label
 
 func setup_level() -> void:
 	var config: Dictionary = level_data.get("config", {})
+	# Difficulty: more things to place. Sorting has no clock, so length is
+	# the only honest dial -- speed would just punish a careful child.
+	bump_target("correct", 2 * (difficulty() - NORMAL))
 	_build_ui(config)
 	_build_bins(config.get("bins", []))
 	_load_pool(config)

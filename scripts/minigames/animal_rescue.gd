@@ -40,6 +40,16 @@ func setup_level() -> void:
 	_goal_icon = str(config.get("goal_icon", "paw"))
 	_hint = bool(config.get("hint", int(level_data.get("difficulty", 1)) <= 1))
 
+	# Difficulty: a longer path through more hazards, and at Brave the
+	# helping dotted line is gone -- the route has to be read, not traced.
+	_trail_length = clampi(harder_i(_trail_length, 1), 3, 8)
+	_hazard_count = maxi(_hazard_count + (difficulty() - NORMAL), 0)
+	if difficulty() >= BRAVE:
+		_hint = false
+	elif difficulty() <= GENTLE:
+		_hint = true
+	bump_target("correct", difficulty() - NORMAL)
+
 	# Challenge scaling: longer trails through more hazards, more rounds.
 	var rank := challenge_rank()
 	if rank > 0:

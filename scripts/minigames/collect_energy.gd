@@ -23,6 +23,7 @@ var _fall_speed := 130.0
 var _orb_colors: Array = []
 var _hazard_ratio := 0.0
 var _color_target := false
+var _wind := 0.0
 
 var _spawn_timer := 0.0
 var _things: Array = []            # [{node, speed, hazard, color_index, drift}]
@@ -43,6 +44,18 @@ func setup_level() -> void:
 	_orb_colors = (config.get("orb_colors", ["#ffd23c"]) as Array).duplicate()
 	_hazard_ratio = clampf(float(config.get("hazard_ratio", 0.0)), 0.0, 0.8)
 	_color_target = bool(config.get("color_target", false))
+	# "wind": everything drifts steadily to one side as it falls, so the
+	# child leads the target instead of tapping where it is. Same level,
+	# different verb -- which is what variety actually costs.
+	_wind = float(config.get("wind", 0.0))
+
+	# Difficulty: a busier sky and a quicker fall. Hazards climb too, so
+	# "leave the rocks alone" is a real instruction at Brave.
+	_spawn_interval = harder(_spawn_interval, 0.80)
+	_fall_speed = harder(_fall_speed, 1.18)
+	_hazard_ratio = clampf(_hazard_ratio * pow(1.35, float(difficulty() - NORMAL)),
+		0.0, 0.6)
+	bump_target("correct", 2 * (difficulty() - NORMAL))
 
 	# Challenge scaling: denser sky and a higher goal each rank. Fall speed
 	# barely moves (missing costs nothing here), and the pace has a floor.
@@ -199,7 +212,9 @@ func _tick_things(delta: float) -> void:
 			continue
 		thing["phase"] = float(thing["phase"]) + delta * 2.0
 		node.position.y += float(thing["speed"]) * delta
-		node.position.x += sin(float(thing["phase"])) * float(thing["drift"]) * delta
+		node.position.x += (sin(float(thing["phase"])) * float(thing["drift"])
+			+ _wind) * delta
+		node.position.x = clampf(node.position.x, 20.0, 1280.0 - ORB_SIZE.x - 20.0)
 
 		# Falling off the bottom is free. Nothing is lost by being slow.
 		if node.position.y > DESPAWN_Y:

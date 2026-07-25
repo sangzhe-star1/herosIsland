@@ -46,6 +46,10 @@ func setup_level() -> void:
 	_goo_interval = maxf(float(config.get("goo_interval", 3.0)), 1.6)
 	var specs: Array = (config.get("monsters", []) as Array).duplicate()
 
+	# Difficulty: goo comes sooner. Monster health is bent below, per
+	# monster, so a two-heart creature does not become a four-heart wall.
+	_goo_interval = maxf(harder(_goo_interval, 0.82), 1.4)
+
 	# Challenge scaling: every monster grows one more heart per rank (capped),
 	# and the target grows to match. Never faster goo.
 	var rank := challenge_rank()

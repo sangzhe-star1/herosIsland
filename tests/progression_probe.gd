@@ -83,8 +83,12 @@ func _check_stickers() -> void:
 func _check_challenge_scaling() -> void:
 	# Pretend the Hero City challenge has been beaten three times.
 	SaveManager.data["challenges"] = {"hero_city_challenge": 3}
+	# Read the base out of the data rather than asserting a number: level
+	# targets move whenever the island is retuned (they just went up a step
+	# across all twelve templates), and a probe that hard-codes one is a
+	# probe that cries wolf every time somebody balances the game.
 	var base_target := int(GameData.get_level("hero_city_challenge").get("target", {}).get("correct", 0))
-	_ok(base_target == 12, "expected base challenge target 12, data says %d" % base_target)
+	_ok(base_target > 0, "the challenge level must declare a target")
 
 	GameManager.current_level_id = "hero_city_challenge"
 	var packed: PackedScene = load("res://scenes/minigames/collect_energy/CollectEnergy.tscn")

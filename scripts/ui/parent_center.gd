@@ -130,6 +130,7 @@ func _build_content() -> void:
 	_add_row(list, I18n.t("parent.attempts"), str(stats.attempts))
 
 	list.add_child(HSeparator.new())
+	list.add_child(_build_difficulty_row())
 	list.add_child(_build_language_row())
 	list.add_child(_build_limit_row())
 	list.add_child(_build_motion_row())
@@ -230,6 +231,29 @@ func _on_import_pressed() -> void:
 	_backup_status.text = I18n.t("parent.import_done") % [
 		str(result["path"]).get_file(),
 		int(result["stars_before"]), int(result["stars_after"])]
+
+
+## One dial for the whole island. Worth being on this side of the parent
+## gate rather than in the child's hands: it is the parent who knows whether
+## last week was too easy or last night ended in tears.
+func _build_difficulty_row() -> Control:
+	var row := HBoxContainer.new()
+	var l := Label.new()
+	l.text = I18n.t("parent.difficulty")
+	l.custom_minimum_size = Vector2(460, 0)
+	l.add_theme_font_size_override("font_size", 30)
+	row.add_child(l)
+
+	var picker := OptionButton.new()
+	picker.add_theme_font_size_override("font_size", 28)
+	var names := ["parent.diff_gentle", "parent.diff_normal", "parent.diff_brave"]
+	for i in range(names.size()):
+		picker.add_item(I18n.t(names[i]), i)
+	picker.select(clampi(int(SaveManager.get_setting("difficulty", 1)), 0, 2))
+	picker.item_selected.connect(func(index: int):
+		SaveManager.set_setting("difficulty", index))
+	row.add_child(picker)
+	return row
 
 
 func _build_language_row() -> Control:

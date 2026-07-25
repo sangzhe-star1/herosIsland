@@ -126,6 +126,12 @@ func setup_level() -> void:
 	var gap_max := clampf(float(config.get("gap_max", 120.0)), 60.0, 210.0)
 	var seg_min := maxf(float(config.get("seg_min", 220.0)), 170.0)
 
+	# Difficulty: wider gaps, shorter ledges, more spiky rocks. The trail
+	# never gets FASTER -- the hero's speed is the hero's speed.
+	gap_max = clampf(harder(gap_max, 1.18), 60.0, 235.0)
+	seg_min = maxf(harder(seg_min, 0.88), 150.0)
+	_rock_count = maxi(_rock_count + (difficulty() - NORMAL), 0)
+
 	# Challenge scaling: a longer trail with more to find. The gaps grow a
 	# little; the hero never has to be faster, only keep going.
 	var rank := challenge_rank()

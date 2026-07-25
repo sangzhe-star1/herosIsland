@@ -54,6 +54,15 @@ func setup_level() -> void:
 	_beam_color = Color.from_string(str(config.get("beam_color", "#ffd95a")), _beam_color)
 	_goo_timer = _goo_interval * 1.5
 
+	# Difficulty: sparks appear sooner, live shorter, and more of them are
+	# duds -- three different kinds of harder, so Brave is not just "faster".
+	_spark_interval = maxf(harder(_spark_interval, 0.84), 0.5)
+	_spark_life = maxf(harder(_spark_life, 0.82), 2.6)
+	_dud_ratio = clampf(_dud_ratio + 0.10 * float(difficulty() - NORMAL), 0.0, 0.5)
+	if _goo_interval > 0.0:
+		_goo_interval = maxf(harder(_goo_interval, 0.85), 2.5)
+	bump_target("correct", 3 * (difficulty() - NORMAL))
+
 	# Challenge scaling: more sparks to land, more duds to tell apart, a
 	# slightly busier monster. Spark lifetime never shrinks -- aim, not speed.
 	var rank := challenge_rank()

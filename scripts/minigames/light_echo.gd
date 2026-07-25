@@ -64,6 +64,10 @@ func setup_level() -> void:
 	_sequence_start = clampi(int(config.get("sequence_start", 2)), 1, 6)
 	_sequence_max = clampi(int(config.get("sequence_max", 4)), _sequence_start, 8)
 
+	# Difficulty: longer phrases, and Brave starts past the training round.
+	_sequence_start = clampi(harder_i(_sequence_start, 1), 1, 6)
+	_sequence_max = clampi(harder_i(_sequence_max, 1), _sequence_start, 8)
+
 	# Challenge scaling: the song grows longer, never faster.
 	var rank := challenge_rank()
 	if rank > 0:

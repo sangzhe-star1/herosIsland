@@ -113,6 +113,15 @@ func setup_level() -> void:
 	_start_interval = _spawn_interval
 	_end_interval = maxf(_spawn_interval * 0.62, 0.75)
 
+	# Difficulty: they arrive sooner, walk faster, carry more health, and
+	# a pick costs one more of them.
+	_spawn_interval = harder(_spawn_interval, 0.82)
+	_speed = clampf(harder(_speed, 1.16), 20.0, 92.0)
+	_hp_max = maxi(harder_i(_hp_max, 1), _hp_min)
+	_per_pick = maxi(harder_i(_per_pick, 1), 2)
+	_start_interval = _spawn_interval
+	_end_interval = maxf(_spawn_interval * 0.62, 0.70)
+
 	_light_left = BASE_LIGHT
 	_build_scene(config)
 
@@ -210,7 +219,7 @@ func _process(delta: float) -> void:
 		if not is_instance_valid(node):
 			_walkers.erase(walker)
 			continue
-		var pace: float = _speed
+		var pace: float = _speed * float(walker.get("pace", 1.0))
 		if _clock < float(walker["slow_until"]):
 			pace *= 0.42
 		node.position.x -= pace * delta
@@ -220,7 +229,12 @@ func _process(delta: float) -> void:
 
 func _spawn_walker() -> void:
 	var spec: Dictionary = (_specs[randi() % _specs.size()] as Dictionary).duplicate()
-	var hp: int = randi_range(_hp_min, _hp_max)
+	# A spec may fix its own health and its own rarity. That is what makes a
+	# BOSS possible: one huge slow creature with six hearts among the
+	# one-heart runners, without a second template or a second level type.
+	if spec.has("rarity") and randf() > float(spec["rarity"]):
+		spec = (_specs[0] as Dictionary).duplicate()
+	var hp: int = int(spec["hp"]) if spec.has("hp") else randi_range(_hp_min, _hp_max)
 	var scale_f: float = float(spec.get("scale", 0.6))
 	var mon := preload("res://scripts/battle/monster.gd").new()
 	mon.scale = Vector2.ONE * scale_f
@@ -233,6 +247,7 @@ func _spawn_walker() -> void:
 	var walker := {
 		"node": mon, "hp": hp, "hp_max": hp, "hearts": null,
 		"slow_until": 0.0, "alive": true, "height": height,
+		"pace": float(spec.get("pace", 1.0)),
 	}
 	_walkers.append(walker)
 	_rebuild_hearts(walker)

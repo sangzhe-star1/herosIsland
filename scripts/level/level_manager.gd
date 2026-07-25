@@ -37,6 +37,39 @@ func _ready() -> void:
 ## levels. Templates read this in setup_level() and grow themselves: more to
 ## do, a little denser, never faster than the no-speed rule allows. This is
 ## the level system that expands forever without new content.
+# --- difficulty ------------------------------------------------------------
+#
+# One dial, set once by a parent, felt in every game. The island shipped at
+# a single pitch and a six-year-old outgrew it in a fortnight -- but the
+# NEXT child to pick up the tablet may be four. So each template scales two
+# or three of its own knobs off this, rather than the game shipping three
+# copies of every level.
+#
+# Gentle is genuinely gentler, not slower: fewer things at once, longer
+# gaps, more forgiveness. Brave is genuinely braver. The house rules never
+# move -- no failure, one star minimum, nothing flashes -- at any setting.
+
+const GENTLE := 0
+const NORMAL := 1
+const BRAVE := 2
+
+
+func difficulty() -> int:
+	return clampi(int(SaveManager.get_setting("difficulty", NORMAL)), GENTLE, BRAVE)
+
+
+## Scale a number one notch per difficulty step. `per_step` above 1.0 means
+## the number grows with difficulty (speed, count); below 1.0 means it
+## shrinks (intervals, forgiveness windows).
+func harder(value: float, per_step: float) -> float:
+	return value * pow(per_step, float(difficulty() - NORMAL))
+
+
+## The same, in whole numbers: how many more (or fewer) of a thing.
+func harder_i(value: int, per_step: int) -> int:
+	return maxi(value + per_step * (difficulty() - NORMAL), 1)
+
+
 func challenge_rank() -> int:
 	if not bool(level_data.get("challenge", false)):
 		return 0

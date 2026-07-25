@@ -180,6 +180,29 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
   rm -f "$TAP_OUT"
 fi
 
+# The difficulty probe boots one level per template at Gentle and again at
+# Brave and checks the knob each template promises to bend. A dial that
+# changes a saved number and nothing else is the easiest bug to ship and
+# the hardest to notice: everything still runs, it is just all the same.
+if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run >/dev/null 2>&1; then
+  echo
+  echo "Running difficulty probe..."
+  DIFF_RUNNER=()
+  if [[ "$(uname)" == "Linux" ]] && [[ -z "${DISPLAY:-}" ]]; then
+    DIFF_RUNNER=(xvfb-run -a -s "-screen 0 1280x720x24")
+    export LIBGL_ALWAYS_SOFTWARE=1
+  fi
+  DIFF_OUT=$(mktemp)
+  "${DIFF_RUNNER[@]}" "$GODOT" --path . --rendering-driver opengl3 \
+    res://tests/DifficultyProbe.tscn 2>&1 | tee "$DIFF_OUT"
+  if ! grep -q "DIFFICULTY PROBE PASSED" "$DIFF_OUT"; then
+    rm -f "$DIFF_OUT"
+    echo "Difficulty probe failed."
+    exit 1
+  fi
+  rm -f "$DIFF_OUT"
+fi
+
 # The upgrade probe proves a drafted skill actually changes the gun --
 # cooldown, radius, damage, bolt count AND colour. Needs a window.
 if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run >/dev/null 2>&1; then

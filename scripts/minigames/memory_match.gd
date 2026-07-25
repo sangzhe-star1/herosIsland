@@ -31,6 +31,24 @@ func setup_level() -> void:
 	_icons = (config.get("icons", ["teddy", "ball", "blocks", "crayon"]) as Array).duplicate()
 	_columns = int(config.get("columns", 4))
 
+	# Difficulty: a bigger board. One more pair is a whole extra thing to
+	# hold in a six-year-old's head, so this dial moves in single steps.
+	var want_pairs: int = clampi(harder_i(_icons.size(), 1), 3, _icons.size() + 2)
+	if want_pairs > _icons.size():
+		# Brave asked for more pairs than the level listed: borrow from the
+		# drawn icon library rather than shipping a level that cannot honour
+		# its own setting.
+		for extra in ["star", "heart", "leaf", "moon", "orb", "coin"]:
+			if _icons.size() >= want_pairs:
+				break
+			if not extra in _icons:
+				_icons.append(extra)
+	_icons = _icons.slice(0, want_pairs)
+	_columns = 4 if _icons.size() <= 6 else 5
+	var base_target: Dictionary = level_data.get("target", {})
+	base_target["correct"] = _icons.size()
+	level_data["target"] = base_target
+
 	# Challenge scaling: the board grows toward the config's full icon pool,
 	# one extra pair every couple of ranks. Memory needs nothing else.
 	var rank := challenge_rank()

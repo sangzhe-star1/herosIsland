@@ -78,6 +78,14 @@ func setup_level() -> void:
 	_roar_interval = float(config.get("roar_interval", 0.0))
 	_ult_type = str(config.get("ult", "barrage"))
 
+	# Difficulty: goo comes sooner, the beam rests longer, and the ult costs
+	# more to charge -- the shield and the swat matter more at every step.
+	_goo_interval = maxf(harder(_goo_interval, 0.82), 2.2)
+	if _roar_interval > 0.0:
+		_roar_interval = maxf(harder(_roar_interval, 0.85), 4.0)
+	_beam_cooldown = clampf(harder(_beam_cooldown, 1.14), 0.6, 2.4)
+	_ult_needed = maxi(harder_i(_ult_needed, 1), 3)
+
 	# Challenge scaling: a busier opponent and a higher goal, never a faster
 	# hand required of the child.
 	var rank := challenge_rank()
