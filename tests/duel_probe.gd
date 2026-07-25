@@ -12,6 +12,22 @@ func _ok(condition: bool, description: String) -> void:
 		_failures.append(description)
 
 
+## The out-of-light card is the play area's own overlay: full-rect, and the
+## only child that eats input.
+func _find_card(play_area: Control) -> Control:
+	for child in play_area.get_children():
+		if child is Control and child.z_index == 90:
+			return child
+	return null
+
+
+func _collect_buttons(node: Node, into: Array) -> void:
+	for child in node.get_children():
+		if child is Button:
+			into.append(child)
+		_collect_buttons(child, into)
+
+
 func _ready() -> void:
 	print("\n=== duel probe ===")
 	var window := get_window()
@@ -80,8 +96,50 @@ func _ready() -> void:
 	_ok(duel.result.mistakes == 1, "an unshielded hit costs one star of accuracy")
 	_ok(duel._light_left == light_before - 1, "an unshielded hit dims one light pip")
 
-	# Wipe the probe's deliberate hit, then finish: the stored result must be
-	# the 3-star one an actually-clean run earns.
+	# --- the light bar has to MEAN something ---------------------------
+	#
+	# It used to refill itself after a beat, so a child could stand there
+	# taking hits forever with an empty bar and nothing at all would happen.
+	# Now an empty bar stops the duel and offers a choice.
+	SaveManager.data["rewards"]["items"]["heart_potion"] = 1
+	while duel._light_left > 0:
+		duel._lose_light()
+	await get_tree().process_frame
+	_ok(get_tree().paused, "an empty light bar pauses the fight")
+	var card: Control = _find_card(duel._play_area)
+	_ok(card != null, "an empty light bar raises the choice card")
+	var choices: Array = []
+	if card != null:
+		_collect_buttons(card, choices)
+	_ok(choices.size() == 2, "with a potion owned there are two choices, got %d"
+		% choices.size())
+
+	# Spending the potion: light back, fight on, one potion gone.
+	if choices.size() == 2:
+		(choices[0] as Button).pressed.emit()
+	await get_tree().process_frame
+	_ok(not get_tree().paused, "spending a potion resumes the fight")
+	_ok(duel._light_left == duel.LIGHT_PIPS, "a potion refills the light bar")
+	_ok(SaveManager.item_count("heart_potion") == 0, "the potion is spent")
+	_ok(_find_card(duel._play_area) == null, "the card goes away")
+
+	# And with no potion left, the only way out is to finish here.
+	while duel._light_left > 0:
+		duel._lose_light()
+	await get_tree().process_frame
+	var card2: Control = _find_card(duel._play_area)
+	var choices2: Array = []
+	if card2 != null:
+		_collect_buttons(card2, choices2)
+	_ok(choices2.size() == 1, "with no potion there is one choice, got %d"
+		% choices2.size())
+	get_tree().paused = false
+	if card2 != null:
+		card2.queue_free()
+	await get_tree().process_frame
+
+	# Wipe the probe's deliberate hits, then finish: the stored result must
+	# be the 3-star one an actually-clean run earns.
 	duel.result.mistakes = 0
 	while duel.result.correct < 8:
 		duel._land_hit(1)

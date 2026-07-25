@@ -56,8 +56,8 @@ const NAMES := [
 	"ear", "tap", "tower", "potion", "star_bomb", "balloon",
 	# the wardrobe: outfit pieces for the Hero House rack
 	"crown", "party_hat", "cap", "sunglasses", "cape_red", "wings",
-	# the blaster range's map stone
-	"target",
+	# the blaster range's map stone, and the goo you swat out of the air
+	"target", "goo",
 ]
 
 
@@ -598,6 +598,17 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				Color(1, 1, 1, 0.5))
 			_tri(p, c + Vector2(-s * 0.05, s * 0.26), c + Vector2(s * 0.05, s * 0.26),
 				c + Vector2(0, s * 0.19), red2.darkened(0.15))
+		"goo":
+			var slime := Color(0.55, 0.78, 0.42)
+			_lit_circle(p, c + Vector2(0, s * 0.04), s * 0.30, slime)
+			# Two drips so it reads as thrown goo rather than a green ball.
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.30, s * 0.10), c + Vector2(-s * 0.36, s * 0.30),
+				c + Vector2(-s * 0.18, s * 0.22),
+			]), slime.darkened(0.10))
+			_circle(p, c + Vector2(s * 0.30, s * 0.26), s * 0.07, slime.darkened(0.06))
+			_poly(p, Shapes.oval_points(c + Vector2(-s * 0.09, -s * 0.12),
+				Vector2(s * 0.09, s * 0.06), 10), Color(1, 1, 1, 0.5))
 		"target":
 			for k in range(3):
 				_circle(p, c, s * (0.34 - 0.11 * float(k)),

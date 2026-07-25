@@ -487,3 +487,90 @@ static func is_release(event: InputEvent) -> bool:
 		return not button.pressed and button.button_index == MOUSE_BUTTON_LEFT \
 			and not Input.is_emulating_touch_from_mouse()
 	return false
+
+
+
+# --- the out-of-light moment ----------------------------------------------
+
+## The fight stops and the child chooses: spend a Heart Potion and carry on,
+## or finish the level here with what they earned.
+##
+## This is the one place the island has a real stake, added because a parent
+## watched his son take hit after hit with the light bar empty and nothing
+## whatsoever happening. He was right: a health bar that cannot run out is
+## not a health bar, it is decoration, and the Star Shop's potions were
+## shopping for nothing.
+##
+## It is still not a fail screen. Ending here is FINISHING -- the level
+## reports normally and earns its star, the coins are kept, and the child is
+## offered a way to continue before any of that happens. What changed is
+## that the way to continue costs something they chose to buy.
+static func light_out_card(parent: Node, potions: int, on_potion: Callable,
+		on_finish: Callable) -> Control:
+	var holder := Control.new()
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_STOP    # nothing behind it is tappable
+	holder.z_index = 90
+	# The tree is paused while this is up, so the card has to be the one
+	# thing still allowed to think.
+	holder.process_mode = Node.PROCESS_MODE_ALWAYS
+	parent.add_child(holder)
+
+	var scrim := ColorRect.new()
+	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scrim.color = Color(0.03, 0.06, 0.14, 0.62)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(scrim)
+
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(centre)
+
+	var card := UiKit.card()
+	centre.add_child(card)
+	var column := VBoxContainer.new()
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 14)
+	card.add_child(column)
+
+	# Three spent hearts: the reason we are here, in one picture.
+	var hearts := HBoxContainer.new()
+	hearts.alignment = BoxContainer.ALIGNMENT_CENTER
+	hearts.add_theme_constant_override("separation", 10)
+	hearts.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in range(3):
+		var heart: Control = UiKit.picture("heart", 54)
+		if heart != null:
+			heart.modulate = Color(0.40, 0.44, 0.54, 0.55)
+			hearts.add_child(heart)
+	column.add_child(hearts)
+
+	column.add_child(UiKit.title(I18n.t("battle.out_of_light"), 40))
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 26)
+	column.add_child(row)
+
+	# The potion is offered first and only when there is one to spend -- a
+	# greyed-out button a child cannot use is a tease, not an option.
+	if potions > 0:
+		var potion := UiKit.icon_button("x%d" % potions, "potion",
+			Palette.GREEN, Vector2(250, 210))
+		potion.pressed.connect(func():
+			holder.queue_free()
+			on_potion.call()
+		)
+		row.add_child(potion)
+	else:
+		column.add_child(UiKit.title(I18n.t("battle.buy_potions"), 22, Palette.INK_SOFT))
+
+	var finish := UiKit.icon_button(I18n.t("battle.finish_here"), "flag",
+		Palette.ORANGE, Vector2(250, 210))
+	finish.pressed.connect(func():
+		holder.queue_free()
+		on_finish.call()
+	)
+	row.add_child(finish)
+	return holder

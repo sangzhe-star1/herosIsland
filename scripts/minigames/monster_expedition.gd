@@ -35,10 +35,10 @@ var _shield_until := 0.0
 var _shield_ring: Node2D
 var _light_left := LIGHT_PIPS
 var _light_row: Array = []          # heart Controls, dim as light is lost
-var _refill_at := -1.0
 var _instruction: Label
 var _progress: Label
 var _item_buttons: Dictionary = {}  # id -> {button, count_label}
+var _taught_swat := false           # the "tap the goo" line, shown once
 
 
 func setup_level() -> void:
@@ -83,8 +83,11 @@ func _build_scene(config: Dictionary, specs: Array, extra_hp: int) -> void:
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_instruction)
 
-	# The wordless version: tap the monster.
-	var picto: Control = UiKit.pictogram([{"icon": "monster", "ok": true}], 70)
+	# The wordless version: tap the monster, AND tap the goo. Two ticks,
+	# because both taps are things to do -- one attacks, one defends.
+	var picto: Control = UiKit.pictogram([
+		{"icon": "monster", "ok": true}, {"icon": "goo", "ok": true},
+	], 70)
 	picto.position = Vector2(240, 84)
 	picto.size = Vector2(800, 74)
 	_play_area.add_child(picto)
@@ -260,13 +263,6 @@ func _process(delta: float) -> void:
 		_next_goo = _goo_interval * randf_range(0.85, 1.25)
 		_lob_goo()
 
-	# An empty light bar refills itself after a breath -- the pressure is
-	# losing pips (accuracy stars), never losing the fight.
-	if _refill_at >= 0.0 and _clock >= _refill_at:
-		_refill_at = -1.0
-		_light_left = LIGHT_PIPS
-		_refresh_light()
-
 	if _shield_ring != null and is_instance_valid(_shield_ring):
 		if _clock >= _shield_until:
 			_shield_ring.queue_free()
@@ -370,32 +366,68 @@ func _lob_goo() -> void:
 	var mon: Node2D = entry["node"]
 	if mon.has_method("puff_up"):
 		mon.puff_up()
+	# Say it once, the first time something is thrown: the strip shows the
+	# goo with a tick, and the line names the verb for the parent reading
+	# over his shoulder.
+	if not _taught_swat:
+		_taught_swat = true
+		_say(I18n.t("expedition.swat"))
 
-	var goo := Node2D.new()
-	goo.position = entry["chest"]
-	_play_area.add_child(goo)
+	# A BUTTON, so it can be swatted out of the air. The expedition had no
+	# defence at all except a bought charm -- fine while the light bar was
+	# decorative, unplayable the moment running out actually ends the level.
+	# Tapping the thing flying at you is a defence a six-year-old invents on
+	# his own.
+	var goo := Button.new()
+	var goo_size := Vector2(104, 104)
+	goo.custom_minimum_size = goo_size
+	goo.size = goo_size
+	goo.pivot_offset = goo_size / 2.0
+	goo.focus_mode = Control.FOCUS_NONE
+	goo.position = (entry["chest"] as Vector2) - goo_size / 2.0
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		goo.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	var art := Node2D.new()
+	art.position = goo_size / 2.0
+	goo.add_child(art)
 	var rng := Shapes.rng_for("goo%f" % _clock)
-	Shapes.lit(goo, Shapes.blob(Vector2.ZERO, Vector2(24.0, 20.0), rng, 0.22, 3, 12),
+	Shapes.lit(art, Shapes.blob(Vector2.ZERO, Vector2(30.0, 25.0), rng, 0.22, 3, 12),
 		Color(0.56, 0.78, 0.35), 0.9)
+	Shapes.fill(art, Shapes.oval_points(Vector2(-9.0, -9.0), Vector2(8.0, 5.0), 10),
+		Color(1, 1, 1, 0.45), 0.0)
+	goo.pressed.connect(_swat_goo.bind(goo))
+	_play_area.add_child(goo)
 
-	var flight := 0.9
+	var flight := 1.15
+	var lands: Vector2 = _hero.position + Vector2(0, -110.0) - goo_size / 2.0
 	if Juice.motion_enabled():
 		var t := goo.create_tween()
-		t.tween_property(goo, "position", _hero.position + Vector2(0, -110.0), flight)\
+		t.tween_property(goo, "position", lands, flight)\
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 		t.tween_callback(_goo_arrives.bind(goo))
 	else:
+		goo.position = lands
 		get_tree().create_timer(flight).timeout.connect(_goo_arrives.bind(goo))
 
 
-func _goo_arrives(goo: Node2D) -> void:
+## Swatted out of the air: it bursts and nothing is lost. No score --
+## defending is its own reward, and scoring it would inflate the target.
+func _swat_goo(goo: Control) -> void:
+	if not is_instance_valid(goo) or _finished:
+		return
+	Juice.burst(_play_area, goo.position + goo.size / 2.0, 12)
+	AudioManager.play_sfx("res://assets/audio/correct.ogg")
+	goo.queue_free()
+
+
+func _goo_arrives(goo: Control) -> void:
 	if _finished:
 		if is_instance_valid(goo):
 			goo.queue_free()
 		return
 	var at: Vector2 = _hero.position + Vector2(0, -110.0)
 	if is_instance_valid(goo):
-		at = goo.position
+		at = goo.position + goo.size / 2.0
 		goo.queue_free()
 
 	if _clock < _shield_until:
@@ -413,8 +445,34 @@ func _lose_light() -> void:
 	_refresh_light()
 	score_mistake()
 	_hero.stumble()
-	if _light_left == 0 and _refill_at < 0.0:
-		_refill_at = _clock + 1.6
+	if _light_left == 0:
+		_out_of_light()
+
+
+## Empty bar, so the expedition STOPS -- it used to top itself up after a
+## breath, which is why a parent watched his son take hit after hit with an
+## empty bar and nothing happening at all. Spend a Heart Potion and carry
+## on, or finish here with the reward already earned. Finishing is a real
+## ending: the result reports normally and still earns its star.
+func _out_of_light() -> void:
+	if _finished:
+		return
+	AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+	get_tree().paused = true
+	UiKit.light_out_card(_play_area, SaveManager.item_count("heart_potion"),
+		func():
+			get_tree().paused = false
+			if not SaveManager.use_item("heart_potion"):
+				return
+			_light_left = LIGHT_PIPS
+			_refresh_light()
+			_hero.power_up()
+			Juice.burst(_play_area, _hero.position + Vector2(0, -140.0), 18)
+			AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+			_refresh_items(),
+		func():
+			get_tree().paused = false
+			complete_level())
 
 
 func _refresh_light() -> void:
@@ -440,7 +498,6 @@ func _use_item(item_id: String) -> void:
 			if not SaveManager.use_item(item_id):
 				return
 			_light_left = LIGHT_PIPS
-			_refill_at = -1.0
 			_refresh_light()
 			_hero.power_up()
 			Juice.burst(_play_area, _hero.position + Vector2(0, -140.0), 16)
@@ -484,6 +541,18 @@ func _refuse(item_id: String) -> void:
 	var parts: Dictionary = _item_buttons.get(item_id, {})
 	if parts.has("button"):
 		Juice.nudge(parts["button"])
+
+
+## Swap the instruction line for a moment, then put the standing one back.
+func _say(text: String) -> void:
+	if _instruction == null or not is_instance_valid(_instruction):
+		return
+	_instruction.text = text
+	var timer := get_tree().create_timer(3.0)
+	timer.timeout.connect(func():
+		if is_instance_valid(_instruction) and not _finished:
+			_instruction.text = I18n.t("expedition.instruction")
+	)
 
 
 func _update_progress() -> void:

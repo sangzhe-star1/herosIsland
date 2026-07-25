@@ -243,7 +243,12 @@
     "parent.export_fail": "Could not write the backup file — the disk may be full.",
     "parent.import_none": "No progress file found. Put it in Downloads or this app's Files folder first.",
     "parent.import_bad": "That file is not a Growth Island progress file.",
-    "parent.import_done": "Imported %s — stars %d → %d."
+    "parent.import_done": "Imported %s — stars %d → %d.",
+    "battle.out_of_light": "Your light is used up!",
+    "battle.finish_here": "Finish here",
+    "battle.buy_potions": "Tip: buy Heart Potions in the Star Shop to keep going.",
+    "duel.swat": "Tap the goo to swat it away!",
+    "expedition.swat": "Tap the goo to swat it away!"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -489,6 +494,11 @@
     "parent.export_fail": "写入备份文件失败——可能是磁盘空间不足。",
     "parent.import_none": "没找到进度文件。先把它放进“下载”或本应用的“文件”文件夹。",
     "parent.import_bad": "这个文件不是成长岛的进度文件。",
-    "parent.import_done": "已导入 %s——星星 %d → %d。"
+    "parent.import_done": "已导入 %s——星星 %d → %d。",
+    "battle.out_of_light": "你的光用完啦！",
+    "battle.finish_here": "就到这里",
+    "battle.buy_potions": "小提示：去星星商店买爱心药水，就能继续打。",
+    "duel.swat": "点泥球，把它打掉！",
+    "expedition.swat": "点泥球，把它打掉！"
   }
 }

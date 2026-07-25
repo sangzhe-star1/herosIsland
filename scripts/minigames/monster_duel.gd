@@ -66,6 +66,7 @@ var _skills: Dictionary = {}
 var _light_pips: Array[Control] = []
 var _light_left := LIGHT_PIPS
 var _threats: Array = []          # goo and roar nodes in flight
+var _taught_swat := false         # the "tap the goo" line, shown once
 
 
 func setup_level() -> void:
@@ -383,18 +384,36 @@ func _lose_light() -> void:
 	_hero.stumble()
 	if _light_left > 0:
 		return
-	# Out of light: a beat of trouble, then it comes back. The tension is
-	# real; the failure is not.
-	if _light_pips.size() > 0 and is_instance_valid(_light_pips[0]):
-		Juice.pop(_light_pips[0], 0.35)
-	get_tree().create_timer(1.6).timeout.connect(func():
-		if not is_inside_tree() or _won:
-			return
-		_light_left = LIGHT_PIPS
-		_refresh_light_bar()
-		_hero.power_up()
-		AudioManager.play_sfx("res://assets/audio/power_up.ogg")
-	)
+	_out_of_light()
+
+
+## The light bar is empty, so the duel STOPS. It used to quietly refill
+## itself after a beat, which meant a child could stand there taking hits
+## forever and the bar meant nothing -- exactly what his father reported.
+##
+## Now: everything pauses, and he chooses. Spend a Heart Potion from the
+## Star Shop and fight on with a full bar, or finish here and take the
+## level's reward. Finishing is a real ending, not a loss: the result is
+## reported the normal way and still earns its star.
+func _out_of_light() -> void:
+	if _won or _finished:
+		return
+	_hero.stumble()
+	AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+	get_tree().paused = true
+	UiKit.light_out_card(_play_area, SaveManager.item_count("heart_potion"),
+		func():
+			get_tree().paused = false
+			if not SaveManager.use_item("heart_potion"):
+				return
+			_light_left = LIGHT_PIPS
+			_refresh_light_bar()
+			_hero.power_up()
+			Juice.burst(_play_area, _hero.position + Vector2(0, -160.0), 18)
+			AudioManager.play_sfx("res://assets/audio/power_up.ogg"),
+		func():
+			get_tree().paused = false
+			complete_level())
 
 
 ## Pre-battle choice of special move -- two big picture cards, no timer.
@@ -657,15 +676,33 @@ func _land_hit(amount: int, charges: bool = true) -> void:
 
 func _monster_attack_goo() -> void:
 	_monster.call("puff_up")
-	var goo := Panel.new()
-	var goo_size := Vector2(80, 80)
+	if not _taught_swat:
+		_taught_swat = true
+		_instruction.text = I18n.t("duel.swat")
+		var back := get_tree().create_timer(3.0)
+		back.timeout.connect(func():
+			if is_instance_valid(_instruction) and not _won and not _finished:
+				_instruction.text = I18n.t("duel.instruction")
+		)
+	# The goo is a BUTTON now: it can be swatted out of the air. Until the
+	# light bar could actually run out, ignoring goo was free and the shield
+	# was a curiosity; now that it ends the level, a child needs a defence
+	# more discoverable than a skill on a cooldown. Tapping the thing flying
+	# at you is the most discoverable defence there is.
+	var goo := Button.new()
+	var goo_size := Vector2(96, 96)
+	goo.custom_minimum_size = goo_size
 	goo.size = goo_size
 	goo.pivot_offset = goo_size / 2.0
+	goo.focus_mode = Control.FOCUS_NONE
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.55, 0.78, 0.42, 0.95)
 	style.set_corner_radius_all(int(goo_size.x / 2.0))
-	goo.add_theme_stylebox_override("panel", style)
-	goo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	style.border_width_bottom = 5
+	style.border_color = Color(0.40, 0.62, 0.30)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		goo.add_theme_stylebox_override(state, style)
+	goo.pressed.connect(_swat_goo.bind(goo))
 	var from: Vector2 = _monster.position + Vector2(-40, -240 * _monster.scale.x)
 	goo.position = from - goo_size / 2.0
 	_play_area.add_child(goo)
@@ -677,7 +714,18 @@ func _monster_attack_goo() -> void:
 	t.tween_callback(func(): _threat_arrives(goo))
 
 
-func _goo_step(k: float, goo: Panel, from: Vector2, to: Vector2) -> void:
+## Swatted: it bursts where it is and nothing is lost. No score -- defending
+## is its own reward, and scoring it would inflate the level's target.
+func _swat_goo(goo: Control) -> void:
+	if not is_instance_valid(goo) or _won:
+		return
+	_threats.erase(goo)
+	Juice.burst(_play_area, goo.position + goo.size / 2.0, 12)
+	AudioManager.play_sfx("res://assets/audio/correct.ogg")
+	goo.queue_free()
+
+
+func _goo_step(k: float, goo: Control, from: Vector2, to: Vector2) -> void:
 	if not is_instance_valid(goo):
 		return
 	var x: float = lerpf(from.x, to.x, k)
