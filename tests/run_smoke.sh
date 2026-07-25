@@ -220,6 +220,22 @@ rm -f "$ECHO_OUT"
 # probe blocks from git history (they were removed in the Phase D commit) and
 # both come straight back.
 
+# The map probe opens the one door a child actually has. Every other test
+# reaches a level the way a programmer does -- instantiating the scene with
+# the id already set -- and the map was the one path nobody walked. It also
+# plays a save from BEFORE the rebuild, full of level ids that no longer
+# exist, which is the state every existing player is in.
+echo
+echo "Running map probe..."
+MAP_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/MapProbe.tscn 2>&1 | tee "$MAP_OUT"
+if ! grep -q "MAP PROBE PASSED" "$MAP_OUT"; then
+  rm -f "$MAP_OUT"
+  echo "Map probe failed."
+  exit 1
+fi
+rm -f "$MAP_OUT"
+
 echo
 echo "Running adventure probe..."
 ADV_OUT=$(mktemp)

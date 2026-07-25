@@ -34,6 +34,25 @@ extends LevelManager
 ## How far behind the hero the camera sits. Chosen so the hero stands clear of
 ## both thumb pads: the left pad ends at screen x=324, the right group begins
 ## at 948, and 480 puts the hero in the middle of what is left.
+# --- the adventure's own classes, by PATH rather than by name --------------
+#
+# These five are `class_name` scripts, and referring to them by that name is
+# the obvious thing to do. It is also a trap this project has now fallen into
+# twice. Godot keeps global class names in `.godot/global_script_class_cache.
+# cfg`, which is only rebuilt when the EDITOR rescans -- so a new class_name is
+# invisible to any run that has not had the editor opened since. The whole of
+# `adventure.gd` then fails to PARSE, every level in the game errors the moment
+# it is picked, and the cause is a cache file nobody thinks to look at.
+#
+# `preload` resolves by file path at compile time and never consults that
+# cache. The class_name declarations stay where they are, because the editor
+# likes them; nothing in the shipping game relies on them any more.
+const HeroCtl := preload("res://scripts/adventure/hero_controller.gd")
+const Pad := preload("res://scripts/ui/skill_bar.gd")
+const Props := preload("res://scripts/adventure/props.gd")
+const Foes := preload("res://scripts/adventure/enemies.gd")
+const Card := preload("res://scripts/adventure/puzzle_card.gd")
+
 const CAMERA_LEAD := 480.0
 ## Where the hero starts. Far enough into the opening meadow that the camera
 ## has already scrolled past zero, so the hero is centred from frame one.
@@ -50,16 +69,16 @@ const BEAT_BREATHER := 300.0
 ## shelf you cannot reach is not a choice -- it is a thing a six-year-old
 ## throws themselves at twenty times and then stops trusting.
 static func reach() -> float:
-	return pow(HeroController.JUMP_VELOCITY, 2.0) / (2.0 * HeroController.GRAVITY) \
-		+ HeroController.LEDGE_MAGNET
+	return pow(HeroCtl.JUMP_VELOCITY, 2.0) / (2.0 * HeroCtl.GRAVITY) \
+		+ HeroCtl.LEDGE_MAGNET
 
 var _length := 2600.0
 var _ground_y := 620.0
 var _world: Node2D
 var _stage: Stage
 var _hud: Control
-var _bar: SkillBar
-var _hero: HeroController
+var _bar: Pad
+var _hero: HeroCtl
 
 var _platforms: Array = []
 var _ropes: Array = []
@@ -79,7 +98,7 @@ var _rocks: Array = []             # [{x, state, t, warn, cool, shadow, node, rn
 var _vents: Array = []             # [{node, glow, flame, at, t, warn, blaze, idle}]
 var _seq_groups: Array = []        # [{plates: [...], next, gate, done}]
 var _puzzles: Array = []           # [{node, at, kind, gate, solved}]
-var _card: PuzzleCard = null
+var _card: Card = null
 var _warned := {}                  # one first-time callout per hazard family
 
 # --- Phase C: things that fight back ----------------------------------------
@@ -473,14 +492,14 @@ func _build_collect(section: Dictionary, at: float) -> void:
 		# misses every time concludes the game is broken, not the jump.
 		var high: bool = i % 3 == 2
 		var oy: float = _ground_y - (reach() * 0.66 if high else 86.0)
-		var node := AdventureProps.orb(_world)
+		var node := Props.orb(_world)
 		node.position = Vector2(ox, oy)
 		_orbs.append({"node": node, "at": Vector2(ox, oy), "taken": false})
 	_orbs_needed = _orbs.size()
 
 
 func _build_gem(at: float, height: float) -> void:
-	var node := AdventureProps.gem(_world)
+	var node := Props.gem(_world)
 	node.position = Vector2(at, _ground_y - height)
 	_gems.append({"node": node, "at": node.position, "taken": false})
 
@@ -497,7 +516,7 @@ func _build_switch(section: Dictionary, at: float) -> void:
 	var plate_y: float = _ground_y - height
 	if height > 0.0:
 		_add_ledge(at - 118.0, plate_y, 236.0, Shapes.rng_for("plate%d" % int(at)))
-	var parts := AdventureProps.floor_switch(_world)
+	var parts := Props.floor_switch(_world)
 	(parts["node"] as Node2D).position = Vector2(at, plate_y)
 
 	# The gate hangs off the plate rather than off an absolute x, so the pair
@@ -506,7 +525,7 @@ func _build_switch(section: Dictionary, at: float) -> void:
 	# the whole lesson: I stood there, and THAT happened.
 	var gate_at: float = _ground_near(at + maxf(float(section.get("gate_gap", 250.0)), 150.0))
 	gate_at = maxf(gate_at, at + 150.0)
-	var gate_parts := AdventureProps.gate(_world)
+	var gate_parts := Props.gate(_world)
 	(gate_parts["node"] as Node2D).position = Vector2(gate_at, _ground_y)
 	var gate := {"node": gate_parts["node"], "left": gate_parts["left"],
 		"right": gate_parts["right"], "open": false, "at": gate_at}
@@ -520,7 +539,7 @@ func _build_switch(section: Dictionary, at: float) -> void:
 ## rectangle over. The pad sits ON the ground, so a child who simply walks
 ## right will find it whether or not they understood it was there.
 func _build_spring(at: float) -> void:
-	var parts := AdventureProps.spring(_world)
+	var parts := Props.spring(_world)
 	var node: Node2D = parts["node"]
 	node.position = Vector2(at, _ground_y)
 	_platforms.append({
@@ -545,7 +564,7 @@ func _build_crate_shelf(section: Dictionary, at: float) -> void:
 	var shelf_w := 240.0
 	var shelf_x: float = right - shelf_w
 	_add_ledge(shelf_x, _ground_y - shelf_h, shelf_w, Shapes.rng_for("shelf%d" % int(at)))
-	var gem := AdventureProps.gem(_world)
+	var gem := Props.gem(_world)
 	# Low over the shelf: standing on the shelf is the achievement, not a
 	# second precision jump on top of it.
 	gem.position = Vector2(shelf_x + shelf_w * 0.5, _ground_y - shelf_h - 60.0)
@@ -559,7 +578,7 @@ func _build_crate_shelf(section: Dictionary, at: float) -> void:
 ## No interact key -- a box you push with a button is furniture, a box you
 ## push with your body is a toy.
 func _build_crate(at: float, bound_left: float = -INF, bound_right: float = INF) -> void:
-	var node := AdventureProps.crate(_world)
+	var node := Props.crate(_world)
 	node.position = Vector2(at, _ground_y)
 	var platform := {"rect": Rect2(-46.0, -92.0, 92.0, 92.0), "node": node,
 		"base_y": -92.0, "flat": false}
@@ -577,7 +596,7 @@ func _build_rocks(section: Dictionary, at: float) -> void:
 	var count: int = clampi(harder_i(int(section.get("count", 3)), 1), 1, 5)
 	var rng := Shapes.rng_for("%s-rocks" % str(level_data.get("id", "")))
 	for i in range(count):
-		var shadow := AdventureProps.rock_shadow(_world)
+		var shadow := Props.rock_shadow(_world)
 		shadow.visible = false
 		_rocks.append({
 			"left": float(zone["left"]), "right": float(zone["right"]),
@@ -600,7 +619,7 @@ func _build_fire(section: Dictionary, at: float) -> void:
 	var idle: float = harder(1.7, 0.80)
 	var cycle: float = warn + blaze + idle
 	for i in range(count):
-		var parts := AdventureProps.fire_vent(_world)
+		var parts := Props.fire_vent(_world)
 		var vent_x: float = lerpf(float(zone["left"]) + 80.0, float(zone["right"]) - 80.0,
 			0.5 if count == 1 else float(i) / float(count - 1))
 		(parts["node"] as Node2D).position = Vector2(vent_x, _ground_y)
@@ -647,7 +666,7 @@ func _build_seq_plates(section: Dictionary, at: float) -> void:
 	var plates: Array = []
 	for i in range(count):
 		var px: float = start + PLATE_SPACING * float(i)
-		var parts := AdventureProps.seq_plate(_world, int(dot_order[i]))
+		var parts := Props.seq_plate(_world, int(dot_order[i]))
 		(parts["node"] as Node2D).position = Vector2(px, _ground_y)
 		plates.append({"node": parts["node"], "lamp": parts["lamp"],
 			"at": px, "dots": int(dot_order[i]), "lit": false, "on": false})
@@ -656,7 +675,7 @@ func _build_seq_plates(section: Dictionary, at: float) -> void:
 	var gate_at: float = _ground_near(last_plate
 		+ maxf(float(section.get("gate_gap", 240.0)), 150.0))
 	gate_at = maxf(gate_at, last_plate + 150.0)
-	var gate_parts := AdventureProps.gate(_world)
+	var gate_parts := Props.gate(_world)
 	(gate_parts["node"] as Node2D).position = Vector2(gate_at, _ground_y)
 	var gate := {"node": gate_parts["node"], "left": gate_parts["left"],
 		"right": gate_parts["right"], "open": false, "at": gate_at}
@@ -667,11 +686,11 @@ func _build_seq_plates(section: Dictionary, at: float) -> void:
 ## A question post and the gate it unlocks. Walking up shows the interact
 ## key; pressing it asks one picture-question right there in the level.
 func _build_puzzle(section: Dictionary, at: float) -> void:
-	var node := AdventureProps.puzzle_sign(_world)
+	var node := Props.puzzle_sign(_world)
 	node.position = Vector2(at, _ground_y)
 	var gate_at: float = _ground_near(at + maxf(float(section.get("gate_gap", 240.0)), 150.0))
 	gate_at = maxf(gate_at, at + 150.0)
-	var gate_parts := AdventureProps.gate(_world)
+	var gate_parts := Props.gate(_world)
 	(gate_parts["node"] as Node2D).position = Vector2(gate_at, _ground_y)
 	var gate := {"node": gate_parts["node"], "left": gate_parts["left"],
 		"right": gate_parts["right"], "open": false, "at": gate_at}
@@ -693,11 +712,11 @@ func _build_foes(section: Dictionary, at: float) -> void:
 		var parts: Dictionary
 		match kind:
 			"spitter":
-				parts = AdventureEnemies.spitter(_world)
+				parts = Foes.spitter(_world)
 			"armoured":
-				parts = AdventureEnemies.armoured(_world)
+				parts = Foes.armoured(_world)
 			_:
-				parts = AdventureEnemies.walker(_world)
+				parts = Foes.walker(_world)
 		var fx: float = lerpf(float(zone["left"]) + 120.0, float(zone["right"]) - 120.0,
 			0.5 if count == 1 else float(i) / float(count - 1))
 		(parts["node"] as Node2D).position = Vector2(fx, _ground_y)
@@ -718,7 +737,7 @@ func _build_foes(section: Dictionary, at: float) -> void:
 ## Someone to let out. The interact key opens the cage; the friend then
 ## trots along behind, which is the whole reward -- company.
 func _build_rescue(at: float) -> void:
-	var parts := AdventureEnemies.cage(_world)
+	var parts := Foes.cage(_world)
 	(parts["node"] as Node2D).position = Vector2(at, _ground_y)
 	_cages.append({"node": parts["node"], "bars": parts["bars"], "pet": parts["pet"],
 		"at": at, "freed": false})
@@ -729,7 +748,7 @@ func _build_boss(section: Dictionary, at: float) -> void:
 	var zone := _flat_zone_near(at, _zone_width(section))
 	var arena_left: float = float(zone["left"]) + 80.0
 	var arena_right: float = float(zone["right"]) - 80.0
-	var parts := AdventureEnemies.rock_boss(_world)
+	var parts := Foes.rock_boss(_world)
 	(parts["node"] as Node2D).position = Vector2(arena_right - 200.0, _ground_y)
 	_boss = {
 		"node": parts["node"], "body": parts["body"], "arms": parts["arms"],
@@ -746,7 +765,7 @@ func _build_boss(section: Dictionary, at: float) -> void:
 
 
 func _build_checkpoint(at: float) -> void:
-	var parts := AdventureProps.checkpoint(_world)
+	var parts := Props.checkpoint(_world)
 	(parts["node"] as Node2D).position = Vector2(at, _ground_y)
 	(parts["node"] as Node2D).modulate = Color(0.72, 0.74, 0.80)
 	_checkpoints.append({"node": parts["node"], "flag": parts["flag"],
@@ -754,7 +773,7 @@ func _build_checkpoint(at: float) -> void:
 
 
 func _build_chest(at: float) -> void:
-	var parts := AdventureProps.chest(_world)
+	var parts := Props.chest(_world)
 	(parts["node"] as Node2D).position = Vector2(at, _ground_y)
 	Shapes.glow(parts["node"], Vector2(0, -40.0), 150.0, Color(1.0, 0.88, 0.44), 5, 0.22)
 	_chest = {"node": parts["node"], "lid": parts["lid"], "at": at, "open": false}
@@ -763,7 +782,7 @@ func _build_chest(at: float) -> void:
 # --- the hero and the hands --------------------------------------------------
 
 func _build_hero() -> void:
-	_hero = HeroController.new()
+	_hero = HeroCtl.new()
 	_world.add_child(_hero)
 	_hero.setup(GameData.current_skin(), _ground_y, 168.0)
 	_hero.use_terrain(_platforms, _ropes)
@@ -825,7 +844,7 @@ func _build_hud() -> void:
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(_instruction)
 
-	_bar = SkillBar.new()
+	_bar = Pad.new()
 	_hud.add_child(_bar)
 	_bar.move_pressed.connect(func(dir: float, down: bool):
 		if dir < 0.0:
@@ -1030,7 +1049,7 @@ func _point_at_plate(gate: Dictionary) -> void:
 			wobble = puzzle["node"]
 	if spot == Vector2.ZERO:
 		return
-	var hand := AdventureProps.hint_hand(_world)
+	var hand := Props.hint_hand(_world)
 	hand.position = spot
 	if wobble is Node2D and is_instance_valid(wobble):
 		Juice.pop(wobble, 0.34)
@@ -1093,7 +1112,7 @@ func _push_crates(delta: float) -> void:
 		# how the first version of this shoved the crate exactly 0 px.
 		var want: float = _hero.wish_dir()
 		if want != 0.0 and signf(-dx) == want:
-			var to: float = clampf(node.position.x + want * HeroController.MOVE_SPEED
+			var to: float = clampf(node.position.x + want * HeroCtl.MOVE_SPEED
 				* delta * 0.80, float(crate["left"]) + 56.0, float(crate["right"]) - 56.0)
 			if absf(to - node.position.x) > 0.1 and fmod(_elapsed, 0.3) < delta * 1.5:
 				Juice.dust(_world, Vector2(node.position.x - want * 50.0, _ground_y), 2, 0.5)
@@ -1129,7 +1148,7 @@ func _tick_rocks(delta: float) -> void:
 					shadow2.scale = Vector2(0.25, 0.25).lerp(Vector2.ONE, grown)
 				if float(rock["t"]) <= 0.0:
 					rock["state"] = "fall"
-					var node := AdventureProps.boulder(_world)
+					var node := Props.boulder(_world)
 					node.position = Vector2(float(rock["x"]), _ground_y - 840.0)
 					rock["node"] = node
 			"fall":
@@ -1287,7 +1306,7 @@ func _tick_foes(delta: float) -> void:
 						and absf(_hero.position.y - _ground_y) < 200.0:
 					foe["state"] = "warn"
 					foe["t"] = float(foe["warn"])
-					foe["telegraph"] = AdventureEnemies.telegraph(node,
+					foe["telegraph"] = Foes.telegraph(node,
 						Color(1.0, 0.55, 0.30))
 					(foe["telegraph"] as Node2D).position = Vector2(0, -80.0)
 					if str(foe["kind"]) == "spitter":
@@ -1353,7 +1372,7 @@ func _drop_telegraph(holder: Dictionary) -> void:
 
 
 func _spit(from: Node2D) -> void:
-	var ball := AdventureEnemies.goo_ball(_world)
+	var ball := Foes.goo_ball(_world)
 	ball.position = from.position + Vector2(signf(_hero.position.x - from.position.x)
 		* 56.0, -86.0)
 	var away: float = _hero.position.x - ball.position.x
@@ -1484,7 +1503,7 @@ func _tick_boss(delta: float) -> void:
 				_boss["state"] = "warn"
 				_boss["t"] = float(_boss["warn"])
 				_boss["shots"] = 0
-				var ring := AdventureEnemies.telegraph(node, Color(1.0, 0.5, 0.28))
+				var ring := Foes.telegraph(node, Color(1.0, 0.5, 0.28))
 				ring.position = Vector2(0, -150.0)
 				ring.scale = Vector2(1.6, 1.6)
 				_boss["telegraph"] = ring
@@ -1809,7 +1828,7 @@ func _open_card(puzzle: Dictionary) -> void:
 	_hero.freeze(true)
 	if _bar != null and is_instance_valid(_bar):
 		_bar.visible = false
-	_card = PuzzleCard.new()
+	_card = Card.new()
 	_hud.add_child(_card)
 	_card.open(str(puzzle["kind"]),
 		Shapes.rng_for("%s-card" % str(level_data.get("id", ""))),

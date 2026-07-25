@@ -1,5 +1,37 @@
 # Changelog
 
+## The bug that made every level error — 25 July 2026
+
+The father picked a level in 怪兽擂台 and got an error. So did every other
+level, on his machine, and none of them on mine.
+
+**Cause.** `adventure.gd` referred to its five new classes -- `HeroController`,
+`SkillBar`, `AdventureProps`, `AdventureEnemies`, `PuzzleCard` -- by class
+name. Godot keeps global class names in `.godot/global_script_class_cache.cfg`
+and only rebuilds it when the EDITOR rescans. On a machine whose editor had
+not been reopened since those classes were written, all five were unknown, and
+an unknown identifier is not a runtime problem in GDScript -- it is a PARSE
+error. The whole template failed to compile, so *every* level errored the
+instant it was picked. Nothing in the game pointed at the cache file.
+
+**Fix.** The template now loads all five by path:
+`const HeroCtl := preload("res://scripts/adventure/hero_controller.gd")`.
+`preload` resolves at compile time and never consults the cache. Reproduced
+by rebuilding a cache with exactly those five entries removed -- five parse
+errors before, a clean 怪兽擂台 after.
+
+**So it cannot happen again.** `tools_check.py` used to WARN that the cache
+was stale. It now ERRORS, naming the file, the class and the fix, whenever a
+shipping script refers by name to a class the cache does not have. A warning
+was the wrong volume for a condition that breaks every screen in the game.
+
+**And so the door gets opened.** New `MapProbe` walks in the way a child does:
+build the map, check every world's first level is unlocked, and enter it
+through the same calls the marker makes. Every previous test reached levels the
+way a programmer does, with the id already set -- the map was the one path
+nobody walked. It also plays a save from before the rebuild, full of level ids
+that no longer exist, which is the state every existing player is in.
+
 ## Phase D: the whole island rebuilt — 25 July 2026
 
 The 54 old levels are gone. In their place, **thirty adventure levels across

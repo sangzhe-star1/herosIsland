@@ -138,6 +138,36 @@ if os.path.exists(cache_path):
             "Open the project in the editor, or run tests/run_smoke.sh which "
             "refreshes it first." % ", ".join(missing))
 
+    # An ERROR, not a warning: a class_name referenced from another script
+    # that is missing from the cache does not degrade anything gracefully --
+    # the referencing script fails to PARSE, and every screen that touches it
+    # dies. That shipped once: the whole adventure template referred to five
+    # new classes by name, and on a machine whose editor had not rescanned,
+    # all thirty levels errored the instant a child picked one.
+    #
+    # The fix at the call site is `const X := preload("res://path.gd")`, which
+    # resolves by path and never consults the cache. This check makes sure
+    # nobody has to rediscover that.
+    for f in gd:
+        norm = f.replace('\\', '/')
+        if norm.startswith('tests/') or '/tests/' in norm:
+            continue          # dev-only, and run_smoke refreshes first
+        # Comments name these classes on purpose -- that is where the reason
+        # they are preloaded is written down. Only real code counts.
+        body = re.sub(r'#.*', '', open(f).read())
+        own = re.search(r'^class_name\s+(\w+)', body, re.M)
+        own_name = own.group(1) if own else None
+        for name in missing:
+            if name == own_name:
+                continue
+            if re.search(r'\b%s\b' % re.escape(name), body):
+                errors.append(
+                    "%s refers to '%s' by class name, and '%s' is not in the "
+                    "class cache -- this script will not parse on a machine "
+                    "whose editor has not rescanned. Use "
+                    "`const X := preload(...)` instead."
+                    % (f, name, name))
+
 # --- 4. localization keys
 strings = json.load(open("data/strings.json"))
 en, zh = strings["en"], strings["zh"]
