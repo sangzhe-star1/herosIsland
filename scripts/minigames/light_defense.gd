@@ -35,8 +35,12 @@ extends LevelManager
 const HERO_X := 190.0
 const SPAWN_X := 1360.0
 const REACH_X := 300.0            # where a monster counts as arriving
-const BASE_COOLDOWN := 0.5
-const BASE_BLAST := 110.0
+## Tuning. The first pass was too gentle to lose: monsters strolled in one
+## at a time and a child could clear a level without ever using a pick.
+## Faster spawns, tougher walkers, a shorter default reach -- and the
+## upgrades stay generous, so the answer to "harder" is "build better".
+const BASE_COOLDOWN := 0.62
+const BASE_BLAST := 96.0
 const BASE_LIGHT := 3
 const MAX_LEVEL := 3              # per upgrade, so no single pick runs away
 
@@ -66,6 +70,8 @@ var _levels: Dictionary = {}      # upgrade id -> how many times taken
 var _clock := 0.0
 var _fire_ready := 0.0
 var _spawn_at := 1.2
+var _start_interval := 2.1
+var _end_interval := 1.3
 var _defeated := 0
 var _charge := 0
 var _light_left := BASE_LIGHT
@@ -98,6 +104,14 @@ func setup_level() -> void:
 		bump_target("correct", mini(rank * 3, 12))
 		_targets = target_value("correct", _targets)
 		_hp_max += mini(rank, 2)
+		_spawn_interval = maxf(_spawn_interval * pow(0.92, rank), 0.85)
+		_speed = minf(_speed + 3.0 * float(rank), 80.0)
+
+	# The siege tightens as it goes: by the last third the monsters arrive
+	# roughly half again as often as at the start. A wave defence whose
+	# pressure never rises is a queue, not a siege.
+	_start_interval = _spawn_interval
+	_end_interval = maxf(_spawn_interval * 0.62, 0.75)
 
 	_light_left = BASE_LIGHT
 	_build_scene(config)
@@ -182,7 +196,11 @@ func _process(delta: float) -> void:
 
 	_spawn_at -= delta
 	if _spawn_at <= 0.0:
-		_spawn_at = _spawn_interval * randf_range(0.8, 1.2)
+		# Interval slides from the opening pace to the closing one as the
+		# level is cleared, so the last monsters come in a crowd.
+		var through: float = clampf(float(_defeated) / float(maxi(_targets, 1)), 0.0, 1.0)
+		_spawn_interval = lerpf(_start_interval, _end_interval, through)
+		_spawn_at = _spawn_interval * randf_range(0.78, 1.18)
 		_spawn_walker()
 
 	for walker in _walkers.duplicate():
@@ -309,16 +327,46 @@ func _level(id: String) -> int:
 	return int(_levels.get(id, 0))
 
 
+## The colour of the gun. Frost turns it blue, power turns it molten -- the
+## bolt has to ANNOUNCE the build, because a draft you cannot see the effect
+## of is a draft that feels like it did nothing. (Which is exactly what got
+## reported: "the different guns aren't reflected in the skills".)
+func _bolt_color() -> Color:
+	if _level("slow") > 0:
+		return Color(0.60, 0.88, 1.0)
+	if _level("power") >= 2:
+		return Color(1.0, 0.62, 0.26)
+	if _level("power") == 1:
+		return Color(1.0, 0.76, 0.32)
+	return Color(1.0, 0.86, 0.40)
+
+
 func _bolt(from: Vector2, to: Vector2, allow_split: bool) -> void:
+	var tint := _bolt_color()
+	# Thicker with every point of power: the beam visibly fattens as the
+	# build grows, which is the cheapest possible "you got stronger".
+	var thickness: float = 9.0 + 4.0 * float(_level("power"))
 	var line := Line2D.new()
 	line.points = PackedVector2Array([from, to])
-	line.width = 10.0
-	line.default_color = Color(1.0, 0.86, 0.40)
+	line.width = thickness
+	line.default_color = Color(tint.r, tint.g, tint.b, 0.85)
 	line.antialiased = true
 	_play_area.add_child(line)
+	# A white-hot core inside the beam once it is strong: two lines read as
+	# one heavy beam, which one line never does however wide you make it.
+	if _level("power") > 0:
+		var core := Line2D.new()
+		core.points = line.points
+		core.width = thickness * 0.42
+		core.default_color = Color(1, 1, 1, 0.9)
+		core.antialiased = true
+		line.add_child(core)
+	# The muzzle flash grows with the gun too.
+	Shapes.glow(line, from, 40.0 + 16.0 * float(_level("power")), tint, 3, 0.55)
+
 	if Juice.motion_enabled():
 		var t := line.create_tween()
-		t.tween_property(line, "modulate:a", 0.0, 0.18)
+		t.tween_property(line, "modulate:a", 0.0, 0.16 + 0.03 * float(_level("power")))
 		t.tween_callback(line.queue_free)
 	else:
 		get_tree().create_timer(0.2).timeout.connect(func():
@@ -333,10 +381,29 @@ func _bolt(from: Vector2, to: Vector2, allow_split: bool) -> void:
 ## a bullet is what makes a fan of shots feel generous instead of fiddly,
 ## and it forgives a six-year-old's aim by design.
 func _blast(at: Vector2, allow_split: bool) -> void:
+	var tint := _bolt_color()
+	var radius: float = _blast_radius()
 	var ring := Node2D.new()
 	ring.position = at
 	_play_area.add_child(ring)
-	Shapes.glow(ring, Vector2.ZERO, _blast_radius() * 0.9, Color(1.0, 0.82, 0.42), 4, 0.45)
+	Shapes.glow(ring, Vector2.ZERO, radius * 0.9, tint, 4, 0.45)
+	# An actual outline at the actual radius. Glow alone gave no edge, so
+	# "Big Blast" changed a number nobody could see; a ring you can watch
+	# swallow three monsters is the upgrade, made visible.
+	var edge := Line2D.new()
+	edge.points = Shapes.circle_points(Vector2.ZERO, radius, 30)
+	edge.closed = true
+	edge.width = 6.0
+	edge.default_color = Color(tint.r, tint.g, tint.b, 0.85)
+	edge.antialiased = true
+	ring.add_child(edge)
+	# Frost leaves a rime of shards behind; the slow is a look, not a stat.
+	if _level("slow") > 0:
+		for k in range(6):
+			var a16: float = TAU * float(k) / 6.0 + 0.3
+			Shapes.fill(ring, Shapes.star_points(
+				Vector2(cos(a16), sin(a16)) * radius * 0.66, radius * 0.09, 0.4, 6),
+				Color(0.82, 0.95, 1.0, 0.9), 0.0)
 	if Juice.motion_enabled():
 		var t := ring.create_tween().set_parallel(true)
 		t.tween_property(ring, "scale", Vector2(1.5, 1.5), 0.26)

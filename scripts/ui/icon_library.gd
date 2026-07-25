@@ -56,6 +56,7 @@ const NAMES := [
 	"ear", "tap", "tower", "potion", "star_bomb", "balloon",
 	# the wardrobe: outfit pieces for the Hero House rack
 	"crown", "party_hat", "cap", "sunglasses", "cape_red", "wings",
+	"cowboy_hat", "bandana", "vest", "dress", "star_robe",
 	# the blaster range's map stone, and the goo you swat out of the air
 	"target", "goo",
 	# the light defence's upgrade draft
@@ -694,6 +695,57 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 			_circle(p, c + Vector2(0, -s * 0.20), s * 0.045, blue2.darkened(0.2))
 			_poly(p, Shapes.oval_points(c + Vector2(s * 0.14, s * 0.09), Vector2(s * 0.26, s * 0.075), 14),
 				blue2.darkened(0.12))
+		"cowboy_hat":
+			var leather := Color(0.72, 0.52, 0.30)
+			_poly(p, Shapes.oval_points(c + Vector2(0, s * 0.12),
+				Vector2(s * 0.42, s * 0.11), 20), leather)
+			var crown2 := PackedVector2Array()
+			for k in range(11):
+				var a18: float = PI + PI * float(k) / 10.0
+				crown2.append(c + Vector2(cos(a18) * s * 0.22, s * 0.08 + sin(a18) * s * 0.26))
+			crown2.append(c + Vector2(s * 0.22, s * 0.10))
+			crown2.append(c + Vector2(-s * 0.22, s * 0.10))
+			_poly(p, crown2, leather.lightened(0.06))
+			_round_rect(p, c + Vector2(-s * 0.23, s * 0.02), Vector2(s * 0.46, s * 0.07),
+				Color(0.42, 0.30, 0.22), s * 0.02)
+		"bandana":
+			var cloth3 := Color(0.86, 0.32, 0.34)
+			_tri(p, c + Vector2(-s * 0.30, -s * 0.16), c + Vector2(s * 0.30, -s * 0.16),
+				c + Vector2(0, s * 0.30), cloth3)
+			for k in range(3):
+				_circle(p, c + Vector2(-s * 0.12 + s * 0.12 * float(k), -s * 0.02),
+					s * 0.035, Color(1, 1, 1, 0.8))
+		"vest":
+			var denim2 := Color(0.36, 0.50, 0.72)
+			for side6 in [-1.0, 1.0]:
+				_poly(p, PackedVector2Array([
+					c + Vector2(side6 * s * 0.30, -s * 0.28),
+					c + Vector2(side6 * s * 0.07, -s * 0.22),
+					c + Vector2(side6 * s * 0.07, s * 0.26),
+					c + Vector2(side6 * s * 0.30, s * 0.30),
+				]), denim2)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.30, -s * 0.30), c + Vector2(s * 0.30, -s * 0.30),
+				c + Vector2(s * 0.18, -s * 0.18), c + Vector2(-s * 0.18, -s * 0.18),
+			]), denim2.lightened(0.12))
+		"dress":
+			var cloth4 := Color(0.98, 0.72, 0.84)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.16, -s * 0.26), c + Vector2(s * 0.16, -s * 0.26),
+				c + Vector2(s * 0.34, s * 0.28), c + Vector2(0, s * 0.22),
+				c + Vector2(-s * 0.34, s * 0.28),
+			]), cloth4)
+			_round_rect(p, c + Vector2(-s * 0.18, -s * 0.30), Vector2(s * 0.36, s * 0.07),
+				Color(1.0, 0.92, 0.55), s * 0.02)
+		"star_robe":
+			var night2 := Color(0.26, 0.30, 0.56)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.18, -s * 0.30), c + Vector2(s * 0.18, -s * 0.30),
+				c + Vector2(s * 0.34, s * 0.30), c + Vector2(-s * 0.34, s * 0.30),
+			]), night2)
+			for spot in [Vector2(-0.12, -0.10), Vector2(0.10, 0.04), Vector2(-0.04, 0.18)]:
+				_poly(p, Shapes.star_points(c + (spot as Vector2) * s, s * 0.06, 0.44, 5),
+					Color(1.0, 0.92, 0.60))
 		"sunglasses":
 			var dark := Color(0.16, 0.18, 0.24)
 			for side3 in [-1.0, 1.0]:

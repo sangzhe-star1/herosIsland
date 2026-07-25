@@ -180,6 +180,27 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
   rm -f "$TAP_OUT"
 fi
 
+# The upgrade probe proves a drafted skill actually changes the gun --
+# cooldown, radius, damage, bolt count AND colour. Needs a window.
+if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run >/dev/null 2>&1; then
+  echo
+  echo "Running upgrade probe..."
+  UP_RUNNER=()
+  if [[ "$(uname)" == "Linux" ]] && [[ -z "${DISPLAY:-}" ]]; then
+    UP_RUNNER=(xvfb-run -a -s "-screen 0 1280x720x24")
+    export LIBGL_ALWAYS_SOFTWARE=1
+  fi
+  UP_OUT=$(mktemp)
+  "${UP_RUNNER[@]}" "$GODOT" --path . --rendering-driver opengl3 \
+    res://tests/UpgradeProbe.tscn 2>&1 | tee "$UP_OUT"
+  if ! grep -q "UPGRADE PROBE PASSED" "$UP_OUT"; then
+    rm -f "$UP_OUT"
+    echo "Upgrade probe failed."
+    exit 1
+  fi
+  rm -f "$UP_OUT"
+fi
+
 # The echo probe drives Dance Mode / Light Song the way thumbs do: phrase
 # generation, the handover, the note lamps, and a completed phrase scoring.
 echo

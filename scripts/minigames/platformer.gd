@@ -31,6 +31,24 @@ extends LevelManager
 ##               is the same soft mistake as falling -- a stumble, a hop back,
 ##               one star of accuracy, nothing lost -- plus the red no-sign,
 ##               so the rule "rocks are not for touching" needs no reading.
+##
+## Third round, after "make it more like MapleStory". Reading up on what its
+## maps and Jump Quests are actually made of, three things carried over and
+## one deliberately did not:
+##   ropes    -- MapleStory's maps are stitched together vertically by ropes
+##               and ladders, not just horizontally by ground. A rope here is
+##               a climbable column: stand in it and hold JUMP to go up.
+##               Suddenly a trail has an upstairs.
+##   feather  -- a pickup that grants a DOUBLE JUMP for the rest of the run.
+##               The single most-loved verb in any platformer, handed over as
+##               a discovery rather than a tutorial.
+##   tower    -- the Jump Quest, shrunk: a short stack of small platforms
+##               before the flag, climbed by jumping. Jump Quests are stairs,
+##               W-shapes and scattered platforms; a six-year-old gets the
+##               stairs, three high.
+##   NOT the hazards. Jump Quests are famous for lasers, swinging axes and
+##               knockback that drops you to the bottom. Falling here still
+##               floats you back to the last safe ledge, and it always will.
 
 const GRAVITY := 1500.0
 const MOVE_SPEED := 265.0
@@ -39,6 +57,9 @@ const JUMP_VELOCITY := -640.0
 ## a ledge (coyote) or slightly before landing (buffer) still works.
 const COYOTE := 0.14
 const JUMP_BUFFER := 0.16
+## How fast a rope carries you up. Slower than a jump on purpose: climbing
+## should feel like effort you chose, not a lift.
+const CLIMB_SPEED := 210.0
 const CAMERA_LEAD := 520.0
 
 var _length := 2600.0
@@ -47,6 +68,9 @@ var _moving_platforms := false
 var _balloon_count := 0
 var _bird_count := 0
 var _rock_count := 0
+var _rope_count := 0
+var _tower_steps := 0
+var _has_feather := false     # is there one on this trail to find?
 
 var _world: Node2D
 var _stage: Stage
@@ -55,6 +79,12 @@ var _platforms: Array = []        # [{rect: Rect2, node: Node2D|null}]
 var _coins: Array = []            # [{node, x, y, taken}]
 var _balloons: Array = []         # [{node, x, y, taken}]
 var _rocks: Array = []            # [{node, x, top}] the spiky ones
+var _ropes: Array = []            # [{x, top, bottom}] climbable columns
+var _feather: Dictionary = {}     # the double-jump pickup, if this trail has one
+var _double_jump := false         # earned by the feather, for the rest of the run
+var _jumps_left := 1
+var _climbing := false
+var _taught_rope := false         # the "hold to climb" line, shown once
 ## Seconds of grace after a rock bump, so one rock cannot sting twice while
 ## the child is still reacting to the first touch.
 var _rock_mercy := 0.0
@@ -68,6 +98,7 @@ var _stand_on := -1               # index into _platforms while grounded
 var _coyote_left := 0.0
 var _buffer_left := 0.0
 var _was_space := false
+var _held_pad := false            # the jump pad is being HELD (climbing)
 var _dir_left := false
 var _dir_right := false
 var _last_safe := Vector2.ZERO
@@ -89,6 +120,9 @@ func setup_level() -> void:
 	_balloon_count = int(config.get("balloons", 0))
 	_bird_count = int(config.get("birds", 0))
 	_rock_count = int(config.get("rocks", 0))
+	_rope_count = int(config.get("ropes", 0))
+	_tower_steps = int(config.get("tower", 0))
+	_has_feather = bool(config.get("feather", false))
 	var gap_max := clampf(float(config.get("gap_max", 120.0)), 60.0, 210.0)
 	var seg_min := maxf(float(config.get("seg_min", 220.0)), 170.0)
 
@@ -102,7 +136,9 @@ func setup_level() -> void:
 		# More toys with rank, capped: joy scales, hazards barely do.
 		_balloon_count = mini(_balloon_count + (rank + 1) / 2, 9)
 		_bird_count = mini(_bird_count + rank / 2, 4)
-		_rock_count = mini(_rock_count + rank / 3, 5)
+		_rock_count = mini(_rock_count + rank / 2, 6)
+		_rope_count = mini(_rope_count + rank / 2, 4)
+		_tower_steps = mini(_tower_steps + rank / 2, 5)
 
 	_stage = build_world(self)
 	_ground_y = _stage.ground_y()
@@ -115,6 +151,9 @@ func setup_level() -> void:
 	_add_springs(int(config.get("springs", 0)) + rank / 2)
 	_add_birds(_bird_count)
 	_add_rocks(_rock_count)
+	_add_ropes(_rope_count)
+	_build_tower(_tower_steps)
+	_add_feather()
 	_build_coins()
 	_build_balloons(_balloon_count)
 	_build_flag()
@@ -577,6 +616,102 @@ func _add_rocks(count: int) -> void:
 		_rocks.append({"node": holder, "x": rx, "top": _ground_y - 46.0})
 
 
+## Ropes: MapleStory stitches its maps together vertically, and this is the
+## smallest honest version of that. A rope is a column you can stand inside;
+## holding JUMP climbs it. Hung under a bonus ledge, it turns "that shelf is
+## unreachable" into "that shelf has a way up".
+func _add_ropes(count: int) -> void:
+	if count <= 0:
+		return
+	var rng := Shapes.rng_for(str(level_data.get("id", "trail")) + ":ropes")
+	# Only under FLOATING ledges -- a rope to nowhere teaches nothing.
+	var shelves: Array = []
+	for entry in _platforms:
+		if entry.get("spring", false) or entry.get("bird", false):
+			continue
+		var rect: Rect2 = entry["rect"]
+		if rect.size.y > 60.0:
+			continue                       # that is ground, not a shelf
+		if rect.position.x < 600.0 or rect.position.x > _flag_x - 320.0:
+			continue
+		if rect.position.y > _ground_y - 96.0:
+			continue                       # too low to be worth a climb
+		shelves.append(rect)
+	while shelves.size() > count:
+		shelves.remove_at(rng.randi() % shelves.size())
+	for rect in shelves:
+		var rx: float = rect.position.x + rect.size.x * rng.randf_range(0.25, 0.75)
+		var top: float = rect.position.y + 24.0
+		var bottom: float = _ground_y
+		var holder := Node2D.new()
+		_world.add_child(holder)
+		# The rope itself: a knotted line with a peg at the top, drawn in the
+		# world's own woods so it belongs to the place.
+		var rope := Line2D.new()
+		rope.points = PackedVector2Array([Vector2(rx, top), Vector2(rx, bottom)])
+		rope.width = 9.0
+		rope.default_color = Color(0.72, 0.56, 0.34)
+		rope.antialiased = true
+		holder.add_child(rope)
+		var knot_y: float = top + 26.0
+		while knot_y < bottom - 10.0:
+			Shapes.fill(holder, Shapes.oval_points(Vector2(rx, knot_y),
+				Vector2(8.0, 4.5), 10), Color(0.60, 0.44, 0.26), 0.0)
+			knot_y += 34.0
+		Shapes.fill(holder, Shapes.rounded_rect(Vector2(rx - 16.0, top - 8.0),
+			Vector2(32.0, 10.0), 4.0), Color(0.52, 0.42, 0.30), 0.8)
+		_ropes.append({"x": rx, "top": top, "bottom": bottom})
+
+
+## The Jump Quest, shrunk: a short stack of small platforms before the flag,
+## climbed by jumping. MapleStory's are stairs, W-shapes and scattered
+## islands; three or four stairs is the six-year-old dose, and the coins sit
+## on them so climbing is worth doing.
+func _build_tower(steps: int) -> void:
+	if steps <= 0:
+		return
+	var rng := Shapes.rng_for(str(level_data.get("id", "trail")) + ":tower")
+	var base_x: float = _flag_x - 460.0
+	for i in range(steps):
+		var side: float = 1.0 if i % 2 == 0 else -1.0
+		var sx: float = base_x + side * rng.randf_range(20.0, 90.0) + float(i) * 26.0
+		var sy: float = _ground_y - 108.0 - float(i) * 96.0
+		_add_ledge(sx, sy, rng.randf_range(150.0, 190.0), rng)
+		var coin: Control = UiKit.picture("coin", 50)
+		if coin != null:
+			coin.position = Vector2(sx + 74.0, sy - 78.0)
+			_world.add_child(coin)
+			_coins.append({"node": coin, "x": sx + 99.0, "y": sy - 53.0, "taken": false})
+			_coins_total += 1
+
+
+## The feather: touch it once and the hero can jump again in mid-air, for the
+## rest of the run. The most-loved verb in the genre, handed over as a
+## discovery rather than a tutorial.
+func _add_feather() -> void:
+	if not _has_feather:
+		return
+	var at := Vector2(clampf(_flag_x * 0.42, 700.0, _length - 700.0), _ground_y - 150.0)
+	var holder := Node2D.new()
+	holder.position = at
+	_world.add_child(holder)
+	Shapes.glow(holder, Vector2.ZERO, 74.0, Color(0.86, 0.96, 1.0), 4, 0.34)
+	# A white quill with a blue rib, tilted -- a feather at a glance.
+	Shapes.lit(holder, PackedVector2Array([
+		Vector2(-4.0, 26.0), Vector2(-22.0, -8.0), Vector2(-6.0, -30.0),
+		Vector2(12.0, -12.0), Vector2(10.0, 16.0),
+	]), Color(0.97, 0.98, 1.0), 0.9)
+	Shapes.fill(holder, Shapes.taper(Vector2(-2.0, 24.0), Vector2(-6.0, -26.0), 4.0, 2.0),
+		Color(0.52, 0.72, 0.92), 0.0)
+	if Juice.motion_enabled():
+		var t := holder.create_tween().set_loops()
+		t.tween_property(holder, "position:y", at.y - 16.0, 1.1)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		t.tween_property(holder, "position:y", at.y, 1.1)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_feather = {"node": holder, "at": at, "taken": false}
+
+
 ## Balloons: bright, poppable, gone in a burst of confetti, worth one bonus
 ## coin each. They hang at one-jump height over the trail so the child jumps
 ## for the JOY of the pop; missing every single one costs nothing.
@@ -787,8 +922,10 @@ func _pad_button(at: Vector2, size: float, kind: String) -> void:
 		"jump":
 			b.button_down.connect(func():
 				_buffer_left = JUMP_BUFFER
+				_held_pad = true
 				Juice.pop(b, 0.10)
 			)
+			b.button_up.connect(func(): _held_pad = false)
 
 
 func _pressed_style(base: StyleBoxFlat) -> StyleBoxFlat:
@@ -810,20 +947,59 @@ func _physics_process(delta: float) -> void:
 	if space and not _was_space:
 		_buffer_left = JUMP_BUFFER
 	_was_space = space
+	# Keyboard holds count as holding the pad, so climbing works on both.
+	var holding: bool = _held_pad or space
 
 	var dir: float = (1.0 if right else 0.0) - (1.0 if left else 0.0)
 	_velocity.x = dir * MOVE_SPEED
 	_velocity.y += GRAVITY * delta
 
+	# On a rope, HOLD the jump button to climb. One button, two meanings,
+	# chosen by where the feet are -- which is how the child already thinks
+	# about it ("I'm on the rope, so up means up").
+	var rope: Dictionary = _rope_at(_hero.position)
+	if not rope.is_empty() and not _taught_rope:
+		_taught_rope = true
+		_say(I18n.t("platformer.rope"))
+	_climbing = false
+	if not rope.is_empty() and holding:
+		_climbing = true
+		_grounded = false
+		_stand_on = -1
+		_velocity = Vector2(dir * MOVE_SPEED * 0.5, -CLIMB_SPEED)
+		_hero.position.x = lerpf(_hero.position.x, float(rope["x"]), 0.35)
+		_hero.position.y = maxf(_hero.position.y - CLIMB_SPEED * delta,
+			float(rope["top"]))
+		_hero.set_pose(HeroArt.Pose.BEAM)      # hands up, holding on
+		_buffer_left = 0.0
+		_jumps_left = _max_jumps()
+		_collect_coins()
+		_check_flag()
+		_scroll_camera()
+		return
+
 	_buffer_left = maxf(_buffer_left - delta, 0.0)
 	_coyote_left = maxf(_coyote_left - delta, 0.0)
+	if _grounded:
+		_jumps_left = _max_jumps()
 	if _buffer_left > 0.0 and (_grounded or _coyote_left > 0.0):
 		_buffer_left = 0.0
 		_coyote_left = 0.0
 		_grounded = false
 		_stand_on = -1
+		_jumps_left = _max_jumps() - 1
 		_velocity.y = JUMP_VELOCITY
 		_hero.set_pose(HeroArt.Pose.JUMP)
+	elif _buffer_left > 0.0 and _jumps_left > 0:
+		# The second jump: a little softer than the first, with a ring of
+		# sparks under the feet so the child SEES the feather paying out.
+		_buffer_left = 0.0
+		_jumps_left -= 1
+		_velocity.y = JUMP_VELOCITY * 0.88
+		_hero.set_pose(HeroArt.Pose.JUMP)
+		Juice.shockwave(_world, _hero.position, 70.0, Color(0.86, 0.96, 1.0))
+		Juice.dust(_world, _hero.position, 4, 0.6)
+		AudioManager.play_sfx("res://assets/audio/notes/note_3.ogg")
 
 	var prev_y: float = _hero.position.y
 	_hero.position.x = clampf(_hero.position.x + _velocity.x * delta, 60.0, _length - 60.0)
@@ -876,6 +1052,7 @@ func _physics_process(delta: float) -> void:
 		_hero.walk(absf(dir) > 0.1)
 
 	_collect_coins()
+	_check_feather()
 	_check_balloons()
 	_check_rocks(delta)
 	_check_flag()
@@ -901,6 +1078,40 @@ func _bounce(i: int, top: float) -> void:
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		t.tween_property(cap, "scale", Vector2.ONE, 0.22)\
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Two jumps once the feather is found, one before.
+func _max_jumps() -> int:
+	return 2 if _double_jump else 1
+
+
+## The rope the hero is standing in, if any.
+func _rope_at(at: Vector2) -> Dictionary:
+	for rope in _ropes:
+		if absf(at.x - float(rope["x"])) > 44.0:
+			continue
+		if at.y < float(rope["top"]) - 10.0 or at.y > float(rope["bottom"]) + 40.0:
+			continue
+		return rope
+	return {}
+
+
+func _check_feather() -> void:
+	if _feather.is_empty() or bool(_feather["taken"]):
+		return
+	var at: Vector2 = _feather["at"]
+	if _hero.position.distance_to(at + Vector2(0, 60.0)) > 92.0:
+		return
+	_feather["taken"] = true
+	_double_jump = true
+	_jumps_left = _max_jumps()
+	var node: Node2D = _feather["node"]
+	if is_instance_valid(node):
+		Juice.burst(_world, node.position, 20)
+		node.queue_free()
+	Juice.shockwave(_world, _hero.position, 120.0, Color(0.86, 0.96, 1.0))
+	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+	_say(I18n.t("platformer.feather"))
 
 
 func _platform_top(i: int) -> float:

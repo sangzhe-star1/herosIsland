@@ -271,7 +271,19 @@
     "house.slot_hat": "Hats",
     "house.slot_face": "Face",
     "house.slot_back": "Back",
-    "house.slot_colour": "Colours"
+    "house.slot_colour": "Colours",
+    "platformer.feather": "A feather! Now you can jump TWICE!",
+    "platformer.rope": "A rope! Hold the jump button to climb.",
+    "outfit.cowboy_hat": "Cowboy Hat",
+    "outfit.bandana": "Bandana",
+    "outfit.dress": "Party Dress",
+    "outfit.vest": "Denim Vest",
+    "outfit.star_robe": "Star Robe",
+    "house.slot_suit": "Clothes",
+    "set.cowboy": "Cowboy!",
+    "set.princess": "Princess!",
+    "set.wizard": "Star Wizard!",
+    "house.set_on": "Full set: %s"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -545,6 +557,18 @@
     "house.slot_hat": "帽子",
     "house.slot_face": "脸上",
     "house.slot_back": "背后",
-    "house.slot_colour": "配色"
+    "house.slot_colour": "配色",
+    "platformer.feather": "捡到羽毛！现在可以在空中再跳一次！",
+    "platformer.rope": "有绳子！按住跳跃键就能往上爬。",
+    "outfit.cowboy_hat": "牛仔帽",
+    "outfit.bandana": "牛仔围巾",
+    "outfit.dress": "小裙子",
+    "outfit.vest": "牛仔背心",
+    "outfit.star_robe": "星星长袍",
+    "house.slot_suit": "衣服",
+    "set.cowboy": "西部牛仔！",
+    "set.princess": "小公主！",
+    "set.wizard": "星星魔法师！",
+    "house.set_on": "整套：%s"
   }
 }

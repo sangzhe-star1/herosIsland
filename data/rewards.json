@@ -229,10 +229,40 @@
       "name_key": "outfit.cap"
     },
     {
+      "id": "cowboy_hat",
+      "slot": "hat",
+      "cost_coins": 35,
+      "name_key": "outfit.cowboy_hat"
+    },
+    {
       "id": "sunglasses",
       "slot": "face",
       "cost_coins": 20,
       "name_key": "outfit.sunglasses"
+    },
+    {
+      "id": "bandana",
+      "slot": "face",
+      "cost_coins": 25,
+      "name_key": "outfit.bandana"
+    },
+    {
+      "id": "dress",
+      "slot": "suit",
+      "cost_coins": 40,
+      "name_key": "outfit.dress"
+    },
+    {
+      "id": "vest",
+      "slot": "suit",
+      "cost_coins": 35,
+      "name_key": "outfit.vest"
+    },
+    {
+      "id": "star_robe",
+      "slot": "suit",
+      "cost_coins": 55,
+      "name_key": "outfit.star_robe"
     },
     {
       "id": "cape_red",
@@ -287,6 +317,35 @@
       "cost_coins": 45,
       "name_key": "colour.shadow",
       "icon": "moon"
+    }
+  ],
+  "outfit_sets": [
+    {
+      "id": "cowboy",
+      "name_key": "set.cowboy",
+      "pieces": [
+        "cowboy_hat",
+        "bandana",
+        "vest"
+      ]
+    },
+    {
+      "id": "princess",
+      "name_key": "set.princess",
+      "pieces": [
+        "crown",
+        "dress",
+        "wings"
+      ]
+    },
+    {
+      "id": "wizard",
+      "name_key": "set.wizard",
+      "pieces": [
+        "star_robe",
+        "cape_red",
+        "shadow"
+      ]
     }
   ]
 }

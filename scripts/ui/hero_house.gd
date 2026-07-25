@@ -13,6 +13,7 @@ var _previews: Dictionary = {}   # character_id -> SkinnedCharacter, for re-dres
 var _outfit_tiles: Dictionary = {}  # outfit_id -> its rack Button
 var _slot_tabs: Dictionary = {}     # slot -> its tab Button
 var _rack: HBoxContainer            # the tiles for the open slot
+var _set_banner: Label              # "Full set: Cowboy!" when one is complete
 var _slot := "hat"                  # which drawer of the wardrobe is open
 var _coin_label: Label
 
@@ -102,6 +103,7 @@ func _build_wardrobe(root: Control) -> void:
 	for spec in [
 		{"slot": "hat", "key": "house.slot_hat", "icon": "crown"},
 		{"slot": "face", "key": "house.slot_face", "icon": "sunglasses"},
+		{"slot": "suit", "key": "house.slot_suit", "icon": "dress"},
 		{"slot": "back", "key": "house.slot_back", "icon": "cape_red"},
 		{"slot": "colour", "key": "house.slot_colour", "icon": "star"},
 	]:
@@ -129,24 +131,33 @@ func _build_wardrobe(root: Control) -> void:
 	_rack.alignment = BoxContainer.ALIGNMENT_CENTER
 	_rack.add_theme_constant_override("separation", 12)
 	root.add_child(_rack)
+
+	# Complete sets: a named look assembled from pieces bought separately.
+	# The reason every dress-up game has them is that a child who has three
+	# unrelated pieces has an outfit, and a child who has a SET has a
+	# costume -- and a costume has a name they can say out loud.
+	_set_banner = UiKit.title_on_art("", 28)
+	_set_banner.visible = false
+	root.add_child(_set_banner)
+
 	_open_slot(_slot)
 
 
 func _build_slot_tab(slot: String, name_key: String, icon_name: String) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(148, 62)
+	b.custom_minimum_size = Vector2(126, 58)
 	b.focus_mode = Control.FOCUS_NONE
-	b.pivot_offset = Vector2(74, 31)
+	b.pivot_offset = Vector2(63, 29)
 	var row := HBoxContainer.new()
-	row.position = Vector2(14, 12)
-	row.add_theme_constant_override("separation", 8)
+	row.position = Vector2(11, 11)
+	row.add_theme_constant_override("separation", 6)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var icon: Control = UiKit.picture(icon_name, 36)
+	var icon: Control = UiKit.picture(icon_name, 32)
 	if icon != null:
 		row.add_child(icon)
 	var label := Label.new()
 	label.text = I18n.t(name_key)
-	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_font_size_override("font_size", 22)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
 	b.add_child(row)
@@ -276,6 +287,30 @@ func _refresh_wardrobe() -> void:
 	for preview in _previews.values():
 		if is_instance_valid(preview):
 			preview.refresh_outfit()
+	_refresh_set_banner()
+
+
+## Is every piece of a set being worn right now? Say so, once, in its name.
+func _refresh_set_banner() -> void:
+	if _set_banner == null or not is_instance_valid(_set_banner):
+		return
+	var worn: Array = SaveManager.get_outfit().values()
+	for set_spec in GameData.rewards.get("outfit_sets", []):
+		var complete := true
+		for piece in set_spec.get("pieces", []):
+			if not str(piece) in worn:
+				complete = false
+				break
+		if complete:
+			var was_hidden: bool = not _set_banner.visible
+			_set_banner.text = I18n.t("house.set_on") % I18n.t(str(set_spec["name_key"]))
+			_set_banner.visible = true
+			if was_hidden:
+				Juice.pop(_set_banner, 0.35)
+				Juice.burst(self, Vector2(640, 300), 22)
+				AudioManager.play_sfx("res://assets/audio/star.ogg")
+			return
+	_set_banner.visible = false
 
 
 ## The stickers bought in My Rewards live here, stuck along the bottom of

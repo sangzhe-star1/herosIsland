@@ -135,6 +135,11 @@ func rebuild() -> void:
 	_leg_front = _limb_root(Vector2(_u(13.0), HIP_Y + 2.0))
 	_build_leg(_leg_front, false)
 
+	# What is WORN on the body: a skirt hangs over the legs, a vest sits on
+	# the chest. Drawn after the legs and before the head so it layers the
+	# way clothes do.
+	_build_suit(_root)
+
 	_head = Node2D.new()
 	_head.position = Vector2(0, NECK_Y)
 	_root.add_child(_head)
@@ -460,6 +465,25 @@ func _build_hat(parent: Node2D, centre: Vector2, rx: float, ry: float) -> void:
 				Vector2(rx * 0.40, ry * 0.09), 4.0), Color(1.0, 0.86, 0.42), 0.0)
 			Shapes.fill(parent, Shapes.circle_points(
 				centre + Vector2(lean, -ry * 1.56), rx * 0.10, 12), Color(1.0, 0.86, 0.42), 0.7)
+		"cowboy_hat":
+			# Wide brim, tall crown, a band -- read from across the room,
+			# which is the whole job of a hat in this game.
+			var leather := Color(0.72, 0.52, 0.30)
+			Shapes.lit(parent, Shapes.oval_points(centre + Vector2(0, -ry * 0.74),
+				Vector2(rx * 1.22, ry * 0.20), 22), leather, 1.0)
+			var crown := PackedVector2Array()
+			for k in range(13):
+				var a17: float = PI + PI * float(k) / 12.0
+				crown.append(centre + Vector2(cos(a17) * rx * 0.60,
+					-ry * 0.78 + sin(a17) * ry * 0.52))
+			crown.append(centre + Vector2(rx * 0.60, -ry * 0.72))
+			crown.append(centre + Vector2(-rx * 0.60, -ry * 0.72))
+			Shapes.lit(parent, crown, leather.lightened(0.06), 1.0)
+			Shapes.fill(parent, Shapes.rounded_rect(
+				centre + Vector2(-rx * 0.62, -ry * 0.90), Vector2(rx * 1.24, ry * 0.14),
+				4.0), Color(0.42, 0.30, 0.22), 0.0)
+			Shapes.fill(parent, Shapes.star_points(centre + Vector2(0, -ry * 0.84),
+				rx * 0.11, 0.45, 5), Color(1.0, 0.86, 0.36), 0.0)
 		"cap":
 			var blue3 := Color(0.34, 0.58, 0.86)
 			var dome := PackedVector2Array()
@@ -476,8 +500,92 @@ func _build_hat(parent: Node2D, centre: Vector2, rx: float, ry: float) -> void:
 				centre + Vector2(0, -ry * 1.10), rx * 0.07, 10), blue3.darkened(0.20), 0.0)
 
 
+## The body slot: dresses, vests, robes -- the pieces that change the
+## SILHOUETTE below the neck, which is what "a whole outfit" means to a
+## child who has just discovered dressing up.
+func _build_suit(parent: Node2D) -> void:
+	match str(outfit.get("suit", "")):
+		"dress":
+			# A flared skirt from the belt down, with a bright hem and two
+			# soft folds. Falls over the legs, so the legs keep moving under
+			# it in every pose without a line of extra code.
+			var cloth := Color(0.98, 0.72, 0.84)
+			Shapes.lit(parent, PackedVector2Array([
+				Vector2(_u(-29.0), _u(-58.0)), Vector2(_u(29.0), _u(-58.0)),
+				Vector2(_u(46.0), _u(-6.0)), Vector2(_u(24.0), _u(-2.0)),
+				Vector2(0.0, _u(-8.0)), Vector2(_u(-24.0), _u(-2.0)),
+				Vector2(_u(-46.0), _u(-6.0)),
+			]), cloth, 1.0)
+			for fold in [-14.0, 14.0]:
+				Shapes.fill(parent, Shapes.taper(Vector2(_u(fold * 0.6), _u(-54.0)),
+					Vector2(_u(fold), _u(-10.0)), _u(3.0), _u(1.6)),
+					cloth.darkened(0.12), 0.0)
+			Shapes.fill(parent, Shapes.rounded_rect(Vector2(_u(-30.0), _u(-62.0)),
+				Vector2(_u(60.0), _u(7.0)), 3.0), Color(1.0, 0.92, 0.55), 0.7)
+		"vest":
+			# Two denim panels open down the middle, a collar, and stitching.
+			var denim := Color(0.36, 0.50, 0.72)
+			for side in [-1.0, 1.0]:
+				Shapes.lit(parent, PackedVector2Array([
+					Vector2(side * _u(31.0), _u(-114.0)),
+					Vector2(side * _u(10.0), _u(-108.0)),
+					Vector2(side * _u(9.0), _u(-62.0)),
+					Vector2(side * _u(30.0), _u(-58.0)),
+				]), denim, 1.0)
+				Shapes.fill(parent, Shapes.taper(
+					Vector2(side * _u(26.0), _u(-108.0)),
+					Vector2(side * _u(25.0), _u(-64.0)), _u(1.8), _u(1.8)),
+					Color(0.94, 0.82, 0.42), 0.0)
+				Shapes.fill(parent, Shapes.circle_points(
+					Vector2(side * _u(15.0), _u(-92.0)), _u(3.2), 8),
+					Color(0.90, 0.86, 0.72), 0.0)
+			Shapes.lit(parent, PackedVector2Array([
+				Vector2(_u(-30.0), _u(-118.0)), Vector2(_u(30.0), _u(-118.0)),
+				Vector2(_u(20.0), _u(-104.0)), Vector2(_u(-20.0), _u(-104.0)),
+			]), denim.lightened(0.10), 0.9)
+		"star_robe":
+			# A long night-blue robe with stars on it -- the wizard silhouette
+			# every child recognises, in this island's colours.
+			var night := Color(0.26, 0.30, 0.56)
+			Shapes.lit(parent, PackedVector2Array([
+				Vector2(_u(-30.0), _u(-112.0)), Vector2(_u(30.0), _u(-112.0)),
+				Vector2(_u(40.0), _u(-40.0)), Vector2(_u(48.0), _u(-2.0)),
+				Vector2(0.0, _u(-10.0)), Vector2(_u(-48.0), _u(-2.0)),
+				Vector2(_u(-40.0), _u(-40.0)),
+			]), night, 1.0)
+			var rng := Shapes.rng_for("robe")
+			for k in range(6):
+				var sx: float = rng.randf_range(-34.0, 34.0)
+				var sy: float = rng.randf_range(-96.0, -20.0)
+				Shapes.fill(parent, Shapes.star_points(Vector2(_u(sx), _u(sy)),
+					_u(rng.randf_range(3.4, 5.4)), 0.44, 5),
+					Color(1.0, 0.92, 0.60, 0.95), 0.0)
+			Shapes.fill(parent, Shapes.rounded_rect(Vector2(_u(-31.0), _u(-116.0)),
+				Vector2(_u(62.0), _u(8.0)), 3.5), Color(1.0, 0.86, 0.42), 0.7)
+
+
 func _build_face_piece(parent: Node2D, centre: Vector2, rx: float, ry: float) -> void:
 	match str(outfit.get("face", "")):
+		"bandana":
+			# Tied over the muzzle, knot to one side: half of the cowboy set
+			# and, at chibi scale, an instantly readable silhouette change.
+			var cloth2 := Color(0.86, 0.32, 0.34)
+			Shapes.lit(parent, PackedVector2Array([
+				centre + Vector2(-rx * 0.74, ry * 0.30),
+				centre + Vector2(rx * 0.74, ry * 0.30),
+				centre + Vector2(rx * 0.52, ry * 0.86),
+				centre + Vector2(0.0, ry * 1.00),
+				centre + Vector2(-rx * 0.52, ry * 0.86),
+			]), cloth2, 1.0)
+			for k in range(4):
+				Shapes.fill(parent, Shapes.circle_points(
+					centre + Vector2(-rx * 0.36 + rx * 0.24 * float(k), ry * 0.56),
+					rx * 0.05, 8), Color(1, 1, 1, 0.75), 0.0)
+			Shapes.lit(parent, PackedVector2Array([
+				centre + Vector2(rx * 0.70, ry * 0.24),
+				centre + Vector2(rx * 0.96, ry * 0.14),
+				centre + Vector2(rx * 0.90, ry * 0.44),
+			]), cloth2.darkened(0.10), 0.8)
 		"sunglasses":
 			var dark := Color(0.16, 0.18, 0.24, 0.94)
 			for side in [-1.0, 1.0]:
@@ -494,6 +602,7 @@ func _build_face_piece(parent: Node2D, centre: Vector2, rx: float, ry: float) ->
 
 
 func _build_back_piece(parent: Node2D) -> void:
+	# (bandana lives in the face slot; see _build_face_piece)
 	match str(outfit.get("back", "")):
 		"cape_red":
 			var red4 := Color(0.86, 0.28, 0.30)

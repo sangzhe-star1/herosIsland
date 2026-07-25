@@ -1496,13 +1496,17 @@
     "requires": "",
     "config": {
       "length": 2400,
-      "gap_max": 105,
-      "seg_min": 240,
-      "coins": 8,
+      "gap_max": 115,
+      "seg_min": 230,
+      "coins": 9,
       "moving": false,
       "balloons": 3,
       "birds": 1,
-      "rocks": 1
+      "rocks": 2,
+      "springs": 0,
+      "ropes": 1,
+      "tower": 0,
+      "feather": false
     },
     "target": {
       "correct": 1
@@ -1542,14 +1546,17 @@
     "requires": "adventure_valley_02",
     "config": {
       "length": 3600,
-      "gap_max": 165,
-      "seg_min": 195,
-      "coins": 14,
+      "gap_max": 170,
+      "seg_min": 190,
+      "coins": 15,
       "moving": true,
       "springs": 2,
       "balloons": 4,
       "birds": 2,
-      "rocks": 2
+      "rocks": 3,
+      "ropes": 2,
+      "tower": 3,
+      "feather": true
     },
     "target": {
       "correct": 1
@@ -1595,14 +1602,17 @@
     "challenge": true,
     "config": {
       "length": 3400,
-      "gap_max": 150,
-      "seg_min": 205,
-      "coins": 12,
+      "gap_max": 165,
+      "seg_min": 195,
+      "coins": 14,
       "moving": true,
       "springs": 2,
       "balloons": 6,
       "birds": 3,
-      "rocks": 3
+      "rocks": 4,
+      "ropes": 2,
+      "tower": 4,
+      "feather": true
     },
     "target": {
       "correct": 1
@@ -1621,14 +1631,17 @@
     "requires": "hero_city_03",
     "config": {
       "length": 3200,
-      "gap_max": 145,
-      "seg_min": 215,
-      "coins": 12,
+      "gap_max": 155,
+      "seg_min": 205,
+      "coins": 13,
       "moving": false,
       "springs": 2,
       "balloons": 3,
       "birds": 2,
-      "rocks": 2
+      "rocks": 3,
+      "ropes": 1,
+      "tower": 3,
+      "feather": true
     },
     "target": {
       "correct": 1
@@ -1647,14 +1660,17 @@
     "requires": "rescue_forest_03",
     "config": {
       "length": 3000,
-      "gap_max": 130,
-      "seg_min": 225,
-      "coins": 12,
+      "gap_max": 145,
+      "seg_min": 215,
+      "coins": 13,
       "moving": false,
       "springs": 1,
       "balloons": 4,
       "birds": 1,
-      "rocks": 2
+      "rocks": 3,
+      "ropes": 2,
+      "tower": 2,
+      "feather": true
     },
     "target": {
       "correct": 1
@@ -1915,14 +1931,17 @@
     },
     "config": {
       "length": 2600,
-      "gap_max": 100,
-      "seg_min": 240,
-      "coins": 9,
+      "gap_max": 115,
+      "seg_min": 230,
+      "coins": 10,
       "moving": false,
       "springs": 1,
       "balloons": 5,
       "birds": 1,
-      "rocks": 1
+      "rocks": 2,
+      "ropes": 1,
+      "tower": 2,
+      "feather": true
     }
   },
   {
