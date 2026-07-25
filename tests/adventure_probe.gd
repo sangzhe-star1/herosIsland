@@ -100,6 +100,7 @@ func _run_level(level_id: String, walk: bool) -> void:
 		await _check_monsters_warn_first()
 		await _check_shield_blocks()
 		await _check_help_after_two_falls()
+		await _check_rewards_and_warnings()
 		await _walk_the_level(level_id)
 		_report_result()
 
@@ -457,6 +458,71 @@ func _reset_level_state() -> void:
 	_lvl._deaths = 0
 	_lvl._refresh_hearts(hero.hearts)
 	hero.place_at(Vector2(_lvl.SPAWN_X, _lvl._ground_y))
+
+
+## An ability the child earned has to still be there tomorrow, and the boss's
+## fist has to say WHERE before it lands, not only when.
+func _check_rewards_and_warnings() -> void:
+	# The double jump: granted by a chest, written to disk, read back when
+	# the hero is built. A skill that has to be re-earned every session is a
+	# tease rather than a reward.
+	var had: bool = SaveManager.has_skill("double_jump")
+	SaveManager.data["rewards"]["skills"] = []
+	_ok(not SaveManager.has_skill("double_jump"), "skills must start empty")
+	_ok(SaveManager.unlock_skill("double_jump"), "a first unlock must report true")
+	_ok(not SaveManager.unlock_skill("double_jump"),
+		"unlocking twice must be silent, or a replay throws the party again")
+	_ok(SaveManager.has_skill("double_jump"), "an unlocked skill must stick")
+	_ok(str(GameData.get_level("sunny_park_03").get("reward", {}).get("unlock", ""))
+		== "double_jump", "some chest has to actually give the double jump")
+	if not had:
+		SaveManager.data["rewards"]["skills"] = []
+
+	# The boss's slam must mark its ground for the whole wind-up.
+	if _lvl._boss.is_empty():
+		return
+	var boss: Dictionary = _lvl._boss
+	# Open the doors first. A shut gate clamps the hero's x, so standing the
+	# tester in the arena and expecting the giant to notice only works if
+	# nothing between them is still locked -- the same trap that made the
+	# crate test report a crate that would not move.
+	var reshut: Array = []
+	for gate in _lvl._gates:
+		if not bool(gate["open"]):
+			gate["open"] = true
+			reshut.append(gate)
+	boss["phase"] = 1
+	boss["state"] = "rest"
+	boss["t"] = 0.02
+	_lvl._hero.place_at(Vector2(float(boss["left"]) + 60.0, _lvl._ground_y))
+	var marked_at := -1
+	var struck_at := -1
+	var hearts_before: int = _lvl._hero.hearts
+	for frame in range(240):
+		await get_tree().physics_frame
+		if marked_at < 0 and boss.get("mark") != null:
+			marked_at = frame
+		if struck_at < 0 and _lvl._hero.hearts < hearts_before:
+			struck_at = frame
+			break
+	_ok(marked_at >= 0, "the boss slam never marked the ground")
+	if marked_at >= 0 and struck_at >= 0:
+		var lead: float = float(struck_at - marked_at) / 60.0
+		print("  boss marked its slam %.2f s before it landed" % lead)
+		_ok(lead >= 0.5, "the slam mark was only up %.2f s" % lead)
+	elif marked_at >= 0:
+		print("  boss marked its slam and the tester dodged it")
+	for gate in reshut:
+		gate["open"] = false
+		gate["pressing"] = 0.0
+	_reset_level_state()
+	boss["state"] = "rest"
+	boss["t"] = float(boss["rest"])
+	var leftover: Variant = boss.get("mark")
+	if leftover is Node2D and is_instance_valid(leftover):
+		(leftover as Node2D).queue_free()
+	boss["mark"] = null
+	await get_tree().physics_frame
 
 
 ## A shut gate is a wall, and only its opener opens it.

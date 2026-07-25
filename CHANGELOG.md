@@ -1,5 +1,39 @@
 # Changelog
 
+## Audited against the spec, and four things it was missing — 25 July 2026
+
+Checked the rebuilt island against the ten-point brief rather than against
+memory. Six of the ten were already right; four were not, and three of those
+are now fixed.
+
+**The boss slammed without saying where.** Phase one raised its arms and
+flashed, then picked its landing spot at the moment of impact. The child saw
+that something was coming but not where, so dodging was guessing -- and a
+guess you lose a heart for is indistinguishable from unfairness. It now marks
+the ground for the whole wind-up with the same growing shadow the falling
+rocks use, so a child who learned level two already knows to step off it. The
+mark is chosen when the wind-up starts and never re-aimed, because a warning
+that moves is worse than none. Measured: 1.77 s of warning.
+
+**The double jump existed and nothing granted it.** `double_jump_unlocked`
+had been sitting in the hero controller since Phase A, read once, never set.
+The chest at the end of 岩石怪的挑战 now gives it, `SaveManager` keeps it in a
+new `skills` list, and the hero reads it back on every level. Unlocking is
+idempotent, so replaying for a third star gets the treasure and not the
+lecture. A skill that has to be re-earned every time the tablet sleeps is a
+tease, not a reward.
+
+**Two falls got help, but not the kind the spec asked for.** The island
+already slowed down and pointed at the gate. It now also loops a translucent
+finger on the actual BUTTON -- attack, shield, lightning or jump, whichever
+is the answer to where the child is stuck. Pointing at the thing in the world
+is half an answer: "get past that gate" is no use to someone who has not yet
+worked out that the round yellow circle is how you jump.
+
+**Still outstanding:** Windows and Web export presets (the file can only be
+edited with Godot closed, and it is open), and voice-over on the new levels,
+which needs recordings.
+
 ## The bug that made every level error — 25 July 2026
 
 The father picked a level in 怪兽擂台 and got an error. So did every other

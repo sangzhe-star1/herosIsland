@@ -53,6 +53,13 @@ const Props := preload("res://scripts/adventure/props.gd")
 const Foes := preload("res://scripts/adventure/enemies.gd")
 const Card := preload("res://scripts/adventure/puzzle_card.gd")
 
+## What the hero says when a chest hands over a new ability. A table rather
+## than a built-up string, so tools_check can see the real keys and tell us
+## when one is missing instead of finding out on a child's tablet.
+const SKILL_LINES := {
+	"double_jump": "adventure.unlocked_double_jump",
+}
+
 const CAMERA_LEAD := 480.0
 ## Where the hero starts. Far enough into the opening meadow that the camera
 ## has already scrolled past zero, so the hero is centred from frame one.
@@ -785,6 +792,10 @@ func _build_hero() -> void:
 	_hero = HeroCtl.new()
 	_world.add_child(_hero)
 	_hero.setup(GameData.current_skin(), _ground_y, 168.0)
+	# Abilities the child has already earned, remembered across sessions. A
+	# double jump that has to be re-earned every time the tablet sleeps is not
+	# a reward, it is a tease.
+	_hero.double_jump_unlocked = SaveManager.has_skill("double_jump")
 	_hero.use_terrain(_platforms, _ropes)
 	# What auto-aim turns toward: the monsters still standing, plus the boss.
 	_hero.use_enemies(func():
@@ -1508,10 +1519,30 @@ func _tick_boss(delta: float) -> void:
 				ring.scale = Vector2(1.6, 1.6)
 				_boss["telegraph"] = ring
 				_raise_arms(true)
+				if int(_boss["phase"]) == 1:
+					# WHERE, not just WHEN. The ring on its head says an
+					# attack is coming; without a mark on the ground the
+					# child can only dodge by guessing, and a guess they
+					# lose a heart for is indistinguishable from unfairness.
+					# Same shadow the falling rocks use, so a child who
+					# learned level two already knows to get off it.
+					var spot: float = clampf(_hero.position.x,
+						float(_boss["left"]), float(_boss["right"]))
+					_boss["spot"] = spot
+					var mark := Props.rock_shadow(_world)
+					mark.position = Vector2(spot, _ground_y - 4.0)
+					mark.scale = Vector2(0.3, 0.3)
+					_boss["mark"] = mark
 				if int(_boss["phase"]) == 3:
 					_say(I18n.t("adventure.boss_shell"))
 		"warn":
 			_shrink_telegraph(_boss, float(_boss["warn"]))
+			# The mark grows to full size as the fist comes down: its size is
+			# the countdown, readable without a single number.
+			var mark: Variant = _boss.get("mark")
+			if mark is Node2D and is_instance_valid(mark):
+				var grown: float = 1.0 - float(_boss["t"]) / maxf(float(_boss["warn"]), 0.01)
+				(mark as Node2D).scale = Vector2(0.3, 0.3).lerp(Vector2(2.6, 2.6), grown)
 			if float(_boss["t"]) <= 0.0:
 				_drop_telegraph(_boss)
 				_raise_arms(false)
@@ -1564,12 +1595,19 @@ func _show_weak(on: bool) -> void:
 ## rock in level two already knows how to read this.
 func _boss_slam() -> void:
 	var node: Node2D = _boss["node"]
-	var spot: float = clampf(_hero.position.x, float(_boss["left"]),
-		float(_boss["right"]))
+	# The spot was chosen and SHOWN when the wind-up began. Re-aiming it now
+	# would make the mark a lie, and a warning that moves is worse than none.
+	var spot: float = float(_boss.get("spot", _hero.position.x))
+	var mark: Variant = _boss.get("mark")
+	if mark is Node2D and is_instance_valid(mark):
+		(mark as Node2D).queue_free()
+	_boss["mark"] = null
 	Juice.shockwave(_world, Vector2(spot, _ground_y), 220.0, Color(0.95, 0.72, 0.42))
 	Juice.dust(_world, Vector2(spot, _ground_y), 10, 1.4)
 	AudioManager.play_sfx("res://assets/audio/beam.ogg")
-	if absf(_hero.position.x - spot) < 130.0 and _hero.grounded:
+	# 166 px: the drawn mark is a 64 px oval grown to 2.6x. The circle that
+	# hurts and the circle that was drawn have to be the same circle.
+	if absf(_hero.position.x - spot) < 166.0 and _hero.grounded:
 		if _blocking():
 			_block_flash(Vector2(spot, _ground_y))
 		else:
@@ -1864,7 +1902,36 @@ func _open_chest() -> void:
 	_hero.freeze(true)
 	_hero.figure().victory()
 	_refresh_task()
+	_grant_chest_skill()
 	_finish()
+
+
+## The chest's other job: handing over a new ability, once, with a fuss.
+##
+## The skill is named in the level's reward block, so which chest teaches what
+## is a data decision. Granting is idempotent -- a child replaying the level
+## for their third star gets the treasure, not the lecture.
+func _grant_chest_skill() -> void:
+	var skill := str(level_data.get("reward", {}).get("unlock", ""))
+	if skill == "" or not SaveManager.unlock_skill(skill):
+		return
+	if skill == "double_jump":
+		_hero.double_jump_unlocked = true
+	_say(I18n.t(str(SKILL_LINES.get(skill, "adventure.unlocked_double_jump"))))
+	# A ring of light off the chest, and the hero tries the new thing out.
+	Juice.shockwave(_world, Vector2(float(_chest["at"]), _ground_y - 120.0),
+		320.0, Color(0.55, 0.90, 1.0))
+	var badge := Node2D.new()
+	badge.position = Vector2(float(_chest["at"]), _ground_y - 250.0)
+	_world.add_child(badge)
+	Shapes.glow(badge, Vector2.ZERO, 150.0, Color(0.62, 0.92, 1.0), 5, 0.5)
+	var art: Control = UiKit.picture("wings", 96)
+	if art != null:
+		art.position = Vector2(-48, -48)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.add_child(art)
+	Juice.pop(badge, 0.5)
+	AudioManager.play_sfx("res://assets/audio/star.ogg")
 
 
 func _on_attack() -> void:
@@ -2025,6 +2092,31 @@ func _offer_help() -> void:
 		if not bool(gate["open"]):
 			_point_at_plate(gate)
 			break
+	# And show which BUTTON. Pointing at the thing in the world is only half
+	# an answer: "get past that gate" is no use to a child who has not yet
+	# worked out that the round yellow circle is how you jump. The finger
+	# loops on the pad until they press it themselves.
+	if _bar != null and is_instance_valid(_bar):
+		_bar.demo(_button_they_need())
+		var stop := get_tree().create_timer(14.0)
+		stop.timeout.connect(func():
+			if is_instance_valid(_bar):
+				_bar.stop_demo())
+
+
+## Which button is the answer to where they are stuck right now.
+func _button_they_need() -> String:
+	for foe in _foes:
+		if bool(foe["down"]) or not is_instance_valid(foe["node"]):
+			continue
+		if absf((foe["node"] as Node2D).position.x - _hero.position.x) < 620.0:
+			return "skill0" if str(foe["kind"]) == "spitter" else "attack"
+	if not _boss.is_empty() and not bool(_boss["beaten"]):
+		return "skill1" if str(_boss["state"]) == "shelled" else "attack"
+	for sw in _switches:
+		if not bool(sw["pressed"]) and float(sw["y"]) < _ground_y - 40.0:
+			return "jump"
+	return "jump"
 
 
 func _refresh_hearts(remaining: int) -> void:

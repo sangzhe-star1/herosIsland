@@ -31,6 +31,11 @@ const PAD_SKILL := 112.0
 var _skill_buttons: Array = []      # [{button, ring, icon, ready_at, cooldown}]
 var _interact: Button
 var _interact_icon: Control
+var _left_button: Button
+var _right_button: Button
+var _jump_button: Button
+var _attack_button: Button
+var _demo_hand: Control
 var _clock := 0.0
 
 
@@ -53,11 +58,13 @@ func _process(delta: float) -> void:
 
 func _build_move() -> void:
 	var left := _round_button(Vector2(30, 552), PAD_MOVE, Color(0.55, 0.75, 0.95))
+	_left_button = left
 	_arrow(left, PAD_MOVE, -1.0)
 	left.button_down.connect(func(): move_pressed.emit(-1.0, true))
 	left.button_up.connect(func(): move_pressed.emit(-1.0, false))
 
 	var right := _round_button(Vector2(192, 552), PAD_MOVE, Color(0.55, 0.75, 0.95))
+	_right_button = right
 	_arrow(right, PAD_MOVE, 1.0)
 	right.button_down.connect(func(): move_pressed.emit(1.0, true))
 	right.button_up.connect(func(): move_pressed.emit(1.0, false))
@@ -66,12 +73,14 @@ func _build_move() -> void:
 func _build_action() -> void:
 	# Jump, bottom right corner and biggest: the verb of the genre.
 	var jump := _round_button(Vector2(1098, 540), PAD_JUMP, Color(1.0, 0.86, 0.40))
+	_jump_button = jump
 	_jump_glyph(jump, PAD_JUMP)
 	jump.button_down.connect(func(): jump_pressed.emit())
 	jump.button_up.connect(func(): jump_released.emit())
 
 	# Attack, just left of jump, the second-most-pressed thing.
 	var attack := _round_button(Vector2(948, 566), PAD_ATTACK, Color(0.96, 0.52, 0.42))
+	_attack_button = attack
 	var fist: Control = UiKit.picture("power", PAD_ATTACK * 0.52)
 	if fist != null:
 		fist.position = Vector2(PAD_ATTACK * 0.24, PAD_ATTACK * 0.24)
@@ -180,6 +189,72 @@ func show_interact(at: Vector2, icon_name: String) -> void:
 			fresh.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_interact.add_child(fresh)
 			_interact_icon = fresh
+
+
+# --- showing a stuck child which button ---------------------------------------
+
+## A translucent finger that taps a button, over and over, until told to stop.
+##
+## The spec asks for this by name for a child who has lost twice. Pointing at
+## the THING in the world is only half an answer -- "get past that gate" is
+## useless to someone who has not worked out that the round yellow circle is
+## how you jump. This points at the hand, not the world.
+##
+## `which` is "jump", "attack", "left", "right" or a skill slot as "skill0".
+func demo(which: String) -> void:
+	stop_demo()
+	var target: Button = _demo_target(which)
+	if target == null:
+		return
+	var hand := Control.new()
+	hand.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hand.position = target.position + target.custom_minimum_size * 0.55
+	hand.name = "ButtonDemo"
+	add_child(hand)
+	var art := Node2D.new()
+	hand.add_child(art)
+	Shapes.fill(art, Shapes.rounded_rect(Vector2(-11.0, -66.0), Vector2(22.0, 56.0), 10.0),
+		Color(0.98, 0.84, 0.68, 0.85), 0.8)
+	Shapes.lit(art, Shapes.circle_points(Vector2(7.0, 5.0), 24.0, 18),
+		Color(0.98, 0.84, 0.68, 0.9), 0.9)
+	_demo_hand = hand
+
+	# The button itself pulses in time with the tap, so the two read as one
+	# action rather than as a finger floating near a coincidence.
+	if not Juice.motion_enabled():
+		return
+	var t := hand.create_tween().set_loops()
+	t.tween_property(hand, "position:y", hand.position.y - 34.0, 0.45)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(hand, "position:y", hand.position.y, 0.22)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	t.tween_callback(func():
+		if is_instance_valid(target):
+			Juice.pop(target, 0.16))
+	t.tween_interval(0.7)
+
+
+func stop_demo() -> void:
+	if _demo_hand != null and is_instance_valid(_demo_hand):
+		_demo_hand.queue_free()
+	_demo_hand = null
+
+
+func _demo_target(which: String) -> Button:
+	match which:
+		"jump":
+			return _jump_button
+		"attack":
+			return _attack_button
+		"left":
+			return _left_button
+		"right":
+			return _right_button
+	if which.begins_with("skill"):
+		var slot: int = int(which.substr(5))
+		if slot >= 0 and slot < _skill_buttons.size():
+			return _skill_buttons[slot]["button"]
+	return null
 
 
 # --- shared button shape ----------------------------------------------------

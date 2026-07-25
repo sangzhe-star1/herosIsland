@@ -121,7 +121,8 @@
     "target": {},
     "reward": {
       "coins": 44,
-      "badge": "giant_friend"
+      "badge": "giant_friend",
+      "unlock": "double_jump"
     },
     "config": {
       "instruction_key": "adventure.instruction_03",

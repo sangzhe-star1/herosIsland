@@ -74,6 +74,11 @@ func _default_data() -> Dictionary:
 			"items": {},
 			# Outfit pieces owned (ids). Bought once with coins, kept forever.
 			"outfits": [],
+			# Abilities the hero keeps forever once a chest gives them.
+			# Separate from outfits because these change what the child can
+			# DO, not what they look like -- and because a skill that is not
+			# written down is a skill that vanishes when the tablet sleeps.
+			"skills": [],
 		},
 		# Growth attributes. Displayed as growing plants/flags, never as combat stats.
 		"growth": {
@@ -299,6 +304,27 @@ func use_item(item_id: String) -> bool:
 
 func get_outfit() -> Dictionary:
 	return data["profile"].get("outfit", {"hat": "", "face": "", "back": ""})
+
+
+## --- skills the hero keeps ---------------------------------------------
+
+func has_skill(skill_id: String) -> bool:
+	return skill_id in data["rewards"].get("skills", [])
+
+
+## Grant a skill. Returns true only the FIRST time, so the level can throw a
+## party for it exactly once and stay quiet on every replay.
+func unlock_skill(skill_id: String) -> bool:
+	if skill_id == "":
+		return false
+	if not data["rewards"].has("skills"):
+		data["rewards"]["skills"] = []
+	if has_skill(skill_id):
+		return false
+	data["rewards"]["skills"].append(skill_id)
+	save_game()
+	progress_changed.emit()
+	return true
 
 
 func has_outfit(outfit_id: String) -> bool:
