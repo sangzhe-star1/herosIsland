@@ -47,5 +47,12 @@
     "growth_attribute": "courage",
     "color": "#e0623c",
     "order": 7
+  },
+  {
+    "id": "bluey_park",
+    "name_key": "world.bluey_park",
+    "growth_attribute": "kindness",
+    "color": "#5b86c9",
+    "order": 8
   }
 ]

@@ -214,7 +214,16 @@
     "item.shield_charm_desc": "Blocks attacks for a while",
     "item.star_bomb": "Star Burst",
     "item.star_bomb_desc": "Hits every monster once",
-    "badge.star_captain": "Star Captain"
+    "badge.star_captain": "Star Captain",
+    "world.bluey_park": "Bluey Park",
+    "level.bluey_park_01": "Keepy Uppy",
+    "level.bluey_park_02": "Backyard Trail",
+    "level.bluey_park_03": "Dance Mode",
+    "level.bluey_park_04": "Toy Pairs",
+    "level.bluey_park_challenge": "Family Games Day",
+    "keepy.instruction": "Keep the balloon up! Tap it!",
+    "keepy.plop": "Plop! No worries — here comes another!",
+    "badge.keepy_champion": "Keepy Uppy Champion"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -431,6 +440,15 @@
     "item.shield_charm_desc": "帮你挡住攻击一小会儿",
     "item.star_bomb": "星星飞弹",
     "item.star_bomb_desc": "向每只怪兽都发一颗星星",
-    "badge.star_captain": "星光队长"
+    "badge.star_captain": "星光队长",
+    "world.bluey_park": "布鲁伊游乐园",
+    "level.bluey_park_01": "顶气球",
+    "level.bluey_park_02": "后院小路",
+    "level.bluey_park_03": "跳舞时间",
+    "level.bluey_park_04": "玩具配对",
+    "level.bluey_park_challenge": "家庭运动会",
+    "keepy.instruction": "别让气球落地，点它！",
+    "keepy.plop": "噗——没关系，新气球来啦！",
+    "badge.keepy_champion": "顶气球冠军"
   }
 }

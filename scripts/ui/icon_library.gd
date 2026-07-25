@@ -53,7 +53,7 @@ const NAMES := [
 	"eye", "umbrella", "magnifier", "compass", "leaf", "music", "medal",
 	"traffic_light",
 	# wordless-instruction states and the star shop's goods
-	"ear", "tap", "tower", "potion", "star_bomb",
+	"ear", "tap", "tower", "potion", "star_bomb", "balloon",
 ]
 
 
@@ -577,6 +577,23 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				Color(1.0, 0.84, 0.30))
 			_poly(p, Shapes.star_points(c + Vector2(s * 0.08, -s * 0.06), s * 0.13, 0.45, 5),
 				Color(1.0, 0.96, 0.72))
+		"balloon":
+			# The red balloon, mid-bounce: Keepy Uppy's whole idea in one shape.
+			var red2 := Color(0.92, 0.34, 0.36)
+			var string_line := Line2D.new()
+			string_line.points = PackedVector2Array([
+				c + Vector2(0, s * 0.24), c + Vector2(-s * 0.04, s * 0.42),
+			])
+			string_line.width = maxf(s * 0.03, 2.0)
+			string_line.default_color = Color(0.40, 0.30, 0.24, 0.9)
+			string_line.antialiased = true
+			p.add_child(string_line)
+			_lit_circle(p, c + Vector2(0, -s * 0.04), s * 0.28, red2)
+			_poly(p, Shapes.oval_points(c + Vector2(0, -s * 0.04), Vector2(s * 0.26, s * 0.30), 20), red2)
+			_poly(p, Shapes.oval_points(c + Vector2(-s * 0.09, -s * 0.14), Vector2(s * 0.07, s * 0.09), 10),
+				Color(1, 1, 1, 0.5))
+			_tri(p, c + Vector2(-s * 0.05, s * 0.26), c + Vector2(s * 0.05, s * 0.26),
+				c + Vector2(0, s * 0.19), red2.darkened(0.15))
 		_:
 			return false
 	return true

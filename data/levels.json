@@ -1875,5 +1875,119 @@
         }
       ]
     }
+  },
+  {
+    "id": "bluey_park_01",
+    "world": "bluey_park",
+    "name_key": "level.bluey_park_01",
+    "game_type": "keepy_uppy",
+    "difficulty": 1,
+    "requires": "",
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "keepy.instruction",
+      "bounces": 8,
+      "drift": 80
+    }
+  },
+  {
+    "id": "bluey_park_02",
+    "world": "bluey_park",
+    "name_key": "level.bluey_park_02",
+    "game_type": "platformer",
+    "difficulty": 1,
+    "requires": "bluey_park_01",
+    "target": {
+      "correct": 1
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "length": 2600,
+      "gap_max": 100,
+      "seg_min": 240,
+      "coins": 9,
+      "moving": false,
+      "springs": 1,
+      "balloons": 5,
+      "birds": 1,
+      "rocks": 1
+    }
+  },
+  {
+    "id": "bluey_park_03",
+    "world": "bluey_park",
+    "name_key": "level.bluey_park_03",
+    "game_type": "light_echo",
+    "difficulty": 1,
+    "requires": "bluey_park_02",
+    "target": {
+      "correct": 5
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "echo.listen",
+      "pads": 4,
+      "sequence_start": 2,
+      "sequence_max": 5
+    }
+  },
+  {
+    "id": "bluey_park_04",
+    "world": "bluey_park",
+    "name_key": "level.bluey_park_04",
+    "game_type": "memory_match",
+    "difficulty": 1,
+    "requires": "bluey_park_03",
+    "target": {
+      "correct": 4
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "memory.instruction",
+      "background": "#eaf3e2",
+      "columns": 4,
+      "icons": [
+        "balloon",
+        "ball",
+        "teddy",
+        "paw"
+      ]
+    }
+  },
+  {
+    "id": "bluey_park_challenge",
+    "world": "bluey_park",
+    "name_key": "level.bluey_park_challenge",
+    "game_type": "keepy_uppy",
+    "difficulty": 1,
+    "requires": "bluey_park_04",
+    "challenge": true,
+    "target": {
+      "correct": 12
+    },
+    "reward": {
+      "coins": 40,
+      "badge": "keepy_champion"
+    },
+    "config": {
+      "instruction_key": "keepy.instruction",
+      "bounces": 12,
+      "drift": 110
+    }
   }
 ]

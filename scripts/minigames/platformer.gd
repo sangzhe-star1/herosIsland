@@ -726,10 +726,13 @@ func _build_hud() -> void:
 
 	# The control pad. Left and right under the left thumb, jump under the
 	# right -- the same corners the duel put its skills in, so hands that
-	# learned one screen already know the other.
-	_pad_button(Vector2(36, 556), 128.0, "left")
-	_pad_button(Vector2(196, 556), 128.0, "right")
-	_pad_button(Vector2(1104, 544), 148.0, "jump")
+	# learned one screen already know the other. Pushed right down into the
+	# ground band: at their first height they hovered over the strip of air
+	# where coins and balloons fly past, and the playtester reported the
+	# buttons "hiding the toys". Over dirt they hide nothing that matters.
+	_pad_button(Vector2(30, 584), 124.0, "left")
+	_pad_button(Vector2(184, 584), 124.0, "right")
+	_pad_button(Vector2(1112, 572), 140.0, "jump")
 
 
 func _pad_button(at: Vector2, size: float, kind: String) -> void:

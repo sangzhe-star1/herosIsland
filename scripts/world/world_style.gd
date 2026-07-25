@@ -225,6 +225,30 @@ static func for_world(world_id: String) -> WorldStyle:
 			s.mote_kind = "pollen"
 			s.mote_color = Color(1.0, 1.0, 1.0, 0.6)
 
+		"bluey_park":
+			# A backyard on a Saturday morning: the brightest, homeliest hour
+			# on the island. Everything soft green and sky blue -- the world
+			# for games you play with a puppy.
+			s.sky_top = Color(0.42, 0.72, 0.94)
+			s.sky_bottom = Color(0.86, 0.95, 1.0)
+			s.haze = Color(1.0, 0.98, 0.90, 0.45)
+			s.light_at = Vector2(0.80, 0.14)
+			s.light_radius = 58.0
+			s.light_color = Color(1.0, 0.97, 0.82)
+			s.light_glow = 0.30
+			s.horizon_kind = "hills"
+			s.band_scale = 0.9
+			s.band_colors = [
+				Color(0.62, 0.84, 0.60), Color(0.50, 0.76, 0.52), Color(0.40, 0.66, 0.46),
+			]
+			s.ground_top = Color(0.56, 0.80, 0.46)
+			s.ground_bottom = Color(0.40, 0.64, 0.36)
+			s.props = ["tree", "bush", "flower", "fence"]
+			s.prop_density = 1.1
+			s.clouds = 0.7
+			s.mote_kind = "pollen"
+			s.mote_color = Color(1.0, 0.98, 0.80, 0.7)
+
 		"star_trials":
 			# The trial ground at first starlight: warmer than the arena's
 			# midnight, more serious than the valley's noon. Same island,

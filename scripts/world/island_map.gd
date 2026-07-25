@@ -311,6 +311,27 @@ func _region_prop(parent: Node2D, world_id: String) -> void:
 				Vector2(-pk * 0.1, -pk * 1.22), Vector2(pk * 0.12, -pk * 1.14),
 				Vector2(-pk * 0.1, -pk * 1.06),
 			]), Color(0.90, 0.36, 0.34), 0.0)
+		"bluey_park":
+			# A kennel with a red roof and a bone over the door: the island a
+			# puppy lives on, readable from across the map.
+			var kw: float = _rng.randf_range(100.0, 140.0)
+			var kh: float = kw * 0.62
+			Shapes.lit(parent, Shapes.rounded_rect(Vector2(-kw * 0.5, -kh), Vector2(kw, kh), 8.0),
+				Color(0.62, 0.80, 0.94), 1.0)
+			Shapes.lit(parent, PackedVector2Array([
+				Vector2(-kw * 0.62, -kh), Vector2(0, -kh - kw * 0.42), Vector2(kw * 0.62, -kh),
+			]), Color(0.88, 0.40, 0.36), 1.0)
+			var arch := PackedVector2Array()
+			for i in range(11):
+				var aa: float = PI + PI * float(i) / 10.0
+				arch.append(Vector2(cos(aa) * kw * 0.20, -kh * 0.42 + sin(aa) * kw * 0.20))
+			arch.append(Vector2(kw * 0.20, 0))
+			arch.append(Vector2(-kw * 0.20, 0))
+			Shapes.fill(parent, arch, Color(0.16, 0.22, 0.34), 0.0)
+			for side2 in [-1.0, 1.0]:
+				Shapes.fill(parent, Shapes.oval_points(
+					Vector2(side2 * kw * 0.10, -kh - kw * 0.18), Vector2(kw * 0.085, kw * 0.055), 10),
+					Color(0.97, 0.94, 0.86), 0.8)
 		"monster_arena":
 			var r: float = _rng.randf_range(70.0, 130.0)
 			Shapes.lit(parent, Shapes.blob(Vector2(0, -r * 0.55), Vector2(r, r * 0.72),

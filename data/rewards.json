@@ -103,6 +103,10 @@
     "star_captain": {
       "name_key": "badge.star_captain",
       "icon": "star_bomb"
+    },
+    "keepy_champion": {
+      "name_key": "badge.keepy_champion",
+      "icon": "balloon"
     }
   },
   "growth_attributes": [

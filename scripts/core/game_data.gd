@@ -127,5 +127,6 @@ func get_minigame_scene(game_type: String) -> String:
 		"monster_duel": "res://scenes/minigames/monster_duel/MonsterDuel.tscn",
 		"platformer": "res://scenes/minigames/platformer/Platformer.tscn",
 		"monster_expedition": "res://scenes/minigames/monster_expedition/MonsterExpedition.tscn",
+		"keepy_uppy": "res://scenes/minigames/keepy_uppy/KeepyUppy.tscn",
 	}
 	return map.get(game_type, "")
