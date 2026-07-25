@@ -1989,5 +1989,117 @@
       "bounces": 12,
       "drift": 110
     }
+  },
+  {
+    "id": "star_trials_04",
+    "world": "star_trials",
+    "name_key": "level.star_trials_04",
+    "game_type": "light_blaster",
+    "difficulty": 2,
+    "requires": "star_trials_02",
+    "target": {
+      "correct": 10
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "blaster.instruction",
+      "targets": 10,
+      "max_up": 2,
+      "pop_min": 1.9,
+      "pop_max": 2.6,
+      "friend_ratio": 0.18,
+      "item_chance": 0.16,
+      "monsters": [
+        {
+          "id": "peek",
+          "body_color": "#7fb069",
+          "belly_color": "#cde6b2",
+          "accent_color": "#4f7d43",
+          "height": 210,
+          "width": 0.85,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 0,
+          "scale": 0.62
+        },
+        {
+          "id": "boop",
+          "body_color": "#d98a4a",
+          "belly_color": "#f2c489",
+          "accent_color": "#a8632f",
+          "height": 210,
+          "width": 0.85,
+          "horns": 1,
+          "eyes": 2,
+          "spikes": 0,
+          "scale": 0.62
+        }
+      ]
+    }
+  },
+  {
+    "id": "star_trials_05",
+    "world": "star_trials",
+    "name_key": "level.star_trials_05",
+    "game_type": "light_blaster",
+    "difficulty": 2,
+    "requires": "star_trials_04",
+    "target": {
+      "correct": 14
+    },
+    "reward": {
+      "coins": 25,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "blaster.instruction",
+      "targets": 14,
+      "max_up": 3,
+      "pop_min": 1.7,
+      "pop_max": 2.3,
+      "friend_ratio": 0.22,
+      "item_chance": 0.16,
+      "monsters": [
+        {
+          "id": "peek",
+          "body_color": "#7fb069",
+          "belly_color": "#cde6b2",
+          "accent_color": "#4f7d43",
+          "height": 210,
+          "width": 0.85,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 0,
+          "scale": 0.62
+        },
+        {
+          "id": "boop",
+          "body_color": "#d98a4a",
+          "belly_color": "#f2c489",
+          "accent_color": "#a8632f",
+          "height": 210,
+          "width": 0.85,
+          "horns": 1,
+          "eyes": 2,
+          "spikes": 0,
+          "scale": 0.62
+        },
+        {
+          "id": "zippy",
+          "body_color": "#8a5fc9",
+          "belly_color": "#c9aef2",
+          "accent_color": "#5e3f96",
+          "height": 210,
+          "width": 0.85,
+          "horns": 0,
+          "eyes": 2,
+          "spikes": 3,
+          "scale": 0.62
+        }
+      ]
+    }
   }
 ]

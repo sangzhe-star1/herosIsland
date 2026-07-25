@@ -56,6 +56,8 @@ const NAMES := [
 	"ear", "tap", "tower", "potion", "star_bomb", "balloon",
 	# the wardrobe: outfit pieces for the Hero House rack
 	"crown", "party_hat", "cap", "sunglasses", "cape_red", "wings",
+	# the blaster range's map stone
+	"target",
 ]
 
 
@@ -596,6 +598,12 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				Color(1, 1, 1, 0.5))
 			_tri(p, c + Vector2(-s * 0.05, s * 0.26), c + Vector2(s * 0.05, s * 0.26),
 				c + Vector2(0, s * 0.19), red2.darkened(0.15))
+		"target":
+			for k in range(3):
+				_circle(p, c, s * (0.34 - 0.11 * float(k)),
+					[Color(0.90, 0.32, 0.30), Color(0.97, 0.94, 0.88),
+						Color(0.90, 0.32, 0.30)][k])
+			_circle(p, c, s * 0.05, Color(0.97, 0.94, 0.88))
 		"crown":
 			var gold := Color(1.0, 0.82, 0.30)
 			_round_rect(p, c + Vector2(-s * 0.30, s * 0.06), Vector2(s * 0.60, s * 0.16), gold, s * 0.04)
