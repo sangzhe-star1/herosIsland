@@ -234,7 +234,16 @@
     "level.star_trials_04": "Blaster Range",
     "level.star_trials_05": "Moonlight Range",
     "blaster.instruction": "Zap the monsters! The puppy is a friend!",
-    "blaster.friend": "Oops — that's our puppy friend!"
+    "blaster.friend": "Oops — that's our puppy friend!",
+    "parent.backup_title": "Progress backup",
+    "parent.backup_hint": "Export writes a small progress file (Downloads on a computer; the app's folder in Files on a tablet). Send it to the other device with AirDrop or WeChat, put it in Downloads or the app's Files folder there, then tap Import. Importing merges best-of: nothing is ever lost.",
+    "parent.export": "Export progress",
+    "parent.import": "Import progress",
+    "parent.export_done": "Saved: %s — now send this file to the other device.",
+    "parent.export_fail": "Could not write the backup file.",
+    "parent.import_none": "No progress file found. Put it in Downloads or this app's Files folder first.",
+    "parent.import_bad": "That file is not a Growth Island progress file.",
+    "parent.import_done": "Imported %s — stars %d → %d."
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -471,6 +480,15 @@
     "level.star_trials_04": "光弹靶场",
     "level.star_trials_05": "月光靶场",
     "blaster.instruction": "光弹打怪兽！小狗是朋友，别打她！",
-    "blaster.friend": "哎呀——那是小狗朋友！"
+    "blaster.friend": "哎呀——那是小狗朋友！",
+    "parent.backup_title": "进度备份",
+    "parent.backup_hint": "导出会生成一个小小的进度文件（电脑在“下载”文件夹；平板在“文件”App 的本应用文件夹里）。用隔空投送或微信发到另一台设备，放进那边的“下载”或本应用文件夹，再点导入。导入按“取高”合并：星星只会变多，不会丢。",
+    "parent.export": "导出进度",
+    "parent.import": "导入进度",
+    "parent.export_done": "已保存：%s——把这个文件发到另一台设备吧。",
+    "parent.export_fail": "写入备份文件失败。",
+    "parent.import_none": "没找到进度文件。先把它放进“下载”或本应用的“文件”文件夹。",
+    "parent.import_bad": "这个文件不是成长岛的进度文件。",
+    "parent.import_done": "已导入 %s——星星 %d → %d。"
   }
 }

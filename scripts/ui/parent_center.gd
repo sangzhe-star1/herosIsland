@@ -8,6 +8,7 @@ var _answer: LineEdit
 var _feedback: Label
 var _a := 0
 var _b := 0
+var _backup_status: Label
 
 
 func _ready() -> void:
@@ -132,6 +133,8 @@ func _build_content() -> void:
 	list.add_child(_build_language_row())
 	list.add_child(_build_limit_row())
 	list.add_child(_build_motion_row())
+	list.add_child(HSeparator.new())
+	_build_backup_section(list)
 
 
 func _compute_stats() -> Dictionary:
@@ -165,6 +168,63 @@ func _add_row(parent: Control, label: String, value: String) -> void:
 	v.add_theme_font_size_override("font_size", 30)
 	row.add_child(v)
 	parent.add_child(row)
+
+
+## Progress backup: how the iPad's stars reach the Mac and back. No cloud,
+## no account -- a small file, carried by AirDrop or WeChat, merged best-of
+## on arrival so importing can never lose anything.
+func _build_backup_section(list: Control) -> void:
+	var title := Label.new()
+	title.text = I18n.t("parent.backup_title")
+	title.add_theme_font_size_override("font_size", 30)
+	list.add_child(title)
+
+	var hint := Label.new()
+	hint.text = I18n.t("parent.backup_hint")
+	hint.add_theme_font_size_override("font_size", 22)
+	hint.add_theme_color_override("font_color", Palette.INK_SOFT)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	list.add_child(hint)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 20)
+	var export_btn := UiKit.big_button(I18n.t("parent.export"))
+	export_btn.pressed.connect(_on_export_pressed)
+	row.add_child(export_btn)
+	var import_btn := UiKit.big_button(I18n.t("parent.import"), Palette.GREEN)
+	import_btn.pressed.connect(_on_import_pressed)
+	row.add_child(import_btn)
+	list.add_child(row)
+
+	_backup_status = Label.new()
+	_backup_status.add_theme_font_size_override("font_size", 22)
+	_backup_status.add_theme_color_override("font_color", Palette.INK_SOFT)
+	_backup_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	list.add_child(_backup_status)
+
+
+func _on_export_pressed() -> void:
+	var path := SaveManager.export_progress()
+	if path == "":
+		_backup_status.text = I18n.t("parent.export_fail")
+		return
+	_backup_status.text = I18n.t("parent.export_done") % path
+
+
+func _on_import_pressed() -> void:
+	var backups: Array = SaveManager.list_backups()
+	if backups.is_empty():
+		_backup_status.text = I18n.t("parent.import_none")
+		return
+	# Newest file wins; the merge underneath is best-of, so even importing
+	# an old file by mistake can only add, never subtract.
+	var result: Dictionary = SaveManager.import_progress(str(backups[0]["path"]))
+	if not bool(result.get("ok", false)):
+		_backup_status.text = I18n.t("parent.import_bad")
+		return
+	_backup_status.text = I18n.t("parent.import_done") % [
+		str(result["path"]).get_file(),
+		int(result["stars_before"]), int(result["stars_after"])]
 
 
 func _build_language_row() -> Control:

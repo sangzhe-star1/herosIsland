@@ -48,6 +48,29 @@ func _ready() -> void:
 		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
 	_ok(reread is Dictionary, "after recovery the main save is whole again")
 
+	# The travel path: export here, "arrive" on a blank device, import,
+	# and prove the merge is best-of in both directions.
+	var exported := SaveManager.export_progress()
+	_ok(exported != "" and FileAccess.file_exists(exported), "export writes a file")
+	SaveManager.data = SaveManager._default_data()
+	SaveManager.record_level_result("piglet_town_01", 2, 0.8)   # local-only progress
+	SaveManager.add_coins(10)
+	var result: Dictionary = SaveManager.import_progress(exported)
+	_ok(bool(result.get("ok", false)), "importing a real backup succeeds")
+	_ok(SaveManager.total_stars() == 5,
+		"merge keeps BOTH sides' levels (3 imported + 2 local)")
+	_ok(int(SaveManager.data["rewards"]["coins"]) == 42,
+		"merge takes the higher coin count, never the sum")
+	_ok(SaveManager.item_count("heart_potion") == 1, "items travel in the backup")
+	var garbage := FileAccess.open("user://not_a_backup.json", FileAccess.WRITE)
+	garbage.store_string("{\"hello\": 1}")
+	garbage.close()
+	var refused: Dictionary = SaveManager.import_progress("user://not_a_backup.json")
+	_ok(not bool(refused.get("ok", true)), "a random JSON file is refused")
+	_ok(SaveManager.total_stars() == 5, "a refused import changes nothing")
+	DirAccess.remove_absolute(exported)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://not_a_backup.json"))
+
 	# Only when BOTH generations are gone does the island start over.
 	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)

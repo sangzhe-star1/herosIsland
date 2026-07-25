@@ -351,6 +351,120 @@ func add_growth(attribute: String, amount: int) -> void:
 	save_game()
 
 
+# --- progress backup: how two devices share one child's history ----------
+#
+# There is no cloud and no account, on purpose. Instead the Parent Center
+# can EXPORT the save as a small file (AirDrop or WeChat it across) and
+# IMPORT one found on this device. Import MERGES by best-of -- stars, coins,
+# items, badges all take the higher value -- so importing an old file can
+# never downgrade anyone, and importing twice never double-counts.
+
+const BACKUP_PREFIX := "heroes_island_progress"
+
+
+## Writes the backup file and returns its absolute path ("" on failure).
+## Desktop: the Downloads folder, where a parent can actually find it.
+## Tablet: the app's own documents, which the Files app can see once the
+## iOS preset's file-sharing switches are on.
+func export_progress() -> String:
+	var stamp: Dictionary = Time.get_datetime_dict_from_system()
+	var file_name := "%s_%04d-%02d-%02d_%02d%02d.json" % [BACKUP_PREFIX,
+		stamp.year, stamp.month, stamp.day, stamp.hour, stamp.minute]
+	var dir: String = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
+	if dir == "" or not DirAccess.dir_exists_absolute(dir):
+		dir = OS.get_user_data_dir()
+	var path := dir.path_join(file_name)
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return ""
+	f.store_string(JSON.stringify({
+		"heroes_island_backup": true,
+		"exported_at": Time.get_datetime_string_from_system(),
+		"data": data,
+	}, "\t"))
+	f.close()
+	return path
+
+
+## Every backup file this device can see, newest first.
+func list_backups() -> Array:
+	var found: Array = []
+	var dirs := [
+		OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS),
+		OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS),
+		OS.get_user_data_dir(),
+	]
+	for dir in dirs:
+		if dir == "" or not DirAccess.dir_exists_absolute(dir):
+			continue
+		for file_name in DirAccess.get_files_at(dir):
+			if str(file_name).begins_with(BACKUP_PREFIX) and str(file_name).ends_with(".json"):
+				var path: String = dir.path_join(str(file_name))
+				found.append({
+					"path": path,
+					"modified": FileAccess.get_modified_time(path),
+				})
+	found.sort_custom(func(a, b): return int(a["modified"]) > int(b["modified"]))
+	return found
+
+
+## Merge a backup into this device's save. Returns
+## {ok, error?, stars_before, stars_after, path}.
+func import_progress(path: String) -> Dictionary:
+	var before := total_stars()
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not (parsed is Dictionary) or not bool(parsed.get("heroes_island_backup", false)) \
+			or not (parsed.get("data") is Dictionary):
+		return {"ok": false, "error": "bad_file", "stars_before": before,
+			"stars_after": before, "path": path}
+	_merge_progress(_migrate(parsed["data"]))
+	save_game()
+	progress_changed.emit()
+	return {"ok": true, "stars_before": before, "stars_after": total_stars(),
+		"path": path}
+
+
+## Best-of, field by field. Settings and playtime stay LOCAL -- each device
+## keeps its own volume and daily limit; it is the child's achievements
+## that travel.
+func _merge_progress(theirs: Dictionary) -> void:
+	for level_id in theirs.get("levels", {}).keys():
+		var t: Dictionary = theirs["levels"][level_id]
+		var m: Dictionary = get_level_progress(level_id)
+		data["levels"][level_id] = {
+			"stars": maxi(int(m.get("stars", 0)), int(t.get("stars", 0))),
+			"best_accuracy": maxf(float(m.get("best_accuracy", 0.0)),
+				float(t.get("best_accuracy", 0.0))),
+			"attempts": maxi(int(m.get("attempts", 0)), int(t.get("attempts", 0))),
+			"completed": bool(m.get("completed", false)) or bool(t.get("completed", false)),
+		}
+	for level_id in theirs.get("challenges", {}).keys():
+		data["challenges"][level_id] = maxi(get_challenge_rank(str(level_id)),
+			int(theirs["challenges"][level_id]))
+	var tr: Dictionary = theirs.get("rewards", {})
+	data["rewards"]["coins"] = maxi(int(data["rewards"].get("coins", 0)), int(tr.get("coins", 0)))
+	data["rewards"]["spent_stars"] = maxi(int(data["rewards"].get("spent_stars", 0)),
+		int(tr.get("spent_stars", 0)))
+	for badge in tr.get("badges", []):
+		if not badge in data["rewards"]["badges"]:
+			data["rewards"]["badges"].append(badge)
+	for sticker in tr.get("stickers", []):
+		if not sticker in data["rewards"]["stickers"]:
+			data["rewards"]["stickers"].append(sticker)
+	for outfit in tr.get("outfits", []):
+		if not outfit in data["rewards"]["outfits"]:
+			data["rewards"]["outfits"].append(outfit)
+	for item_id in tr.get("items", {}).keys():
+		data["rewards"]["items"][item_id] = maxi(item_count(str(item_id)),
+			int(tr["items"][item_id]))
+	var tp: Dictionary = theirs.get("profile", {})
+	data["profile"]["xp"] = maxi(int(data["profile"].get("xp", 0)), int(tp.get("xp", 0)))
+	for attribute in theirs.get("growth", {}).keys():
+		if data["growth"].has(attribute):
+			data["growth"][attribute] = maxi(int(data["growth"][attribute]),
+				int(theirs["growth"][attribute]))
+
+
 # --- playtime, for the Parent Center ---
 
 func add_playtime(seconds: float) -> void:
