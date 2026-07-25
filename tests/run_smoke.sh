@@ -157,4 +157,18 @@ if ! grep -q "DUEL PROBE PASSED" "$DUEL_OUT"; then
 fi
 rm -f "$DUEL_OUT"
 
+# The save probe tears the save file the way a force-closed tablet does and
+# proves the child's history survives. Runs LAST: it ends on a deliberately
+# fresh save, and any probe after it would inherit that emptiness.
+echo
+echo "Running save probe..."
+SAVE_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/SaveProbe.tscn 2>&1 | tee "$SAVE_OUT"
+if ! grep -q "SAVE PROBE PASSED" "$SAVE_OUT"; then
+  rm -f "$SAVE_OUT"
+  echo "Save probe failed."
+  exit 1
+fi
+rm -f "$SAVE_OUT"
+
 echo "All good."

@@ -5,6 +5,16 @@ extends Node
 signal progress_changed()
 
 const SAVE_PATH := "user://save_game.json"
+## The previous good save. Every successful write rotates the current file
+## here first, so there is always ONE known-good generation behind us.
+const SAVE_BACKUP := "user://save_game.bak"
+## Writes land here first, then rename into place. A rename is atomic on
+## every platform this game ships to; writing straight over the real file
+## was not, and one interrupted write (a child swiping the app away
+## mid-save) truncated the file -- which the old loader then "recovered"
+## from by overwriting months of stars with a fresh save. That was the
+## whole mystery of the vanishing history.
+const SAVE_TMP := "user://save_game.tmp"
 const SAVE_VERSION := 1
 
 var data: Dictionary = {}
@@ -70,17 +80,29 @@ func _default_data() -> Dictionary:
 
 
 func load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
-		data = _default_data()
-		save_game()
-		return
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	# Main file first; if it is missing or torn, fall back to the previous
+	# good generation. Only when BOTH are gone does the island start over --
+	# a torn main file used to start over immediately, taking the child's
+	# whole history with it.
+	var parsed: Variant = _read_save(SAVE_PATH)
+	if parsed == null and FileAccess.file_exists(SAVE_BACKUP):
+		parsed = _read_save(SAVE_BACKUP)
+		if parsed != null:
+			push_warning("SaveManager: main save was torn; recovered from backup")
 	if parsed is Dictionary:
 		data = _migrate(parsed)
-	else:
-		push_warning("SaveManager: save file unreadable, starting fresh")
-		data = _default_data()
-		save_game()
+		return
+	if FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(SAVE_BACKUP):
+		push_warning("SaveManager: no readable save found, starting fresh")
+	data = _default_data()
+	save_game()
+
+
+func _read_save(path: String) -> Variant:
+	if not FileAccess.file_exists(path):
+		return null
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return parsed if parsed is Dictionary else null
 
 
 ## Fill in any keys added by a later build so old saves never crash the game.
@@ -98,12 +120,20 @@ func _migrate(loaded: Dictionary) -> Dictionary:
 
 
 func save_game() -> void:
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	# Write-to-temp, rotate, rename: at every instant of this sequence there
+	# is a complete save on disk somewhere. Interrupt it wherever you like --
+	# the worst case is losing the one change being written.
+	var f := FileAccess.open(SAVE_TMP, FileAccess.WRITE)
 	if f == null:
 		push_error("SaveManager: cannot write save file")
 		return
 	f.store_string(JSON.stringify(data, "\t"))
 	f.close()
+	if FileAccess.file_exists(SAVE_PATH):
+		if FileAccess.file_exists(SAVE_BACKUP):
+			DirAccess.remove_absolute(SAVE_BACKUP)
+		DirAccess.rename_absolute(SAVE_PATH, SAVE_BACKUP)
+	DirAccess.rename_absolute(SAVE_TMP, SAVE_PATH)
 
 
 # --- settings ---
