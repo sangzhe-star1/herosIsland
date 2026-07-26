@@ -159,6 +159,24 @@ if os.path.exists(cache_path):
         own_name = own.group(1) if own else None
         for name in missing:
             if name == own_name:
+                # A file naming its OWN class is not automatically safe. The
+                # declaration line is fine; using the name as a type or a
+                # constructor is not, because on a stale cache the name does
+                # not exist even inside the file that declares it -- the
+                # script fails to COMPILE and everything that preloads it
+                # dies too. That is what turned every level grey once:
+                # `static func for_level(...) -> VariantPicker` in
+                # variant_picker.gd, skipped by this very check.
+                without_decl = re.sub(r'^class_name\s+\w+.*$', '', body, flags=re.M)
+                if not re.search(r'\b%s\b' % re.escape(name), without_decl):
+                    continue
+                errors.append(
+                    "%s uses its own class name '%s' as a type or "
+                    "constructor. On a machine whose editor has not rescanned "
+                    "that name does not exist even here, and the script will "
+                    "not compile. Drop the annotation, or use "
+                    "`load(\"res://...\")` instead of `%s.new()`."
+                    % (f, name, name))
                 continue
             if re.search(r'\b%s\b' % re.escape(name), body):
                 errors.append(

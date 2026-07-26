@@ -1,5 +1,33 @@
 # Changelog
 
+## The grey window — 26 July 2026
+
+Reported as "公园里的光球页面空白": the level opened to a flat grey rectangle
+with nothing in it. Every level using one of the new templates did the same.
+
+**Cause, and it is the same trap wearing a new hat.** `variant_picker.gd`
+declared `class_name VariantPicker` and then used that name twice inside
+itself -- once as a return type, once as `VariantPicker.new()`. Global class
+names live in `.godot/global_script_class_cache.cfg`, which only the editor
+rebuilds, so on a machine that has not rescanned the name does not exist
+**including inside the file that declares it**. The script failed to COMPILE,
+every template that preloads it failed with it, and the scene came up empty.
+
+The previous fix taught every file to reach for its neighbours by path. This
+one was reaching for ITSELF by name, which felt safe and was not.
+
+**Fix**: the return type is gone and the constructor goes through
+`load("res://scripts/shared/variant_picker.gd")`. Verified by rebuilding a
+class cache with exactly the eleven newest names removed -- three compile
+errors and a grey screen before, a clean park with its orbs after.
+
+**And the check that missed it now catches it.** The class-cache rule had an
+explicit `if name == own_name: continue`, on the reasoning that a file may
+obviously name its own class. It may -- on the declaration line, and nowhere
+else. It now ignores that line and errors on any other use, naming the file,
+the class and both ways out. Confirmed by putting the trap back and watching
+it fail.
+
 ## Voice that just works, and the games you asked for come back — 26 July 2026
 
 **Recordings now play themselves.** Drop a file named after a level into

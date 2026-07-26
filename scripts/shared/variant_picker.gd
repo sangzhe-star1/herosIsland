@@ -102,8 +102,24 @@ func spots(all_spots: Array, count: int, apart: float = 140.0) -> Array:
 
 
 ## The picker a level should use, built from its own save data.
-static func for_level(level_id: String) -> VariantPicker:
+##
+## NO RETURN TYPE, deliberately. Naming this file's own `class_name` here is
+## the obvious thing to write and it is a trap: a global class name lives in
+## `.godot/global_script_class_cache.cfg`, which only the EDITOR rebuilds, so
+## on a machine that has not rescanned since this file was written the name
+## does not exist -- INCLUDING inside the file that declares it. The script
+## then fails to COMPILE, every template that calls this dies with it, and the
+## child gets a grey window with nothing on it.
+##
+## That is exactly what happened: "公园里的光球页面空白". The templates hold
+## this script as a `preload` const and annotate their own variable with that,
+## which resolves by path and never touches the cache.
+static func for_level(level_id: String):
 	# `attempts` counts every finished run, which is exactly "how many times
 	# has this child seen this level" -- the number the variation should turn on.
 	var done: int = int(SaveManager.get_level_progress(level_id).get("attempts", 0))
-	return VariantPicker.new(level_id, done)
+	# `new()` on the file's own script resource, not on its global name -- same
+	# reason as the missing return type above. `load(...)` here rather than a
+	# `const preload` because a script preloading itself is a cycle.
+	return (load("res://scripts/shared/variant_picker.gd") as GDScript).new(
+		level_id, done)
