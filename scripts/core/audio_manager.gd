@@ -20,6 +20,10 @@ func _ready() -> void:
 	_music = AudioStreamPlayer.new()
 	_sfx = AudioStreamPlayer.new()
 	_voice = AudioStreamPlayer.new()
+	# Named so a test can find it and check a spoken line really reached the
+	# player. "The file is in the folder" and "a child hears it" are two
+	# different claims, and this project has been caught by that gap before.
+	_voice.name = "Voice"
 	for p in [_music, _sfx, _voice]:
 		add_child(p)
 	_voice.finished.connect(_on_voice_finished)

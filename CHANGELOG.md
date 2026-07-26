@@ -1,5 +1,37 @@
 # Changelog
 
+## The island speaks — 26 July 2026
+
+Forty-four recorded lines arrived and the game uses them.
+
+**Every level says what it wants**, the three hint steps are spoken, praise
+lands every fourth right answer, "try again" once per level on the first slip,
+and the rest suggestion says the same sentence it shows on screen. Nothing
+needed wiring per level -- the lookup is by filename, which is what the last
+round built it for.
+
+**Voice is sparse on purpose.** A line on every correct answer stops being
+encouragement and becomes a running commentary a child tunes out -- and at two
+seconds a line it would fall behind the game on any fast level. Once every
+four right answers is about one warm word a minute, which is how an adult
+sitting beside a child actually behaves. "Try again" is spoken on the first
+mistake only; after that the child knows what the sound means and being told
+again is nagging.
+
+**27 MB of WAV became 2.8 MB of OGG.** Mono, 24 kHz, quality 1 -- more than
+speech needs and a tenth of the size. On a tablet build that matters more than
+it does on a desktop, and nobody can hear the difference on a sentence.
+
+**New `VoiceCheck`, in the smoke suite.** Every level finds a line, every
+shared line is present, and asking for one really loads a stream into the
+player -- because "the files are in the folder" and "a child hears them" are
+two different claims, and this project has been caught by that gap before. The
+voice player got a name so the test can look inside it.
+
+Three levels are still silent: the bonus levels arrived after the script was
+written. They are allowed to be quiet, and their three lines are now at the
+end of `docs/VOICE_SCRIPT.md` for whenever somebody feels like it.
+
 ## The grey window — 26 July 2026
 
 Reported as "公园里的光球页面空白": the level opened to a flat grey rectangle

@@ -148,12 +148,21 @@ func target_value(key: String, fallback: int) -> int:
 	return int(level_data.get("target", {}).get(key, fallback))
 
 
+## How many right answers between spoken praise. Every one would be a running
+## commentary; never would waste a recorded voice. Four is about one warm word
+## a minute, which is how an adult sitting beside a child actually behaves.
+const PRAISE_EVERY := 4
+
 ## Call when the child does the right thing.
 func score_correct() -> void:
 	if _finished:
 		return
 	result.correct += 1
 	AudioManager.play_sfx("res://assets/audio/correct.ogg")
+	if result.correct % PRAISE_EVERY == 0:
+		# Rotated, not random: the same one twice running sounds like a
+		# machine, and a child hears that immediately.
+		AudioManager.say("praise_%d" % (1 + (result.correct / PRAISE_EVERY) % 3))
 	on_correct()
 	correct_scored.emit(result.correct)
 	if auto_complete_on_target() and result.met_target():
@@ -167,6 +176,10 @@ func score_mistake() -> void:
 		return
 	result.mistakes += 1
 	AudioManager.play_sfx("res://assets/audio/try_again.ogg")
+	# Spoken once per level, on the first slip. After that the child knows
+	# what the sound means and being told again is nagging.
+	if result.mistakes == 1:
+		AudioManager.say("retry")
 	on_mistake()
 	mistake_made.emit(result.mistakes)
 
@@ -176,6 +189,7 @@ func complete_level() -> void:
 		return
 	_finished = true
 	result.duration_seconds = _elapsed
+	AudioManager.say("finish")
 	level_completed.emit(result)
 	await get_tree().create_timer(1.2).timeout
 	GameManager.finish_level(result)

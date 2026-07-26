@@ -225,6 +225,20 @@ rm -f "$ECHO_OUT"
 # the id already set -- and the map was the one path nobody walked. It also
 # plays a save from BEFORE the rebuild, full of level ids that no longer
 # exist, which is the state every existing player is in.
+# The voice check: every level finds its recorded line, the shared lines are
+# all present, and asking for one really loads a stream. Cheap, and it is the
+# difference between "the files are in the folder" and "a child hears them".
+echo
+echo "Running voice check..."
+VOICE_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/VoiceCheck.tscn 2>&1 | tee "$VOICE_OUT"
+if ! grep -q "VOICE CHECK PASSED" "$VOICE_OUT"; then
+  rm -f "$VOICE_OUT"
+  echo "Voice check failed."
+  exit 1
+fi
+rm -f "$VOICE_OUT"
+
 echo
 echo "Running map probe..."
 MAP_OUT=$(mktemp)

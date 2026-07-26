@@ -276,7 +276,14 @@ func _rest_note() -> Control:
 	var art: Control = UiKit.picture("moon", 46)
 	if art != null:
 		row.add_child(art)
-	var words := UiKit.title(I18n.t(Rest.line()), 30)
+	# The spoken line and the written line must be the SAME line -- a child
+	# hearing one sentence and seeing another is more confused, not less.
+	var key := Rest.line()
+	var spoken := ["rest.done_today", "rest.stretch", "rest.come_back",
+		"rest.well_played"].find(key)
+	if spoken >= 0:
+		AudioManager.say("rest_%d" % (spoken + 1))
+	var words := UiKit.title(I18n.t(key), 30)
 	words.add_theme_color_override("font_color", Color(0.80, 0.90, 1.0))
 	row.add_child(words)
 	if Juice.motion_enabled():
