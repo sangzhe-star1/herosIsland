@@ -251,6 +251,136 @@ static func for_world(world_id: String) -> WorldStyle:
 			s.mote_kind = "pollen"
 			s.mote_color = Color(1.0, 0.98, 0.82, 0.7)
 
+		# --- the four worlds the rebuild added -------------------------------
+		#
+		# These arrived with the multi-play rebuild and, until now, had no
+		# entry here at all -- so every level in four of the five worlds fell
+		# through to the `island` default below and got drawn as the same blue
+		# sea and sand. Four different places, one beach. The brief asked for
+		# worlds that do not look alike; they could not, because only one of
+		# them existed as a place.
+
+		# Half past nine at night, from a rooftop. The city is awake and lit --
+		# this is the world about paying attention (crossing roads, spotting
+		# the broken thing), so the windows and the signage do the work of
+		# telling a child where to look. Deep indigo rather than black: the
+		# island has no horror in it at any hour.
+		"night_city":
+			s.sky_top = Color(0.08, 0.10, 0.28)
+			s.sky_bottom = Color(0.34, 0.26, 0.52)
+			s.haze = Color(0.62, 0.52, 0.92, 0.50)
+			s.light_at = Vector2(0.72, 0.16)
+			s.light_radius = 50.0
+			s.light_color = Color(0.88, 0.92, 1.0)
+			s.light_glow = 0.42
+			s.star_density = 0.7
+			s.horizon_kind = "skyline"
+			s.band_scale = 2.2
+			s.band_colors = [
+				Color(0.26, 0.24, 0.48), Color(0.18, 0.17, 0.38), Color(0.11, 0.12, 0.28),
+			]
+			s.ground_top = Color(0.22, 0.22, 0.40)
+			s.ground_bottom = Color(0.12, 0.13, 0.26)
+			s.ground_kind = "road"
+			s.props = ["lamp", "block", "antenna", "shop"]
+			s.prop_density = 1.1
+			s.clouds = 0.3
+			s.mote_kind = "fireflies"
+			s.mote_color = Color(0.72, 0.92, 1.0, 0.7)
+
+		# Last light in a deep green valley. Warmer and much greener than the
+		# old arena -- a valley is somewhere monsters LIVE, not somewhere they
+		# are fought, and the levels here are about feeding cubs and reading
+		# footprints. Crags at the back so it still reads as enclosed.
+		"monster_valley":
+			s.sky_top = Color(0.22, 0.26, 0.48)
+			s.sky_bottom = Color(0.94, 0.62, 0.42)
+			s.haze = Color(1.0, 0.70, 0.46, 0.56)
+			s.light_at = Vector2(0.18, 0.52)
+			s.light_radius = 84.0
+			s.light_color = Color(1.0, 0.82, 0.52)
+			s.light_glow = 0.48
+			s.star_density = 0.2
+			s.horizon_kind = "crags"
+			s.band_scale = 2.0
+			s.band_colors = [
+				Color(0.40, 0.44, 0.46), Color(0.29, 0.35, 0.38), Color(0.20, 0.26, 0.30),
+			]
+			s.ground_top = Color(0.42, 0.56, 0.34)
+			s.ground_bottom = Color(0.26, 0.38, 0.26)
+			s.props = ["pine", "rock", "bush", "crag"]
+			s.prop_density = 1.2
+			s.clouds = 0.45
+			s.mote_kind = "fireflies"
+			s.mote_color = Color(1.0, 0.90, 0.56, 0.8)
+
+		# Above the weather. Thin pale air, a low sun, and the peaks of the
+		# island poking through a cloud floor a long way down -- so a child
+		# can see, without being told, that this world is HIGH. The lightest
+		# sky in the game after the park, because the sky base levels are the
+		# reading-and-remembering ones and want a quiet backdrop.
+		"sky_base":
+			s.sky_top = Color(0.30, 0.56, 0.86)
+			s.sky_bottom = Color(0.86, 0.94, 1.0)
+			s.haze = Color(0.92, 0.98, 1.0, 0.58)
+			s.light_at = Vector2(0.80, 0.18)
+			s.light_radius = 66.0
+			s.light_color = Color(1.0, 0.98, 0.92)
+			s.light_glow = 0.36
+			s.horizon_kind = "crags"
+			s.band_scale = 2.4
+			# Pale to nearly white: distance, and the cloud layer these are
+			# standing in.
+			s.band_colors = [
+				Color(0.86, 0.92, 0.98), Color(0.74, 0.84, 0.94), Color(0.62, 0.75, 0.90),
+			]
+			s.ground_top = Color(0.72, 0.84, 0.92)
+			s.ground_bottom = Color(0.52, 0.68, 0.82)
+			s.ground_kind = "plaza"
+			# No lamp posts up here. A streetlamp only lights itself when the
+			# world is dark (see _prop_lamp), and this world is not -- so they
+			# came out as black lollipops on a white sky, the one thing in the
+			# frame that did not belong to it.
+			s.props = ["antenna", "block"]
+			s.prop_density = 0.85
+			s.clouds = 1.0
+			# Not snow: with pale peaks behind it the whole picture turned into
+			# a mountain in winter. Motes so faint they read as thin air.
+			s.mote_kind = "pollen"
+			s.mote_color = Color(1.0, 1.0, 1.0, 0.45)
+
+		# The last world, and the one that has to be careful. Deep violet and
+		# a big moon, lit by braziers -- "dark" as in night-time and a bit
+		# grand, never as in frightening. The kindness levels live here, so
+		# the castle is warm inside its own shadow: every light in the picture
+		# is a friendly colour, and there is no black in the palette at all.
+		"dark_castle":
+			s.sky_top = Color(0.11, 0.08, 0.24)
+			s.sky_bottom = Color(0.42, 0.28, 0.52)
+			s.haze = Color(0.78, 0.56, 0.90, 0.46)
+			s.light_at = Vector2(0.24, 0.14)
+			s.light_radius = 72.0
+			s.light_color = Color(0.96, 0.94, 0.88)
+			s.light_glow = 0.44
+			s.star_density = 1.0
+			s.horizon_kind = "rooftops"
+			s.band_scale = 2.3
+			s.band_colors = [
+				Color(0.32, 0.24, 0.46), Color(0.24, 0.18, 0.37), Color(0.16, 0.12, 0.27),
+			]
+			s.ground_top = Color(0.34, 0.28, 0.44)
+			s.ground_bottom = Color(0.20, 0.16, 0.30)
+			s.ground_kind = "plaza"
+			# Braziers and lamps, no bunting. With banners in the mix the
+			# castle courtyard came out looking like a funfair -- four pink
+			# and orange flags in one frame and the place stopped being a
+			# castle. The warmth has to come from the firelight instead.
+			s.props = ["brazier", "block", "crag", "lamp"]
+			s.prop_density = 1.0
+			s.clouds = 0.4
+			s.mote_kind = "embers"
+			s.mote_color = Color(1.0, 0.74, 0.50, 0.75)
+
 		"bluey_park":
 			# A backyard on a Saturday morning: the brightest, homeliest hour
 			# on the island. Everything soft green and sky blue -- the world

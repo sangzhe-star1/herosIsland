@@ -342,6 +342,102 @@ func _region_prop(parent: Node2D, world_id: String) -> void:
 			var r: float = _rng.randf_range(70.0, 130.0)
 			Shapes.lit(parent, Shapes.blob(Vector2(0, -r * 0.55), Vector2(r, r * 0.72),
 				_rng, 0.24, 4, 16), Color(0.52, 0.44, 0.66), 1.0)
+
+		# --- the five worlds the map actually has ----------------------------
+		#
+		# Same gap as in WorldStyle: the rebuild renamed the worlds and nobody
+		# moved the map's drawings across, so all five regions fell to the
+		# green blob at the bottom and the island read as one long park. A
+		# child should be able to point at the map and say which bit is the
+		# city, from across the room.
+
+		"sunny_park":
+			# A round tree and a bench: the picture of "park" a six-year-old
+			# would draw.
+			var tt: float = _rng.randf_range(120.0, 175.0)
+			Shapes.fill(parent, Shapes.taper(Vector2.ZERO, Vector2(0, -tt * 0.5), 18.0, 13.0),
+				Color(0.46, 0.33, 0.24), 1.0)
+			Shapes.lit(parent, Shapes.blob(Vector2(0, -tt * 0.72), Vector2(tt * 0.46, tt * 0.38),
+				_rng, 0.18, 4, 18), Color(0.34, 0.62, 0.38), 1.0)
+			Shapes.lit(parent, Shapes.rounded_rect(
+				Vector2(tt * 0.30, -tt * 0.20), Vector2(tt * 0.42, tt * 0.09), 4.0),
+				Color(0.80, 0.62, 0.42), 1.0)
+
+		"night_city":
+			# A lit tower block. The windows are the point -- a dark tower is
+			# a rock, a tower with windows on is a city at night.
+			var ch: float = _rng.randf_range(170.0, 270.0)
+			var cw: float = _rng.randf_range(72.0, 108.0)
+			Shapes.lit(parent, Shapes.rounded_rect(Vector2(-cw * 0.5, -ch), Vector2(cw, ch), 6.0),
+				Color(0.40, 0.42, 0.62), 1.0)
+			for wy in range(int(ch / 40.0)):
+				for wx in range(int(cw / 30.0)):
+					# Not every window: a fully lit block looks like graph paper.
+					if _rng.randf() < 0.72:
+						Shapes.fill(parent, Shapes.rounded_rect(
+							Vector2(-cw * 0.5 + 12.0 + float(wx) * 30.0,
+								-ch + 16.0 + float(wy) * 40.0),
+							Vector2(14, 18), 3.0), Color(0.98, 0.90, 0.60), 0.0)
+			Shapes.glow(parent, Vector2(0, -ch - 6.0), 54.0, Color(0.72, 0.88, 1.0), 5, 0.26)
+
+		"monster_valley":
+			# A friendly lump with two ears and two eyes, asleep on the hill.
+			var mr: float = _rng.randf_range(72.0, 128.0)
+			Shapes.lit(parent, Shapes.blob(Vector2(0, -mr * 0.56), Vector2(mr, mr * 0.70),
+				_rng, 0.22, 4, 16), Color(0.40, 0.58, 0.40), 1.0)
+			for ear in [-1.0, 1.0]:
+				Shapes.lit(parent, PackedVector2Array([
+					Vector2(ear * mr * 0.52, -mr * 0.92),
+					Vector2(ear * mr * 0.30, -mr * 1.30),
+					Vector2(ear * mr * 0.16, -mr * 0.86),
+				]), Color(0.36, 0.53, 0.38), 1.0)
+			for eye in [-1.0, 1.0]:
+				Shapes.fill(parent, Shapes.circle_points(
+					Vector2(eye * mr * 0.26, -mr * 0.74), mr * 0.09, 12),
+					Color(1.0, 0.96, 0.82), 0.0)
+
+		"sky_base":
+			# A platform on a column, standing in its own cloud. Reads as
+			# "up there" without needing anything behind it.
+			var sw: float = _rng.randf_range(120.0, 168.0)
+			Shapes.fill(parent, Shapes.oval_points(Vector2(0, -12.0),
+				Vector2(sw * 0.72, sw * 0.20), 18), Color(0.94, 0.97, 1.0, 0.85), 0.0)
+			Shapes.fill(parent, Shapes.taper(Vector2(0, -sw * 0.10),
+				Vector2(0, -sw * 0.66), 20.0, 26.0), Color(0.58, 0.68, 0.82), 1.0)
+			Shapes.lit(parent, Shapes.rounded_rect(
+				Vector2(-sw * 0.5, -sw * 0.86), Vector2(sw, sw * 0.24), 10.0),
+				Color(0.76, 0.86, 0.94), 1.0)
+			Shapes.fill(parent, Shapes.taper(Vector2(sw * 0.28, -sw * 0.86),
+				Vector2(sw * 0.28, -sw * 1.16), 4.0, 3.0), Color(0.52, 0.60, 0.74), 0.0)
+			Shapes.glow(parent, Vector2(sw * 0.28, -sw * 1.18), 40.0,
+				Color(0.60, 0.94, 1.0), 5, 0.34)
+
+		"dark_castle":
+			# Two towers, battlements, one warm lit window. The light is what
+			# keeps it from being a scary building: somebody is home.
+			var kw2: float = _rng.randf_range(120.0, 170.0)
+			var kh2: float = kw2 * 0.86
+			Shapes.lit(parent, Shapes.rounded_rect(
+				Vector2(-kw2 * 0.34, -kh2), Vector2(kw2 * 0.68, kh2), 4.0),
+				Color(0.40, 0.34, 0.54), 1.0)
+			for tower in [-1.0, 1.0]:
+				Shapes.lit(parent, Shapes.rounded_rect(
+					Vector2(tower * kw2 * 0.50 - kw2 * 0.12, -kh2 * 1.24),
+					Vector2(kw2 * 0.24, kh2 * 1.24), 4.0), Color(0.34, 0.29, 0.48), 1.0)
+				Shapes.lit(parent, PackedVector2Array([
+					Vector2(tower * kw2 * 0.50 - kw2 * 0.17, -kh2 * 1.24),
+					Vector2(tower * kw2 * 0.50, -kh2 * 1.52),
+					Vector2(tower * kw2 * 0.50 + kw2 * 0.17, -kh2 * 1.24),
+				]), Color(0.56, 0.34, 0.44), 1.0)
+			for merlon in range(3):
+				Shapes.fill(parent, Shapes.rounded_rect(
+					Vector2(-kw2 * 0.30 + float(merlon) * kw2 * 0.22, -kh2 - kh2 * 0.12),
+					Vector2(kw2 * 0.13, kh2 * 0.12), 2.0), Color(0.40, 0.34, 0.54), 0.0)
+			Shapes.fill(parent, Shapes.rounded_rect(
+				Vector2(-kw2 * 0.07, -kh2 * 0.62), Vector2(kw2 * 0.14, kh2 * 0.22), 5.0),
+				Color(1.0, 0.86, 0.56), 0.0)
+			Shapes.glow(parent, Vector2(0, -kh2 * 0.51), 58.0, Color(1.0, 0.84, 0.52), 5, 0.30)
+
 		_:
 			Shapes.lit(parent, Shapes.blob(Vector2(0, -40.0), Vector2(56.0, 40.0), _rng, 0.2, 3, 16),
 				Color(0.42, 0.68, 0.42), 1.0)

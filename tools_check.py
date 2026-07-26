@@ -310,6 +310,39 @@ for w in json.load(open("data/worlds.json")):
     if w["growth_attribute"] not in growth_ids:
         errors.append(f"worlds.json: {w['id']} unknown growth_attribute")
 
+# --- 5b. every world is a PLACE
+#
+# WorldStyle.for_world() and IslandMap._region_prop() both end in a catch-all
+# arm, so a world with no entry of its own does not crash -- it silently gets
+# the default. When the rebuild renamed the five worlds, nobody moved the
+# scenery across, and four of the five were drawn as the same blue sea and
+# sand for weeks. Nothing failed. Every static check passed. It was only
+# visible by looking at the screen, which is exactly the kind of bug a check
+# should be catching instead.
+#
+# So: a world id in worlds.json must appear as its own match arm in both
+# files. Falling through to `_` is the error.
+def match_arms(path):
+    src = open(path).read()
+    # Arm labels only: `"night_city":` or `"skyline", "rooftops":` at the head
+    # of a line. Deliberately not a general string search -- the world id also
+    # appears in comments and in level ids, and matching those would let a
+    # mention stand in for a drawing.
+    arms = set()
+    for line in src.splitlines():
+        m = re.match(r'^\s*((?:"[\w]+"\s*,\s*)*"[\w]+")\s*:\s*$', line)
+        if m:
+            arms |= set(re.findall(r'"(\w+)"', m.group(1)))
+    return arms
+
+for path, what in [("scripts/world/world_style.gd", "scenery of its own"),
+                   ("scripts/world/island_map.gd", "a shape of its own on the map")]:
+    arms = match_arms(path)
+    for w in sorted(worlds):
+        if w not in arms:
+            errors.append(f"{os.path.basename(path)}: world '{w}' has "
+                          f"no {what} and falls through to the default")
+
 # --- 6. every badge is reachable
 awarded = {lv.get("reward", {}).get("badge", "") for lv in levels}
 for b in sorted(badges - awarded):

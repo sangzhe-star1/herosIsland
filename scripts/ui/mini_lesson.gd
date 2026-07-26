@@ -98,10 +98,23 @@ func _ready() -> void:
 
 
 func _build() -> void:
-	# A calm backdrop: this is not a level, and it should not look like one.
-	UiKit.world_background(self, _world, "lesson", 0.72)
+	# A quiet backdrop: this is not a level, and it should not look like one.
+	#
+	# It used to get quiet twice over -- the stage's own `calm` lays a white
+	# wash on top, and then this laid a blue-black veil on top of THAT. Two
+	# veils pulling opposite ways landed all five worlds on the same grey-blue
+	# and you could not tell the valley lesson from the castle lesson. So:
+	# no white wash, and one veil that is the world's OWN sky taken down
+	# almost to black. The park stays green under it, the castle stays purple,
+	# the caption still reads white against every one of them.
+	UiKit.world_background(self, _world, "lesson", 0.0)
 	var veil := ColorRect.new()
-	veil.color = Color(0.04, 0.07, 0.16, 0.55)
+	var style: WorldStyle = WorldStyle.for_world(_world)
+	# Light enough that the park still looks sunny. The caption does not need
+	# the veil to be readable -- UiKit.on_art() gives it its own outline, the
+	# same one every label over scenery in this game uses. The veil is here to
+	# change the mood, not to rescue the text.
+	veil.color = Color(style.sky_top.darkened(0.70), 0.42)
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(veil)
@@ -179,7 +192,14 @@ func _show_beat() -> void:
 	art.position = Vector2(640, 190)
 	_stage.add_child(art)
 	_draw_scene(art, str(beat["draw"]))
-	_caption.text = I18n.t(str(beat["say"]))
+	var line: String = str(beat["say"])
+	_caption.text = I18n.t(line)
+	# Said aloud, if somebody has recorded it. A six-year-old three weeks into
+	# 一年级 cannot read this caption yet, so a silent lesson teaches him only
+	# what the drawing manages on its own. The string key IS the filename --
+	# "lesson.park.1" looks for lesson_park_1 -- so recording the file is the
+	# whole of the wiring. No file, no sound, no error.
+	AudioManager.say(line.replace(".", "_"))
 
 	for i in range(_dots.get_child_count()):
 		var dot: Control = _dots.get_child(i)
@@ -210,6 +230,7 @@ func _show_beat() -> void:
 func _finish() -> void:
 	_playing = false
 	_caption.text = I18n.t("lesson.remember")
+	AudioManager.say("lesson_remember")
 	for child in _stage.get_children():
 		child.queue_free()
 	var art := Node2D.new()
