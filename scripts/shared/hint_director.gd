@@ -47,7 +47,7 @@ func _process(delta: float) -> void:
 	if not _armed:
 		return
 	_idle += delta
-	if _idle >= IDLE:
+	if _idle >= idle_wait():
 		_idle = 0.0
 		_step()
 
@@ -86,6 +86,46 @@ func _step() -> void:
 			# stuck on deserves the gentle first step again, not the last one.
 			_misses = 0
 			_level = 0
+
+
+## --- and the other direction ---------------------------------------------
+##
+## The brief asks for adaptation BOTH ways, and is careful about what "harder"
+## is allowed to mean for a six-year-old: one more thing to find, positions
+## moved about, an extra star to chase, hints that wait a little longer. It
+## explicitly rules out the two things games normally reach for -- more speed
+## and more enemies -- because neither of those is a new idea, they are just
+## the same idea turned up until it stops being fun.
+##
+## So "doing well" here buys a child MORE GAME, never less mercy.
+
+## Three levels in a row finished without needing a single hint. Deliberately
+## slow to earn and instantly lost: one level that needed help puts it back.
+const STREAK_FOR_MORE := 3
+
+
+## Call once when a level ends. `used_help` is whether any hint fired.
+static func record_run(used_help: bool) -> void:
+	var streak: int = int(SaveManager.get_setting("clean_streak", 0))
+	streak = 0 if used_help else streak + 1
+	SaveManager.set_setting("clean_streak", streak)
+
+
+## Is this child sailing through? Templates ask before they lay a level out.
+static func doing_well() -> bool:
+	return int(SaveManager.get_setting("clean_streak", 0)) >= STREAK_FOR_MORE
+
+
+## One extra thing to find, for a child who does not need the help. The only
+## kind of "harder" this game does: more to look at, not less time to look.
+static func extra_things(base: int) -> int:
+	return base + (1 if doing_well() else 0)
+
+
+## Hints wait longer for someone who has not been needing them -- and the
+## floor is generous, because a confident child still gets stuck sometimes.
+static func idle_wait() -> float:
+	return IDLE * (1.45 if doing_well() else 1.0)
 
 
 ## Stop watching -- during a cutscene, a card, or after the level is won.

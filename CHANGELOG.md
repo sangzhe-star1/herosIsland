@@ -1,5 +1,49 @@
 # Changelog
 
+## The last few things the brief asked for — 26 July 2026
+
+Five platforms, a game that suggests a break, adaptation in both directions,
+and a collection that grows by playing.
+
+**Windows and Web export presets** are in. Five platforms now: macOS, iOS,
+Android, Windows, Web.
+
+**The island suggests a rest.** Every three levels the result screen adds one
+soft line -- "today's mission is done, shall we have a rest?" -- with nothing
+to press and the "next level" button still the biggest thing on screen. It
+counts LEVELS, not minutes, because a child who played one long level has not
+had a long sitting. Why it is the game's job: a six-year-old has no idea how
+long they have been playing, and a game that never mentions it is quietly
+relying on a parent to be the one who says stop. That makes the parent the
+villain and the game the friend. This puts the game on the parent's side.
+
+**Adaptation goes up as well as down.** Three levels finished without a single
+hint and the next one hides one more thing and waits longer before helping.
+The brief is careful about what "harder" may mean for a six-year-old and rules
+out the two things games normally reach for -- more speed, more enemies --
+because neither is a new idea, just the same one turned up until it stops
+being fun. Doing well here buys a child MORE GAME, never less mercy. One level
+that needed help puts the streak back to zero.
+
+**The monster album.** Every monster met gets a page; the ones not yet met are
+dark silhouettes with a question mark. The silhouette is the whole point at
+six: a child can SEE that there are four and they have two, without counting
+or reading. It is the only thing in this game that says "there is more", and
+it says it without a shop, a timer or a locked box.
+
+**Island completion**, as a ring that closes beside the star count on the map.
+Not a percentage -- a shape. "How far am I" is the one question a child asks
+about a game with more than one screen.
+
+**`docs/VOICE_SCRIPT.md`**: 44 lines to record, one per level plus the
+encouragements and the rest lines, with the filenames the game expects and a
+note on how to say them. Twenty minutes with a phone.
+
+Caught on the way through: the map's completion ring hung off the bottom of
+its card and dropped a house icon on top of the star; and a `const` lost in an
+earlier edit left `observation_search` referring to an undeclared `Props`,
+which the smoke test caught as a parse error before it reached anyone.
+
 ## Nine games, not one — 25 July 2026
 
 The island stopped being a side-scroller with variations and became what the

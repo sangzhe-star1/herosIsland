@@ -373,7 +373,19 @@
     "level.dark_castle_04": "Search the Castle",
     "level.dark_castle_05": "Sort the Treasure",
     "level.dark_castle_06": "The Last Battle",
-    "level.hero_studio": "Hero Base"
+    "level.hero_studio": "Hero Base",
+    "rest.done_today": "Today's mission is done. Shall we have a rest?",
+    "rest.stretch": "Stand up and stretch -- there's more adventure next time.",
+    "rest.come_back": "Well played! The island will have surprises next time.",
+    "rest.well_played": "That's several levels now -- give your eyes a rest too.",
+    "album.new_page": "A new page in your album!",
+    "album.title": "Monster Album",
+    "album.empty": "Go and meet some monsters!",
+    "map.completion": "Island completed",
+    "monster.walker": "Little Pebble",
+    "monster.spitter": "Goo Spitter",
+    "monster.armoured": "Iron Shell",
+    "monster.rock_giant": "Rock Giant"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -749,6 +761,18 @@
     "level.dark_castle_04": "寻找城堡宝物",
     "level.dark_castle_05": "分好宝物",
     "level.dark_castle_06": "最终一战",
-    "level.hero_studio": "英雄基地"
+    "level.hero_studio": "英雄基地",
+    "rest.done_today": "英雄今天的任务完成啦，要不要休息一下？",
+    "rest.stretch": "站起来伸个懒腰吧，下次回来还有新的冒险。",
+    "rest.come_back": "玩得真好！下次回来岛上还有惊喜等你。",
+    "rest.well_played": "你已经闯了好几关啦，让眼睛也歇一歇。",
+    "album.new_page": "图鉴里多了一页！",
+    "album.title": "怪兽图鉴",
+    "album.empty": "去认识一些怪兽吧！",
+    "map.completion": "成长岛完成度",
+    "monster.walker": "小石怪",
+    "monster.spitter": "泥球怪",
+    "monster.armoured": "铁壳怪",
+    "monster.rock_giant": "岩石巨人"
   }
 }

@@ -50,7 +50,7 @@ func setup_level() -> void:
 	result.objective_scoring = true
 	var config: Dictionary = level_data.get("config", {})
 	_picker = Picker.for_level(str(level_data.get("id", "")))
-	_wanted = clampi(harder_i(int(config.get("count", 8)), 2), 4, 12)
+	_wanted = clampi(Hints.extra_things(harder_i(int(config.get("count", 8)), 2)), 4, 12)
 
 	build_world(self, 0.45)      # a sorting task should not fight the scenery
 	_field = Field.new()
@@ -294,6 +294,9 @@ func _finish() -> void:
 	result.reached_goal = true
 	result.found_hidden = _gift_found
 	result.clean_run = _slips == 0 and not _helped
+	# Feeds the streak that decides whether the next level offers
+	# a child one more thing to find. Only ever buys them more game.
+	Hints.record_run(_helped)
 	# The bins do a little bow: the child put everything away and the room
 	# says thank you.
 	for bin in _bins:

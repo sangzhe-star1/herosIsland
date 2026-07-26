@@ -422,6 +422,9 @@ func _finish() -> void:
 	# child who looked before they touched.
 	result.found_hidden = _quick
 	result.clean_run = not _helped
+	# Feeds the streak that decides whether the next level offers
+	# a child one more thing to find. Only ever buys them more game.
+	Hints.record_run(_helped)
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	await get_tree().create_timer(0.9).timeout
 	complete_level()

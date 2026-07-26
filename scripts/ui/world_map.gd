@@ -102,6 +102,44 @@ func _add_header() -> void:
 	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	tally_row.add_child(count)
 	tally.add_child(tally_row)
+
+	# A ring that fills as the island does, sitting INSIDE the card beside the
+	# star count. Not a percentage -- a shape that closes. "How far am I" is
+	# the one question a six-year-old asks about a game with more than one
+	# screen, and a closing ring answers it without a single number.
+	#
+	# It lives in the row rather than floating below, because the first cut
+	# hung it off the bottom edge of the card and dropped a second icon on
+	# top of the star.
+	var share: float = SaveManager.island_completion()
+	var dial := Control.new()
+	dial.custom_minimum_size = Vector2(58, 58)
+	dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ring := Node2D.new()
+	ring.position = Vector2(29, 29)
+	dial.add_child(ring)
+	var track := Line2D.new()
+	track.points = Shapes.circle_points(Vector2.ZERO, 23.0, 30)
+	track.closed = true
+	track.width = 7.0
+	track.default_color = Color(0.62, 0.70, 0.84, 0.55)
+	track.antialiased = true
+	ring.add_child(track)
+	if share > 0.005:
+		var done := Line2D.new()
+		var steps: int = maxi(int(share * 30.0), 2)
+		var arc := PackedVector2Array()
+		for i in range(steps + 1):
+			var a: float = -PI * 0.5 + TAU * share * float(i) / float(steps)
+			arc.append(Vector2(cos(a), sin(a)) * 23.0)
+		done.points = arc
+		done.width = 7.0
+		done.default_color = Palette.STAR_ON
+		done.antialiased = true
+		ring.add_child(done)
+	Shapes.fill(ring, Shapes.circle_points(Vector2.ZERO, 8.0, 14),
+		Palette.STAR_ON if share >= 0.999 else Color(0.62, 0.70, 0.84, 0.45), 0.0)
+	tally_row.add_child(dial)
 	bar.add_child(tally)
 
 

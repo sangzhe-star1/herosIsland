@@ -61,7 +61,7 @@ func setup_level() -> void:
 	var config: Dictionary = level_data.get("config", {})
 	_picker = Picker.for_level(str(level_data.get("id", "")))
 	_mode = str(config.get("mode", "lights"))
-	_rounds = clampi(harder_i(int(config.get("rounds", 4)), 1), 3, 5)
+	_rounds = clampi(Hints.extra_things(harder_i(int(config.get("rounds", 4)), 1)), 3, 5)
 
 	build_world(self, 0.55)      # a listening game should not be busy
 	_field = Control.new()
@@ -327,6 +327,9 @@ func _finish() -> void:
 	result.reached_goal = true
 	result.found_hidden = _encore
 	result.clean_run = _slips == 0 and not _helped
+	# Feeds the streak that decides whether the next level offers
+	# a child one more thing to find. Only ever buys them more game.
+	Hints.record_run(_helped)
 	for i in range(_pads.size()):
 		var pad: Dictionary = _pads[i]
 		get_tree().create_timer(0.12 * float(i)).timeout.connect(func():

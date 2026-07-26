@@ -74,6 +74,10 @@ func _default_data() -> Dictionary:
 			"items": {},
 			# Outfit pieces owned (ids). Bought once with coins, kept forever.
 			"outfits": [],
+			# Every monster the child has met, by id. A collection that grows
+			# by PLAYING rather than by buying, which is the only kind this
+			# game has -- there is no shop for these and no way to miss one.
+			"album": [],
 			# What the child MADE. Not a reward and not a score -- the only
 			# thing in this file that belongs to them rather than to the
 			# game, which is why it is stored whole and never inspected.
@@ -308,6 +312,45 @@ func use_item(item_id: String) -> bool:
 
 func get_outfit() -> Dictionary:
 	return data["profile"].get("outfit", {"hat": "", "face": "", "back": ""})
+
+
+## --- the monster album ---------------------------------------------------
+
+func has_met(monster_id: String) -> bool:
+	return monster_id in data["rewards"].get("album", [])
+
+
+## Meeting a monster writes it down. Returns true the first time, so a level
+## can make a small fuss about it exactly once.
+func record_meeting(monster_id: String) -> bool:
+	if monster_id == "":
+		return false
+	if not data["rewards"].has("album"):
+		data["rewards"]["album"] = []
+	if has_met(monster_id):
+		return false
+	data["rewards"]["album"].append(monster_id)
+	save_game()
+	progress_changed.emit()
+	return true
+
+
+func album() -> Array:
+	return data["rewards"].get("album", [])
+
+
+## How much of the island is finished, 0 to 1: stars earned over stars there
+## are. The map shows this, because "how far am I" is the one question a
+## six-year-old asks about a game that has more than one screen.
+func island_completion() -> float:
+	var possible := 0
+	for level in GameData.levels:
+		if str(level.get("id", "")) == "hero_studio":
+			continue        # the free-play room has nothing to complete
+		possible += 3
+	if possible == 0:
+		return 0.0
+	return clampf(float(total_stars()) / float(possible), 0.0, 1.0)
 
 
 ## --- things the child made -----------------------------------------------

@@ -66,7 +66,7 @@ func setup_level() -> void:
 	result.objective_scoring = true
 	var config: Dictionary = level_data.get("config", {})
 	_picker = Picker.for_level(str(level_data.get("id", "")))
-	_wanted = clampi(harder_i(int(config.get("count", 4)), 1), 3, 6)
+	_wanted = clampi(Hints.extra_things(harder_i(int(config.get("count", 4)), 1)), 3, 6)
 	_cases = _picker.some(CASES, _wanted)
 	while _cases.size() < _wanted:
 		_cases.append(_picker.one(CASES))
@@ -366,6 +366,9 @@ func _finish() -> void:
 	# Star two: everybody helped correctly the first time you tried.
 	result.found_hidden = _thanked >= _cases.size()
 	result.clean_run = _slips == 0 and not _helped
+	# Feeds the streak that decides whether the next level offers
+	# a child one more thing to find. Only ever buys them more game.
+	Hints.record_run(_helped)
 	_say("rescue.all_safe")
 	Juice.burst(_field, Vector2(640, 340), 44)
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")

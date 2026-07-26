@@ -6,6 +6,88 @@ extends Control
 ## rounded cards, one card per idea -- treasure, badges, growing up. The
 ## child's stuff looks collected and cared for, not listed.
 
+## Every monster on the island, as a shelf of faces. Met ones are lit and
+## named; the rest are dark silhouettes with a question mark.
+##
+## The silhouette is the whole point of a collection at six: a child can SEE
+## that there are four and they have two, without being able to count or read.
+## It is also the only thing in this game that says "there is more" -- and it
+## says it without a shop, a timer or a locked box.
+const ALBUM := [
+	{"id": "walker", "icon": "monster", "tint": "#95919c",
+		"name": "monster.walker"},
+	{"id": "spitter", "icon": "goo", "tint": "#8cd26b",
+		"name": "monster.spitter"},
+	{"id": "armoured", "icon": "rock", "tint": "#7f8496",
+		"name": "monster.armoured"},
+	{"id": "rock_giant", "icon": "monster", "tint": "#b0a6c9",
+		"name": "monster.rock_giant"},
+]
+
+
+func _album_shelf() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+
+	var met := 0
+	for entry in ALBUM:
+		if SaveManager.has_met(str(entry["id"])):
+			met += 1
+	var heading := UiKit.title("%s   %d / %d" % [
+		I18n.t("album.title"), met, ALBUM.size()], 32)
+	heading.add_theme_color_override("font_color", Color(0.86, 0.92, 1.0))
+	box.add_child(heading)
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 20)
+	for entry in ALBUM:
+		var known: bool = SaveManager.has_met(str(entry["id"]))
+		var tile := VBoxContainer.new()
+		tile.add_theme_constant_override("separation", 2)
+
+		var face := Control.new()
+		face.custom_minimum_size = Vector2(112, 112)
+		face.pivot_offset = Vector2(56, 56)
+		var pad := Node2D.new()
+		face.add_child(pad)
+		Shapes.fill(pad, Shapes.rounded_rect(Vector2(2, 2), Vector2(108, 108), 26.0),
+			Color(0.05, 0.09, 0.20, 0.55), 0.0)
+		var art: Control = UiKit.picture(str(entry["icon"]), 74)
+		if art != null:
+			art.position = Vector2(19, 19)
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if known:
+				art.modulate = Color.from_string(str(entry["tint"]), Color.WHITE)
+			else:
+				# A silhouette, not a blank: the shape is a promise.
+				art.modulate = Color(0.16, 0.19, 0.30)
+			face.add_child(art)
+		if not known:
+			var mark := Label.new()
+			mark.text = "?"
+			mark.add_theme_font_size_override("font_size", 46)
+			mark.add_theme_color_override("font_color", Color(0.55, 0.62, 0.80))
+			mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			mark.position = Vector2(0, 30)
+			mark.size = Vector2(112, 52)
+			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			face.add_child(mark)
+		tile.add_child(face)
+
+		var name_label := Label.new()
+		name_label.text = I18n.t(str(entry["name"])) if known else "???"
+		name_label.add_theme_font_size_override("font_size", 22)
+		name_label.add_theme_color_override("font_color",
+			Color(0.92, 0.96, 1.0) if known else Color(0.52, 0.58, 0.72))
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.custom_minimum_size = Vector2(112, 0)
+		tile.add_child(name_label)
+		row.add_child(tile)
+	box.add_child(row)
+	return box
+
+
 func _ready() -> void:
 	theme = UiKit.theme()
 	UiKit.world_background(self, "piglet_town", "rewards", 0.62)
@@ -52,6 +134,8 @@ func _ready() -> void:
 		SceneManager.goto_scene("res://scenes/shop/ItemShop.tscn"))
 	header.add_child(shop)
 	root.add_child(header)
+
+	root.add_child(_album_shelf())
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

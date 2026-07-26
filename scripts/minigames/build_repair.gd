@@ -416,6 +416,9 @@ func _finish() -> void:
 	result.reached_goal = true
 	result.found_hidden = _golden_used
 	result.clean_run = _slips == 0 and not _helped
+	# Feeds the streak that decides whether the next level offers
+	# a child one more thing to find. Only ever buys them more game.
+	Hints.record_run(_helped)
 	Juice.burst(_field, Vector2(640, 380), 44)
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	await get_tree().create_timer(1.0).timeout

@@ -23,6 +23,10 @@ extends LevelManager
 const Hints := preload("res://scripts/shared/hint_director.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
+## By path, not by class name. A newer class_name is invisible to any run
+## whose editor has not rescanned, and an unknown identifier is a PARSE error
+## in GDScript -- the whole level would fail to open rather than degrade.
+const Props := preload("res://scripts/adventure/props.gd")
 
 ## Hiding places, in screen space, written so a child's eye can travel between
 ## them: never two in the same corner, never one under the HUD.
@@ -57,7 +61,7 @@ func setup_level() -> void:
 	var config: Dictionary = level_data.get("config", {})
 	_picker = Picker.for_level(str(level_data.get("id", "")))
 	_icon = str(config.get("icon", "orb"))
-	_wanted = clampi(harder_i(int(config.get("count", 5)), 1), 3, 7)
+	_wanted = clampi(Hints.extra_things(harder_i(int(config.get("count", 5)), 1)), 3, 8)
 
 	build_world(self, 0.30)      # the scene is the puzzle: quiet it a little
 	_field = Control.new()
@@ -314,6 +318,9 @@ func _finish() -> void:
 	result.reached_goal = true
 	result.found_hidden = not _bonus.is_empty() and bool(_bonus["found"])
 	result.clean_run = not _helped
+	# Feeds the streak that decides whether the next level offers
+	# a child one more thing to find. Only ever buys them more game.
+	Hints.record_run(_helped)
 	Juice.burst(_field, Vector2(640, 360), 40)
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	await get_tree().create_timer(1.3).timeout

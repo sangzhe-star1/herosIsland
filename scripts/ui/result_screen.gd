@@ -1,4 +1,6 @@
 extends Control
+const Rest := preload("res://scripts/shared/rest_director.gd")
+
 ## Celebration screen. Always positive: even a one-star run is framed as
 ## finishing, never as failing.
 
@@ -108,6 +110,12 @@ func _ready() -> void:
 	if next_id == "":
 		var all_done := UiKit.title_on_art(I18n.t("result.all_done"), 30)
 		box.add_child(all_done)
+
+	# Every few levels, the game suggests a break -- and does nothing else
+	# about it. See `rest_director.gd` for why this is the game's job rather
+	# than the parent's.
+	if result != null and not result.quit_early and Rest.should_offer():
+		box.add_child(_rest_note())
 
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 
@@ -229,6 +237,28 @@ func _objective_row(result: LevelResult) -> Control:
 			wait.tween_interval(0.5 + delay)
 			wait.tween_callback(func(): Juice.pop(tile, 0.34))
 	return strip
+
+
+## A soft line under the buttons, in the same warm voice as everything else,
+## with nothing to press. The "next level" button is still right there and
+## still the biggest thing on screen: this is a suggestion from somebody who
+## has enjoyed the last twenty minutes, not a gate.
+func _rest_note() -> Control:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	var art: Control = UiKit.picture("moon", 46)
+	if art != null:
+		row.add_child(art)
+	var words := UiKit.title(I18n.t(Rest.line()), 30)
+	words.add_theme_color_override("font_color", Color(0.80, 0.90, 1.0))
+	row.add_child(words)
+	if Juice.motion_enabled():
+		row.modulate.a = 0.0
+		var t := row.create_tween()
+		t.tween_interval(1.6)          # after the stars have had their moment
+		t.tween_property(row, "modulate:a", 1.0, 0.6)
+	return row
 
 
 func _animate_stars(row: HBoxContainer, stars: int) -> void:

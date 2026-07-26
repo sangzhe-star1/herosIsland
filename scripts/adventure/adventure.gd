@@ -751,6 +751,13 @@ func _build_rescue(at: float) -> void:
 
 
 ## The rock giant, and the arena it stands in.
+## Every giant met goes in the album, the first time and only the first time.
+func _remember_monster(monster_id: String) -> void:
+	if not SaveManager.record_meeting(monster_id):
+		return
+	_say(I18n.t("album.new_page"))
+
+
 func _build_boss(section: Dictionary, at: float) -> void:
 	var zone := _flat_zone_near(at, _zone_width(section))
 	var arena_left: float = float(zone["left"]) + 80.0
@@ -1475,6 +1482,7 @@ func _hurt_foe(foe: Dictionary) -> void:
 	# Beaten, not killed: it sits down, waves, and pops away in sparkles.
 	foe["down"] = true
 	_drop_telegraph(foe)
+	_remember_monster(str(foe["kind"]))
 	score_correct()
 	AudioManager.play_sfx("res://assets/audio/star.ogg")
 	Juice.burst(_world, node.position + Vector2(0, -60.0), 26)
@@ -1694,6 +1702,7 @@ func _wound_boss() -> void:
 ## Beaten, not beaten UP: it sits down, rubs its head, and waves.
 func _finish_boss() -> void:
 	_boss["beaten"] = true
+	_remember_monster("rock_giant")
 	_drop_telegraph(_boss)
 	var shell: Node2D = _boss["shell"]
 	if is_instance_valid(shell):
