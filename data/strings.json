@@ -414,7 +414,11 @@
     "level.bonus_keepy": "Bluey's Keepy Uppy",
     "level.bonus_blaster": "The Light Range",
     "level.bonus_echo": "Dance Time",
-    "echo.instruction": "Watch the lights, then tap them back!"
+    "echo.instruction": "Watch the lights, then tap them back!",
+    "parent.test_unlock": "Unlock every level (testing)",
+    "parent.test_unlock_note": "Opens the whole island so you can jump to any level. Changes nothing: his stars, his finished levels and his album stay exactly as they are, and turning this off puts every lock back.",
+    "parent.test_unlock_on": "On. The island is open. Remember to turn it off — a map with nothing left to unlock is not much of a map for him.",
+    "map.test_unlock": "Test mode: everything unlocked"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -831,6 +835,10 @@
     "level.bonus_keepy": "布鲁伊颠球",
     "level.bonus_blaster": "光能射击场",
     "level.bonus_echo": "跳舞时间",
-    "echo.instruction": "看好灯亮的顺序，再按一遍！"
+    "echo.instruction": "看好灯亮的顺序，再按一遍！",
+    "parent.test_unlock": "解锁所有关卡（测试用）",
+    "parent.test_unlock_note": "打开后整座岛都能进，方便你跳到任何一关。不改存档：他的星星、通关记录、图鉴都原样不动，关掉锁就全回来了。",
+    "parent.test_unlock_on": "已打开，全岛开放。记得测完关掉——一张没有东西可解锁的地图，对他来说就不是地图了。",
+    "map.test_unlock": "测试模式：已全部解锁"
   }
 }

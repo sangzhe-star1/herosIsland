@@ -86,6 +86,27 @@ func _add_header() -> void:
 
 	bar.add_child(UiKit.back_button(func(): SceneManager.goto_home()))
 
+	# When the parent's test switch is on, say so on the map.
+	#
+	# Not for the child -- for the adult who flipped it. The failure mode of an
+	# unlock-everything switch is not a crash, it is forgetting: a six-year-old
+	# who finds the whole island already open has lost the only thing the map
+	# was ever for. Small, dim, out of the way, and impossible to miss if you
+	# are looking for why nothing is locked.
+	if SaveManager.test_unlock_all():
+		var flag := UiKit.card(Color(0.28, 0.22, 0.10, 0.80))
+		flag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Above the island's clouds, which carry a z_index of their own and
+		# will happily drift across anything that does not. The page dots hit
+		# this exact wall a fortnight ago.
+		flag.z_index = 25
+		var note := Label.new()
+		note.text = I18n.t("map.test_unlock")
+		note.add_theme_font_size_override("font_size", 22)
+		note.add_theme_color_override("font_color", Palette.STAR_ON)
+		flag.add_child(note)
+		bar.add_child(flag)
+
 	var title := UiKit.title_on_art(I18n.t("map.title"), 48)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE

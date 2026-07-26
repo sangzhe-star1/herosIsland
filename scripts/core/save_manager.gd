@@ -218,10 +218,30 @@ func total_stars() -> int:
 	return sum
 
 
+## The one switch that opens the whole island, for testing.
+##
+## Deliberately a VIEW of the save and never a write to it. Nothing about his
+## stars, his completions or his album changes when this goes on or off -- it
+## is reversible precisely because it never edited anything. Turn it off and
+## the locks are exactly where he left them, to the star.
+##
+## It lives here rather than in the map because four different places ask
+## whether a level is open -- the map, the "next level" button, the island's
+## completion ring, the probes -- and a test switch that only some of them
+## honour is worse than no switch at all.
+const TEST_UNLOCK := "test_unlock_all"
+
+
+func test_unlock_all() -> bool:
+	return bool(get_setting(TEST_UNLOCK, false))
+
+
 func is_level_unlocked(level_id: String) -> bool:
 	var level := GameData.get_level(level_id)
 	if level.is_empty():
 		return false
+	if test_unlock_all():
+		return true
 	var requires: String = level.get("requires", "")
 	if requires == "":
 		return true

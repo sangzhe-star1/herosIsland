@@ -69,6 +69,11 @@ func play_voice(path: String) -> void:
 	var stream := _load_stream(path)
 	if stream == null:
 		return
+	_speak(stream)
+
+
+## Say it, and duck the music under it so the words win.
+func _speak(stream: AudioStream) -> void:
 	_voice.stream = stream
 	_music.volume_db = _music_base_db - 12.0
 	_voice.play()
@@ -88,21 +93,22 @@ func play_voice(path: String) -> void:
 func play_level_voice(level_id: String) -> bool:
 	if level_id == "":
 		return false
-	for suffix in [".wav", ".ogg", ".mp3"]:
-		var path := "res://assets/audio/voice/level/%s_intro%s" % [level_id, suffix]
-		if ResourceLoader.exists(path):
-			play_voice(path)
-			return true
-	return false
+	return say("%s_intro" % level_id)
 
 
 ## The shared lines -- praise, retry, the three hint steps. Same deal: present
 ## means spoken, absent means silent.
+##
+## Returns whether a line was actually SPOKEN, not whether a file exists. Those
+## were the same answer right up until they were not: see _load_stream().
 func say(name: String) -> bool:
-	for suffix in [".wav", ".ogg", ".mp3"]:
+	if name == "":
+		return false
+	for suffix in [".ogg", ".wav", ".mp3"]:
 		var path := "res://assets/audio/voice/level/%s%s" % [name, suffix]
-		if ResourceLoader.exists(path):
-			play_voice(path)
+		var stream := _load_stream(path)
+		if stream != null:
+			_speak(stream)
 			return true
 	return false
 
@@ -111,15 +117,60 @@ func _on_voice_finished() -> void:
 	_music.volume_db = _music_base_db
 
 
+## Load an audio file, by whatever route actually works.
+##
+## The first route is the ordinary one: Godot imports the file and load()
+## returns the imported artifact. That is what runs in an exported build.
+##
+## The second route exists because of a silence that took a while to find. An
+## audio file in the project is accompanied by a `.import` file which says
+## where its imported artifact lives, under `.godot/imported/`. That folder is
+## machine-local -- it is not in git and it is not copied between machines. So
+## a project whose files arrived from somewhere else has 44 `.import` files
+## pointing at 44 artifacts that do not exist, and until an editor rescans, the
+## engine reports:
+##
+##   ResourceLoader.exists(path) -> true      ("I know that resource")
+##   load(path)                  -> null      ("...I cannot produce it")
+##
+## Every voice line in the game went through that gap. `say()` checked exists(),
+## got true, reported success, and played nothing. No error, no warning, no
+## missing file -- just a game that had stopped talking.
+##
+## So: never trust exists() for something you are about to play, and when the
+## import is missing, read the file straight off disk. AudioStream*.load_from_
+## file() needs no import step at all, which also makes the folder genuinely
+## drop-in the way its documentation always claimed: put a .wav in it and the
+## game says it, with no editor round trip.
 func _load_stream(path: String) -> AudioStream:
 	if path == "":
 		return null
-	if ResourceLoader.exists(path):
-		return load(path) as AudioStream
-	# Voice lines generated on the family Mac arrive as .wav (tools/
-	# make_voice.command); every call site says .ogg, so fall through.
+	var found := _one_file(path)
+	if found != null:
+		return found
+	# Whichever extension the caller named, try the other one. Call sites say
+	# ".ogg" by convention, and a line recorded on a phone arrives as ".wav" --
+	# a parent should not have to convert anything, and the older templates
+	# still ask for well_done.ogg where only well_done.wav has ever existed.
+	var swapped := ""
 	if path.ends_with(".ogg"):
-		var wav := path.trim_suffix(".ogg") + ".wav"
-		if ResourceLoader.exists(wav):
-			return load(wav) as AudioStream
+		swapped = path.trim_suffix(".ogg") + ".wav"
+	elif path.ends_with(".wav"):
+		swapped = path.trim_suffix(".wav") + ".ogg"
+	return _one_file(swapped) if swapped != "" else null
+
+
+func _one_file(path: String) -> AudioStream:
+	if ResourceLoader.exists(path):
+		var imported := load(path) as AudioStream
+		if imported != null:
+			return imported
+		push_warning("AudioManager: %s is known but will not load -- its import "
+			% path + "is missing. Reading it from disk instead.")
+	if not FileAccess.file_exists(path):
+		return null
+	if path.ends_with(".ogg"):
+		return AudioStreamOggVorbis.load_from_file(path)
+	if path.ends_with(".wav"):
+		return AudioStreamWAV.load_from_file(path)
 	return null

@@ -65,6 +65,29 @@ func _ready() -> void:
 	# 4. And the level path, which is what actually runs in the game.
 	_ok(AudioManager.play_level_voice("sunny_park_01"),
 		"sunny_park_01 has a file but play_level_voice() refused it")
+	await get_tree().process_frame
+	if player != null:
+		_ok(player.stream != null,
+			"play_level_voice() said yes and the player got nothing")
+
+	# 5. Every single line, loaded for real. The expensive version of check 1,
+	# and the one that would have caught the silence: 44 files present, 44
+	# files unloadable, and every cheaper check green.
+	var dead: Array = []
+	for level in GameData.levels:
+		var lid := str(level.get("id", ""))
+		if _has_line("%s_intro" % lid):
+			continue
+		# Only a complaint if the file is actually there. A level with no
+		# recording at all is a known, fine state -- check 1 already counts it.
+		for suffix in [".ogg", ".wav"]:
+			if FileAccess.file_exists("res://assets/audio/voice/level/%s_intro%s"
+					% [lid, suffix]):
+				dead.append(lid)
+				break
+	_ok(dead.is_empty(), "files present but unplayable: %s" % ", ".join(dead))
+	print("  every present line loads: %s"
+		% ("yes" if dead.is_empty() else "NO -- " + ", ".join(dead)))
 
 	for f in _out:
 		print("FAIL  %s" % f)
@@ -72,8 +95,37 @@ func _ready() -> void:
 	get_tree().quit(1 if _out.size() > 0 else 0)
 
 
+## Really load it. Not "does the engine know about it" -- really load it.
+##
+## This used to ask ResourceLoader.exists(), and that is exactly how the game
+## went silent on the family Mac without a single check noticing. An audio file
+## carries a `.import` alongside it naming an artifact under `.godot/imported/`,
+## and that folder is machine-local: it is not in git and never travels. So on
+## a machine the files were copied to, every line reported
+##
+##     ResourceLoader.exists(path) -> true      ("I know that resource")
+##     load(path)                  -> null      ("...I cannot produce it")
+##
+## and this check believed the first line. A check that can pass while a child
+## hears nothing is worse than no check, because it is the reason nobody looks.
 func _has_line(name: String) -> bool:
-	for suffix in [".wav", ".ogg", ".mp3"]:
-		if ResourceLoader.exists("res://assets/audio/voice/level/%s%s" % [name, suffix]):
-			return true
-	return false
+	return _stream_for(name) != null
+
+
+func _stream_for(name: String) -> AudioStream:
+	for suffix in [".ogg", ".wav", ".mp3"]:
+		var path := "res://assets/audio/voice/level/%s%s" % [name, suffix]
+		if ResourceLoader.exists(path):
+			var res := load(path) as AudioStream
+			if res != null:
+				return res
+			# Known but unproducible: the state that caused the silence. Say so
+			# loudly -- it is a real condition on a real machine, not a
+			# hypothetical, and the runtime now works around it.
+			print("  ! %s exists but will not load (import missing)" % path)
+		if FileAccess.file_exists(path):
+			if suffix == ".ogg":
+				return AudioStreamOggVorbis.load_from_file(path)
+			if suffix == ".wav":
+				return AudioStreamWAV.load_from_file(path)
+	return null

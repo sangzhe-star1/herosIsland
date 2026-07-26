@@ -135,6 +135,8 @@ func _build_content() -> void:
 	list.add_child(_build_limit_row())
 	list.add_child(_build_motion_row())
 	list.add_child(HSeparator.new())
+	list.add_child(_build_unlock_row())
+	list.add_child(HSeparator.new())
 	_build_backup_section(list)
 
 
@@ -296,6 +298,50 @@ func _build_motion_row() -> Control:
 	toggle.toggled.connect(func(on: bool): SaveManager.set_setting("reduce_motion", on))
 	row.add_child(toggle)
 	return row
+
+
+## Open the whole island, for testing it.
+##
+## Two things this row is careful about. It changes nothing in the save -- see
+## SaveManager.is_level_unlocked() -- so turning it off puts every lock back
+## exactly where it was. And it says so underneath, because the failure mode
+## here is not a bug, it is a parent leaving it on: a six-year-old who finds
+## the whole island already open has lost the only thing the map was for.
+func _build_unlock_row() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+
+	var row := HBoxContainer.new()
+	var l := Label.new()
+	l.text = I18n.t("parent.test_unlock")
+	l.custom_minimum_size = Vector2(460, 0)
+	l.add_theme_font_size_override("font_size", 30)
+	row.add_child(l)
+
+	var toggle := CheckButton.new()
+	toggle.button_pressed = SaveManager.test_unlock_all()
+	toggle.focus_mode = Control.FOCUS_NONE
+	row.add_child(toggle)
+	box.add_child(row)
+
+	var note := Label.new()
+	note.text = I18n.t("parent.test_unlock_note")
+	note.add_theme_font_size_override("font_size", 22)
+	note.add_theme_color_override("font_color", Palette.MUTED)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size = Vector2(700, 0)
+	box.add_child(note)
+
+	toggle.toggled.connect(func(on: bool):
+		SaveManager.set_setting(SaveManager.TEST_UNLOCK, on)
+		note.text = I18n.t("parent.test_unlock_on" if on
+			else "parent.test_unlock_note")
+		note.add_theme_color_override("font_color",
+			Palette.STAR_ON if on else Palette.MUTED))
+	if toggle.button_pressed:
+		note.text = I18n.t("parent.test_unlock_on")
+		note.add_theme_color_override("font_color", Palette.STAR_ON)
+	return box
 
 
 func _build_limit_row() -> Control:

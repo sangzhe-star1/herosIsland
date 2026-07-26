@@ -269,6 +269,19 @@ if ! grep -q "TOUCH PROBE PASSED" "$TOUCH_OUT"; then
 fi
 rm -f "$TOUCH_OUT"
 
+# The parent's unlock-everything switch. It is only allowed to be a VIEW of the
+# save: flip it both ways and his son's stars have to come out untouched.
+echo
+echo "Running unlock probe..."
+UNLOCK_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/UnlockProbe.tscn 2>&1 | tee "$UNLOCK_OUT"
+if ! grep -q "UNLOCK PROBE PASSED" "$UNLOCK_OUT"; then
+  rm -f "$UNLOCK_OUT"
+  echo "Unlock probe failed."
+  exit 1
+fi
+rm -f "$UNLOCK_OUT"
+
 echo
 echo "Running map probe..."
 MAP_OUT=$(mktemp)
