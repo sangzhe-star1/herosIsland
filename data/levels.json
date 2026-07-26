@@ -152,7 +152,9 @@
     "difficulty": 2,
     "duration_seconds": 300,
     "requires": "sunny_park_05",
-    "target": {},
+    "target": {
+      "correct": 26
+    },
     "reward": {
       "coins": 34,
       "badge": "giant_friend",
@@ -297,7 +299,9 @@
     "difficulty": 3,
     "duration_seconds": 300,
     "requires": "night_city_05",
-    "target": {},
+    "target": {
+      "correct": 32
+    },
     "reward": {
       "coins": 42,
       "badge": "brave_defender"
@@ -400,7 +404,9 @@
     "difficulty": 3,
     "duration_seconds": 300,
     "requires": "monster_valley_02",
-    "target": {},
+    "target": {
+      "correct": 28
+    },
     "reward": {
       "coins": 42,
       "badge": "rescue_planner"
@@ -488,7 +494,9 @@
     "difficulty": 3,
     "duration_seconds": 300,
     "requires": "monster_valley_05",
-    "target": {},
+    "target": {
+      "correct": 40
+    },
     "reward": {
       "coins": 42,
       "badge": "mountain_hero"
@@ -634,7 +642,9 @@
     "difficulty": 3,
     "duration_seconds": 300,
     "requires": "sky_base_05",
-    "target": {},
+    "target": {
+      "correct": 44
+    },
     "reward": {
       "coins": 42,
       "badge": "storm_guardian"
@@ -887,7 +897,9 @@
     "difficulty": 3,
     "duration_seconds": 300,
     "requires": "dark_castle_05",
-    "target": {},
+    "target": {
+      "correct": 55
+    },
     "reward": {
       "coins": 42,
       "badge": "island_hero"

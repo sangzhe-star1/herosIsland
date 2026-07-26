@@ -368,6 +368,44 @@ for w in json.load(open("data/worlds.json")):
     if w["growth_attribute"] not in growth_ids:
         errors.append(f"worlds.json: {w['id']} unknown growth_attribute")
 
+# --- 5c. a level that ends on its target must HAVE a target
+#
+# LevelManager.score_correct() finishes the level when auto_complete_on_target()
+# is true and the target is met -- and an empty target is met by the first right
+# answer, because a loop over no requirements finds nothing unmet. A template
+# that ends itself overrides auto_complete_on_target() to false and leaves the
+# target empty on purpose. A template that does NOT override it, and has no
+# target, ends on the first thing the child does right.
+#
+# That is how 最终一战 -- the last fight in the game -- ended when he hit the
+# monster once, with an eighteen-cell progress meter on screen showing one lit.
+# The runtime now refuses to complete on an empty target, so this can no longer
+# be fatal; it is still always a mistake, because a level in this state has no
+# ending at all.
+game_type_scene = dict(re.findall(r'"(\w+)":\s*"(res://[^"]+)"',
+                                  open("scripts/core/game_data.gd").read()))
+scene_script = {}
+for game_type, scene_path in game_type_scene.items():
+    scene_file = res(scene_path)
+    if not os.path.exists(scene_file):
+        continue
+    m = re.search(r'path="(res://scripts/[^"]+\.gd)"', open(scene_file).read())
+    if m:
+        scene_script[game_type] = res(m.group(1))
+
+for lv in levels:
+    script = scene_script.get(lv["game_type"])
+    if not script or not os.path.exists(script):
+        continue
+    if "func auto_complete_on_target" in open(script).read():
+        continue          # the template decides for itself
+    target = lv.get("target", {})
+    if not any(k in target for k in ("correct", "correct_crossings")):
+        errors.append(
+            f"levels.json: {lv['id']} ({lv['game_type']}) has no target, and "
+            f"{os.path.basename(script)} does not override "
+            f"auto_complete_on_target() -- the level has no ending")
+
 # --- 5b. every world is a PLACE
 #
 # WorldStyle.for_world() and IslandMap._region_prop() both end in a catch-all

@@ -86,12 +86,39 @@ func objectives() -> Array:
 	]
 
 
+## The keys that mean "this many right answers and the level is over".
+const COUNTING_KEYS := ["correct", "correct_crossings"]
+
+
+## Is there a finish line to cross at all?
+##
+## Without this, met_target() answers "yes" to a level that has no target --
+## because a loop over no keys finds nothing unsatisfied. Which is defensible
+## arithmetic and a catastrophe as a rule: score_correct() asks met_target()
+## after the FIRST right answer, so a level with an empty target ends on the
+## first thing the child does right.
+##
+## That is not hypothetical. 最终一战 -- the last fight in the game, against the
+## biggest monster in it -- ended when he hit it once, with a progress meter on
+## screen showing eighteen cells and one of them lit.
+func has_target() -> bool:
+	var target := _target()
+	for key in COUNTING_KEYS:
+		if target.has(key):
+			return true
+	return false
+
+
 func met_target() -> bool:
-	var target: Dictionary = target_override
-	if target.is_empty():
-		target = GameData.get_level(level_id).get("target", {})
+	var target := _target()
 	for key in target.keys():
-		if key == "correct_crossings" or key == "correct":
+		if key in COUNTING_KEYS:
 			if correct < int(target[key]):
 				return false
 	return true
+
+
+func _target() -> Dictionary:
+	if not target_override.is_empty():
+		return target_override
+	return GameData.get_level(level_id).get("target", {})

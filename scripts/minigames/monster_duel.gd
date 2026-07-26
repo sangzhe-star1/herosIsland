@@ -162,12 +162,26 @@ func _build_scene(config: Dictionary) -> void:
 	_build_skill_wheel()
 
 
+## The most cells that fit across the screen and can still be counted at a
+## glance. Beyond about a dozen a child stops counting and starts estimating,
+## which is what a bar is for.
+const METER_CELLS := 12
+
+
+## How many hits the monster takes before it gives up.
+##
+## The final fight needs 55 of them -- that is a minute of landed beams before
+## anyone dodges anything, which is what makes it feel like the last monster in
+## the game. Fifty-five cells is 2,400 px of screen, so past a dozen one cell
+## stops meaning one hit and starts meaning a share of the fight. Under a dozen
+## it stays exactly one hit per cell, which is crisper, and which is what the
+## early duels use.
 func _build_meter() -> void:
 	var meter := HBoxContainer.new()
 	meter.add_theme_constant_override("separation", 6)
 	meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(meter)
-	var total := target_value("correct", 8)
+	var total: int = mini(target_value("correct", 8), METER_CELLS)
 	for i in range(total):
 		var cell: Control = UiKit.picture("spark", 38.0)
 		if cell == null:
@@ -182,13 +196,19 @@ func _build_meter() -> void:
 
 
 func _update_meter() -> void:
+	var need: int = maxi(target_value("correct", 8), 1)
+	var cells: int = maxi(_meter_cells.size(), 1)
+	# How many cells this many hits has earned. Rounded DOWN, so a lit cell is
+	# always a promise that has been kept.
+	var lit_count: int = int(floor(float(result.correct) * float(cells)
+		/ float(need)))
 	for i in range(_meter_cells.size()):
 		var cell: Control = _meter_cells[i]
 		if not is_instance_valid(cell):
 			continue
-		var lit: bool = i < result.correct
+		var lit: bool = i < lit_count
 		cell.modulate = Color(1, 1, 1, 1.0) if lit else Color(0.62, 0.66, 0.80, 0.75)
-		if lit and i == result.correct - 1:
+		if lit and i == lit_count - 1:
 			Juice.pop(cell, 0.3)
 
 

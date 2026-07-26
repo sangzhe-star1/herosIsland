@@ -282,6 +282,20 @@ if ! grep -q "UNLOCK PROBE PASSED" "$UNLOCK_OUT"; then
 fi
 rm -f "$UNLOCK_OUT"
 
+# How long a duel actually lasts, fought perfectly. Catches both ends: a boss
+# that folds in fifteen seconds, and one that has no ending at all -- which is
+# what the last fight in the game had.
+echo
+echo "Running duel length probe..."
+DUEL_OUT=$(mktemp)
+timeout 240 "$GODOT" --headless --path . res://tests/DuelLengthProbe.tscn 2>&1 | tee "$DUEL_OUT"
+if ! grep -q "DUEL LENGTH PROBE PASSED" "$DUEL_OUT"; then
+  rm -f "$DUEL_OUT"
+  echo "Duel length probe failed."
+  exit 1
+fi
+rm -f "$DUEL_OUT"
+
 echo
 echo "Running map probe..."
 MAP_OUT=$(mktemp)

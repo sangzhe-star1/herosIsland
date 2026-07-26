@@ -165,7 +165,11 @@ func score_correct() -> void:
 		AudioManager.say("praise_%d" % (1 + (result.correct / PRAISE_EVERY) % 3))
 	on_correct()
 	correct_scored.emit(result.correct)
-	if auto_complete_on_target() and result.met_target():
+	# `has_target()` first, and it is not belt-and-braces: a level with no
+	# target has no finish line, and met_target() says yes to no finish line.
+	# Templates that end themselves leave the target empty on purpose, and for
+	# one of them -- the duel -- that meant the level ended on the first hit.
+	if auto_complete_on_target() and result.has_target() and result.met_target():
 		complete_level()
 
 
