@@ -32,15 +32,28 @@ func _ready() -> void:
 	print("  levels with a line: %d of %d" % [found, GameData.levels.size()])
 	if not missing.is_empty():
 		print("  still silent: %s" % ", ".join(missing))
-	# The thirty-one that were in the script must all be there. The bonus
-	# levels arrived after it was written and are allowed to be quiet.
-	_ok(found >= 31, "only %d levels have a recorded line" % found)
+	# Every level now, not "the thirty-one that were in the script". The three
+	# bonus levels were the last gap and they are recorded; a level that goes
+	# quiet from here is a regression, not a to-do.
+	_ok(found >= GameData.levels.size(),
+		"only %d of %d levels have a recorded line" % [found, GameData.levels.size()])
 
 	# 2. The shared lines -- the ones a child hears most.
 	var gaps: Array = []
-	for name in ["praise_1", "praise_2", "praise_3", "retry", "almost",
-			"finish", "hint_1", "hint_2", "hint_3",
-			"rest_1", "rest_2", "rest_3", "rest_4"]:
+	var shared: Array = ["praise_1", "praise_2", "praise_3", "retry", "almost",
+		"finish", "hint_1", "hint_2", "hint_3",
+		"rest_1", "rest_2", "rest_3", "rest_4"]
+	# The mini lessons. Their string key IS their filename -- "lesson.park.1"
+	# looks for lesson_park_1 -- so this list is derived from the lessons
+	# themselves rather than typed out, and a sixth lesson would be checked
+	# the day it is added.
+	var lessons: Node = load("res://scenes/ui/MiniLesson.tscn").instantiate()
+	for world_id in lessons.get("LESSONS"):
+		for beat in lessons.get("LESSONS")[world_id]["beats"]:
+			shared.append(str(beat["say"]).replace(".", "_"))
+	lessons.free()
+	shared.append("lesson_remember")
+	for name in shared:
 		if not _has_line(name):
 			gaps.append(name)
 	_ok(gaps.is_empty(), "shared lines missing: %s" % ", ".join(gaps))
