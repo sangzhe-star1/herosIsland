@@ -405,13 +405,40 @@ func _build_marker(level: Dictionary, world_index: int) -> Control:
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.add_theme_constant_override("separation", 2)
 
+	# What KIND of game this is, said in a picture.
+	#
+	# Every marker on the island was the same red flag. The table below only
+	# knew the template names from before the rebuild, so all nine of the new
+	# ones fell through to the default -- eight levels in a world, one picture
+	# between them, and no way for a child who cannot read the label to tell
+	# the sorting game from the bridge-building one. He picks a level by
+	# looking; the marker was telling him nothing.
+	#
+	# One distinct picture per template, no exceptions -- tools_check enforces
+	# it, because this is now the third time a rename has quietly left a
+	# lookup table behind. Chosen by drawing all the candidates at marker size
+	# on the marker's own blue and picking from the picture, not the name:
+	# `tower` reads as a microscope at 83 px, `socket` as a robot's face, and
+	# `bandage` disappears against the disc.
 	var icons := {
+		# the nine the island is built from
+		"observation_search": "magnifier",   # find the hidden things
+		"matching_sorting": "sort",          # shapes into the right boxes
+		"build_repair": "blocks",            # put the pieces together
+		"puzzle_mechanism": "gear",          # turn it until it works
+		"memory_rhythm": "music",            # watch the order, play it back
+		"roleplay_rescue": "heart",          # go and help somebody
+		"creative_play": "crayon",           # no rules, make something
+		"monster_duel": "lightning",         # a fight
+		"platform_adventure": "flag",        # run and jump to the goal
+		# the bonus rooms
+		"keepy_uppy": "balloon", "light_defense": "target",
+		"light_echo": "spark",
+		# older templates, still shipping scenes
 		"traffic_crossing": "traffic_light", "item_sorting": "sort",
 		"collect_energy": "orb", "animal_rescue": "paw",
 		"monster_battle": "monster", "memory_match": "blocks",
-		"light_echo": "music", "monster_duel": "lightning",
 		"platformer": "flag", "monster_expedition": "compass",
-		"keepy_uppy": "balloon", "light_defense": "target",
 	}
 	var icon_name: String = str(level.get("icon",
 		icons.get(str(level.get("game_type", "")), "flag")))

@@ -393,6 +393,25 @@ for game_type, scene_path in game_type_scene.items():
     if m:
         scene_script[game_type] = res(m.group(1))
 
+# --- 5d. every kind of game has its own picture on the map
+#
+# A child who cannot read the label picks a level by looking at the marker.
+# The map's icon table is a lookup keyed on game_type with a `flag` default,
+# so a template missing from it does not fail -- it silently becomes a flag,
+# and a world of eight levels shows eight identical markers.
+#
+# That is what the rebuild did: the table still listed the templates from
+# before it, so all nine new ones defaulted. It is the same shape of mistake
+# as world_style.gd and island_map.gd, which is why it is worth a rule.
+map_icons = set(re.findall(r'"(\w+)":\s*"\w+"',
+    re.search(r'var icons := \{(.*?)\n\t\}',
+              open("scripts/ui/world_map.gd").read(), re.S).group(1)))
+for game_type in sorted({l["game_type"] for l in levels}):
+    if game_type not in map_icons:
+        errors.append(
+            f"world_map.gd: game_type '{game_type}' has no icon of its own; "
+            f"its levels all show the default flag")
+
 for lv in levels:
     script = scene_script.get(lv["game_type"])
     if not script or not os.path.exists(script):
