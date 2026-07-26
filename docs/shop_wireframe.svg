@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" font-family="PingFang SC, Noto Sans SC, Helvetica, sans-serif">
+  <defs>
+    <style>
+      .box   { fill:#ffffff; stroke:#2b3a5c; stroke-width:3; }
+      .soft  { fill:#f4f8ff; stroke:#8ea3c8; stroke-width:2.5; }
+      .ghost { fill:#eef3fb; stroke:#a8b8d4; stroke-width:2; stroke-dasharray:9 7; }
+      .accent{ fill:#fff6e0; stroke:#e0a63c; stroke-width:3; }
+      .go    { fill:#e6f7ec; stroke:#37a05e; stroke-width:3; }
+      .t     { fill:#1e2b47; font-size:26px; }
+      .tb    { fill:#1e2b47; font-size:32px; font-weight:700; }
+      .ts    { fill:#5a6b8c; font-size:20px; }
+      .tn    { fill:#a0662a; font-size:19px; }
+      .cap   { fill:#8496b5; font-size:18px; font-style:italic; }
+    </style>
+  </defs>
+
+  <rect width="1920" height="1080" fill="#dce8f7"/>
+  <rect x="14" y="14" width="1892" height="1052" rx="26" fill="#f7fbff" stroke="#2b3a5c" stroke-width="4"/>
+
+  <!-- ============ TOP BAR ============ -->
+  <rect x="34" y="34" width="1852" height="112" rx="20" class="soft"/>
+  <rect x="52" y="50" width="150" height="80" rx="22" class="box"/>
+  <text x="127" y="100" class="tb" text-anchor="middle">&#8592; 返回</text>
+  <text x="960" y="104" class="tb" text-anchor="middle" font-size="42">星光礼物屋</text>
+  <rect x="1560" y="50" width="306" height="80" rx="40" class="accent"/>
+  <circle cx="1612" cy="90" r="26" fill="#ffd75e" stroke="#e0a63c" stroke-width="3"/>
+  <text x="1612" y="99" text-anchor="middle" font-size="26">&#9733;</text>
+  <text x="1660" y="102" class="tb" font-size="38">128</text>
+  <text x="1770" y="97" class="ts">星星币</text>
+  <text x="1560" y="166" class="cap">点余额 &#8594; 星星轻响，不打开任何充值页</text>
+
+  <!-- ============ LEFT: CATEGORIES ============ -->
+  <text x="52" y="196" class="ts">七个大分类 &#183; 当前分类放大发光</text>
+  <g>
+    <rect x="34" y="212" width="250" height="128" rx="22" class="accent"/>
+    <circle cx="98" cy="276" r="34" fill="#ffe9b8" stroke="#e0a63c" stroke-width="3"/>
+    <text x="98" y="288" text-anchor="middle" font-size="34">&#128085;</text>
+    <text x="152" y="288" class="tb">换装</text>
+    <rect x="46" y="352" width="226" height="104" rx="20" class="soft"/>
+    <circle cx="102" cy="404" r="28" fill="#eef3fb" stroke="#8ea3c8" stroke-width="2"/>
+    <text x="146" y="414" class="t">伙伴</text>
+    <rect x="46" y="468" width="226" height="104" rx="20" class="soft"/>
+    <circle cx="102" cy="520" r="28" fill="#eef3fb" stroke="#8ea3c8" stroke-width="2"/>
+    <text x="146" y="530" class="t">座驾</text>
+    <rect x="46" y="584" width="226" height="104" rx="20" class="soft"/>
+    <circle cx="102" cy="636" r="28" fill="#eef3fb" stroke="#8ea3c8" stroke-width="2"/>
+    <text x="146" y="646" class="t">特效</text>
+    <rect x="46" y="700" width="226" height="104" rx="20" class="soft"/>
+    <circle cx="102" cy="752" r="28" fill="#eef3fb" stroke="#8ea3c8" stroke-width="2"/>
+    <text x="146" y="762" class="t">动作</text>
+    <rect x="46" y="816" width="226" height="104" rx="20" class="soft"/>
+    <circle cx="102" cy="868" r="28" fill="#eef3fb" stroke="#8ea3c8" stroke-width="2"/>
+    <text x="146" y="878" class="t">基地</text>
+    <rect x="46" y="932" width="226" height="104" rx="20" class="soft"/>
+    <circle cx="102" cy="984" r="28" fill="#eef3fb" stroke="#8ea3c8" stroke-width="2"/>
+    <text x="146" y="994" class="t">收藏</text>
+  </g>
+
+  <!-- ============ CENTRE: CHARACTER STAGE ============ -->
+  <rect x="308" y="212" width="700" height="700" rx="28" class="box"/>
+  <text x="658" y="256" class="ts" text-anchor="middle">角色展示台 &#183; 试穿立刻生效</text>
+  <ellipse cx="658" cy="836" rx="240" ry="46" fill="#e7eefb"/>
+  <!-- hero silhouette -->
+  <g stroke="#2b3a5c" stroke-width="3" fill="#cfe0f7">
+    <circle cx="640" cy="420" r="92"/>
+    <rect x="576" y="512" width="128" height="200" rx="46"/>
+    <rect x="592" y="712" width="42" height="104" rx="18"/>
+    <rect x="648" y="712" width="42" height="104" rx="18"/>
+  </g>
+  <path d="M704 530 L800 470 L806 620 Z" fill="#ffd9c2" stroke="#2b3a5c" stroke-width="3"/>
+  <text x="822" y="556" class="tn">披风(back)</text>
+  <circle cx="640" cy="326" r="34" fill="#ffe9b8" stroke="#2b3a5c" stroke-width="3"/>
+  <text x="690" y="318" class="tn">帽子(head)</text>
+  <!-- companion -->
+  <circle cx="852" cy="770" r="52" fill="#e3f6e8" stroke="#37a05e" stroke-width="3"/>
+  <text x="852" y="782" text-anchor="middle" font-size="30">&#9787;</text>
+  <text x="852" y="856" class="tn" text-anchor="middle">伙伴站在旁边</text>
+  <!-- turn arrows -->
+  <circle cx="368" cy="600" r="40" class="soft"/>
+  <text x="368" y="614" text-anchor="middle" font-size="34">&#8249;</text>
+  <circle cx="948" cy="600" r="40" class="soft"/>
+  <text x="948" y="614" text-anchor="middle" font-size="34">&#8250;</text>
+  <text x="658" y="890" class="cap" text-anchor="middle">左右看正面 / 背面 &#183; 点角色播放当前动作 &#183; 轻微待机呼吸</text>
+
+  <!-- ============ RIGHT: ITEM CARDS ============ -->
+  <text x="1040" y="196" class="ts">每页最多 6 件 &#183; 三列大卡片，不做密集小图</text>
+  <g>
+    <!-- row 1 -->
+    <rect x="1032" y="212" width="266" height="330" rx="24" class="box"/>
+    <rect x="1056" y="240" width="218" height="188" rx="18" fill="#eef6ff"/>
+    <text x="1165" y="352" text-anchor="middle" font-size="60">&#9733;</text>
+    <text x="1165" y="470" class="t" text-anchor="middle">星光披风</text>
+    <circle cx="1122" cy="506" r="20" fill="#ffd75e" stroke="#e0a63c" stroke-width="3"/>
+    <text x="1160" y="516" class="tb">30</text>
+    <rect x="1230" y="228" width="56" height="32" rx="14" fill="#fff0c2" stroke="#e0a63c" stroke-width="2"/>
+    <text x="1258" y="252" class="tn" text-anchor="middle" font-size="17">NEW</text>
+
+    <rect x="1318" y="212" width="266" height="330" rx="24" class="go"/>
+    <rect x="1342" y="240" width="218" height="188" rx="18" fill="#f0fbf3"/>
+    <text x="1451" y="352" text-anchor="middle" font-size="60">&#9730;</text>
+    <text x="1451" y="470" class="t" text-anchor="middle">云朵帽</text>
+    <circle cx="1451" cy="506" r="22" fill="#37a05e"/>
+    <text x="1451" y="516" text-anchor="middle" fill="#fff" font-size="26">&#10003;</text>
+    <text x="1502" y="516" class="ts">已拥有</text>
+
+    <rect x="1604" y="212" width="266" height="330" rx="24" class="box"/>
+    <rect x="1628" y="240" width="218" height="188" rx="18" fill="#eef6ff"/>
+    <text x="1737" y="352" text-anchor="middle" font-size="60">&#9889;</text>
+    <text x="1737" y="470" class="t" text-anchor="middle">闪电靴</text>
+    <circle cx="1694" cy="506" r="20" fill="#ffd75e" stroke="#e0a63c" stroke-width="3"/>
+    <text x="1732" y="516" class="tb">28</text>
+
+    <!-- row 2 -->
+    <rect x="1032" y="566" width="266" height="330" rx="24" class="box"/>
+    <rect x="1056" y="594" width="218" height="188" rx="18" fill="#eef6ff"/>
+    <text x="1165" y="706" text-anchor="middle" font-size="60">&#127808;</text>
+    <text x="1165" y="824" class="t" text-anchor="middle">彩虹披风</text>
+    <circle cx="1122" cy="860" r="20" fill="#ffd75e" stroke="#e0a63c" stroke-width="3"/>
+    <text x="1160" y="870" class="tb">32</text>
+    <circle cx="1246" cy="860" r="20" fill="#cfe0f7" stroke="#2b3a5c" stroke-width="2"/>
+    <text x="1246" y="869" text-anchor="middle" font-size="20">&#9787;</text>
+
+    <!-- locked card: silhouette, never a question mark -->
+    <rect x="1318" y="566" width="266" height="330" rx="24" class="ghost"/>
+    <rect x="1342" y="594" width="218" height="188" rx="18" fill="#e3eaf5"/>
+    <text x="1451" y="706" text-anchor="middle" font-size="60" fill="#a8b8d4">&#128640;</text>
+    <text x="1451" y="824" class="ts" text-anchor="middle">小火箭背包</text>
+    <rect x="1360" y="844" width="182" height="38" rx="18" fill="#eef3fb" stroke="#8ea3c8" stroke-width="2"/>
+    <text x="1451" y="871" class="ts" text-anchor="middle" font-size="19">&#127961; 天空基地</text>
+
+    <rect x="1604" y="566" width="266" height="330" rx="24" class="ghost"/>
+    <rect x="1628" y="594" width="218" height="188" rx="18" fill="#e3eaf5"/>
+    <text x="1737" y="706" text-anchor="middle" font-size="60" fill="#a8b8d4">&#128081;</text>
+    <text x="1737" y="824" class="ts" text-anchor="middle">勇气皇冠</text>
+    <rect x="1646" y="844" width="182" height="38" rx="18" fill="#eef3fb" stroke="#8ea3c8" stroke-width="2"/>
+    <text x="1737" y="871" class="ts" text-anchor="middle" font-size="19">&#9733;&#9733;&#9733; 首次三星</text>
+  </g>
+  <text x="1032" y="918" class="cap" font-size="17">锁定 = 真实剪影 + 图形化解锁条件（世界 / 关卡数 / 三星 / 宝箱 / 徽章），绝不只放问号</text>
+
+  <!-- ============ BOTTOM BAR ============ -->
+  <rect x="308" y="928" width="1562" height="108" rx="22" class="soft"/>
+  <rect x="326" y="940" width="84" height="84" rx="18" fill="#eef6ff" stroke="#8ea3c8" stroke-width="2"/>
+  <text x="368" y="996" text-anchor="middle" font-size="40">&#9733;</text>
+  <text x="432" y="972" class="tb">星光披风</text>
+  <circle cx="452" cy="1004" r="18" fill="#ffd75e" stroke="#e0a63c" stroke-width="3"/>
+  <text x="484" y="1014" class="t">30 星星币</text>
+  <rect x="1188" y="940" width="256" height="84" rx="24" class="box"/>
+  <text x="1316" y="994" class="tb" text-anchor="middle">试试看</text>
+  <rect x="1466" y="940" width="386" height="84" rx="24" class="accent"/>
+  <circle cx="1530" cy="982" r="24" fill="#ffd75e" stroke="#e0a63c" stroke-width="3"/>
+  <text x="1530" y="991" text-anchor="middle" font-size="24">&#9733;</text>
+  <text x="1660" y="996" class="tb" text-anchor="middle">用 30 颗买下</text>
+  <text x="308" y="1058" class="cap" font-size="17">已拥有 &#8594; 按钮变「穿上」 &#183; 正在使用 &#8594; 绿色勾 +「正在使用」 &#183; 点卡片只试穿，永不扣钱</text>
+</svg>
