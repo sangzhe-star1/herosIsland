@@ -72,11 +72,8 @@ func setup_level() -> void:
 		_cases.append(_picker.one(CASES))
 
 	build_world(self, 0.40)
-	_field = Control.new()
-	_field.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_field.mouse_filter = Control.MOUSE_FILTER_STOP
+	_field = UiKit.play_area(self, true)
 	_field.gui_input.connect(_on_tap)
-	add_child(_field)
 
 	_build_hud()
 	_hints = Hints.new()

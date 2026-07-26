@@ -47,6 +47,64 @@ for f in gd:
             errors.append(f"{f}: unbalanced {open_c}{close_c} "
                           f"({src.count(open_c)} vs {src.count(close_c)})")
 
+# --- 3a2. A Control's anchors do nothing under a Node2D, and fail silently.
+#
+# A Control resolves its anchors against its parent CanvasItem's "anchorable
+# rect". Node2D reports that as (0, 0, 0, 0) -- so PRESET_FULL_RECT is honoured
+# perfectly against nothing and the Control ends up zero-sized. Everything
+# drawn inside it still appears, because Node2D children do not care what size
+# their parent claims to be.
+#
+# The result is a level that looks completely finished and cannot be touched.
+# Twelve of thirty-four levels shipped that way, including the first one in the
+# game. Nothing caught it: it parses, it builds, it screenshots correctly, and
+# every probe that only ENTERED a level passed. Use UiKit.play_area().
+#
+# A Control under a CanvasLayer is fine -- a CanvasLayer is not a CanvasItem,
+# so the lookup falls through to the viewport. That is why every HUD worked.
+# Which of our own scripts are Node2D-rooted? Follow `extends` through the
+# project's own class_names until it lands on an engine class. Only a Node2D
+# parent has the zero anchorable rect: a plain Node is not a CanvasItem at all,
+# so the lookup falls through to the viewport and the anchors work -- which is
+# why every dev preview harness in tests/ is fine and must not be flagged.
+extends_of = {}
+for f in gd:
+    src = open(f).read()
+    name = re.search(r'^class_name\s+(\w+)', src, re.M)
+    base = re.search(r'^extends\s+(\w+)', src, re.M)
+    if name and base:
+        extends_of[name.group(1)] = base.group(1)
+
+def node2d_rooted(base, seen=()):
+    while base in extends_of and base not in seen:
+        seen = seen + (base,)
+        base = extends_of[base]
+    return base == "Node2D"
+
+for path in gd:
+    src = open(path).read()
+    base = re.search(r'^extends\s+(\w+)', src, re.M)
+    if not base or not node2d_rooted(base.group(1)):
+        continue
+    lines = src.splitlines()
+    anchored = {}
+    for i, line in enumerate(lines):
+        m = re.search(r'(\w+)\s*:?=\s*(?:Control|CenterContainer|VBoxContainer'
+                      r'|HBoxContainer|PanelContainer)\.new\(\)', line)
+        if m:
+            anchored.pop(m.group(1), None)
+        m = re.search(r'(\w+)\.set_anchors_preset\(Control\.PRESET_FULL_RECT\)', line)
+        if m:
+            anchored[m.group(1)] = i + 1
+        m = re.match(r'\s*add_child\((\w+)\)\s*$', line)
+        if m and m.group(1) in anchored:
+            errors.append(
+                f"{path}:{i+1}: '{m.group(1)}' gets PRESET_FULL_RECT (line "
+                f"{anchored[m.group(1)]}) and is then added to a Node2D, where "
+                f"anchors do nothing -- it will be zero-sized and untouchable. "
+                f"Use UiKit.play_area().")
+
+
 # --- 3b. GDScript cannot infer a type from an untyped (Variant) expression.
 #         `var x := event.pressed` is a parser error, and a parser error in any
 #         script blanks the whole game -- this is the bug that produced the

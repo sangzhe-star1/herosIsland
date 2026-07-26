@@ -124,6 +124,41 @@ static func world_background(parent: Control, world_id: String,
 	return Stage.build(parent, style, seed_key if seed_key != "" else world_id)
 
 
+## A full-screen Control for a level to hold its play area in.
+##
+## Use this and never `Control.new()` + PRESET_FULL_RECT inside a level.
+##
+## Anchors do not work there, and they fail silently. A Control resolves its
+## anchors against its parent CanvasItem's "anchorable rect", and a Node2D --
+## which every level template is -- reports that as (0, 0, 0, 0). So the
+## anchors are honoured perfectly against nothing and the Control ends up
+## zero-sized. Meanwhile everything DRAWN inside it still appears, because
+## Node2D children do not care what size their parent claims to be.
+##
+## The result is a level that looks completely finished and cannot be touched:
+## the tap area is a zero-size rectangle in the top-left corner, so no press
+## ever lands in it and no handler ever runs. Twelve levels shipped like that,
+## including the first one in the game, and every screenshot of them looked
+## right. (A Control under a CanvasLayer is fine -- a CanvasLayer is not a
+## CanvasItem, so the lookup falls through to the viewport. That is why the
+## HUDs all worked and the play areas all did not.)
+static func play_area(parent: Node, catches_input: bool = false) -> Control:
+	var area := Control.new()
+	area.mouse_filter = Control.MOUSE_FILTER_STOP if catches_input \
+		else Control.MOUSE_FILTER_IGNORE
+	parent.add_child(area)
+	# Sized by hand, because nothing will do it for us. No anchors at all --
+	# an anchor that is quietly ignored is worse than no anchor.
+	area.position = Vector2.ZERO
+	area.size = area.get_viewport_rect().size
+	var vp := area.get_viewport()
+	if vp != null:
+		vp.size_changed.connect(func():
+			if is_instance_valid(area):
+				area.size = area.get_viewport_rect().size)
+	return area
+
+
 ## Full-screen vertical layout with breathing room at the edges, so nothing sits
 ## flush against the bezel on a tablet.
 static func screen_root(parent: Control, margin: int = 36) -> VBoxContainer:

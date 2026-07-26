@@ -254,6 +254,21 @@ if ! grep -q "RESULT PROBE PASSED" "$RESULT_OUT"; then
 fi
 rm -f "$RESULT_OUT"
 
+# The one check that presses things. Every other check here answers "does it
+# build" or "does it look right", and a level can pass both while being
+# completely dead -- five templates shipped with a zero-sized tap area and
+# twelve levels drew perfectly and ignored every press.
+echo
+echo "Running touch probe..."
+TOUCH_OUT=$(mktemp)
+timeout 240 "$GODOT" --headless --path . res://tests/TouchProbe.tscn 2>&1 | tee "$TOUCH_OUT"
+if ! grep -q "TOUCH PROBE PASSED" "$TOUCH_OUT"; then
+  rm -f "$TOUCH_OUT"
+  echo "Touch probe failed."
+  exit 1
+fi
+rm -f "$TOUCH_OUT"
+
 echo
 echo "Running map probe..."
 MAP_OUT=$(mktemp)

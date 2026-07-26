@@ -54,10 +54,7 @@ func setup_level() -> void:
 	result.clean_run = true
 
 	build_world(self, 0.30)
-	_canvas = Control.new()
-	_canvas.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_canvas.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_canvas)
+	_canvas = UiKit.play_area(self, true)
 
 	_build_base()
 	_restore()

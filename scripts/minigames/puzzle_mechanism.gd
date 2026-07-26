@@ -52,11 +52,8 @@ func setup_level() -> void:
 	_steps = clampi(harder_i(int(config.get("steps", 4)), 1), 3, 5)
 
 	build_world(self, 0.42)
-	_field = Control.new()
-	_field.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_field.mouse_filter = Control.MOUSE_FILTER_STOP
+	_field = UiKit.play_area(self, true)
 	_field.gui_input.connect(_on_tap)
-	add_child(_field)
 
 	_build_goal()
 	_build_pieces()
