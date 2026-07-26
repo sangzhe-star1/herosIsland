@@ -234,6 +234,54 @@ for lv in levels:
     if r and r not in ids:
         errors.append(f"levels.json: {lv['id']} requires unknown level {r}")
 
+# --- 3b. variety: the rule the whole redesign exists to enforce
+#
+# The island's first rebuild turned every one of its levels into the same
+# side-scrolling run, and nobody noticed until a child played four in a row.
+# These three rules are what "a collection of games" means, stated as numbers
+# so a future level cannot quietly break it:
+#
+#   * no template more than twice in a row
+#   * every world offers at least four different kinds of play
+#   * side-scrolling stays a fifth of the island, never its floor
+
+STUDIO = "hero_studio"          # the free-play room; not one of the thirty
+numbered = [l for l in levels if l.get("id") != STUDIO]
+if numbered:
+    run = worst = 1
+    worst_at = ""
+    for i in range(1, len(numbered)):
+        if numbered[i].get("game_type") == numbered[i - 1].get("game_type"):
+            run += 1
+            if run > worst:
+                worst, worst_at = run, numbered[i].get("id", "?")
+        else:
+            run = 1
+    if worst > 2:
+        errors.append(
+            "%d levels in a row use the same template (up to %s). "
+            "Two is the limit -- a third makes the island feel like one game."
+            % (worst, worst_at))
+
+    from collections import Counter
+    per_world = {}
+    for l in numbered:
+        per_world.setdefault(l.get("world", ""), []).append(l.get("game_type", ""))
+    for world_id, kinds in per_world.items():
+        if len(set(kinds)) < 4:
+            errors.append(
+                "world '%s' has only %d kinds of play across %d levels; "
+                "the brief asks for at least 4."
+                % (world_id, len(set(kinds)), len(kinds)))
+
+    mix = Counter(l.get("game_type", "") for l in numbered)
+    side = mix.get("platform_adventure", 0) + mix.get("platformer", 0)
+    share = 100.0 * side / len(numbered)
+    if share > 25.0:
+        errors.append(
+            "side-scrolling is %.0f%% of the island (%d of %d levels). "
+            "The cap is 25%%." % (share, side, len(numbered)))
+
 # every world's growth_attribute is real
 for w in json.load(open("data/worlds.json")):
     if w["growth_attribute"] not in growth_ids:

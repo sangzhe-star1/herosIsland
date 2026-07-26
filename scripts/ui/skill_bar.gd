@@ -23,19 +23,26 @@ signal attack_pressed()
 signal skill_pressed(slot: int)
 signal interact_pressed()
 
-const PAD_MOVE := 132.0
-const PAD_JUMP := 152.0
-const PAD_ATTACK := 128.0
-const PAD_SKILL := 112.0
+## Sizes. Jump stays biggest because it is pressed most; the skills came down
+## from 112 to 88 and their icons from 60 to 46, because four buttons of the
+## same weight in one corner read as a wall of buttons rather than as a hand.
+const PAD_JUMP := 138.0
+const PAD_ATTACK := 112.0
+const PAD_SKILL := 88.0
+const ICON_SKILL := 46.0
 
 var _skill_buttons: Array = []      # [{button, ring, icon, ready_at, cooldown}]
 var _interact: Button
 var _interact_icon: Control
-var _left_button: Button
-var _right_button: Button
 var _jump_button: Button
 var _attack_button: Button
 var _demo_hand: Control
+var _stick: Stick
+var _last_dir := 0.0
+
+## By path, not by class name: a new class_name is invisible until the editor
+## rescans, and that made every level in the game fail to parse once already.
+const Stick := preload("res://scripts/ui/thumb_stick.gd")
 var _clock := 0.0
 
 
@@ -56,18 +63,25 @@ func _process(delta: float) -> void:
 
 # --- the pad ---------------------------------------------------------------
 
+## The left hand is a stick now, not two buttons. See `thumb_stick.gd` for
+## why; the short version is that a thumb leans, it does not aim.
 func _build_move() -> void:
-	var left := _round_button(Vector2(30, 552), PAD_MOVE, Color(0.55, 0.75, 0.95))
-	_left_button = left
-	_arrow(left, PAD_MOVE, -1.0)
-	left.button_down.connect(func(): move_pressed.emit(-1.0, true))
-	left.button_up.connect(func(): move_pressed.emit(-1.0, false))
-
-	var right := _round_button(Vector2(192, 552), PAD_MOVE, Color(0.55, 0.75, 0.95))
-	_right_button = right
-	_arrow(right, PAD_MOVE, 1.0)
-	right.button_down.connect(func(): move_pressed.emit(1.0, true))
-	right.button_up.connect(func(): move_pressed.emit(1.0, false))
+	_stick = Stick.new()
+	add_child(_stick)
+	_stick.moved.connect(func(dir: float):
+		# The rest of the game still speaks in "left held / right held", so
+		# the stick is translated here rather than everywhere.
+		if is_equal_approx(dir, _last_dir):
+			return
+		if _last_dir < 0.0 and dir >= 0.0:
+			move_pressed.emit(-1.0, false)
+		if _last_dir > 0.0 and dir <= 0.0:
+			move_pressed.emit(1.0, false)
+		if dir < 0.0 and _last_dir >= 0.0:
+			move_pressed.emit(-1.0, true)
+		if dir > 0.0 and _last_dir <= 0.0:
+			move_pressed.emit(1.0, true)
+		_last_dir = dir)
 
 
 func _build_action() -> void:
@@ -75,7 +89,9 @@ func _build_action() -> void:
 	var jump := _round_button(Vector2(1098, 540), PAD_JUMP, Color(1.0, 0.86, 0.40))
 	_jump_button = jump
 	_jump_glyph(jump, PAD_JUMP)
-	jump.button_down.connect(func(): jump_pressed.emit())
+	jump.button_down.connect(func():
+		_ripple(jump)
+		jump_pressed.emit())
 	jump.button_up.connect(func(): jump_released.emit())
 
 	# Attack, just left of jump, the second-most-pressed thing.
@@ -86,22 +102,35 @@ func _build_action() -> void:
 		fist.position = Vector2(PAD_ATTACK * 0.24, PAD_ATTACK * 0.24)
 		fist.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		attack.add_child(fist)
-	attack.button_down.connect(func(): attack_pressed.emit())
+	attack.button_down.connect(func():
+		_ripple(attack)
+		attack_pressed.emit())
 
 
 ## Add a skill button. Slot 0 sits above attack, slot 1 above that -- an arc
 ## the thumb sweeps rather than a row it has to reach across.
 func add_skill(icon_name: String, colour: Color, cooldown: float) -> void:
 	var slot: int = _skill_buttons.size()
-	var spots := [Vector2(958, 424), Vector2(1108, 386)]
+	# An arc the thumb sweeps, not a row it reaches across. Tighter now that
+	# the buttons are smaller.
+	var spots := [Vector2(966, 430), Vector2(1096, 380), Vector2(1200, 292)]
 	var at: Vector2 = spots[slot] if slot < spots.size() \
-		else Vector2(958.0 - 140.0 * float(slot), 424.0)
+		else Vector2(966.0 - 118.0 * float(slot), 430.0)
 	var button := _round_button(at, PAD_SKILL, colour)
-	var icon: Control = UiKit.picture(icon_name, PAD_SKILL * 0.54)
+	var icon: Control = UiKit.picture(icon_name, ICON_SKILL)
 	if icon != null:
-		icon.position = Vector2(PAD_SKILL * 0.23, PAD_SKILL * 0.23)
+		icon.position = Vector2(PAD_SKILL - ICON_SKILL, PAD_SKILL - ICON_SKILL) / 2.0
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(icon)
+		# The icon breathes while the skill is ready: a still button on a
+		# screen full of moving things reads as switched off.
+		if Juice.motion_enabled():
+			icon.pivot_offset = Vector2(ICON_SKILL, ICON_SKILL) / 2.0
+			var b := icon.create_tween().set_loops()
+			b.tween_property(icon, "scale", Vector2(1.10, 1.10), 0.9)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			b.tween_property(icon, "scale", Vector2.ONE, 0.9)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 	# The cooldown ring: a wedge that sweeps away as the skill comes back.
 	# A greyed-out button says "no"; a ring says "not yet, and this much
@@ -111,9 +140,12 @@ func add_skill(icon_name: String, colour: Color, cooldown: float) -> void:
 	button.add_child(ring)
 
 	var entry := {"button": button, "ring": ring, "ready_at": 0.0,
-		"cooldown": maxf(cooldown, 0.1), "colour": colour}
+		"cooldown": maxf(cooldown, 0.1), "colour": colour, "icon": icon,
+		"was_ready": true}
 	_skill_buttons.append(entry)
-	button.button_down.connect(func(): skill_pressed.emit(slot))
+	button.button_down.connect(func():
+		_ripple(button)
+		skill_pressed.emit(slot))
 
 
 ## Has this skill come back yet?
@@ -144,7 +176,15 @@ func _draw_cooldown(entry: Dictionary) -> void:
 		child.queue_free()
 	var left: float = float(entry["ready_at"]) - _clock
 	if left <= 0.0:
+		# The moment it comes back, say so. A child watching a wedge shrink
+		# has to keep watching to know when it is gone; a flash means they
+		# can look at the monster instead, which is where they should be
+		# looking.
+		if not bool(entry["was_ready"]):
+			entry["was_ready"] = true
+			_ready_flash(entry)
 		return
+	entry["was_ready"] = false
 	var fraction: float = clampf(left / float(entry["cooldown"]), 0.0, 1.0)
 	var points := PackedVector2Array([Vector2.ZERO])
 	var steps: int = maxi(int(fraction * 26.0), 2)
@@ -164,7 +204,9 @@ func _build_interact() -> void:
 		_interact_icon.position = Vector2(27, 27)
 		_interact_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_interact.add_child(_interact_icon)
-	_interact.button_down.connect(func(): interact_pressed.emit())
+	_interact.button_down.connect(func():
+		_ripple(_interact)
+		interact_pressed.emit())
 
 
 ## Show the interact key at a screen position, wearing the icon of whatever
@@ -189,6 +231,53 @@ func show_interact(at: Vector2, icon_name: String) -> void:
 			fresh.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_interact.add_child(fresh)
 			_interact_icon = fresh
+
+
+## The rim lights up and a ring flies off it. Half a second, once.
+func _ready_flash(entry: Dictionary) -> void:
+	var button: Button = entry["button"]
+	if not is_instance_valid(button) or not Juice.motion_enabled():
+		return
+	var burst := Node2D.new()
+	burst.position = Vector2(PAD_SKILL, PAD_SKILL) / 2.0
+	button.add_child(burst)
+	var ring := Line2D.new()
+	ring.points = Shapes.circle_points(Vector2.ZERO, PAD_SKILL * 0.5, 28)
+	ring.closed = true
+	ring.width = 6.0
+	ring.default_color = entry["colour"]
+	ring.antialiased = true
+	burst.add_child(ring)
+	var t := burst.create_tween().set_parallel(true)
+	t.tween_property(burst, "scale", Vector2(1.7, 1.7), 0.42)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(burst, "modulate:a", 0.0, 0.42)
+	t.chain().tween_callback(burst.queue_free)
+	Juice.pop(button, 0.16)
+	AudioManager.play_sfx("res://assets/audio/pop.ogg")
+
+
+## A ripple out from the middle of a pressed button. Immediate visual answer
+## to a press, which the brief asks for on every interactive thing.
+func _ripple(button: Button) -> void:
+	if not is_instance_valid(button) or not Juice.motion_enabled():
+		return
+	var size: float = button.custom_minimum_size.x
+	var wave := Node2D.new()
+	wave.position = Vector2(size, size) / 2.0
+	button.add_child(wave)
+	var ring := Line2D.new()
+	ring.points = Shapes.circle_points(Vector2.ZERO, size * 0.28, 24)
+	ring.closed = true
+	ring.width = 5.0
+	ring.default_color = Color(1, 1, 1, 0.75)
+	ring.antialiased = true
+	wave.add_child(ring)
+	var t := wave.create_tween().set_parallel(true)
+	t.tween_property(wave, "scale", Vector2(2.1, 2.1), 0.34)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(wave, "modulate:a", 0.0, 0.34)
+	t.chain().tween_callback(wave.queue_free)
 
 
 # --- showing a stuck child which button ---------------------------------------
@@ -246,10 +335,8 @@ func _demo_target(which: String) -> Button:
 			return _jump_button
 		"attack":
 			return _attack_button
-		"left":
-			return _left_button
-		"right":
-			return _right_button
+		"left", "right", "move":
+			return null      # the stick is demonstrated by the tutorial, not here
 	if which.begins_with("skill"):
 		var slot: int = int(which.substr(5))
 		if slot >= 0 and slot < _skill_buttons.size():

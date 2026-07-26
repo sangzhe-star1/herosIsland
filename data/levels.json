@@ -3,109 +3,57 @@
     "id": "sunny_park_01",
     "world": "sunny_park",
     "name_key": "level.sunny_park_01",
-    "game_type": "platform_adventure",
+    "game_type": "observation_search",
     "difficulty": 1,
-    "duration_seconds": 360,
+    "duration_seconds": 300,
     "target": {},
     "reward": {
-      "coins": 28,
+      "coins": 26,
       "badge": "first_steps"
     },
     "config": {
-      "instruction_key": "adventure.instruction",
-      "length": 3600,
-      "gap_max": 96,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 4,
-          "spread": 380
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "switch",
-          "height": 120,
-          "gate_gap": 260
-        },
-        {
-          "kind": "chest"
-        }
-      ]
+      "icon": "orb",
+      "count": 5,
+      "decoys": [
+        "leaf",
+        "rock",
+        "spark"
+      ],
+      "bonus": "paw",
+      "instruction_key": "observation.find"
     }
   },
   {
     "id": "sunny_park_02",
     "world": "sunny_park",
     "name_key": "level.sunny_park_02",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
+    "game_type": "matching_sorting",
+    "difficulty": 1,
+    "duration_seconds": 300,
     "requires": "sunny_park_01",
     "target": {},
     "reward": {
-      "coins": 36,
-      "badge": "rock_dodger"
+      "coins": 26,
+      "badge": "super_sorter"
     },
     "config": {
-      "instruction_key": "adventure.instruction_02",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
+      "count": 8,
+      "instruction_key": "sorting.instruction",
+      "bins": [
         {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
+          "key": "toy",
+          "icon": "teddy",
+          "colour": "#5fb0e8"
         },
         {
-          "kind": "rocks",
-          "count": 3
+          "key": "danger",
+          "icon": "warning",
+          "colour": "#e2703c"
         },
         {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "fire",
-          "count": 3
-        },
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 320
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "color_match",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
+          "key": "plant",
+          "icon": "leaf",
+          "colour": "#4fa86b"
         }
       ]
     }
@@ -114,92 +62,57 @@
     "id": "sunny_park_03",
     "world": "sunny_park",
     "name_key": "level.sunny_park_03",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
+    "game_type": "build_repair",
+    "difficulty": 1,
+    "duration_seconds": 300,
     "requires": "sunny_park_02",
     "target": {},
     "reward": {
-      "coins": 44,
-      "badge": "giant_friend",
-      "unlock": "double_jump"
+      "coins": 26,
+      "badge": "tower_engineer"
     },
     "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker"
-          ]
-        },
-        {
-          "kind": "foes",
-          "count": 1,
-          "kinds": [
-            "spitter"
-          ]
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "foes",
-          "count": 3,
-          "kinds": [
-            "walker",
-            "armoured",
-            "spitter"
-          ]
-        },
-        {
-          "kind": "rescue"
-        },
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "boss"
-        },
-        {
-          "kind": "chest"
-        }
-      ]
+      "machine": "bridge",
+      "waiting_for": "paw",
+      "instruction_key": "build.instruction"
     }
   },
   {
     "id": "sunny_park_04",
     "world": "sunny_park",
     "name_key": "level.sunny_park_04",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
+    "game_type": "memory_rhythm",
+    "difficulty": 1,
+    "duration_seconds": 300,
     "requires": "sunny_park_03",
     "target": {},
     "reward": {
-      "coins": 36,
-      "badge": "energy_collector"
+      "coins": 26,
+      "badge": "little_musician"
+    },
+    "config": {
+      "mode": "lights",
+      "rounds": 4,
+      "instruction_key": "memory.instruction"
+    }
+  },
+  {
+    "id": "sunny_park_05",
+    "world": "sunny_park",
+    "name_key": "level.sunny_park_05",
+    "game_type": "platform_adventure",
+    "difficulty": 1,
+    "duration_seconds": 300,
+    "requires": "sunny_park_04",
+    "target": {},
+    "reward": {
+      "coins": 26,
+      "badge": "valley_explorer"
     },
     "config": {
       "instruction_key": "adventure.instruction",
-      "length": 3600,
-      "gap_max": 100,
+      "length": 3400,
+      "gap_max": 92,
       "seg_min": 360,
       "sections": [
         {
@@ -208,62 +121,6 @@
           "spread": 380
         },
         {
-          "kind": "puzzle",
-          "puzzle": "count",
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "count",
-          "gate_gap": 240
-        },
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 320
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "sunny_park_05",
-    "world": "sunny_park",
-    "name_key": "level.sunny_park_05",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "sunny_park_04",
-    "target": {},
-    "reward": {
-      "coins": 36,
-      "badge": "sharp_eyes"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_02",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
           "kind": "spring",
           "id": "b"
         },
@@ -274,26 +131,12 @@
           "height": 290
         },
         {
-          "kind": "puzzle",
-          "puzzle": "same_as",
-          "gate_gap": 240
-        },
-        {
           "kind": "checkpoint"
         },
         {
           "kind": "switch",
           "height": 120,
           "gate_gap": 260
-        },
-        {
-          "kind": "rocks",
-          "count": 2
-        },
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 320
         },
         {
           "kind": "chest"
@@ -305,20 +148,106 @@
     "id": "sunny_park_06",
     "world": "sunny_park",
     "name_key": "level.sunny_park_06",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
+    "game_type": "monster_duel",
+    "difficulty": 2,
+    "duration_seconds": 300,
     "requires": "sunny_park_05",
     "target": {},
     "reward": {
-      "coins": 44,
-      "badge": "valley_explorer"
+      "coins": 34,
+      "badge": "giant_friend",
+      "unlock": "double_jump"
     },
     "config": {
-      "instruction_key": "adventure.instruction_03",
+      "beam_cooldown": 1.5,
+      "shield_cooldown": 5.0,
+      "ult_needed": 5,
+      "goo_interval": 6.5,
+      "monster": {
+        "scale": 1.05
+      },
+      "instruction_key": "duel.instruction"
+    }
+  },
+  {
+    "id": "night_city_01",
+    "world": "night_city",
+    "name_key": "level.night_city_01",
+    "game_type": "observation_search",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "sharp_eyes"
+    },
+    "config": {
+      "icon": "warning",
+      "count": 5,
+      "decoys": [
+        "tower",
+        "gear",
+        "socket"
+      ],
+      "bonus": "paw",
+      "instruction_key": "observation.find"
+    }
+  },
+  {
+    "id": "night_city_02",
+    "world": "night_city",
+    "name_key": "level.night_city_02",
+    "game_type": "puzzle_mechanism",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "night_city_01",
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "rainbow_charger"
+    },
+    "config": {
+      "puzzle": "wires",
+      "steps": 4,
+      "instruction_key": "puzzle.instruction"
+    }
+  },
+  {
+    "id": "night_city_03",
+    "world": "night_city",
+    "name_key": "level.night_city_03",
+    "game_type": "roleplay_rescue",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "night_city_02",
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "road_guardian"
+    },
+    "config": {
+      "count": 4,
+      "instruction_key": "rescue.instruction"
+    }
+  },
+  {
+    "id": "night_city_04",
+    "world": "night_city",
+    "name_key": "level.night_city_04",
+    "game_type": "platform_adventure",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "night_city_03",
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "rock_dodger"
+    },
+    "config": {
+      "instruction_key": "adventure.instruction_02",
       "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
+      "gap_max": 96,
+      "seg_min": 380,
       "sections": [
         {
           "kind": "collect",
@@ -333,28 +262,7 @@
           "kind": "checkpoint"
         },
         {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker"
-          ]
-        },
-        {
           "kind": "crate_shelf"
-        },
-        {
-          "kind": "fire",
-          "count": 3
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "color_match",
-          "gate_gap": 240
         },
         {
           "kind": "chest"
@@ -363,21 +271,332 @@
     }
   },
   {
-    "id": "piglet_town_01",
-    "world": "piglet_town",
-    "name_key": "level.piglet_town_01",
-    "game_type": "platform_adventure",
-    "difficulty": 1,
-    "duration_seconds": 360,
+    "id": "night_city_05",
+    "world": "night_city",
+    "name_key": "level.night_city_05",
+    "game_type": "build_repair",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "night_city_04",
     "target": {},
     "reward": {
-      "coins": 28,
-      "badge": "color_expert"
+      "coins": 34,
+      "badge": "energy_collector"
+    },
+    "config": {
+      "machine": "tower",
+      "waiting_for": "tower",
+      "instruction_key": "build.instruction"
+    }
+  },
+  {
+    "id": "night_city_06",
+    "world": "night_city",
+    "name_key": "level.night_city_06",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "night_city_05",
+    "target": {},
+    "reward": {
+      "coins": 42,
+      "badge": "brave_defender"
+    },
+    "config": {
+      "beam_cooldown": 1.3,
+      "shield_cooldown": 5.5,
+      "ult_needed": 6,
+      "goo_interval": 5.5,
+      "monster": {
+        "scale": 1.15
+      },
+      "instruction_key": "duel.instruction"
+    }
+  },
+  {
+    "id": "monster_valley_01",
+    "world": "monster_valley",
+    "name_key": "level.monster_valley_01",
+    "game_type": "matching_sorting",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "tracker"
+    },
+    "config": {
+      "count": 8,
+      "instruction_key": "sorting.instruction",
+      "bins": [
+        {
+          "key": "red",
+          "icon": "heart",
+          "colour": "#e2544c"
+        },
+        {
+          "key": "blue",
+          "icon": "orb",
+          "colour": "#4f8ce8"
+        },
+        {
+          "key": "gold",
+          "icon": "star",
+          "colour": "#e8b53c"
+        }
+      ],
+      "items": [
+        {
+          "icon": "heart",
+          "key": "red"
+        },
+        {
+          "icon": "orb",
+          "key": "blue"
+        },
+        {
+          "icon": "star",
+          "key": "gold"
+        },
+        {
+          "icon": "gem",
+          "key": "red"
+        },
+        {
+          "icon": "spark",
+          "key": "gold"
+        },
+        {
+          "icon": "moon",
+          "key": "blue"
+        }
+      ]
+    }
+  },
+  {
+    "id": "monster_valley_02",
+    "world": "monster_valley",
+    "name_key": "level.monster_valley_02",
+    "game_type": "puzzle_mechanism",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "monster_valley_01",
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "forest_friend"
+    },
+    "config": {
+      "puzzle": "pipes",
+      "steps": 4,
+      "instruction_key": "puzzle.instruction"
+    }
+  },
+  {
+    "id": "monster_valley_03",
+    "world": "monster_valley",
+    "name_key": "level.monster_valley_03",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "monster_valley_02",
+    "target": {},
+    "reward": {
+      "coins": 42,
+      "badge": "rescue_planner"
+    },
+    "config": {
+      "beam_cooldown": 1.4,
+      "shield_cooldown": 4.5,
+      "ult_needed": 6,
+      "goo_interval": 4.6,
+      "monster": {
+        "scale": 1.1
+      },
+      "instruction_key": "duel.instruction"
+    }
+  },
+  {
+    "id": "monster_valley_04",
+    "world": "monster_valley",
+    "name_key": "level.monster_valley_04",
+    "game_type": "platform_adventure",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "monster_valley_03",
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "exit_finder"
     },
     "config": {
       "instruction_key": "adventure.instruction",
       "length": 3600,
       "gap_max": 96,
+      "seg_min": 380,
+      "sections": [
+        {
+          "kind": "collect",
+          "count": 3,
+          "spread": 340
+        },
+        {
+          "kind": "spring",
+          "id": "b"
+        },
+        {
+          "kind": "gem",
+          "above": "b",
+          "offset": 150,
+          "height": 290
+        },
+        {
+          "kind": "checkpoint"
+        },
+        {
+          "kind": "crate_shelf"
+        },
+        {
+          "kind": "chest"
+        }
+      ]
+    }
+  },
+  {
+    "id": "monster_valley_05",
+    "world": "monster_valley",
+    "name_key": "level.monster_valley_05",
+    "game_type": "roleplay_rescue",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "monster_valley_04",
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "monster_friend"
+    },
+    "config": {
+      "count": 4,
+      "instruction_key": "rescue.instruction"
+    }
+  },
+  {
+    "id": "monster_valley_06",
+    "world": "monster_valley",
+    "name_key": "level.monster_valley_06",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "monster_valley_05",
+    "target": {},
+    "reward": {
+      "coins": 42,
+      "badge": "mountain_hero"
+    },
+    "config": {
+      "beam_cooldown": 1.2,
+      "shield_cooldown": 5.0,
+      "ult_needed": 7,
+      "goo_interval": 4.4,
+      "roar_interval": 9.0,
+      "monster": {
+        "scale": 1.28
+      },
+      "instruction_key": "duel.instruction"
+    }
+  },
+  {
+    "id": "sky_base_01",
+    "world": "sky_base",
+    "name_key": "level.sky_base_01",
+    "game_type": "memory_rhythm",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "memory_master"
+    },
+    "config": {
+      "mode": "lights",
+      "rounds": 5,
+      "instruction_key": "memory.instruction"
+    }
+  },
+  {
+    "id": "sky_base_02",
+    "world": "sky_base",
+    "name_key": "level.sky_base_02",
+    "game_type": "memory_rhythm",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "sky_base_01",
+    "target": {},
+    "reward": {
+      "coins": 42,
+      "badge": "little_musician"
+    },
+    "config": {
+      "mode": "sounds",
+      "rounds": 4,
+      "instruction_key": "memory.listen"
+    }
+  },
+  {
+    "id": "sky_base_03",
+    "world": "sky_base",
+    "name_key": "level.sky_base_03",
+    "game_type": "build_repair",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "sky_base_02",
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "star_captain"
+    },
+    "config": {
+      "machine": "ship",
+      "waiting_for": "star",
+      "instruction_key": "build.instruction"
+    }
+  },
+  {
+    "id": "sky_base_04",
+    "world": "sky_base",
+    "name_key": "level.sky_base_04",
+    "game_type": "puzzle_mechanism",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "sky_base_03",
+    "target": {},
+    "reward": {
+      "coins": 42,
+      "badge": "color_expert"
+    },
+    "config": {
+      "puzzle": "mirrors",
+      "steps": 4,
+      "instruction_key": "puzzle.instruction"
+    }
+  },
+  {
+    "id": "sky_base_05",
+    "world": "sky_base",
+    "name_key": "level.sky_base_05",
+    "game_type": "platform_adventure",
+    "difficulty": 2,
+    "duration_seconds": 300,
+    "requires": "sky_base_04",
+    "target": {},
+    "reward": {
+      "coins": 34,
+      "badge": "cloud_jumper"
+    },
+    "config": {
+      "instruction_key": "adventure.instruction",
+      "length": 3600,
+      "gap_max": 100,
       "seg_min": 360,
       "sections": [
         {
@@ -386,14 +605,6 @@
           "spread": 380
         },
         {
-          "kind": "puzzle",
-          "puzzle": "count",
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
           "kind": "spring",
           "id": "b"
         },
@@ -404,310 +615,59 @@
           "height": 290
         },
         {
-          "kind": "collect",
-          "count": 3,
-          "spread": 320
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "piglet_town_02",
-    "world": "piglet_town",
-    "name_key": "level.piglet_town_02",
-    "game_type": "platform_adventure",
-    "difficulty": 1,
-    "duration_seconds": 360,
-    "requires": "piglet_town_01",
-    "target": {},
-    "reward": {
-      "coins": 28,
-      "badge": "memory_master"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction",
-      "length": 3600,
-      "gap_max": 96,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "same_as",
-          "gate_gap": 240
-        },
-        {
           "kind": "checkpoint"
         },
         {
           "kind": "crate_shelf"
         },
         {
-          "kind": "puzzle",
-          "puzzle": "same_as",
-          "gate_gap": 240
-        },
-        {
           "kind": "chest"
         }
       ]
     }
   },
   {
-    "id": "piglet_town_03",
-    "world": "piglet_town",
-    "name_key": "level.piglet_town_03",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "piglet_town_02",
+    "id": "sky_base_06",
+    "world": "sky_base",
+    "name_key": "level.sky_base_06",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "sky_base_05",
     "target": {},
     "reward": {
-      "coins": 36,
-      "badge": "tidy_helper"
+      "coins": 42,
+      "badge": "storm_guardian"
     },
     "config": {
-      "instruction_key": "adventure.instruction",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "count",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
+      "beam_cooldown": 1.2,
+      "shield_cooldown": 5.0,
+      "ult_needed": 7,
+      "goo_interval": 4.2,
+      "roar_interval": 8.5,
+      "monster": {
+        "scale": 1.22
+      },
+      "instruction_key": "duel.instruction"
     }
   },
   {
-    "id": "piglet_town_04",
-    "world": "piglet_town",
-    "name_key": "level.piglet_town_04",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "piglet_town_03",
-    "target": {},
-    "reward": {
-      "coins": 36,
-      "badge": "tower_engineer"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "switch",
-          "height": 120,
-          "gate_gap": 260
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "same_as",
-          "gate_gap": 240
-        },
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 320
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "piglet_town_05",
-    "world": "piglet_town",
-    "name_key": "level.piglet_town_05",
+    "id": "dark_castle_01",
+    "world": "dark_castle",
+    "name_key": "level.dark_castle_01",
     "game_type": "platform_adventure",
     "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "piglet_town_04",
+    "duration_seconds": 300,
     "target": {},
     "reward": {
-      "coins": 44,
-      "badge": "cloud_jumper"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker"
-          ]
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "count",
-          "gate_gap": 240
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker",
-            "spitter"
-          ]
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "piglet_town_06",
-    "world": "piglet_town",
-    "name_key": "level.piglet_town_06",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "piglet_town_05",
-    "target": {},
-    "reward": {
-      "coins": 44,
-      "badge": "super_sorter"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "count",
-          "gate_gap": 240
-        },
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker",
-            "armoured"
-          ]
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "same_as",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "safety_01",
-    "world": "safety",
-    "name_key": "level.safety_01",
-    "game_type": "platform_adventure",
-    "difficulty": 1,
-    "duration_seconds": 360,
-    "target": {},
-    "reward": {
-      "coins": 28,
+      "coins": 42,
       "badge": "danger_detective"
     },
     "config": {
       "instruction_key": "adventure.instruction",
       "length": 3600,
       "gap_max": 96,
-      "seg_min": 360,
+      "seg_min": 380,
       "sections": [
         {
           "kind": "collect",
@@ -715,14 +675,6 @@
           "spread": 340
         },
         {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
           "kind": "spring",
           "id": "b"
         },
@@ -733,159 +685,7 @@
           "height": 290
         },
         {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "safety_02",
-    "world": "safety",
-    "name_key": "level.safety_02",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "safety_01",
-    "target": {},
-    "reward": {
-      "coins": 36,
-      "badge": "mountain_hero"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_02",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "rocks",
-          "count": 3
-        },
-        {
           "kind": "checkpoint"
-        },
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 320
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "rocks",
-          "count": 3
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "safety_03",
-    "world": "safety",
-    "name_key": "level.safety_03",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "safety_02",
-    "target": {},
-    "reward": {
-      "coins": 36,
-      "badge": "storm_guardian"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_02",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "fire",
-          "count": 3
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "fire",
-          "count": 3
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "safety_04",
-    "world": "safety",
-    "name_key": "level.safety_04",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "safety_03",
-    "target": {},
-    "reward": {
-      "coins": 36,
-      "badge": "road_guardian"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_02",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "rocks",
-          "count": 2
-        },
-        {
-          "kind": "crate_shelf"
         },
         {
           "kind": "switch",
@@ -899,147 +699,112 @@
     }
   },
   {
-    "id": "safety_05",
-    "world": "safety",
-    "name_key": "level.safety_05",
-    "game_type": "platform_adventure",
+    "id": "dark_castle_02",
+    "world": "dark_castle",
+    "name_key": "level.dark_castle_02",
+    "game_type": "matching_sorting",
     "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "safety_04",
+    "duration_seconds": 300,
+    "requires": "dark_castle_01",
     "target": {},
     "reward": {
-      "coins": 44,
+      "coins": 42,
+      "badge": "tidy_helper"
+    },
+    "config": {
+      "count": 9,
+      "instruction_key": "sorting.instruction",
+      "bins": [
+        {
+          "key": "red",
+          "icon": "heart",
+          "colour": "#e2544c"
+        },
+        {
+          "key": "blue",
+          "icon": "orb",
+          "colour": "#4f8ce8"
+        },
+        {
+          "key": "gold",
+          "icon": "star",
+          "colour": "#e8b53c"
+        }
+      ],
+      "items": [
+        {
+          "icon": "heart",
+          "key": "red"
+        },
+        {
+          "icon": "orb",
+          "key": "blue"
+        },
+        {
+          "icon": "star",
+          "key": "gold"
+        },
+        {
+          "icon": "gem",
+          "key": "red"
+        },
+        {
+          "icon": "spark",
+          "key": "gold"
+        },
+        {
+          "icon": "moon",
+          "key": "blue"
+        }
+      ]
+    }
+  },
+  {
+    "id": "dark_castle_03",
+    "world": "dark_castle",
+    "name_key": "level.dark_castle_03",
+    "game_type": "puzzle_mechanism",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "dark_castle_02",
+    "target": {},
+    "reward": {
+      "coins": 42,
+      "badge": "night_walker"
+    },
+    "config": {
+      "puzzle": "pipes",
+      "steps": 4,
+      "instruction_key": "puzzle.instruction"
+    }
+  },
+  {
+    "id": "dark_castle_04",
+    "world": "dark_castle",
+    "name_key": "level.dark_castle_04",
+    "game_type": "platform_adventure",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "dark_castle_03",
+    "target": {},
+    "reward": {
+      "coins": 42,
       "badge": "all_weather_walker"
     },
     "config": {
       "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
+      "length": 3400,
+      "gap_max": 96,
+      "seg_min": 380,
       "sections": [
         {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "rocks",
-          "count": 3
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "fire",
-          "count": 3
-        },
-        {
           "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker"
-          ]
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "safety_06",
-    "world": "safety",
-    "name_key": "level.safety_06",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "safety_05",
-    "target": {},
-    "reward": {
-      "coins": 44,
-      "badge": "exit_finder"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "rocks",
-          "count": 3
-        },
-        {
-          "kind": "seq_plates",
           "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "fire",
-          "count": 3
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "foes",
-          "count": 2,
           "kinds": [
             "walker",
-            "spitter"
+            "spitter",
+            "armoured"
           ]
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "rescue_forest_01",
-    "world": "rescue_forest",
-    "name_key": "level.rescue_forest_01",
-    "game_type": "platform_adventure",
-    "difficulty": 1,
-    "duration_seconds": 360,
-    "target": {},
-    "reward": {
-      "coins": 28,
-      "badge": "forest_friend"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction",
-      "length": 3600,
-      "gap_max": 96,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
         },
         {
           "kind": "rescue"
@@ -1048,626 +813,111 @@
           "kind": "checkpoint"
         },
         {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "same_as",
-          "gate_gap": 240
-        },
-        {
           "kind": "chest"
         }
       ]
     }
   },
   {
-    "id": "rescue_forest_02",
-    "world": "rescue_forest",
-    "name_key": "level.rescue_forest_02",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "rescue_forest_01",
+    "id": "dark_castle_05",
+    "world": "dark_castle",
+    "name_key": "level.dark_castle_05",
+    "game_type": "matching_sorting",
+    "difficulty": 3,
+    "duration_seconds": 300,
+    "requires": "dark_castle_04",
     "target": {},
     "reward": {
-      "coins": 36,
+      "coins": 42,
       "badge": "trail_master"
     },
     "config": {
-      "instruction_key": "adventure.instruction",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
+      "count": 8,
+      "instruction_key": "sorting.instruction",
+      "bins": [
         {
-          "kind": "crate_shelf"
+          "key": "red",
+          "icon": "heart",
+          "colour": "#e2544c"
         },
         {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
+          "key": "blue",
+          "icon": "orb",
+          "colour": "#4f8ce8"
         },
         {
-          "kind": "checkpoint"
+          "key": "gold",
+          "icon": "star",
+          "colour": "#e8b53c"
+        }
+      ],
+      "items": [
+        {
+          "icon": "heart",
+          "key": "red"
         },
         {
-          "kind": "rescue"
+          "icon": "orb",
+          "key": "blue"
         },
         {
-          "kind": "collect",
-          "count": 3,
-          "spread": 320
+          "icon": "star",
+          "key": "gold"
         },
         {
-          "kind": "chest"
+          "icon": "gem",
+          "key": "red"
+        },
+        {
+          "icon": "spark",
+          "key": "gold"
+        },
+        {
+          "icon": "moon",
+          "key": "blue"
         }
       ]
     }
   },
   {
-    "id": "rescue_forest_03",
-    "world": "rescue_forest",
-    "name_key": "level.rescue_forest_03",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "rescue_forest_02",
-    "target": {},
-    "reward": {
-      "coins": 36,
-      "badge": "rescue_planner"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_02",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "sort_safe",
-          "gate_gap": 240
-        },
-        {
-          "kind": "rescue"
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "rocks",
-          "count": 2
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "rescue_forest_04",
-    "world": "rescue_forest",
-    "name_key": "level.rescue_forest_04",
-    "game_type": "platform_adventure",
+    "id": "dark_castle_06",
+    "world": "dark_castle",
+    "name_key": "level.dark_castle_06",
+    "game_type": "monster_duel",
     "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "rescue_forest_03",
+    "duration_seconds": 300,
+    "requires": "dark_castle_05",
     "target": {},
     "reward": {
-      "coins": 44,
-      "badge": "night_walker"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "fire",
-          "count": 3
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "rescue"
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker"
-          ]
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "count",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "rescue_forest_05",
-    "world": "rescue_forest",
-    "name_key": "level.rescue_forest_05",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "rescue_forest_04",
-    "target": {},
-    "reward": {
-      "coins": 44,
-      "badge": "tracker"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker",
-            "spitter"
-          ]
-        },
-        {
-          "kind": "rescue"
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "rocks",
-          "count": 3
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "armoured",
-            "walker"
-          ]
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "rescue_forest_06",
-    "world": "rescue_forest",
-    "name_key": "level.rescue_forest_06",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "rescue_forest_05",
-    "target": {},
-    "reward": {
-      "coins": 44,
-      "badge": "monster_friend"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 340
-        },
-        {
-          "kind": "rescue"
-        },
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "foes",
-          "count": 3,
-          "kinds": [
-            "walker",
-            "spitter",
-            "armoured"
-          ]
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "boss"
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "monster_arena_01",
-    "world": "monster_arena",
-    "name_key": "level.monster_arena_01",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "target": {},
-    "reward": {
-      "coins": 36,
-      "badge": "brave_defender"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker"
-          ]
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "collect",
-          "count": 3,
-          "spread": 320
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker",
-            "spitter"
-          ]
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "monster_arena_02",
-    "world": "monster_arena",
-    "name_key": "level.monster_arena_02",
-    "game_type": "platform_adventure",
-    "difficulty": 2,
-    "duration_seconds": 360,
-    "requires": "monster_arena_01",
-    "target": {},
-    "reward": {
-      "coins": 36,
-      "badge": "rainbow_charger"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 100,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "spitter"
-          ]
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "spitter",
-            "walker"
-          ]
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "color_match",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "monster_arena_03",
-    "world": "monster_arena",
-    "name_key": "level.monster_arena_03",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "monster_arena_02",
-    "target": {},
-    "reward": {
-      "coins": 44,
-      "badge": "star_captain"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "armoured"
-          ]
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "rocks",
-          "count": 3
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "armoured",
-            "spitter"
-          ]
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "monster_arena_04",
-    "world": "monster_arena",
-    "name_key": "level.monster_arena_04",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "monster_arena_03",
-    "target": {},
-    "reward": {
-      "coins": 44,
-      "badge": "little_musician"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker",
-            "armoured"
-          ]
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "fire",
-          "count": 3
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "count",
-          "gate_gap": 240
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "monster_arena_05",
-    "world": "monster_arena",
-    "name_key": "level.monster_arena_05",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "monster_arena_04",
-    "target": {},
-    "reward": {
-      "coins": 44,
-      "badge": "keepy_champion"
-    },
-    "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "foes",
-          "count": 3,
-          "kinds": [
-            "walker",
-            "spitter",
-            "armoured"
-          ]
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "rescue"
-        },
-        {
-          "kind": "spring",
-          "id": "b"
-        },
-        {
-          "kind": "gem",
-          "above": "b",
-          "offset": 150,
-          "height": 290
-        },
-        {
-          "kind": "boss"
-        },
-        {
-          "kind": "chest"
-        }
-      ]
-    }
-  },
-  {
-    "id": "monster_arena_06",
-    "world": "monster_arena",
-    "name_key": "level.monster_arena_06",
-    "game_type": "platform_adventure",
-    "difficulty": 3,
-    "duration_seconds": 360,
-    "requires": "monster_arena_05",
-    "target": {},
-    "reward": {
-      "coins": 44,
+      "coins": 42,
       "badge": "island_hero"
     },
     "config": {
-      "instruction_key": "adventure.instruction_03",
-      "length": 3600,
-      "gap_max": 104,
-      "seg_min": 360,
-      "sections": [
-        {
-          "kind": "foes",
-          "count": 2,
-          "kinds": [
-            "walker",
-            "spitter"
-          ]
-        },
-        {
-          "kind": "rocks",
-          "count": 3
-        },
-        {
-          "kind": "checkpoint"
-        },
-        {
-          "kind": "seq_plates",
-          "count": 3,
-          "gate_gap": 240
-        },
-        {
-          "kind": "foes",
-          "count": 3,
-          "kinds": [
-            "armoured",
-            "spitter",
-            "walker"
-          ]
-        },
-        {
-          "kind": "crate_shelf"
-        },
-        {
-          "kind": "puzzle",
-          "puzzle": "color_match",
-          "gate_gap": 240
-        },
-        {
-          "kind": "boss"
-        },
-        {
-          "kind": "chest"
-        }
-      ]
+      "beam_cooldown": 1.1,
+      "shield_cooldown": 4.5,
+      "ult_needed": 8,
+      "goo_interval": 4.0,
+      "roar_interval": 7.5,
+      "monster": {
+        "scale": 1.4
+      },
+      "instruction_key": "duel.instruction"
+    }
+  },
+  {
+    "id": "hero_studio",
+    "world": "sunny_park",
+    "name_key": "level.hero_studio",
+    "game_type": "creative_play",
+    "difficulty": 1,
+    "duration_seconds": 0,
+    "target": {},
+    "reward": {
+      "coins": 0,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "creative.instruction"
     }
   }
 ]

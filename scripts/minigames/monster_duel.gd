@@ -43,6 +43,7 @@ var _ult_type := "barrage"
 var _started := false
 var _won := false
 var _beam_ready_at := 0.0
+var _used_ult := false
 var _shield_ready_at := 0.0
 var _shield_until := 0.0
 var _ult_charge := 0
@@ -70,6 +71,11 @@ var _taught_swat := false         # the "tap the goo" line, shown once
 
 
 func setup_level() -> void:
+	# Three doors, like every other template on the island, so the result
+	# screen can say WHICH one is still shut rather than handing out a grade:
+	#   1  the monster gave up            2  you used your special move
+	#   3  you finished with every light
+	result.objective_scoring = true
 	var config: Dictionary = level_data.get("config", {})
 	_beam_cooldown = float(config.get("beam_cooldown", 1.2))
 	_shield_cooldown = float(config.get("shield_cooldown", 6.0))
@@ -604,6 +610,7 @@ func fire_ult() -> bool:
 		_refuse("ult")
 		return false
 	_ult_charge = 0
+	_used_ult = true
 	_set_skill_cooldown("ult", 1.0)
 	_flash_ring("ult")
 	# The special move begins with a leap and lands in the brace -- wind-up,
@@ -851,6 +858,9 @@ func _splat(at: Vector2) -> void:
 func complete_level() -> void:
 	if not _finished:
 		_won = true
+		result.reached_goal = true
+		result.found_hidden = _used_ult
+		result.clean_run = _light_left >= LIGHT_PIPS
 		_instruction.text = I18n.t("battle.bye")
 		_hero.celebrate()
 		Juice.burst(_play_area, _monster.position + Vector2(0, -160), 30)

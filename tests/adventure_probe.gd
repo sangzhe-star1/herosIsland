@@ -29,7 +29,9 @@ extends Node
 ## fighting one. Walking all thirty would take an hour and would mostly
 ## re-prove the same template thirty times; walking none of them would prove
 ## the game boots and nothing else.
-const WALKED := ["sunny_park_01", "sunny_park_02", "monster_arena_06"]
+## One gentle, one hazard-and-machine, one full of monsters -- the three
+## shapes an adventure level comes in.
+const WALKED := ["sunny_park_05", "night_city_04", "dark_castle_06"]
 
 var _out: Array[String] = []
 var _lvl: Node
@@ -64,9 +66,12 @@ func _ready() -> void:
 	for level in GameData.levels:
 		if str(level.get("game_type", "")) == "platform_adventure":
 			all_levels.append(str(level["id"]))
-	print("\n=== adventure probe: %d levels ===" % all_levels.size())
-	_ok(all_levels.size() >= 30,
-		"the island should have at least 30 levels, found %d" % all_levels.size())
+	print("\n=== adventure probe: %d side-scrolling levels ===" % all_levels.size())
+	# Six of thirty, by design. The island is a collection of nine games now,
+	# and the brief caps side-scrolling at a quarter of it -- so this probe
+	# owns a slice rather than the whole map. `MapProbe` walks all thirty-one.
+	_ok(all_levels.size() >= 4,
+		"too few adventure levels to be worth a template: %d" % all_levels.size())
 
 	for level_id in all_levels:
 		await _run_level(level_id, WALKED.has(level_id))
@@ -473,8 +478,13 @@ func _check_rewards_and_warnings() -> void:
 	_ok(not SaveManager.unlock_skill("double_jump"),
 		"unlocking twice must be silent, or a replay throws the party again")
 	_ok(SaveManager.has_skill("double_jump"), "an unlocked skill must stick")
-	_ok(str(GameData.get_level("sunny_park_03").get("reward", {}).get("unlock", ""))
-		== "double_jump", "some chest has to actually give the double jump")
+	# Somewhere on the island, a chest has to hand over the double jump --
+	# which level does not matter, that one exists does.
+	var granted := false
+	for level in GameData.levels:
+		if str(level.get("reward", {}).get("unlock", "")) == "double_jump":
+			granted = true
+	_ok(granted, "no chest anywhere gives the double jump")
 	if not had:
 		SaveManager.data["rewards"]["skills"] = []
 

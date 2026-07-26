@@ -132,5 +132,14 @@ func get_minigame_scene(game_type: String) -> String:
 		# The adventure template: one side-scrolling level made of beats, and
 		# the thing the twelve above are being folded into.
 		"platform_adventure": "res://scenes/adventure/Adventure.tscn",
+		# The nine templates of the multi-play island. One core idea each, so
+		# no two levels in a row ask a child for the same thing.
+		"observation_search": "res://scenes/minigames/observation_search/ObservationSearch.tscn",
+		"matching_sorting": "res://scenes/minigames/matching_sorting/MatchingSorting.tscn",
+		"build_repair": "res://scenes/minigames/build_repair/BuildRepair.tscn",
+		"puzzle_mechanism": "res://scenes/minigames/puzzle_mechanism/PuzzleMechanism.tscn",
+		"memory_rhythm": "res://scenes/minigames/memory_rhythm/MemoryRhythm.tscn",
+		"roleplay_rescue": "res://scenes/minigames/roleplay_rescue/RoleplayRescue.tscn",
+		"creative_play": "res://scenes/minigames/creative_play/CreativePlay.tscn",
 	}
 	return map.get(game_type, "")

@@ -71,13 +71,15 @@ SHOTS=(
   "expedition|res://scenes/minigames/monster_expedition/MonsterExpedition.tscn|star_trials_01"
   "keepy|res://scenes/minigames/keepy_uppy/KeepyUppy.tscn|bluey_park_01"
   "defense|res://scenes/minigames/light_defense/LightDefense.tscn|star_trials_04"
-  "w1-park|res://scenes/adventure/Adventure.tscn|sunny_park_01"
-  "w1-rockfall|res://scenes/adventure/Adventure.tscn|sunny_park_02"
-  "w1-giant|res://scenes/adventure/Adventure.tscn|sunny_park_03"
-  "w2-piglet|res://scenes/adventure/Adventure.tscn|piglet_town_03"
-  "w3-safety|res://scenes/adventure/Adventure.tscn|safety_03"
-  "w4-forest|res://scenes/adventure/Adventure.tscn|rescue_forest_05"
-  "w5-arena|res://scenes/adventure/Adventure.tscn|monster_arena_06"
+  "t1-observation|res://scenes/minigames/observation_search/ObservationSearch.tscn|sunny_park_01"
+  "t2-sorting|res://scenes/minigames/matching_sorting/MatchingSorting.tscn|sunny_park_02"
+  "t3-build|res://scenes/minigames/build_repair/BuildRepair.tscn|sunny_park_03"
+  "t4-memory|res://scenes/minigames/memory_rhythm/MemoryRhythm.tscn|sunny_park_04"
+  "t5-adventure|res://scenes/adventure/Adventure.tscn|sunny_park_05"
+  "t6-duel|res://scenes/minigames/monster_duel/MonsterDuel.tscn|sunny_park_06"
+  "t7-puzzle|res://scenes/minigames/puzzle_mechanism/PuzzleMechanism.tscn|night_city_02"
+  "t8-rescue|res://scenes/minigames/roleplay_rescue/RoleplayRescue.tscn|night_city_03"
+  "t9-studio|res://scenes/minigames/creative_play/CreativePlay.tscn|hero_studio"
 )
 
 wanted=("$@")

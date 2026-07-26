@@ -7,31 +7,31 @@
     "order": 1
   },
   {
-    "id": "piglet_town",
-    "name_key": "world.piglet_town",
+    "id": "night_city",
+    "name_key": "world.night_city",
     "growth_attribute": "wisdom",
-    "color": "#e08ab0",
+    "color": "#7b6ce0",
     "order": 2
   },
   {
-    "id": "safety",
-    "name_key": "world.safety",
-    "growth_attribute": "safety",
-    "color": "#e2a33c",
+    "id": "monster_valley",
+    "name_key": "world.monster_valley",
+    "growth_attribute": "courage",
+    "color": "#8a5fc9",
     "order": 3
   },
   {
-    "id": "rescue_forest",
-    "name_key": "world.rescue_forest",
-    "growth_attribute": "kindness",
-    "color": "#4fa86b",
+    "id": "sky_base",
+    "name_key": "world.sky_base",
+    "growth_attribute": "wisdom",
+    "color": "#43b7c8",
     "order": 4
   },
   {
-    "id": "monster_arena",
-    "name_key": "world.monster_arena",
-    "growth_attribute": "courage",
-    "color": "#8a5fc9",
+    "id": "dark_castle",
+    "name_key": "world.dark_castle",
+    "growth_attribute": "kindness",
+    "color": "#5a5f8f",
     "order": 5
   }
 ]

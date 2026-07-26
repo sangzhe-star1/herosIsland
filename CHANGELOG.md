@@ -1,5 +1,58 @@
 # Changelog
 
+## Nine games, not one — 25 July 2026
+
+The island stopped being a side-scroller with variations and became what the
+brief asked for: a collection of games that happen to share a map, a hero and
+a reward wall.
+
+**Nine templates, one core idea each.** Six of them are new:
+`observation_search` (look for things), `matching_sorting` (drag them where
+they go), `build_repair` (make it, then watch it run), `puzzle_mechanism`
+(turn things until the light gets through), `memory_rhythm` (do it back), and
+`creative_play` (a room with no rules at all). `roleplay_rescue` merges the
+old rescue and traffic levels; `monster_duel` and `platform_adventure` stay,
+with side-scrolling now capped at a fifth of the island.
+
+**The mix, measured rather than intended:** side-scrolling 6, battles 6,
+sorting 4, puzzles 4, building 3, memory 3, looking 2, helping 2 -- thirty
+levels, no template twice running, every world offering at least four kinds
+of play. `tools_check.py` now fails on all three of those rules, and the
+check was verified by deliberately breaking it: turning World 1 into five
+platformers produced exactly the three errors it should have.
+
+**Four shared pieces everything is built on:**
+- `ThumbStick` -- the left hand is a stick now. A quarter of the screen is
+  the touch area, the ring appears wherever the thumb lands, and it springs
+  home when released. Two arrow buttons asked a small hand to aim; a stick
+  asks it to lean, which is what it does anyway.
+- `DragField` -- one drag for the whole island. Lift and grow, every target
+  glows, the nearest one glows harder, snap from 118 px, and a wrong drop
+  floats home. Sorting and building feel identical because they are.
+- `HintDirector` -- one failure says it again, two shows a finger, three does
+  the hard part and **leaves the last step for the child**. That last clause
+  is the whole design: a game that solves the puzzle has taken it away.
+- `TutorialDirector` -- the five to eight seconds before every level. Show
+  the goal, show the action once, hand over control, in that order, wordless.
+- `VariantPicker` -- replays differ, from hand-written lists only. It picks;
+  it never generates, so it cannot produce a level nobody can finish.
+
+**Audio, generated.** `tools/make_audio.py` synthesises 22 sound effects, 8
+tuned notes and 7 pieces of music from one file -- so the drag sound and the
+drop sound were made by the same hand, in the same room, on the same
+pentatonic scale that nothing can sound sour on. The game had 8 effects and
+one track; it has 37 files now. Voice is still the one gap: no speech engine
+was reachable, and a parent's own voice is better than any of them anyway.
+
+**The right hand got smaller and livelier.** Skill buttons 112 → 88 px, icons
+60 → 46, laid on an arc a thumb sweeps. They breathe while ready, ripple when
+pressed, and flash their rim the moment a cooldown ends -- so a child can
+watch the monster instead of watching a wedge shrink.
+
+**`MapProbe` now enters all thirty-one levels** the way a child does, through
+the map's own calls, on a save from before the rebuild. Nine templates, every
+one of them building and scoring by objectives.
+
 ## Audited against the spec, and four things it was missing — 25 July 2026
 
 Checked the rebuilt island against the ten-point brief rather than against

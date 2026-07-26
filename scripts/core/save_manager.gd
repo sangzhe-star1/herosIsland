@@ -74,6 +74,10 @@ func _default_data() -> Dictionary:
 			"items": {},
 			# Outfit pieces owned (ids). Bought once with coins, kept forever.
 			"outfits": [],
+			# What the child MADE. Not a reward and not a score -- the only
+			# thing in this file that belongs to them rather than to the
+			# game, which is why it is stored whole and never inspected.
+			"creations": {},
 			# Abilities the hero keeps forever once a chest gives them.
 			# Separate from outfits because these change what the child can
 			# DO, not what they look like -- and because a skill that is not
@@ -304,6 +308,20 @@ func use_item(item_id: String) -> bool:
 
 func get_outfit() -> Dictionary:
 	return data["profile"].get("outfit", {"hat": "", "face": "", "back": ""})
+
+
+## --- things the child made -----------------------------------------------
+
+func get_creation(name: String) -> Array:
+	return (data["rewards"].get("creations", {}) as Dictionary).get(name, [])
+
+
+func set_creation(name: String, layout: Array) -> void:
+	if not data["rewards"].has("creations"):
+		data["rewards"]["creations"] = {}
+	data["rewards"]["creations"][name] = layout
+	save_game()
+	progress_changed.emit()
 
 
 ## --- skills the hero keeps ---------------------------------------------
