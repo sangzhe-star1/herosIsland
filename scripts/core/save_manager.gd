@@ -113,6 +113,7 @@ func load_game() -> void:
 			push_warning("SaveManager: main save was torn; recovered from backup")
 	if parsed is Dictionary:
 		data = _migrate(parsed)
+		_settle_after_load()
 		return
 	if FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(SAVE_BACKUP):
 		push_warning("SaveManager: no readable save found, starting fresh")
@@ -139,6 +140,18 @@ func _migrate(loaded: Dictionary) -> Dictionary:
 					loaded[key][sub] = base[key][sub]
 	loaded["version"] = SAVE_VERSION
 	return loaded
+
+
+## Everything that has to happen once, after a save is loaded and merged.
+##
+## "Once" is the load-bearing word, and it costs a write: a settlement that
+## only happens in memory is re-applied on the next launch, and the launch
+## after that. The first cut of the refund below did exactly that -- the
+## balance looked right every time and the file never changed, so it would have
+## paid out again every morning forever.
+func _settle_after_load() -> void:
+	if _refund_spent_stars():
+		save_game()
 
 
 func save_game() -> void:
@@ -194,18 +207,25 @@ func set_character(character_id: String) -> void:
 
 func get_level_progress(level_id: String) -> Dictionary:
 	return data["levels"].get(level_id, {
-		"stars": 0, "best_accuracy": 0.0, "attempts": 0, "completed": false
+		"stars": 0, "best_accuracy": 0.0, "attempts": 0, "completed": false,
+		"found_hidden": false,
 	})
 
 
 ## Stars only ever go up. A worse run never erases what the child already earned.
-func record_level_result(level_id: String, stars: int, accuracy: float) -> void:
+##
+## `found_hidden` is remembered for the same reason and works the same way: it
+## latches true and stays there, so the 星星币 bonus for finding the hidden gem
+## is paid exactly once however many times he replays the level.
+func record_level_result(level_id: String, stars: int, accuracy: float,
+		found_hidden: bool = false) -> void:
 	var prev := get_level_progress(level_id)
 	data["levels"][level_id] = {
 		"stars": maxi(prev.get("stars", 0), stars),
 		"best_accuracy": maxf(prev.get("best_accuracy", 0.0), accuracy),
 		"attempts": int(prev.get("attempts", 0)) + 1,
 		"completed": true,
+		"found_hidden": bool(prev.get("found_hidden", false)) or found_hidden,
 	}
 	save_game()
 	progress_changed.emit()
@@ -291,16 +311,40 @@ func bump_challenge_rank(level_id: String) -> void:
 # raises rewards.spent_stars -- so buying a potion can never re-lock a world
 # or shrink the tally a child is proud of.
 
-func star_balance() -> int:
-	return maxi(total_stars() - int(data["rewards"].get("spent_stars", 0)), 0)
+## RETIRED. Stars are a score again, and only a score.
+##
+## These two used to make total_stars() double as a purse: the shop spent
+## against `total_stars() - spent_stars`. It never re-locked a world, which was
+## the danger its author guarded against -- but a child still saw his star
+## count drop after buying a potion, with no way to tell that the number the
+## map cares about had not moved.
+##
+## Everything spendable is 星星币 now (scripts/shop/currency_manager.gd).
+## `spent_stars` is refunded coin-for-coin by _refund_spent_stars() on the
+## first load after this change, so nobody is a single star worse off.
+##
+## Left here as a hard error rather than deleted, because a call site that
+## quietly went back to spending stars is exactly the regression this whole
+## change exists to prevent.
+func spend_stars(_amount: int) -> bool:
+	push_error("SaveManager.spend_stars() is retired -- 关卡星章 cannot be "
+		+ "spent. Use scripts/shop/currency_manager.gd.")
+	return false
 
 
-func spend_stars(amount: int) -> bool:
-	if amount <= 0 or star_balance() < amount:
+## One-time: turn a returning child's already-spent stars into 星星币.
+##
+## He spent them; he should still have the value. Paying it back as coins
+## means the change can only ever make him richer, which is the only kind of
+## migration worth shipping to somebody's six-year-old.
+## Returns whether anything changed, so the caller knows to write it down.
+func _refund_spent_stars() -> bool:
+	var spent: int = int(data["rewards"].get("spent_stars", 0))
+	if spent <= 0:
 		return false
-	data["rewards"]["spent_stars"] = int(data["rewards"].get("spent_stars", 0)) + amount
-	save_game()
-	progress_changed.emit()
+	data["rewards"]["coins"] = int(data["rewards"].get("coins", 0)) + spent
+	data["rewards"]["spent_stars"] = 0
+	print("[save] refunded %d spent stars as 星星币" % spent)
 	return true
 
 

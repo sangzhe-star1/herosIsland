@@ -1,17 +1,19 @@
 extends Control
-## The Star Shop: stars become things.
+## Battle items, bought with 星星币.
 ##
-## The child asked (through his father) for exactly this: "the stars I earn
-## should buy something". The catalogue is small and every item is a BATTLE
-## item for the Monster Expedition, so the loop reads: play well -> stars ->
-## potions -> braver expeditions -> more stars.
+## The catalogue is small and every item is a BATTLE item for the duels, so
+## the loop reads: play well -> 星星币 -> potions -> braver fights.
 ##
-## The economy rule that keeps this safe: spending never touches the lifetime
-## star count that unlocks worlds (see SaveManager.star_balance). A child can
-## empty their purse and lose nothing they were proud of.
+## It used to spend STARS, against `total_stars() - spent_stars`. That never
+## re-locked a world -- but a child still watched his star count fall after
+## buying a potion and had no way to know the number the map cares about had
+## not moved. Stars are a score again, and only a score; everything spendable
+## is 星星币 now. See scripts/shop/currency_manager.gd.
 ##
-## Everything on a card is a picture first: the item icon, a star-price row,
-## an owned-count chip. The words are captions.
+## Everything on a card is a picture first: the item icon, a price row, an
+## owned-count chip. The words are captions.
+
+const Coins := preload("res://scripts/shop/currency_manager.gd")
 
 var _balance_label: Label
 var _cards: Dictionary = {}   # item_id -> {count: Label, price: int}
@@ -35,7 +37,7 @@ func _ready() -> void:
 	var purse := UiKit.card(Color(1.0, 0.99, 0.96, 0.94))
 	var purse_row := HBoxContainer.new()
 	purse_row.add_theme_constant_override("separation", 8)
-	purse_row.add_child(UiKit.star(true, 40))
+	purse_row.add_child(UiKit.picture("star_coin", 40))
 	_balance_label = Label.new()
 	_balance_label.add_theme_font_size_override("font_size", 36)
 	_balance_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -62,7 +64,7 @@ func _ready() -> void:
 
 func _build_card(item: Dictionary) -> PanelContainer:
 	var item_id: String = str(item.get("id", ""))
-	var price: int = int(item.get("cost_stars", 5))
+	var price: int = int(item.get("cost_coins", 20))
 
 	var card := UiKit.card()
 	card.custom_minimum_size = Vector2(300, 380)
@@ -98,7 +100,7 @@ func _build_card(item: Dictionary) -> PanelContainer:
 	price_row.offset_top = 258
 	price_row.offset_bottom = 300
 	price_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	price_row.add_child(UiKit.star(true, 36))
+	price_row.add_child(UiKit.picture("star_coin", 36))
 	var price_label := Label.new()
 	price_label.text = str(price)
 	price_label.add_theme_font_size_override("font_size", 32)
@@ -130,9 +132,9 @@ func _build_card(item: Dictionary) -> PanelContainer:
 
 
 func _buy(item_id: String, price: int, card: PanelContainer) -> void:
-	if not SaveManager.spend_stars(price):
-		# Not enough stars: the card shakes its head, the purse points at
-		# itself. No grey-out -- a child should always be able to TRY.
+	if not Coins.spend(price):
+		# Not enough: the card shakes its head, the purse points at itself.
+		# No grey-out -- a child should always be able to TRY.
 		Juice.nudge(card)
 		if _balance_label != null:
 			Juice.pop(_balance_label, 0.3)
@@ -146,7 +148,7 @@ func _buy(item_id: String, price: int, card: PanelContainer) -> void:
 
 func _refresh() -> void:
 	if _balance_label != null:
-		_balance_label.text = str(SaveManager.star_balance())
+		_balance_label.text = str(Coins.balance())
 	for item_id in _cards:
 		var parts: Dictionary = _cards[item_id]
 		(parts["count"] as Label).text = I18n.t("shop.owned") % SaveManager.item_count(item_id)

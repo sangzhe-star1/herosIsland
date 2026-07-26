@@ -206,23 +206,23 @@
     {
       "id": "heart_potion",
       "icon": "potion",
-      "cost_stars": 6,
       "name_key": "item.heart_potion",
-      "desc_key": "item.heart_potion_desc"
+      "desc_key": "item.heart_potion_desc",
+      "cost_coins": 20
     },
     {
       "id": "shield_charm",
       "icon": "shield",
-      "cost_stars": 5,
       "name_key": "item.shield_charm",
-      "desc_key": "item.shield_charm_desc"
+      "desc_key": "item.shield_charm_desc",
+      "cost_coins": 18
     },
     {
       "id": "star_bomb",
       "icon": "star_bomb",
-      "cost_stars": 8,
       "name_key": "item.star_bomb",
-      "desc_key": "item.star_bomb_desc"
+      "desc_key": "item.star_bomb_desc",
+      "cost_coins": 25
     }
   ],
   "outfits": [

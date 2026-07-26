@@ -282,6 +282,20 @@ if ! grep -q "UNLOCK PROBE PASSED" "$UNLOCK_OUT"; then
 fi
 rm -f "$UNLOCK_OUT"
 
+# The money. Above all: buying a thing must never cost him a 关卡星章 -- that
+# is the first rule in the shop brief and the reason the currencies were
+# collapsed, and a comment cannot keep it true.
+echo
+echo "Running shop probe..."
+SHOP_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/ShopProbe.tscn 2>&1 | tee "$SHOP_OUT"
+if ! grep -q "SHOP PROBE PASSED" "$SHOP_OUT"; then
+  rm -f "$SHOP_OUT"
+  echo "Shop probe failed."
+  exit 1
+fi
+rm -f "$SHOP_OUT"
+
 # How long a duel actually lasts, fought perfectly. Catches both ends: a boss
 # that folds in fifteen seconds, and one that has no ending at all -- which is
 # what the last fight in the game had.

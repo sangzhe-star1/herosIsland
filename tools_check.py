@@ -458,6 +458,45 @@ for path, what in [("scripts/world/world_style.gd", "scenery of its own"),
             errors.append(f"{os.path.basename(path)}: world '{w}' has "
                           f"no {what} and falls through to the default")
 
+# --- 5e. only one thing may take money, and stars are not money
+#
+# 关卡星章 is a score. The brief's first rule is that it can never be spent,
+# and the collapse of the old star-purse is what makes that true. These two
+# rules stop it quietly coming back:
+#
+#   * nothing outside currency_manager.gd may decrement a balance
+#   * the retired spend_stars() may not gain a caller again
+for path in gd:
+    # The definition site and the probe that proves it is dead are exempt.
+    if path.endswith("currency_manager.gd") or path.endswith("save_manager.gd") \
+            or path.startswith("tests"):
+        continue
+    src = open(path).read()
+    if re.search(r'\bSaveManager\.spend_stars\s*\(', src):
+        errors.append(f"{path}: calls the retired SaveManager.spend_stars(). "
+                      f"关卡星章 cannot be spent -- use "
+                      f"scripts/shop/currency_manager.gd")
+    if re.search(r'data\["rewards"\]\["coins"\]\s*=', src) \
+            and "save_manager.gd" not in path:
+        errors.append(f"{path}: writes rewards.coins directly. Money goes "
+                      f"through currency_manager.gd so that every change to "
+                      f"it is in one file")
+
+# --- 5f. the shop may not contain a slot machine
+#
+# The brief bans random rewards, probability, draws and timed disappearance in
+# so many words. The strongest way to honour that is to leave the concepts no
+# place to live: if a field for them ever appears in the shop data, this fails.
+GAMBLING = ("random", "chance", "probability", "gacha", "lottery", "draw_",
+            "rarity", "weight", "odds", "expires", "limited_time", "countdown")
+for shop_file in glob.glob("data/shop_*.json"):
+    blob = open(shop_file).read().lower()
+    for word in GAMBLING:
+        if f'"{word}' in blob:
+            errors.append(f"{shop_file}: contains a '{word}' field. The shop "
+                          f"is not allowed to have randomness, rarity or a "
+                          f"countdown anywhere in it")
+
 # --- 6. every badge is reachable
 awarded = {lv.get("reward", {}).get("badge", "") for lv in levels}
 for b in sorted(badges - awarded):

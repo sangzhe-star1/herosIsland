@@ -62,6 +62,8 @@ const NAMES := [
 	"target", "goo",
 	# the light defence's upgrade draft
 	"spread", "power", "slow", "split", "blast",
+	# 星星币 -- the shop's money, and the whole reason it is not just "star"
+	"star_coin",
 ]
 
 
@@ -304,6 +306,16 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 			_lit_circle(p, c, s * 0.34, Color(1.0, 0.80, 0.24))
 			_circle(p, c, s * 0.24, Color(1.0, 0.88, 0.42))
 			_poly(p, Shapes.star_points(c, s * 0.16, 0.45, 5), Color(0.94, 0.68, 0.16))
+		# 星星币. A star, so it still feels like the thing he earns -- but ringed,
+		# so it is never mistaken for one of the three on a level marker. The
+		# brief is explicit about this and it is the right instinct: the score
+		# and the money must not share a picture, or "I spent it" and "I lost
+		# it" become the same event to a six-year-old.
+		"star_coin":
+			_lit_circle(p, c, s * 0.36, Color(1.0, 0.78, 0.22))
+			_circle(p, c, s * 0.29, Color(1.0, 0.90, 0.50))
+			_poly(p, Shapes.star_points(c, s * 0.21, 0.44, 5), Color(1.0, 0.72, 0.14))
+			_poly(p, Shapes.star_points(c, s * 0.13, 0.46, 5), Color(1.0, 0.94, 0.72))
 		"heart":
 			_poly(p, PackedVector2Array([
 				c + Vector2(0, s * 0.34), c + Vector2(-s * 0.36, -s * 0.04),
