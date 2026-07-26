@@ -65,11 +65,34 @@ func _ready() -> void:
 	_add_arrows()
 	_add_dots()
 
-	# Open on the island where the child actually is: the first page holding a
-	# playable level that is not yet finished.
-	_page = maxi(_frontier_page, 0)
+	# Open on the island the child is actually looking at.
+	#
+	# Coming back from a level, that is THAT level's island. He pressed the
+	# back arrow two seconds ago; the island he was standing on should still be
+	# on screen. It used to always open on the frontier -- the first page with
+	# an unfinished level -- so leaving the castle dropped him back at the park
+	# and he had to swipe four times to get back to where he was. Worse with
+	# the parent's unlock switch on, where every level is unfinished and the
+	# frontier is always page one.
+	#
+	# The frontier is still the right answer for arriving fresh from the home
+	# screen, which is what it was written for.
+	_page = _page_for_world(str(GameManager.current_world_id))
+	if _page < 0:
+		_page = maxi(_frontier_page, 0)
 	_strip.position.x = -PAGE_W * float(_page)
 	_refresh_paging()
+
+
+## Which page an island is on, or -1 if that is not a world with a page --
+## the boot default, or a world id left over from an older save.
+func _page_for_world(world_id: String) -> int:
+	if world_id == "":
+		return -1
+	for i in range(_worlds.size()):
+		if str(_worlds[i].get("id", "")) == world_id:
+			return i
+	return -1
 
 
 # --- chrome ---------------------------------------------------------------

@@ -27,6 +27,7 @@ func _ready() -> void:
 	print("\n=== map probe ===")
 	_plant_an_old_save()
 	await _open_the_map()
+	await _opens_where_he_left_off()
 	await _press_every_first_level()
 
 	for f in _out:
@@ -127,3 +128,44 @@ func _press_every_first_level() -> void:
 		print("     %-20s %d" % [kind, int(kinds[kind])])
 	_ok(kinds.size() >= 8,
 		"only %d templates are actually used by a level" % kinds.size())
+
+
+## Leaving a level puts him back on that level's island, not on page one.
+##
+## The map used to always open on the "frontier" -- the first page holding an
+## unfinished level -- which is right when he arrives from the home screen and
+## wrong the moment he backs out of a level. He would leave the castle and land
+## in the park, four swipes from where he had been standing two seconds
+## earlier. With the parent's unlock switch on it was every single time, because
+## then every level is unfinished and the frontier is always page one.
+func _opens_where_he_left_off() -> void:
+	var worlds: Array = GameData.worlds.duplicate()
+	worlds.sort_custom(func(a, b): return int(a.get("order", 0)) < int(b.get("order", 0)))
+
+	for expected in range(worlds.size()):
+		var world_id := str(worlds[expected].get("id", ""))
+		GameManager.current_world_id = world_id
+		var map: Control = load("res://scenes/map/WorldMap.tscn").instantiate()
+		add_child(map)
+		await get_tree().process_frame
+		var page: int = int(map.get("_page"))
+		print("  left %-16s -> map opens on page %d (want %d)"
+			% [world_id, page, expected])
+		_ok(page == expected,
+			"leaving %s opens the map on page %d, not %d"
+				% [world_id, page, expected])
+		map.queue_free()
+		await get_tree().process_frame
+
+	# Arriving fresh instead of backing out of a level: no world to return to,
+	# so the frontier rule still applies and it must not crash reaching for one.
+	GameManager.current_world_id = "safety"          # the boot default
+	var fresh: Control = load("res://scenes/map/WorldMap.tscn").instantiate()
+	add_child(fresh)
+	await get_tree().process_frame
+	var fresh_page: int = int(fresh.get("_page"))
+	print("  arriving fresh   -> map opens on page %d (the frontier)" % fresh_page)
+	_ok(fresh_page >= 0 and fresh_page < worlds.size(),
+		"a fresh arrival opened on page %d, which is not a page" % fresh_page)
+	fresh.queue_free()
+	await get_tree().process_frame
