@@ -1,5 +1,40 @@
 # Changelog
 
+## The lesson at the end of the episode — 26 July 2026
+
+Finishing a world now earns a little lesson: the thing cartoons for this age
+do at the end of an episode, where the story stops and somebody says one small
+useful thing. Bluey does it, Ultraman does it, and they do it because five
+minutes of story is when a six-year-old is most willing to be told something.
+
+**Five lessons, one per world**, aimed at a child about to start school:
+put things back where they live; stop at red and hold a hand; look before you
+run; ask for something to be said again; notice when somebody needs help.
+
+Each is three beats -- what happens, what you do, why that is good -- drawn
+with the same `Shapes` calls as the rest of the island, so it is visibly the
+same world rather than a slideshow bolted on. It plays itself, has a "watch
+again" button, and is skippable from the first frame, because a lesson you
+cannot leave is a lecture.
+
+**And it films.** `tools/make_film.sh <world>` renders the real scene frame by
+frame and encodes an MP4 with the island's own music underneath -- the lesson
+without the game around it, for a phone in a waiting room or a grandparent who
+will never install anything.
+
+The film's own bug, caught by watching it: a software renderer manages nowhere
+near thirty frames a second, so the scene ran on wall-clock while the capture
+ran on render rate and the whole lesson finished a third of the way into the
+video. The capture now drives time -- it measures how long each frame really
+took and scales the engine's clock so that interval equals exactly 1/30 s of
+scene time. Self-correcting, so a slow frame simply gets a slower clock.
+
+**Voice: still no.** No speech engine is reachable from here -- the package
+archive is blocked and none of piper, espeak or coqui will install. The 44-line
+script in `docs/VOICE_SCRIPT.md` is ready to read into a phone, and a parent's
+own voice was always going to beat anything synthetic for this particular
+listener.
+
 ## The last few things the brief asked for — 26 July 2026
 
 Five platforms, a game that suggests a break, adaptation in both directions,

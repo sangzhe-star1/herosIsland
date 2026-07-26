@@ -90,7 +90,18 @@ func _ready() -> void:
 	# "Next" first and breathing: it is the one button a child should be able
 	# to find without reading, and going forward is what they actually want
 	# after a win. Replaying and the map stay available beside it.
+	# Finishing a world earns the little lesson: the thing cartoons for this
+	# age do at the end of an episode. It replaces the "next" button rather
+	# than adding a third one, because a child who has just finished a world
+	# should get the moment, not a menu.
 	var next_id: String = GameManager.next_level_id()
+	if result != null and not result.quit_early and _world_just_finished():
+		var lesson := UiKit.big_button(I18n.t("lesson.watch"), Palette.ORANGE)
+		lesson.custom_minimum_size = Vector2(300, 120)
+		lesson.pressed.connect(func():
+			SceneManager.goto_scene("res://scenes/ui/MiniLesson.tscn"))
+		buttons.add_child(lesson)
+		UiKit.breathe(lesson, 0.04, 0.85)
 	if next_id != "":
 		var next_button := UiKit.big_button(I18n.t("result.next"), Palette.GREEN)
 		next_button.custom_minimum_size = Vector2(260, 120)
@@ -243,6 +254,21 @@ func _objective_row(result: LevelResult) -> Control:
 ## with nothing to press. The "next level" button is still right there and
 ## still the biggest thing on screen: this is a suggestion from somebody who
 ## has enjoyed the last twenty minutes, not a gate.
+## Was that the last level of its world, and is every level in it done?
+func _world_just_finished() -> bool:
+	var world_id := str(GameManager.current_world_id)
+	var levels: Array = GameData.get_levels_for_world(world_id)
+	if levels.size() < 2:
+		return false
+	for entry in levels:
+		var lid := str(entry.get("id", ""))
+		if lid == "hero_studio":
+			continue          # the free-play room is never "finished"
+		if not bool(SaveManager.get_level_progress(lid).get("completed", false)):
+			return false
+	return true
+
+
 func _rest_note() -> Control:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
