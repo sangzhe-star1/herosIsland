@@ -107,9 +107,14 @@ func _press_every_first_level() -> void:
 				await get_tree().physics_frame
 			var alive: bool = is_instance_valid(level)
 			_ok(alive, "%s died while building" % lid)
-			# Every template must have said what its three stars mean by now,
-			# or the result screen has nothing to show.
-			if alive and level.get("result") != null:
+			# Every CURRICULUM level must have said what its three stars mean
+			# by now, or the result screen has nothing to show.
+			#
+			# The bonus levels are exempt on purpose. They are arcade treats --
+			# keep the balloon up, hit the targets, repeat the tune -- where
+			# "how well did you do" genuinely IS the question, and the older
+			# count-the-slips star rule says it better than three doors would.
+			if alive and level.get("result") != null and not bool(entry.get("bonus", false)):
 				_ok((level.result as LevelResult).objective_scoring,
 					"%s does not score by objectives" % lid)
 			line += " " + kind.substr(0, 4)

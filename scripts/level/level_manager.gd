@@ -133,6 +133,12 @@ func _process(delta: float) -> void:
 
 
 func _speak_instruction() -> void:
+	# A recording named after the level wins; the old explicit `voice_intro`
+	# field still works for anything that has one. Neither is required --
+	# every level is playable in silence, and that is how it ships until
+	# somebody sits down with a phone and the script.
+	if AudioManager.play_level_voice(str(level_data.get("id", ""))):
+		return
 	var voice: String = level_data.get("voice_intro", "")
 	if voice != "":
 		AudioManager.play_voice(voice)

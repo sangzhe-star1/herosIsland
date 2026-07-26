@@ -919,5 +919,62 @@
     "config": {
       "instruction_key": "creative.instruction"
     }
+  },
+  {
+    "id": "bonus_keepy",
+    "world": "sunny_park",
+    "name_key": "level.bonus_keepy",
+    "game_type": "keepy_uppy",
+    "difficulty": 2,
+    "duration_seconds": 240,
+    "bonus": true,
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 15,
+      "badge": "keepy_champion"
+    },
+    "config": {
+      "instruction_key": "keepy.instruction"
+    }
+  },
+  {
+    "id": "bonus_blaster",
+    "world": "monster_valley",
+    "name_key": "level.bonus_blaster",
+    "game_type": "light_defense",
+    "difficulty": 2,
+    "duration_seconds": 240,
+    "bonus": true,
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 15,
+      "badge": "star_captain"
+    },
+    "config": {
+      "instruction_key": "defense.instruction"
+    }
+  },
+  {
+    "id": "bonus_echo",
+    "world": "sky_base",
+    "name_key": "level.bonus_echo",
+    "game_type": "light_echo",
+    "difficulty": 2,
+    "duration_seconds": 240,
+    "bonus": true,
+    "target": {
+      "correct": 8
+    },
+    "reward": {
+      "coins": 15,
+      "badge": "little_musician"
+    },
+    "config": {
+      "instruction_key": "echo.instruction"
+    }
   }
 ]

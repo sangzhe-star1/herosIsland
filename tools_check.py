@@ -246,7 +246,12 @@ for lv in levels:
 #   * side-scrolling stays a fifth of the island, never its floor
 
 STUDIO = "hero_studio"          # the free-play room; not one of the thirty
-numbered = [l for l in levels if l.get("id") != STUDIO]
+# Bonus levels are treats sitting beside the curriculum -- always unlocked,
+# never required, and deliberately outside the ratio. Counting them would let
+# somebody "fix" a platformer-heavy island by adding bonus puzzles, which
+# fixes the number and not the problem.
+numbered = [l for l in levels
+            if l.get("id") != STUDIO and not l.get("bonus", False)]
 if numbered:
     run = worst = 1
     worst_at = ""

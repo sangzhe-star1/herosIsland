@@ -70,6 +70,39 @@ func play_voice(path: String) -> void:
 	_voice.play()
 
 
+## Say a level's own line, if somebody has recorded one.
+##
+## The whole point is that nothing else has to change. A parent reads the
+## script in `docs/VOICE_SCRIPT.md` into a phone, drops the files into
+## `assets/audio/voice/level/`, and every level starts speaking -- no JSON
+## edit, no code, no rebuild of anything but the project. A level with no
+## recording is silent and completely fine, which is the state the game
+## ships in.
+##
+## Both `.wav` and `.ogg` are looked for, because a phone will hand you
+## whichever it feels like and a parent should not have to convert anything.
+func play_level_voice(level_id: String) -> bool:
+	if level_id == "":
+		return false
+	for suffix in [".wav", ".ogg", ".mp3"]:
+		var path := "res://assets/audio/voice/level/%s_intro%s" % [level_id, suffix]
+		if ResourceLoader.exists(path):
+			play_voice(path)
+			return true
+	return false
+
+
+## The shared lines -- praise, retry, the three hint steps. Same deal: present
+## means spoken, absent means silent.
+func say(name: String) -> bool:
+	for suffix in [".wav", ".ogg", ".mp3"]:
+		var path := "res://assets/audio/voice/level/%s%s" % [name, suffix]
+		if ResourceLoader.exists(path):
+			play_voice(path)
+			return true
+	return false
+
+
 func _on_voice_finished() -> void:
 	_music.volume_db = _music_base_db
 

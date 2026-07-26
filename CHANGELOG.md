@@ -1,5 +1,32 @@
 # Changelog
 
+## Voice that just works, and the games you asked for come back — 26 July 2026
+
+**Recordings now play themselves.** Drop a file named after a level into
+`assets/audio/voice/level/` and that level speaks -- no JSON edit, no code, no
+rebuild of anything. `sunny_park_01_intro.wav` and it says its line;
+`hint_2.wav` and the second hint step is spoken. `.wav`, `.ogg` and `.mp3` are
+all looked for, because a phone hands you whichever it feels like and a parent
+should not have to convert anything. A level with no recording is silent and
+perfectly fine, which is the state the game ships in.
+
+That closes the loop on `docs/VOICE_SCRIPT.md`: read the 44 lines into a
+phone, copy the folder in, done.
+
+**Three games come back as bonus levels.** Keepy Uppy, the Light Range and
+Dance Time were asked for by name in earlier rounds and had been left on disk
+with nothing pointing at them. They sit beside the curriculum rather than in
+it: always unlocked, never required, and deliberately outside the variety
+ratio -- counting them would let somebody "fix" a platformer-heavy island by
+adding bonus puzzles, which fixes the number and not the problem. They keep
+the older count-the-slips star rule too, because on an arcade treat "how well
+did you do" genuinely is the question.
+
+Twelve templates now have a level pointing at them.
+
+**All five lesson films rendered.** 17 seconds each, the island's own music
+underneath, no buttons in shot.
+
 ## The lesson at the end of the episode — 26 July 2026
 
 Finishing a world now earns a little lesson: the thing cartoons for this age

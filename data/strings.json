@@ -410,7 +410,11 @@
     "lesson.castle.1": "Someone is on their own and looks unhappy.",
     "lesson.castle.2": "Go over and ask: are you okay?",
     "lesson.castle.3": "Helping someone makes you braver too.",
-    "lesson.watch": "Watch the lesson"
+    "lesson.watch": "Watch the lesson",
+    "level.bonus_keepy": "Bluey's Keepy Uppy",
+    "level.bonus_blaster": "The Light Range",
+    "level.bonus_echo": "Dance Time",
+    "echo.instruction": "Watch the lights, then tap them back!"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -823,6 +827,10 @@
     "lesson.castle.1": "有人一个人待着，看起来不开心。",
     "lesson.castle.2": "走过去问一句：你还好吗？",
     "lesson.castle.3": "帮别人的时候，自己也变勇敢了。",
-    "lesson.watch": "看小课堂"
+    "lesson.watch": "看小课堂",
+    "level.bonus_keepy": "布鲁伊颠球",
+    "level.bonus_blaster": "光能射击场",
+    "level.bonus_echo": "跳舞时间",
+    "echo.instruction": "看好灯亮的顺序，再按一遍！"
   }
 }

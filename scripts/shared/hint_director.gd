@@ -72,6 +72,9 @@ func _step() -> void:
 	_level = mini(_level + 1, 3)
 	escalated.emit(_level)
 	AudioManager.play_sfx("res://assets/audio/hint.ogg")
+	# If a parent has recorded the hint lines, the game uses them; if not it
+	# stays with the chime, which already says the same thing.
+	AudioManager.say("hint_%d" % _level)
 	match _level:
 		1:
 			if _on_nudge.is_valid():
