@@ -497,6 +497,77 @@ for shop_file in glob.glob("data/shop_*.json"):
                           f"is not allowed to have randomness, rarity or a "
                           f"countdown anywhere in it")
 
+# --- 5g. the shop catalogue holds together
+#
+# Three JSON files that reference each other, an icon library, and a price
+# policy. Every one of those is a lookup, and this repo has learned what a
+# lookup nobody checks turns into: four worlds drawn as the same beach, eight
+# levels wearing the same flag. So the catalogue is checked as a whole.
+if os.path.exists("data/shop_items.json"):
+    shop_items = json.load(open("data/shop_items.json"))
+    shop_cats = json.load(open("data/shop_categories.json"))
+    shop_bundles = json.load(open("data/shop_bundles.json"))
+    icon_names = set(re.findall(r'"(\w+)"',
+        re.search(r'const NAMES := \[(.*?)\n\]',
+                  open("scripts/ui/icon_library.gd").read(), re.S).group(1)))
+    cat_ids = {c["id"] for c in shop_cats}
+    item_ids = {i["id"] for i in shop_items}
+
+    # The price bands from the brief. A shop where a hat costs more than a ride
+    # is one a child cannot reason about.
+    BANDS = {
+        "action": (5, 20), "keepsake": (5, 25), "wardrobe": (15, 60),
+        "fx": (25, 50), "base": (25, 70), "pal": (60, 90), "ride": (70, 120),
+    }
+    seen_ids = set()
+    for it in shop_items:
+        iid = it["id"]
+        if iid in seen_ids:
+            errors.append(f"shop_items.json: duplicate id '{iid}'")
+        seen_ids.add(iid)
+        if it["category"] not in cat_ids:
+            errors.append(f"shop_items.json: '{iid}' is in category "
+                          f"'{it['category']}', which does not exist")
+        # A missing icon is a blank card. Silent, and the child cannot tell
+        # what he is being offered.
+        if it["icon"] not in icon_names:
+            errors.append(f"shop_items.json: '{iid}' wants icon "
+                          f"'{it['icon']}', which IconLibrary cannot draw")
+        lo, hi = BANDS.get(it["category"], (1, 1000))
+        if not lo <= it["price"] <= hi:
+            errors.append(f"shop_items.json: '{iid}' costs {it['price']}, "
+                          f"outside the {lo}-{hi} band for {it['category']}")
+        # A garment nobody can wear is a garment nobody should be sold.
+        if it["slot"] and not it["character_compatibility"]:
+            errors.append(f"shop_items.json: '{iid}' fills the "
+                          f"'{it['slot']}' slot but fits no character")
+
+    for cat in shop_cats:
+        if not any(i["category"] == cat["id"] for i in shop_items):
+            errors.append(f"shop_categories.json: '{cat['id']}' has no items; "
+                          f"it would be a tab that opens onto nothing")
+        if cat["icon"] not in icon_names:
+            errors.append(f"shop_categories.json: '{cat['id']}' wants icon "
+                          f"'{cat['icon']}', which IconLibrary cannot draw")
+
+    for box in shop_bundles:
+        for member in box["contains"]:
+            if member not in item_ids:
+                errors.append(f"shop_bundles.json: '{box['id']}' contains "
+                              f"'{member}', which is not an item")
+        singles = sum(i["price"] for i in shop_items if i["id"] in box["contains"])
+        if box["price"] >= singles:
+            errors.append(f"shop_bundles.json: '{box['id']}' costs "
+                          f"{box['price']} but its pieces cost {singles} "
+                          f"separately -- a box must be worth buying")
+
+    # Exactly one free teaching gift, or the first visit has no lesson.
+    gifts = [i["id"] for i in shop_items
+             if i["unlock_condition"].get("type") == "free_gift"]
+    if len(gifts) != 1:
+        errors.append(f"shop_items.json: {len(gifts)} free gifts; the first "
+                      f"visit needs exactly one")
+
 # --- 6. every badge is reachable
 awarded = {lv.get("reward", {}).get("badge", "") for lv in levels}
 for b in sorted(badges - awarded):

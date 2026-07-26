@@ -1,0 +1,44 @@
+[
+  {
+    "id": "wardrobe",
+    "name_key": "shop.cat.wardrobe",
+    "icon": "tshirt",
+    "order": 1
+  },
+  {
+    "id": "pal",
+    "name_key": "shop.cat.pal",
+    "icon": "paw",
+    "order": 2
+  },
+  {
+    "id": "ride",
+    "name_key": "shop.cat.ride",
+    "icon": "board",
+    "order": 3
+  },
+  {
+    "id": "fx",
+    "name_key": "shop.cat.fx",
+    "icon": "spark",
+    "order": 4
+  },
+  {
+    "id": "action",
+    "name_key": "shop.cat.action",
+    "icon": "wave",
+    "order": 5
+  },
+  {
+    "id": "base",
+    "name_key": "shop.cat.base",
+    "icon": "home",
+    "order": 6
+  },
+  {
+    "id": "keepsake",
+    "name_key": "shop.cat.keepsake",
+    "icon": "picture_book",
+    "order": 7
+  }
+]

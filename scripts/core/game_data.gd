@@ -5,6 +5,11 @@ extends Node
 var worlds: Array = []
 var levels: Array = []
 var rewards: Dictionary = {}
+## The gift shop's catalogue. Read-only game data: what he OWNS lives in the
+## save, never here, so changing a price can never lose him a hat.
+var shop_items: Array = []
+var shop_categories: Array = []
+var shop_bundles: Array = []
 var characters: Dictionary = {}
 
 var _levels_by_id: Dictionary = {}
@@ -17,6 +22,9 @@ func _ready() -> void:
 	levels = _load_json("res://data/levels.json", [])
 	rewards = _load_json("res://data/rewards.json", {})
 	characters = _load_json("res://data/characters.json", {})
+	shop_items = _load_json("res://data/shop_items.json", [])
+	shop_categories = _load_json("res://data/shop_categories.json", [])
+	shop_bundles = _load_json("res://data/shop_bundles.json", [])
 
 	for w in worlds:
 		_worlds_by_id[w.get("id", "")] = w

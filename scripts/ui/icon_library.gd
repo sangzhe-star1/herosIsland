@@ -64,6 +64,12 @@ const NAMES := [
 	"spread", "power", "slow", "split", "blast",
 	# 星星币 -- the shop's money, and the whole reason it is not just "star"
 	"star_coin",
+	# 星光礼物屋: one picture per thing on the shelf. A child who cannot read
+	# the label buys by looking, so every one of these has to say what it is
+	# from across a table.
+	"cape_star", "cap_cloud", "boots", "gloves",
+	"robot", "board", "cloud", "trail", "halo",
+	"wave", "spin", "pose", "lamp", "sofa", "shelf", "sticker_book",
 ]
 
 
@@ -665,6 +671,224 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 					Color(0.72, 0.92, 1.0))
 				_poly(p, Shapes.star_points(c + Vector2(s * 0.34, side5 * s * 0.28),
 					s * 0.10, 0.45, 4), Color(1.0, 0.94, 0.72))
+		# --- 星光礼物屋 -------------------------------------------------
+		"cape_star":
+			# The starting cape. Same silhouette as cape_red so a child reads
+			# them as the same KIND of thing, and a star on the collar so he
+			# can tell which one is his.
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.16, -s * 0.30), c + Vector2(s * 0.16, -s * 0.30),
+				c + Vector2(s * 0.30, s * 0.26), c + Vector2(s * 0.10, s * 0.18),
+				c + Vector2(-s * 0.06, s * 0.30), c + Vector2(-s * 0.28, s * 0.20),
+			]), Color(0.42, 0.52, 0.92))
+			_round_rect(p, c + Vector2(0, -s * 0.30), Vector2(s * 0.40, s * 0.075),
+				Color(0.86, 0.92, 1.0), s * 0.03)
+			_poly(p, Shapes.star_points(c + Vector2(0, s * 0.02), s * 0.13, 0.45, 5),
+				Color(1.0, 0.92, 0.52))
+		"cap_cloud":
+			# A soft cap with a cloud brim.
+			_poly(p, Shapes.oval_points(c + Vector2(0, -s * 0.04),
+				Vector2(s * 0.26, s * 0.22), 20), Color(0.62, 0.80, 0.98))
+			_poly(p, Shapes.oval_points(c + Vector2(s * 0.16, s * 0.14),
+				Vector2(s * 0.24, s * 0.09), 18), Color(0.90, 0.95, 1.0))
+			_circle(p, c + Vector2(-s * 0.10, s * 0.10), s * 0.10, Color(0.98, 0.99, 1.0))
+			_circle(p, c + Vector2(s * 0.02, s * 0.13), s * 0.08, Color(0.98, 0.99, 1.0))
+		"boots":
+			# An L: the one shape that reads as a boot at any size.
+			for side in [-1.0, 1.0]:
+				var bx: float = side * s * 0.17
+				_round_rect(p, c + Vector2(bx, -s * 0.04), Vector2(s * 0.16, s * 0.34),
+					Color(0.96, 0.78, 0.28), s * 0.04)
+				_round_rect(p, c + Vector2(bx + side * s * 0.04, s * 0.19),
+					Vector2(s * 0.24, s * 0.14), Color(0.36, 0.40, 0.52), s * 0.04)
+			_poly(p, Shapes.star_points(c + Vector2(0, -s * 0.06), s * 0.09, 0.44, 5),
+				Color(1.0, 0.94, 0.60))
+		"gloves":
+			# A mitten each, in two colours, because "rainbow" has to be visible
+			# at 60 px and a spectrum is not.
+			var mitts := [Color(0.94, 0.42, 0.44), Color(0.38, 0.70, 0.94)]
+			for k in range(2):
+				var gx: float = (-0.17 + 0.34 * float(k)) * s
+				_round_rect(p, c + Vector2(gx, 0), Vector2(s * 0.24, s * 0.34),
+					mitts[k], s * 0.09)
+				_round_rect(p, c + Vector2(gx + (s * 0.16 if k == 1 else -s * 0.16),
+					s * 0.02), Vector2(s * 0.10, s * 0.17), mitts[k], s * 0.05)
+				_round_rect(p, c + Vector2(gx, s * 0.16), Vector2(s * 0.26, s * 0.08),
+					Color(1.0, 0.96, 0.88), s * 0.03)
+		"robot":
+			# Square head, round eyes, one aerial. Friendly, not military.
+			_round_rect(p, c + Vector2(0, s * 0.04), Vector2(s * 0.44, s * 0.40),
+				Color(0.74, 0.80, 0.90), s * 0.10)
+			for side2 in [-1.0, 1.0]:
+				_circle(p, c + Vector2(side2 * s * 0.11, -s * 0.02), s * 0.075,
+					Color(0.20, 0.26, 0.40))
+				_circle(p, c + Vector2(side2 * s * 0.11 - s * 0.02, -s * 0.04),
+					s * 0.03, Color(1.0, 1.0, 1.0))
+			_round_rect(p, c + Vector2(0, s * 0.16), Vector2(s * 0.20, s * 0.05),
+				Color(0.42, 0.62, 0.86), s * 0.02)
+			_poly(p, Shapes.taper(c + Vector2(0, -s * 0.16), c + Vector2(0, -s * 0.32),
+				s * 0.03, s * 0.02), Color(0.52, 0.58, 0.70))
+			_circle(p, c + Vector2(0, -s * 0.34), s * 0.06, Color(1.0, 0.72, 0.34))
+		"board":
+			# A board on a tilt with two wheels and a light under it.
+			_poly(p, Shapes.rounded_rect(c + Vector2(-s * 0.34, -s * 0.06),
+				Vector2(s * 0.68, s * 0.13), s * 0.06), Color(0.44, 0.66, 0.94))
+			for side3 in [-1.0, 1.0]:
+				_circle(p, c + Vector2(side3 * s * 0.19, s * 0.13), s * 0.075,
+					Color(0.30, 0.34, 0.46))
+			_round_rect(p, c + Vector2(0, s * 0.24), Vector2(s * 0.52, s * 0.055),
+				Color(0.56, 0.86, 1.0, 0.75), s * 0.03)
+		"cloud":
+			# Three lumps and a rainbow under them.
+			_circle(p, c + Vector2(-s * 0.16, -s * 0.02), s * 0.15, Color(0.97, 0.98, 1.0))
+			_circle(p, c + Vector2(s * 0.02, -s * 0.10), s * 0.19, Color(1.0, 1.0, 1.0))
+			_circle(p, c + Vector2(s * 0.20, -s * 0.01), s * 0.14, Color(0.94, 0.96, 1.0))
+			_round_rect(p, c + Vector2(0, s * 0.08), Vector2(s * 0.56, s * 0.10),
+				Color(0.99, 1.0, 1.0), s * 0.05)
+			var bands := [Color(0.94, 0.44, 0.42), Color(1.0, 0.80, 0.34),
+				Color(0.44, 0.76, 0.52), Color(0.44, 0.62, 0.94)]
+			for k2 in range(bands.size()):
+				_round_rect(p, c + Vector2(0, s * (0.18 + 0.055 * float(k2))),
+					Vector2(s * 0.40 - s * 0.03 * float(k2), s * 0.04),
+					bands[k2], s * 0.02)
+		"trail":
+			# Three dashes shrinking away, with a spark at the front: motion,
+			# drawn as the thing that is left behind.
+			var hues := [Color(0.94, 0.44, 0.42), Color(1.0, 0.82, 0.34),
+				Color(0.42, 0.74, 0.96)]
+			for k3 in range(3):
+				var t3: float = float(k3)
+				_round_rect(p, c + Vector2(-s * 0.26 + s * 0.16 * t3, s * 0.10 - s * 0.07 * t3),
+					Vector2(s * 0.22 - s * 0.04 * t3, s * 0.10 - s * 0.02 * t3),
+					hues[k3], s * 0.05)
+			_poly(p, Shapes.star_points(c + Vector2(s * 0.24, -s * 0.14), s * 0.14, 0.44, 5),
+				Color(1.0, 0.94, 0.62))
+		"halo":
+			# A ring of light with rays coming off it. The first cut put the
+			# ring over a blue dome with two eyes and it read as a sad face --
+			# no head at all is clearer than a head drawn small.
+			for k7 in range(8):
+				var ra: float = TAU * float(k7) / 8.0 - PI * 0.5
+				_poly(p, Shapes.taper(
+					c + Vector2(cos(ra), sin(ra)) * s * 0.27,
+					c + Vector2(cos(ra), sin(ra)) * s * 0.42,
+					s * 0.05, s * 0.02), Color(1.0, 0.86, 0.40))
+			var ring3 := PackedVector2Array()
+			for j4 in range(26):
+				var a4: float = TAU * float(j4) / 26.0
+				ring3.append(c + Vector2(cos(a4), sin(a4)) * s * 0.25)
+			for j5 in range(25, -1, -1):
+				var a5: float = TAU * float(j5) / 26.0
+				ring3.append(c + Vector2(cos(a5), sin(a5)) * s * 0.15)
+			_poly(p, ring3, Color(1.0, 0.80, 0.28))
+			_poly(p, Shapes.star_points(c, s * 0.12, 0.44, 5), Color(1.0, 0.96, 0.76))
+		"wave":
+			# One hand shape, palm out, with the fingers cut INTO it rather
+			# than stacked beside it -- four separate rounded bars at this size
+			# read as four separate objects floating next to a box.
+			var skin := Color(1.0, 0.84, 0.64)
+			_round_rect(p, c + Vector2(s * 0.02, s * 0.06), Vector2(s * 0.34, s * 0.42),
+				skin, s * 0.15)
+			_round_rect(p, c + Vector2(s * 0.02, -s * 0.10), Vector2(s * 0.34, s * 0.20),
+				skin, s * 0.10)
+			for k4 in range(3):
+				_round_rect(p, c + Vector2((-0.07 + 0.09 * float(k4)) * s, -s * 0.13),
+					Vector2(s * 0.018, s * 0.16), Color(0.94, 0.74, 0.55), s * 0.009)
+			# The thumb, out to the side, which is what makes it a hand.
+			_round_rect(p, c + Vector2(-s * 0.19, s * 0.10), Vector2(s * 0.12, s * 0.20),
+				skin, s * 0.055)
+			# Two arcs: it is moving.
+			for k5 in range(2):
+				var rr: float = s * (0.30 + 0.10 * float(k5))
+				var swish := PackedVector2Array()
+				for j6 in range(9):
+					var a6: float = -PI * 0.30 + PI * 0.55 * float(j6) / 8.0
+					swish.append(c + Vector2(s * 0.04, s * 0.02)
+						+ Vector2(cos(a6), sin(a6)) * rr)
+				for j7 in range(8, -1, -1):
+					var a7: float = -PI * 0.30 + PI * 0.55 * float(j7) / 8.0
+					swish.append(c + Vector2(s * 0.04, s * 0.02)
+						+ Vector2(cos(a7), sin(a7)) * (rr - s * 0.035))
+				_poly(p, swish, Color(1.0, 0.80, 0.34, 0.9 - 0.25 * float(k5)))
+		"spin":
+			# An arrow chasing its own circle.
+			var arc := PackedVector2Array()
+			for j2 in range(20):
+				var a2: float = -PI * 0.35 + TAU * 0.78 * float(j2) / 19.0
+				arc.append(c + Vector2(cos(a2), sin(a2)) * s * 0.28)
+			for j3 in range(19, -1, -1):
+				var a3: float = -PI * 0.35 + TAU * 0.78 * float(j3) / 19.0
+				arc.append(c + Vector2(cos(a3), sin(a3)) * s * 0.20)
+			_poly(p, arc, Color(0.46, 0.70, 0.96))
+			var tip2: Vector2 = c + Vector2(cos(-PI * 0.35), sin(-PI * 0.35)) * s * 0.24
+			_poly(p, PackedVector2Array([
+				tip2 + Vector2(-s * 0.10, -s * 0.08), tip2 + Vector2(s * 0.10, -s * 0.02),
+				tip2 + Vector2(-s * 0.04, s * 0.10),
+			]), Color(0.32, 0.56, 0.90))
+			_poly(p, Shapes.star_points(c, s * 0.10, 0.44, 5), Color(1.0, 0.90, 0.50))
+		"pose":
+			# Arms up, feet apart. The superhero shape a six-year-old makes.
+			_circle(p, c + Vector2(0, -s * 0.20), s * 0.11, Color(1.0, 0.86, 0.68))
+			_round_rect(p, c + Vector2(0, s * 0.02), Vector2(s * 0.20, s * 0.26),
+				Color(0.42, 0.62, 0.94), s * 0.07)
+			for side5 in [-1.0, 1.0]:
+				_poly(p, Shapes.taper(c + Vector2(side5 * s * 0.08, -s * 0.04),
+					c + Vector2(side5 * s * 0.28, -s * 0.26), s * 0.055, s * 0.04),
+					Color(1.0, 0.86, 0.68))
+				_poly(p, Shapes.taper(c + Vector2(side5 * s * 0.06, s * 0.14),
+					c + Vector2(side5 * s * 0.18, s * 0.34), s * 0.06, s * 0.045),
+					Color(0.34, 0.50, 0.84))
+		"lamp":
+			# A star on a stalk, glowing.
+			_poly(p, Shapes.taper(c + Vector2(0, s * 0.30), c + Vector2(0, s * 0.02),
+				s * 0.045, s * 0.03), Color(0.52, 0.56, 0.68))
+			_round_rect(p, c + Vector2(0, s * 0.32), Vector2(s * 0.26, s * 0.06),
+				Color(0.42, 0.46, 0.58), s * 0.03)
+			_circle(p, c + Vector2(0, -s * 0.10), s * 0.26, Color(1.0, 0.92, 0.56, 0.30))
+			_poly(p, Shapes.star_points(c + Vector2(0, -s * 0.10), s * 0.21, 0.44, 5),
+				Color(1.0, 0.86, 0.34))
+			_poly(p, Shapes.star_points(c + Vector2(0, -s * 0.10), s * 0.12, 0.46, 5),
+				Color(1.0, 0.97, 0.78))
+		"sofa":
+			# Back, seat, two arms. Cloud-coloured, because it is a cloud sofa.
+			_round_rect(p, c + Vector2(0, -s * 0.08), Vector2(s * 0.52, s * 0.26),
+				Color(0.80, 0.88, 0.99), s * 0.10)
+			_round_rect(p, c + Vector2(0, s * 0.12), Vector2(s * 0.62, s * 0.20),
+				Color(0.90, 0.95, 1.0), s * 0.08)
+			for side6 in [-1.0, 1.0]:
+				_round_rect(p, c + Vector2(side6 * s * 0.28, s * 0.06),
+					Vector2(s * 0.13, s * 0.28), Color(0.72, 0.83, 0.97), s * 0.06)
+			for side7 in [-1.0, 1.0]:
+				_round_rect(p, c + Vector2(side7 * s * 0.20, s * 0.28),
+					Vector2(s * 0.06, s * 0.10), Color(0.56, 0.62, 0.76), s * 0.02)
+		"shelf":
+			# Two shelves with a trophy and a medal on them.
+			for k6 in range(2):
+				_round_rect(p, c + Vector2(0, (-0.06 + 0.26 * float(k6)) * s),
+					Vector2(s * 0.60, s * 0.055), Color(0.76, 0.60, 0.42), s * 0.02)
+			for side8 in [-1.0, 1.0]:
+				_round_rect(p, c + Vector2(side8 * s * 0.29, s * 0.06),
+					Vector2(s * 0.055, s * 0.52), Color(0.66, 0.50, 0.34), s * 0.02)
+			_poly(p, Shapes.oval_points(c + Vector2(-s * 0.11, -s * 0.17),
+				Vector2(s * 0.11, s * 0.10), 16), Color(1.0, 0.82, 0.32))
+			_round_rect(p, c + Vector2(-s * 0.11, -s * 0.07), Vector2(s * 0.07, s * 0.07),
+				Color(0.92, 0.72, 0.28), s * 0.02)
+			_circle(p, c + Vector2(s * 0.13, s * 0.11), s * 0.09, Color(0.98, 0.86, 0.44))
+			_poly(p, Shapes.star_points(c + Vector2(s * 0.13, s * 0.11), s * 0.05, 0.44, 5),
+				Color(0.86, 0.62, 0.22))
+		"sticker_book":
+			# A book with stickers ON it. The generic picture_book read as a
+			# closed green rectangle -- true of a book, useless as a picture of
+			# a sticker album.
+			_round_rect(p, c + Vector2(0, 0), Vector2(s * 0.54, s * 0.62),
+				Color(0.98, 0.94, 0.86), s * 0.05)
+			_round_rect(p, c + Vector2(-s * 0.24, 0), Vector2(s * 0.09, s * 0.62),
+				Color(0.42, 0.66, 0.94), s * 0.03)
+			_poly(p, Shapes.star_points(c + Vector2(-s * 0.03, -s * 0.16),
+				s * 0.13, 0.44, 5), Color(1.0, 0.82, 0.32))
+			_circle(p, c + Vector2(s * 0.15, s * 0.04), s * 0.09, Color(0.94, 0.48, 0.48))
+			_poly(p, Shapes.oval_points(c + Vector2(-s * 0.06, s * 0.20),
+				Vector2(s * 0.11, s * 0.08), 16), Color(0.46, 0.78, 0.54))
 		"blast":
 			# Rings going out: a wider bang.
 			for k in range(3):

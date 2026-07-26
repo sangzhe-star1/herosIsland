@@ -68,8 +68,8 @@ func _default_data() -> Dictionary:
 			"coins": 0,
 			"badges": [],
 			"stickers": [],
-			# The star shop: lifetime stars stay untouched (they unlock worlds);
-			# spending only raises spent_stars. Items are consumables, id -> count.
+			# Retired. Kept only so an old save's balance can be refunded as
+			# 星星币 once, by _refund_spent_stars(). Nothing writes it any more.
 			"spent_stars": 0,
 			"items": {},
 			# Outfit pieces owned (ids). Bought once with coins, kept forever.
@@ -88,6 +88,10 @@ func _default_data() -> Dictionary:
 			# written down is a skill that vanishes when the tablet sleeps.
 			"skills": [],
 		},
+		# 星光礼物屋. His shop life, kept apart from the catalogue on purpose:
+		# data/shop_items.json is read-only game data and this is his. Editing a
+		# price must never be able to lose him a hat.
+		"shop": _default_shop(),
 		# Growth attributes. Displayed as growing plants/flags, never as combat stats.
 		"growth": {
 			"courage": 0,
@@ -129,6 +133,33 @@ func _read_save(path: String) -> Variant:
 
 
 ## Fill in any keys added by a later build so old saves never crash the game.
+## The shape of a child's shop life. Public so the shop managers can repair a
+## save that predates them without reaching into private state.
+func default_shop() -> Dictionary:
+	return _default_shop()
+
+
+func _default_shop() -> Dictionary:
+	return {
+		# What he owns and what he has on. `equipped` carries every slot up
+		# front so a screen can read one without checking whether it exists.
+		"owned": [],
+		"equipped": {
+			"head": "", "body": "", "back": "", "hands": "", "feet": "",
+			"pal": "", "ride": "", "fx": "", "action": "",
+		},
+		# Up to five things he is saving for. See wishlist_manager.gd.
+		"wishlist": [],
+		# Decorations placed in the hero base, and which shelves have opened.
+		"base_decor": [],
+		"unlocked_categories": ["wardrobe", "action"],
+		# Which "new!" marks he has already seen, so the star stops glowing.
+		"seen_new": [],
+		"bundles_done": [],
+		"free_gift_taken": false,
+	}
+
+
 func _migrate(loaded: Dictionary) -> Dictionary:
 	var base := _default_data()
 	for key in base.keys():

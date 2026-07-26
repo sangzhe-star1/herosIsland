@@ -1,0 +1,435 @@
+[
+  {
+    "id": "cape_star",
+    "name_key": "shop.item.cape_star",
+    "category": "wardrobe",
+    "subcategory": "back",
+    "price": 30,
+    "icon": "cape_star",
+    "preview_asset": "",
+    "character_asset": "cape_star",
+    "slot": "back",
+    "character_compatibility": [
+      "light_hero",
+      "tiga",
+      "zero",
+      "grigio",
+      "yullian"
+    ],
+    "unlock_condition": {
+      "type": "free_gift"
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "cap_cloud",
+    "name_key": "shop.item.cap_cloud",
+    "category": "wardrobe",
+    "subcategory": "head",
+    "price": 18,
+    "icon": "cap_cloud",
+    "preview_asset": "",
+    "character_asset": "cap_cloud",
+    "slot": "head",
+    "character_compatibility": [
+      "light_hero",
+      "tiga",
+      "zero",
+      "grigio",
+      "yullian"
+    ],
+    "unlock_condition": {
+      "type": "world_done",
+      "world": "sunny_park"
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "bundle_park",
+    "interaction_type": ""
+  },
+  {
+    "id": "vest_rescue",
+    "name_key": "shop.item.vest_rescue",
+    "category": "wardrobe",
+    "subcategory": "body",
+    "price": 40,
+    "icon": "vest",
+    "preview_asset": "",
+    "character_asset": "vest_rescue",
+    "slot": "body",
+    "character_compatibility": [
+      "light_hero",
+      "tiga",
+      "zero",
+      "grigio",
+      "yullian"
+    ],
+    "unlock_condition": {
+      "type": "world_done",
+      "world": "night_city"
+    },
+    "world_theme": "night_city",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "boots_bolt",
+    "name_key": "shop.item.boots_bolt",
+    "category": "wardrobe",
+    "subcategory": "feet",
+    "price": 28,
+    "icon": "boots",
+    "preview_asset": "",
+    "character_asset": "boots_bolt",
+    "slot": "feet",
+    "character_compatibility": [
+      "light_hero",
+      "tiga",
+      "zero",
+      "grigio",
+      "yullian"
+    ],
+    "unlock_condition": {
+      "type": "three_stars",
+      "count": 3
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "gloves_rainbow",
+    "name_key": "shop.item.gloves_rainbow",
+    "category": "wardrobe",
+    "subcategory": "hands",
+    "price": 22,
+    "icon": "gloves",
+    "preview_asset": "",
+    "character_asset": "gloves_rainbow",
+    "slot": "hands",
+    "character_compatibility": [
+      "light_hero",
+      "tiga",
+      "zero",
+      "grigio",
+      "yullian"
+    ],
+    "unlock_condition": {
+      "type": "world_done",
+      "world": "monster_valley"
+    },
+    "world_theme": "monster_valley",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "crown_brave",
+    "name_key": "shop.item.crown_brave",
+    "category": "wardrobe",
+    "subcategory": "head",
+    "price": 35,
+    "icon": "crown",
+    "preview_asset": "",
+    "character_asset": "crown_brave",
+    "slot": "head",
+    "character_compatibility": [
+      "light_hero",
+      "tiga",
+      "zero",
+      "grigio",
+      "yullian"
+    ],
+    "unlock_condition": {
+      "type": "three_stars",
+      "count": 8
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "pal_orb",
+    "name_key": "shop.item.pal_orb",
+    "category": "pal",
+    "subcategory": "follow",
+    "price": 60,
+    "icon": "orb",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "levels_done",
+      "count": 5
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "pal_puppy",
+    "name_key": "shop.item.pal_puppy",
+    "category": "pal",
+    "subcategory": "follow",
+    "price": 75,
+    "icon": "paw",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "world_stars",
+      "world": "sunny_park",
+      "count": 18
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "pal_robot",
+    "name_key": "shop.item.pal_robot",
+    "category": "pal",
+    "subcategory": "follow",
+    "price": 80,
+    "icon": "robot",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "world_done",
+      "world": "night_city"
+    },
+    "world_theme": "night_city",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "ride_board",
+    "name_key": "shop.item.ride_board",
+    "category": "ride",
+    "subcategory": "map",
+    "price": 70,
+    "icon": "board",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "levels_done",
+      "count": 10
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "ride_cloud",
+    "name_key": "shop.item.ride_cloud",
+    "category": "ride",
+    "subcategory": "map",
+    "price": 90,
+    "icon": "cloud",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "world_done",
+      "world": "sky_base"
+    },
+    "world_theme": "sky_base",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "fx_starstep",
+    "name_key": "shop.item.fx_starstep",
+    "category": "fx",
+    "subcategory": "trail",
+    "price": 25,
+    "icon": "spark",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "levels_done",
+      "count": 3
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "fx_trail",
+    "name_key": "shop.item.fx_trail",
+    "category": "fx",
+    "subcategory": "trail",
+    "price": 35,
+    "icon": "trail",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "three_stars",
+      "count": 5
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "fx_halo",
+    "name_key": "shop.item.fx_halo",
+    "category": "fx",
+    "subcategory": "win",
+    "price": 45,
+    "icon": "halo",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "boss_beaten"
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "act_wave",
+    "name_key": "shop.item.act_wave",
+    "category": "action",
+    "subcategory": "pose",
+    "price": 8,
+    "icon": "wave",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "act_spin",
+    "name_key": "shop.item.act_spin",
+    "category": "action",
+    "subcategory": "pose",
+    "price": 12,
+    "icon": "spin",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "levels_done",
+      "count": 2
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "bundle_park",
+    "interaction_type": ""
+  },
+  {
+    "id": "act_hero",
+    "name_key": "shop.item.act_hero",
+    "category": "action",
+    "subcategory": "pose",
+    "price": 15,
+    "icon": "pose",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "three_stars",
+      "count": 1
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": ""
+  },
+  {
+    "id": "deco_lamp",
+    "name_key": "shop.item.deco_lamp",
+    "category": "base",
+    "subcategory": "light",
+    "price": 30,
+    "icon": "lamp",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "levels_done",
+      "count": 4
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": "cycle_colour"
+  },
+  {
+    "id": "deco_sofa",
+    "name_key": "shop.item.deco_sofa",
+    "category": "base",
+    "subcategory": "seat",
+    "price": 45,
+    "icon": "sofa",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "world_done",
+      "world": "sunny_park"
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "bundle_park",
+    "interaction_type": "sit"
+  },
+  {
+    "id": "deco_shelf",
+    "name_key": "shop.item.deco_shelf",
+    "category": "base",
+    "subcategory": "display",
+    "price": 60,
+    "icon": "shelf",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "badges",
+      "count": 3
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "",
+    "interaction_type": "show_badges"
+  },
+  {
+    "id": "set_park_stickers",
+    "name_key": "shop.item.set_park_stickers",
+    "category": "keepsake",
+    "subcategory": "stickers",
+    "price": 20,
+    "icon": "sticker_book",
+    "preview_asset": "",
+    "character_asset": "",
+    "slot": "",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "world_done",
+      "world": "sunny_park"
+    },
+    "world_theme": "sunny_park",
+    "bundle_id": "bundle_park",
+    "interaction_type": ""
+  }
+]
