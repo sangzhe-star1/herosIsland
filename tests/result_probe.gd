@@ -32,6 +32,7 @@ func _ready() -> void:
 	# Case 2: an ordinary two-star run with no extras, to prove the fix did not
 	# squash the common case.
 	failures.append_array(await _check("an ordinary run", false))
+	failures.append_array(await _the_lesson_waits_for_the_whole_world())
 
 	if failures.is_empty():
 		print("RESULT PROBE PASSED")
@@ -135,3 +136,67 @@ func _prime(loaded: bool) -> void:
 		SaveManager.set_setting("levels_this_session", RestDirector.EVERY - 1)
 	else:
 		SaveManager.set_setting("levels_this_session", 0)
+
+
+## The end-of-episode lesson appears when a WORLD is finished, and not before.
+##
+## This is the only video-shaped thing in the game -- the three-panel animation
+## a cartoon plays before the credits -- and it is gated on every level of a
+## world being done. Worth checking both ways round: a lesson that never
+## appears is content nobody sees, and one that appears a level early spends
+## the moment it was saving up for.
+func _the_lesson_waits_for_the_whole_world() -> Array[String]:
+	var out: Array[String] = []
+	for world_id in ["sunny_park", "night_city", "dark_castle"]:
+		var levels: Array = []
+		for entry in GameData.get_levels_for_world(world_id):
+			if str(entry.get("id", "")) != "hero_studio":
+				levels.append(str(entry.get("id", "")))
+		if levels.size() < 2:
+			continue
+
+		# One level short of the whole world.
+		SaveManager.data["levels"] = {}
+		for i in range(levels.size() - 1):
+			SaveManager.record_level_result(levels[i], 2, 1.0)
+		var early := await _lesson_offered(world_id, levels[levels.size() - 1])
+		# ...and now the last one.
+		SaveManager.record_level_result(levels[levels.size() - 1], 2, 1.0)
+		var done := await _lesson_offered(world_id, levels[levels.size() - 1])
+
+		print("  %-15s %d levels: one short -> %s, all done -> %s"
+			% [world_id, levels.size(),
+				"offered" if early else "not offered",
+				"offered" if done else "NOT OFFERED"])
+		if early:
+			out.append("%s offers the lesson with a level still unfinished"
+				% world_id)
+		if not done:
+			out.append("%s finished every level and the lesson never appeared"
+				% world_id)
+	return out
+
+
+func _lesson_offered(world_id: String, last_level: String) -> bool:
+	GameManager.current_world_id = world_id
+	GameManager.current_level_id = last_level
+	var result := LevelResult.new(last_level)
+	result.objective_scoring = true
+	result.reached_goal = true
+	GameManager.set("_last_result", result)
+	RewardManager.last_coins_earned = 0
+	RewardManager.last_new_badge = ""
+	RewardManager.last_xp_earned = 0
+	RewardManager.last_levels_gained = 0
+	SaveManager.set_setting("levels_this_session", 0)
+
+	var screen: Control = load("res://scenes/ui/ResultScreen.tscn").instantiate()
+	add_child(screen)
+	await get_tree().process_frame
+	var found := false
+	for node in _visible_controls(screen):
+		if node is Button and str((node as Button).text) == I18n.t("lesson.watch"):
+			found = true
+	screen.queue_free()
+	await get_tree().process_frame
+	return found
