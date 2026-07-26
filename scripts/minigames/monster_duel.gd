@@ -56,7 +56,8 @@ var _instruction: Label
 var _hero: SkinnedCharacter
 var _monster: Node2D
 var _shield_bubble: Control
-var _meter_cells: Array = []
+var _hp_fill: Control          # the monster's health, drawn as a draining bar
+var _hp_face: Control
 var _beam_button: Control
 var _shield_button: Control
 var _ult_button: Control
@@ -162,54 +163,78 @@ func _build_scene(config: Dictionary) -> void:
 	_build_skill_wheel()
 
 
-## The most cells that fit across the screen and can still be counted at a
-## glance. Beyond about a dozen a child stops counting and starts estimating,
-## which is what a bar is for.
-const METER_CELLS := 12
+const HP_W := 560.0
+const HP_H := 34.0
+const HP_AT := Vector2(360.0, 84.0)
 
 
-## How many hits the monster takes before it gives up.
+## The monster's health, as a bar that drains.
 ##
-## The final fight needs 55 of them -- that is a minute of landed beams before
-## anyone dodges anything, which is what makes it feel like the last monster in
-## the game. Fifty-five cells is 2,400 px of screen, so past a dozen one cell
-## stops meaning one hit and starts meaning a share of the fight. Under a dozen
-## it stays exactly one hit per cell, which is crisper, and which is what the
-## early duels use.
+## It was a row of sparks that filled, one spark per hit, and the moment the
+## final fight needed fifty-five hits that stopped working: twelve sparks over
+## fifty-five hits means a spark every FIVE beams, so a child fires, watches
+## the beam land, and sees nothing change. Four times in a row. His father
+## reported it exactly that way -- "命中很多次，都没有星星".
+##
+## A bar has no such floor. Every single hit takes 1/55th off it, which is ten
+## pixels of a 560 px bar, animated, next to a monster's face that is watching
+## the bar go down. The rule underneath is the one this whole game runs on:
+## every action a child takes has to visibly do something, immediately.
 func _build_meter() -> void:
-	var meter := HBoxContainer.new()
-	meter.add_theme_constant_override("separation", 6)
-	meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(meter)
-	var total: int = mini(target_value("correct", 8), METER_CELLS)
-	for i in range(total):
-		var cell: Control = UiKit.picture("spark", 38.0)
-		if cell == null:
-			cell = UiKit.star(true, 38)
-		# An unlit cell stays clearly visible: seeing how many are still to
-		# come is the point of a progress meter, and 0.28 alpha over a night
-		# sky was effectively nothing.
-		cell.modulate = Color(0.62, 0.66, 0.80, 0.75)
-		meter.add_child(cell)
-		_meter_cells.append(cell)
-	meter.position = Vector2(640.0 - float(total) * 22.0, 88)
+	var holder := Control.new()
+	holder.position = HP_AT
+	holder.size = Vector2(HP_W, HP_H)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_area.add_child(holder)
+
+	# Whose health this is. Without the face it is just a bar, and the child
+	# has two of them on screen.
+	_hp_face = UiKit.picture("monster", 52.0)
+	if _hp_face != null:
+		_hp_face.position = Vector2(-64, -10)
+		_hp_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.add_child(_hp_face)
+
+	var track := Node2D.new()
+	holder.add_child(track)
+	Shapes.fill(track, Shapes.rounded_rect(Vector2(-4, -4),
+		Vector2(HP_W + 8.0, HP_H + 8.0), (HP_H + 8.0) * 0.5),
+		Color(0.06, 0.09, 0.18, 0.85), 0.0)
+
+	_hp_fill = Control.new()
+	_hp_fill.position = Vector2.ZERO
+	_hp_fill.size = Vector2(HP_W, HP_H)
+	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hp_fill.clip_contents = true
+	holder.add_child(_hp_fill)
+	var paint := Node2D.new()
+	_hp_fill.add_child(paint)
+	Shapes.lit(paint, Shapes.rounded_rect(Vector2.ZERO, Vector2(HP_W, HP_H),
+		HP_H * 0.5), Color(0.96, 0.55, 0.42), 1.0)
+	Shapes.fill(paint, Shapes.rounded_rect(Vector2(10, 6),
+		Vector2(HP_W - 20.0, HP_H * 0.30), HP_H * 0.15),
+		Color(1.0, 0.86, 0.72, 0.55), 0.0)
 
 
+## Called after every landed hit. `clip_contents` on the fill means shrinking
+## its width slides the drawing out of view from the right, so the bar empties
+## the way a bar should rather than squashing its own rounded end.
 func _update_meter() -> void:
+	if not is_instance_valid(_hp_fill):
+		return
 	var need: int = maxi(target_value("correct", 8), 1)
-	var cells: int = maxi(_meter_cells.size(), 1)
-	# How many cells this many hits has earned. Rounded DOWN, so a lit cell is
-	# always a promise that has been kept.
-	var lit_count: int = int(floor(float(result.correct) * float(cells)
-		/ float(need)))
-	for i in range(_meter_cells.size()):
-		var cell: Control = _meter_cells[i]
-		if not is_instance_valid(cell):
-			continue
-		var lit: bool = i < lit_count
-		cell.modulate = Color(1, 1, 1, 1.0) if lit else Color(0.62, 0.66, 0.80, 0.75)
-		if lit and i == lit_count - 1:
-			Juice.pop(cell, 0.3)
+	var left: float = clampf(1.0 - float(result.correct) / float(need), 0.0, 1.0)
+	var want := Vector2(HP_W * left, HP_H)
+	if not Juice.motion_enabled():
+		_hp_fill.size = want
+		return
+	# Animated, because the movement IS the feedback. Short enough that a
+	# second hit landing on top of it just retargets.
+	var t := _hp_fill.create_tween()
+	t.tween_property(_hp_fill, "size", want, 0.22)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if is_instance_valid(_hp_face):
+		Juice.pop(_hp_face, 0.18)
 
 
 ## The thumb corner: ult, shield, beam -- beam biggest and rightmost, exactly
