@@ -239,6 +239,21 @@ if ! grep -q "VOICE CHECK PASSED" "$VOICE_OUT"; then
 fi
 rm -f "$VOICE_OUT"
 
+# The result screen, loaded with everything it can possibly show at once. It
+# is built out of ifs -- a badge line IF a badge was won, a level-up line IF
+# the bar filled -- so the run that shows the most is the rarest one and the
+# least looked at, and it was clipping all four buttons off the bottom.
+echo
+echo "Running result probe..."
+RESULT_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/ResultProbe.tscn 2>&1 | tee "$RESULT_OUT"
+if ! grep -q "RESULT PROBE PASSED" "$RESULT_OUT"; then
+  rm -f "$RESULT_OUT"
+  echo "Result probe failed."
+  exit 1
+fi
+rm -f "$RESULT_OUT"
+
 echo
 echo "Running map probe..."
 MAP_OUT=$(mktemp)

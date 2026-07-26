@@ -312,6 +312,81 @@ static func on_art(label: Label, size: int = 8) -> Label:
 	return label
 
 
+## The smallest gap a stacked column is allowed to close to before it starts
+## shrinking things instead. Below this the screen stops reading as a list of
+## separate happy facts and starts reading as a paragraph.
+const MIN_STACK_GAP := 8
+
+
+## Make a column fit the room it has, whatever ends up in it.
+##
+## A celebration screen is built out of ifs -- a badge line IF a badge was
+## won, a level-up line IF the bar filled, a lesson button IF that was the
+## last level of a world. Every one of those is a good thing, and on the run
+## where a child earns all of them at once the column grows past the bottom of
+## the screen and the buttons go with it. That is the BEST run they will ever
+## have and it was the one run where they could not see what to press.
+##
+## Two steps, cheapest first: close the gaps, and only then shrink. Call it
+## once, after the column is filled.
+static func fit_column(box: BoxContainer) -> void:
+	if box == null or not box.is_inside_tree():
+		return
+	await box.get_tree().process_frame
+	if not is_instance_valid(box):
+		return
+	# The room is what the ANCHORS ask for, not box.size.
+	#
+	# A Container never reports a size smaller than its contents -- Godot
+	# clamps it up to the combined minimum. So a column that has overflowed
+	# reports a size that fits its overflow perfectly, and asking `box.size`
+	# how much room it has is asking the overflow to measure itself. The first
+	# cut of this did exactly that and cheerfully decided a 813 px column fit
+	# in 813 px of a 720 px screen.
+	var slot: Vector2 = _anchored_size(box)
+	var room: float = slot.y
+	var wide: float = slot.x
+	var need: Vector2 = box.get_combined_minimum_size()
+	if need.y <= room and need.x <= wide:
+		return
+
+	# 1. Close the gaps. Free, and invisible until it is a lot of them.
+	if need.y > room:
+		var gaps: int = maxi(box.get_child_count() - 1, 1)
+		var over: float = need.y - room
+		var gap: int = int(box.get_theme_constant("separation"))
+		box.add_theme_constant_override("separation",
+			maxi(gap - int(ceil(over / float(gaps))), MIN_STACK_GAP))
+		await box.get_tree().process_frame
+		if not is_instance_valid(box):
+			return
+		need = box.get_combined_minimum_size()
+	if need.y <= room and need.x <= wide:
+		return
+
+	# 2. Still over: shrink the whole column, keeping its proportions. From the
+	# top-centre, because a column that has overflowed is one Godot has already
+	# started laying out at the top -- scaling about the middle would push the
+	# bottom of it further off the screen, not less.
+	box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	var k: float = minf(room / maxf(need.y, 1.0), wide / maxf(need.x, 1.0))
+	k = clampf(k, 0.55, 1.0)
+	box.pivot_offset = Vector2(box.size.x * 0.5, 0.0)
+	box.scale = Vector2(k, k)
+
+
+## The rectangle a Control's anchors and offsets ask for, ignoring the clamp
+## that Containers apply to their own size. This is Godot's own formula, and
+## the only honest answer to "how much room is there".
+static func _anchored_size(node: Control) -> Vector2:
+	var parent: Vector2 = node.get_parent_area_size()
+	return Vector2(
+		parent.x * (node.anchor_right - node.anchor_left)
+			+ node.offset_right - node.offset_left,
+		parent.y * (node.anchor_bottom - node.anchor_top)
+			+ node.offset_bottom - node.offset_top)
+
+
 # --- stars --------------------------------------------------------------
 
 ## Row of up to three stars. Empty stars stay visible so the child can see what

@@ -4,15 +4,39 @@ const Rest := preload("res://scripts/shared/rest_director.gd")
 ## Celebration screen. Always positive: even a one-star run is framed as
 ## finishing, never as failing.
 
+## The strip along the bottom that belongs to the buttons, and a little air at
+## the top so the "闯关成功！" heading never touches the bezel.
+const BUTTON_STRIP := 150.0
+const TOP_MARGIN := 14.0
+
+
 func _ready() -> void:
 	theme = UiKit.theme()
-	UiKit.world_background(self, "hero_city", "result")
+	# The world they were just standing in, not a fixed one. The celebration
+	# reads as happening WHERE the level happened -- finish the castle and the
+	# cheering happens under the castle's moon. It was pinned to hero_city,
+	# which since the rebuild is not a world the child ever visits.
+	UiKit.world_background(self, str(GameManager.current_world_id), "result")
 
 	var result: LevelResult = GameManager.get_last_result()
 	var stars: int = result.stars() if result != null else 0
 
+	# The buttons get a strip at the bottom of their own, and everything the
+	# child READS stacks in the room above it.
+	#
+	# It was all one centred column, which was right until a run earned a
+	# badge AND a level-up AND finished a world -- and then the column grew
+	# past the bottom of the screen, taking all four buttons with it. Roughly
+	# 170 px of them, gone. The best run a child can have was the one run
+	# where they could not see what to press.
+	#
+	# The buttons are pinned rather than fitted because they are a six-year-
+	# old's touch targets: a column can close its gaps and shrink its text,
+	# but a button that gets smaller when the news is good is backwards.
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	box.offset_top = TOP_MARGIN
+	box.offset_bottom = -BUTTON_STRIP
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 24)
 	add_child(box)
@@ -83,9 +107,12 @@ func _ready() -> void:
 		AudioManager.play_sfx("res://assets/audio/star.ogg")
 
 	var buttons := HBoxContainer.new()
+	buttons.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	buttons.offset_top = -BUTTON_STRIP
+	buttons.offset_bottom = -22.0
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons.add_theme_constant_override("separation", 20)
-	box.add_child(buttons)
+	add_child(buttons)
 
 	# "Next" first and breathing: it is the one button a child should be able
 	# to find without reading, and going forward is what they actually want
@@ -127,6 +154,10 @@ func _ready() -> void:
 	# than the parent's.
 	if result != null and not result.quit_early and Rest.should_offer():
 		box.add_child(_rest_note())
+
+	# Everything is in; make it fit. Closes the gaps first and only shrinks if
+	# that was not enough, so an ordinary two-star run looks exactly as it did.
+	UiKit.fit_column(box)
 
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 
@@ -250,7 +281,7 @@ func _objective_row(result: LevelResult) -> Control:
 	return strip
 
 
-## A soft line under the buttons, in the same warm voice as everything else,
+## A soft line above the buttons, in the same warm voice as everything else,
 ## with nothing to press. The "next level" button is still right there and
 ## still the biggest thing on screen: this is a suggestion from somebody who
 ## has enjoyed the last twenty minutes, not a gate.
