@@ -134,6 +134,9 @@
           "kind": "checkpoint"
         },
         {
+          "kind": "crate"
+        },
+        {
           "kind": "switch",
           "height": 120,
           "gate_gap": 260
@@ -258,6 +261,10 @@
         },
         {
           "kind": "rocks",
+          "count": 3
+        },
+        {
+          "kind": "fire",
           "count": 3
         },
         {
@@ -391,7 +398,7 @@
       "badge": "forest_friend"
     },
     "config": {
-      "puzzle": "pipes",
+      "puzzle": "order",
       "steps": 4,
       "instruction_key": "puzzle.instruction"
     }
@@ -460,6 +467,10 @@
           "kind": "checkpoint"
         },
         {
+          "kind": "seq_plates",
+          "count": 3
+        },
+        {
           "kind": "crate_shelf"
         },
         {
@@ -482,7 +493,7 @@
       "badge": "monster_friend"
     },
     "config": {
-      "count": 4,
+      "count": 5,
       "instruction_key": "rescue.instruction"
     }
   },
@@ -626,6 +637,11 @@
           "kind": "checkpoint"
         },
         {
+          "kind": "puzzle",
+          "puzzle": "shape",
+          "gate_gap": 260
+        },
+        {
           "kind": "crate_shelf"
         },
         {
@@ -696,6 +712,15 @@
         },
         {
           "kind": "checkpoint"
+        },
+        {
+          "kind": "puzzle",
+          "puzzle": "color_match",
+          "gate_gap": 260
+        },
+        {
+          "kind": "fire",
+          "count": 2
         },
         {
           "kind": "switch",
@@ -823,6 +848,9 @@
           "kind": "checkpoint"
         },
         {
+          "kind": "boss"
+        },
+        {
           "kind": "chest"
         }
       ]
@@ -832,7 +860,7 @@
     "id": "dark_castle_05",
     "world": "dark_castle",
     "name_key": "level.dark_castle_05",
-    "game_type": "matching_sorting",
+    "game_type": "build_repair",
     "difficulty": 3,
     "duration_seconds": 300,
     "requires": "dark_castle_04",
@@ -842,51 +870,9 @@
       "badge": "trail_master"
     },
     "config": {
-      "count": 8,
-      "instruction_key": "sorting.instruction",
-      "bins": [
-        {
-          "key": "red",
-          "icon": "heart",
-          "colour": "#e2544c"
-        },
-        {
-          "key": "blue",
-          "icon": "orb",
-          "colour": "#4f8ce8"
-        },
-        {
-          "key": "gold",
-          "icon": "star",
-          "colour": "#e8b53c"
-        }
-      ],
-      "items": [
-        {
-          "icon": "heart",
-          "key": "red"
-        },
-        {
-          "icon": "orb",
-          "key": "blue"
-        },
-        {
-          "icon": "star",
-          "key": "gold"
-        },
-        {
-          "icon": "gem",
-          "key": "red"
-        },
-        {
-          "icon": "spark",
-          "key": "gold"
-        },
-        {
-          "icon": "moon",
-          "key": "blue"
-        }
-      ]
+      "machine": "robot",
+      "waiting_for": "robot",
+      "instruction_key": "build.instruction"
     }
   },
   {

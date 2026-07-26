@@ -568,6 +568,47 @@ if os.path.exists("data/shop_items.json"):
         errors.append(f"shop_items.json: {len(gifts)} free gifts; the first "
                       f"visit needs exactly one")
 
+# --- 5h. a template may not offer something no level ever asks for
+#
+# The adventure template can build a three-phase rock boss with a telegraphed
+# slam, a row of timed fire vents, and a step-the-plates-in-order puzzle. It
+# could do all three for months and no child ever saw any of them, because not
+# one level config named them. Same story in two other templates: an "order"
+# puzzle and a "robot" blueprint, written, working, unreachable.
+#
+# Unused code is untested code, and unused CONTENT is worse: it is work already
+# paid for and thrown away. So every capability a template advertises has to be
+# reachable from data. The fix when this fires is never to delete the feature --
+# it is to give it to the level whose name already promises it.
+# The adventure's beats are the arms of one match statement in _build_sections.
+adv = open("scripts/adventure/adventure.gd").read()
+block = re.search(r'func _build_sections.*?(?=\n\nfunc )', adv, re.S)
+offered = set(re.findall(r'^\t\t\t"(\w+)"', block.group(0), re.M)) if block else set()
+used = {s.get("kind", "") for l in levels
+        for s in l.get("config", {}).get("sections", [])}
+for kind in sorted(offered - used):
+    errors.append(f"adventure.gd: the '{kind}' beat is built but no level asks "
+                  f"for it -- a child can never see it")
+
+# The other two keep their options in a dictionary literal.
+for path, key, kinds_used in [
+        ("scripts/minigames/puzzle_mechanism.gd", "puzzle",
+         {l.get("config", {}).get("puzzle", "pipes") for l in levels
+          if l["game_type"] == "puzzle_mechanism"}),
+        ("scripts/minigames/build_repair.gd", "machine",
+         {l.get("config", {}).get("machine", "") for l in levels
+          if l["game_type"] == "build_repair"})]:
+    src = open(path).read()
+    if key == "puzzle":
+        # Named in the file's own doc comment, one per line: "pipes  turn ..."
+        have = set(re.findall(r'^##   (\w+)\s{2,}', src, re.M))
+    else:
+        table = re.search(r'const BLUEPRINTS := \{(.*?)\n\}', src, re.S)
+        have = set(re.findall(r'^\t"(\w+)":', table.group(1), re.M)) if table else set()
+    for kind in sorted(have - kinds_used):
+        errors.append(f"{os.path.basename(path)}: '{kind}' is implemented but "
+                      f"no level uses it -- a child can never see it")
+
 # --- 6. every badge is reachable
 awarded = {lv.get("reward", {}).get("badge", "") for lv in levels}
 for b in sorted(badges - awarded):

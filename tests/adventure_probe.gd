@@ -31,7 +31,14 @@ extends Node
 ## the game boots and nothing else.
 ## One gentle, one hazard-and-machine, one full of monsters -- the three
 ## shapes an adventure level comes in.
-const WALKED := ["sunny_park_05", "night_city_04", "dark_castle_06"]
+## Which levels get WALKED end to end rather than only built.
+##
+## dark_castle_06 used to be in here and is a duel, not an adventure -- so it
+## never matched and only two levels were ever really played. The two that
+## replace it are the ones carrying beats no child had seen: dark_castle_01
+## has the puzzle card and the fire vents, dark_castle_04 has the boss.
+const WALKED := ["sunny_park_05", "night_city_04", "dark_castle_01",
+	"dark_castle_04"]
 
 var _out: Array[String] = []
 var _lvl: Node
@@ -143,7 +150,11 @@ func _report_terrain(loud: bool = true) -> void:
 		"a %.0f px gap is too wide for a %.0f px jump" % [widest, reach])
 	_ok(flats.size() >= 4, "only %d ground segments -- the level is one slab" % flats.size())
 
-	if loud:
+	# Printed for EVERY level, walked or not. This line is the only place the
+	# shape of a level is visible as a whole, and it is how the beats nobody
+	# had ever configured -- the boss, the fire vents, the plate sequence --
+	# were found sitting unused in the template.
+	if true:
 		print("  beats: orbs=%d gems=%d springs=%d switches=%d gates=%d rocks=%d vents=%d seq=%d cards=%d crates=%d foes=%d cages=%d boss=%s flags=%d chest=%s" % [
 			_lvl._orbs.size(), _lvl._gems.size(), _lvl._springs.size(),
 			_lvl._switches.size(), _lvl._gates.size(), _lvl._rocks.size(),
@@ -579,6 +590,17 @@ func _check_gate_is_a_wall() -> void:
 ## next to the box, not solving anything for it).
 func _check_crate_carries() -> void:
 	if _lvl._crates.is_empty():
+		return
+	# Only a crate_shelf crate has a shelf to be ridden to. The plain `crate`
+	# beat is a box you push and stand on, with nothing above it -- testing it
+	# for a shelf it was never given fails the level for doing exactly what it
+	# was configured to do. Ask the level data, not the crate.
+	var has_shelf := false
+	for section in _lvl._sections:
+		if str(section.get("kind", "")) == "crate_shelf":
+			has_shelf = true
+	if not has_shelf:
+		print("  a plain crate to push, no shelf above it")
 		return
 	var crate: Dictionary = _lvl._crates[0]
 	var node: Node2D = crate["node"]
