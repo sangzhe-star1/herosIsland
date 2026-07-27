@@ -70,6 +70,12 @@ const NAMES := [
 	"cape_star", "cap_cloud", "boots", "gloves",
 	"robot", "board", "cloud", "trail", "halo",
 	"wave", "spin", "pose", "lamp", "sofa", "shelf", "sticker_book",
+
+	# 星光菜园. A six-year-old cannot read "till" or "harvest", so the tool
+	# rack has to say what each one does by looking. These are the five verbs
+	# and the things they act on.
+	"soil", "seed", "sprout", "watering_can", "weed", "basket",
+	"corn", "strawberry", "tomato",
 ]
 
 
@@ -1091,6 +1097,158 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				])
 				_poly(p, wing, Color(0.97, 0.97, 1.0))
 				_circle(p, c + Vector2(side4 * s * 0.24, -s * 0.10), s * 0.05, Color(1.0, 0.90, 0.55))
+		"soil":
+			# A mound of turned earth, not a box: a rounded top with two
+			# furrows curving over it. The first cut was a rectangle with
+			# straight lines across it and read as a wooden crate.
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.38, s * 0.26),
+				c + Vector2(-s * 0.30, -s * 0.06),
+				c + Vector2(-s * 0.10, -s * 0.18),
+				c + Vector2(s * 0.12, -s * 0.18),
+				c + Vector2(s * 0.31, -s * 0.04),
+				c + Vector2(s * 0.38, s * 0.26),
+			]), Color(0.45, 0.32, 0.22))
+			for furrow in range(2):
+				var fy: float = s * (0.02 + 0.12 * float(furrow))
+				var fw: float = s * (0.24 - 0.05 * float(furrow))
+				_poly(p, PackedVector2Array([
+					c + Vector2(-fw, fy),
+					c + Vector2(0, fy - s * 0.05),
+					c + Vector2(fw, fy),
+					c + Vector2(0, fy + s * 0.01),
+				]), Color(0.34, 0.23, 0.15))
+			# two crumbs, so the earth looks loose rather than moulded
+			_circle(p, c + Vector2(-s * 0.20, s * 0.22), s * 0.035, Color(0.52, 0.38, 0.26))
+			_circle(p, c + Vector2(s * 0.24, s * 0.20), s * 0.03, Color(0.52, 0.38, 0.26))
+		"seed":
+			# A seed is a small thing, and drawing it small is the point: the
+			# child is meant to feel he is putting something tiny in the ground.
+			_poly(p, PackedVector2Array([
+				c + Vector2(0, -s * 0.20),
+				c + Vector2(s * 0.15, 0),
+				c + Vector2(0, s * 0.22),
+				c + Vector2(-s * 0.15, 0),
+			]), Color(0.72, 0.55, 0.32))
+			_circle(p, c + Vector2(-s * 0.05, -s * 0.05), s * 0.05,
+				Color(0.86, 0.72, 0.50))
+		"sprout":
+			_rect(p, c + Vector2(0, s * 0.16), Vector2(s * 0.06, s * 0.34),
+				Color(0.36, 0.62, 0.34), 0.5)
+			for side_sprout in [-1.0, 1.0]:
+				_poly(p, PackedVector2Array([
+					c + Vector2(0, s * 0.02),
+					c + Vector2(side_sprout * s * 0.30, -s * 0.16),
+					c + Vector2(side_sprout * s * 0.10, -s * 0.22),
+				]), Color(0.44, 0.72, 0.40))
+		"watering_can":
+			# The handle is an arch that MEETS the can. The first cut left it
+			# floating above the body and read as a separate object.
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.10, -s * 0.14),
+				c + Vector2(-s * 0.02, -s * 0.32),
+				c + Vector2(s * 0.14, -s * 0.30),
+				c + Vector2(s * 0.14, -s * 0.22),
+				c + Vector2(0.0, -s * 0.23),
+				c + Vector2(-s * 0.02, -s * 0.14),
+			]), Color(0.30, 0.54, 0.78))
+			_rect(p, c + Vector2(-s * 0.06, s * 0.06), Vector2(s * 0.44, s * 0.36),
+				Color(0.36, 0.62, 0.86), 0.26)
+			_poly(p, PackedVector2Array([
+				c + Vector2(s * 0.14, -s * 0.02),
+				c + Vector2(s * 0.40, -s * 0.20),
+				c + Vector2(s * 0.46, -s * 0.10),
+				c + Vector2(s * 0.16, s * 0.12),
+			]), Color(0.30, 0.54, 0.78))
+			for drop in range(3):
+				_circle(p, c + Vector2(s * (0.36 + 0.05 * float(drop)),
+					s * (0.02 + 0.11 * float(drop))), s * 0.04,
+					Color(0.62, 0.82, 0.98))
+		"weed":
+			# Scruffy on purpose: it has to look like the one thing on the plot
+			# that does not belong there.
+			for blade in range(3):
+				var lean: float = -0.26 + 0.26 * float(blade)
+				_poly(p, PackedVector2Array([
+					c + Vector2(lean * s * 0.5, s * 0.30),
+					c + Vector2(lean * s * 1.2, -s * 0.26),
+					c + Vector2(lean * s * 0.5 + s * 0.09, s * 0.28),
+				]), Color(0.42, 0.54, 0.28))
+			_circle(p, c + Vector2(-s * 0.18, -s * 0.18), s * 0.05,
+				Color(0.86, 0.80, 0.40))
+		"basket":
+			# The handle is an ARCH. Two posts and a crossbar, which is what the
+			# first cut drew, reads as a mallet lying on a box.
+			var arch := PackedVector2Array()
+			for step in range(11):
+				var a: float = PI * (float(step) / 10.0)
+				arch.append(c + Vector2(-cos(a) * s * 0.26, -s * 0.08 - sin(a) * s * 0.26))
+			_poly(p, Shapes.ribbon(arch, s * 0.055), Color(0.60, 0.42, 0.22))
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.36, -s * 0.04),
+				c + Vector2(s * 0.36, -s * 0.04),
+				c + Vector2(s * 0.25, s * 0.32),
+				c + Vector2(-s * 0.25, s * 0.32),
+			]), Color(0.74, 0.54, 0.30))
+			_rect(p, c + Vector2(0, -s * 0.06), Vector2(s * 0.76, s * 0.10),
+				Color(0.60, 0.42, 0.22), 0.5)
+			# a carrot top poking out, so it reads as a basket with something in it
+			_poly(p, PackedVector2Array([
+				c + Vector2(s * 0.02, -s * 0.10),
+				c + Vector2(s * 0.16, -s * 0.30),
+				c + Vector2(s * 0.22, -s * 0.10),
+			]), Color(0.44, 0.72, 0.40))
+		"corn":
+			_poly(p, PackedVector2Array([
+				c + Vector2(0, -s * 0.34),
+				c + Vector2(s * 0.17, -s * 0.10),
+				c + Vector2(s * 0.14, s * 0.24),
+				c + Vector2(-s * 0.14, s * 0.24),
+				c + Vector2(-s * 0.17, -s * 0.10),
+			]), Color(0.95, 0.80, 0.28))
+			for kernel_row in range(4):
+				var ky: float = s * (-0.16 + 0.10 * float(kernel_row))
+				for kx in [-0.07, 0.0, 0.07]:
+					_circle(p, c + Vector2(s * kx, ky), s * 0.028,
+						Color(0.86, 0.66, 0.18))
+			for husk in [-1.0, 1.0]:
+				_poly(p, PackedVector2Array([
+					c + Vector2(husk * s * 0.13, s * 0.02),
+					c + Vector2(husk * s * 0.38, s * 0.20),
+					c + Vector2(husk * s * 0.12, s * 0.26),
+				]), Color(0.44, 0.68, 0.36))
+		"strawberry":
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.26, -s * 0.10),
+				c + Vector2(s * 0.26, -s * 0.10),
+				c + Vector2(s * 0.16, s * 0.18),
+				c + Vector2(0, s * 0.34),
+				c + Vector2(-s * 0.16, s * 0.18),
+			]), Color(0.88, 0.26, 0.32))
+			for pip in range(5):
+				var px: float = s * (-0.14 + 0.07 * float(pip))
+				_circle(p, c + Vector2(px, s * (0.02 + 0.05 * absf(float(pip) - 2.0))),
+					s * 0.025, Color(1.0, 0.90, 0.55))
+			for leaf_i in range(3):
+				var lx: float = s * (-0.18 + 0.18 * float(leaf_i))
+				_poly(p, PackedVector2Array([
+					c + Vector2(0, -s * 0.06),
+					c + Vector2(lx, -s * 0.30),
+					c + Vector2(lx * 0.4 + s * 0.06, -s * 0.10),
+				]), Color(0.36, 0.66, 0.34))
+		"tomato":
+			_circle(p, c + Vector2(0, s * 0.06), s * 0.30, Color(0.90, 0.28, 0.22))
+			_circle(p, c + Vector2(-s * 0.10, -s * 0.04), s * 0.09,
+				Color(0.98, 0.52, 0.44))
+			for sepal in range(5):
+				var sa: float = PI * 2.0 * (float(sepal) / 5.0)
+				_poly(p, PackedVector2Array([
+					c + Vector2(0, -s * 0.20),
+					c + Vector2(cos(sa) * s * 0.20, -s * 0.24 + sin(sa) * s * 0.09),
+					c + Vector2(cos(sa) * s * 0.07, -s * 0.13),
+				]), Color(0.34, 0.62, 0.32))
+			_rect(p, c + Vector2(0, -s * 0.28), Vector2(s * 0.06, s * 0.12),
+				Color(0.32, 0.56, 0.30), 0.5)
 		_:
 			return false
 	return true

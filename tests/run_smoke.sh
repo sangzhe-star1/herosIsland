@@ -420,6 +420,30 @@ fi
 no_script_errors "$ALBUM_OUT" "Album Probe"
 rm -f "$ALBUM_OUT"
 
+# 星光菜园 with thumbs: turning earth, dragging a seed into a bed, picking a
+# ripe one, and the way out -- in BOTH screen shapes, because a seed that lands
+# in the right bed on a Mac can land in the wrong one on an iPad. Needs a
+# window, so it is skipped on a headless box with no xvfb.
+if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run >/dev/null 2>&1; then
+  echo
+  echo "Running garden touch probe..."
+  GT_RUNNER=()
+  if [[ "$(uname)" == "Linux" ]] && [[ -z "${DISPLAY:-}" ]]; then
+    GT_RUNNER=(xvfb-run -a -s "-screen 0 1280x768x24")
+    export LIBGL_ALWAYS_SOFTWARE=1
+  fi
+  GT_OUT=$(mktemp)
+  timeout 240 "${GT_RUNNER[@]}" "$GODOT" --path . --rendering-driver opengl3 \
+    res://tests/GardenTouchProbe.tscn 2>&1 | tee "$GT_OUT"
+  if ! grep -q "GARDEN TOUCH PROBE PASSED" "$GT_OUT"; then
+    rm -f "$GT_OUT"
+    echo "Garden touch probe failed."
+    exit 1
+  fi
+  no_script_errors "$GT_OUT" "Garden Touch Probe"
+  rm -f "$GT_OUT"
+fi
+
 # 星光菜园's save. Runs late and before the save probe: it wipes the save file
 # to walk the real first-launch path, and it puts everything back when it is
 # done, but anything expecting to inherit a played-in game should come first.

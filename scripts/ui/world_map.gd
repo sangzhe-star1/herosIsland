@@ -327,10 +327,22 @@ func _add_region_banner(page: Control, island: IslandMap, world: Dictionary,
 	var tint := Color.from_string(str(world.get("color", "#888888")), Color.GRAY)
 	var at: Vector2 = island.region_centre(world_id)
 
+	# Rooms are left out of BOTH halves of this. The signpost answers "how much
+	# of this world is left to do", and a room is never left to do -- counting
+	# 星光菜园 in the denominator would put three stars in it that no amount of
+	# gardening can ever earn, and the world would read as unfinished forever.
+	#
+	# This does not touch total_stars(), which is what the shop unlocks read;
+	# stars already banked stay banked, they just stop being described as part
+	# of a world's remaining work.
 	var earned := 0
+	var counted := 0
 	for level in levels:
+		if bool(level.get("room", false)):
+			continue
+		counted += 1
 		earned += int(SaveManager.get_level_progress(str(level.get("id", ""))).get("stars", 0))
-	var possible: int = levels.size() * 3
+	var possible: int = counted * 3
 
 	# A fixed-size holder: a PanelContainer dropped straight onto a plain
 	# Control grows to the parent's size (once 720px of signpost).
@@ -428,7 +440,8 @@ func _build_marker(level: Dictionary, world_index: int) -> Control:
 		"puzzle_mechanism": "gear",          # turn it until it works
 		"memory_rhythm": "music",            # watch the order, play it back
 		"roleplay_rescue": "heart",          # go and help somebody
-		"creative_play": "crayon",           # no rules, make something
+		"creative_play": "crayon",
+		"garden": "sprout",           # no rules, make something
 		"monster_duel": "lightning",         # a fight
 		"platform_adventure": "flag",        # run and jump to the goal
 		# the bonus rooms
@@ -481,9 +494,13 @@ func _build_marker(level: Dictionary, world_index: int) -> Control:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(label)
 
-	var stars := UiKit.star_row(int(progress.get("stars", 0)), 3, 28)
-	stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(stars)
+	# No star row under a room. Three empty stars that can never fill is a
+	# promise the garden is not able to keep, and a six-year-old reads an empty
+	# row as "there is something here I have not managed yet".
+	if not bool(level.get("room", false)):
+		var stars := UiKit.star_row(int(progress.get("stars", 0)), 3, 28)
+		stars.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		column.add_child(stars)
 	return column
 
 

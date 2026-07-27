@@ -115,7 +115,15 @@ func _press_every_first_level() -> void:
 			# keep the balloon up, hit the targets, repeat the tune -- where
 			# "how well did you do" genuinely IS the question, and the older
 			# count-the-slips star rule says it better than three doors would.
-			if alive and level.get("result") != null and not bool(entry.get("bonus", false)):
+			#
+			# Rooms are exempt too, and for a stronger reason: a room does not
+			# score AT ALL. There is no version of the garden in which he has
+			# done it wrong, so there are no three stars to explain, and making
+			# it set a scoring flag it never reads would be state invented to
+			# satisfy a test.
+			if alive and level.get("result") != null \
+					and not bool(entry.get("bonus", false)) \
+					and not bool(entry.get("room", false)):
 				_ok((level.result as LevelResult).objective_scoring,
 					"%s does not score by objectives" % lid)
 			line += " " + kind.substr(0, 4)

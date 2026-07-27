@@ -689,7 +689,9 @@
     "crop.carrot": "Carrot",
     "crop.corn": "Corn",
     "crop.strawberry": "Strawberry",
-    "crop.tomato": "Tomato"
+    "crop.tomato": "Tomato",
+    "level.star_garden": "Starlight Garden",
+    "garden.title": "Starlight Garden"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -1381,6 +1383,8 @@
     "crop.carrot": "胡萝卜",
     "crop.corn": "玉米",
     "crop.strawberry": "草莓",
-    "crop.tomato": "番茄"
+    "crop.tomato": "番茄",
+    "level.star_garden": "星光菜园",
+    "garden.title": "星光菜园"
   }
 }

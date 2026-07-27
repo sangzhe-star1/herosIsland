@@ -214,5 +214,6 @@ func get_minigame_scene(game_type: String) -> String:
 		"memory_rhythm": "res://scenes/minigames/memory_rhythm/MemoryRhythm.tscn",
 		"roleplay_rescue": "res://scenes/minigames/roleplay_rescue/RoleplayRescue.tscn",
 		"creative_play": "res://scenes/minigames/creative_play/CreativePlay.tscn",
+		"garden": "res://scenes/garden/Garden.tscn",
 	}
 	return map.get(game_type, "")

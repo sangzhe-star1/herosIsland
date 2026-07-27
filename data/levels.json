@@ -987,6 +987,21 @@
     }
   },
   {
+    "id": "star_garden",
+    "world": "sunny_park",
+    "name_key": "level.star_garden",
+    "game_type": "garden",
+    "room": true,
+    "difficulty": 1,
+    "duration_seconds": 0,
+    "target": {},
+    "reward": {
+      "coins": 0,
+      "badge": ""
+    },
+    "config": {}
+  },
+  {
     "id": "bonus_keepy",
     "world": "sunny_park",
     "name_key": "level.bonus_keepy",

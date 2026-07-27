@@ -1,0 +1,390 @@
+extends LevelManager
+## 星光菜园 -- four patches of earth, and the five things a child does to them.
+##
+## WHY TAPPING A PLOT DOES NOT NEED A TOOL FIRST
+##
+## Every other farming game gives you a tool rack and asks you to pick the hoe
+## before you can hoe. That is one extra decision per action, and the failure
+## it creates -- watering with the trowel, nothing happening, no idea why -- is
+## exactly the failure a six-year-old cannot debug.
+##
+## So a plot has one thing it wants at any moment, it says what that is with a
+## picture, and tapping it does that. Untilled earth gets turned. Thirsty
+## ground gets watered. Weeds get pulled. Ripe crops get picked. There is no
+## wrong tap, because there is nothing to choose.
+##
+## Planting is the exception, and deliberately: dragging a seed from the rack
+## into the ground is the one action where WHICH one matters, and the drag is
+## what makes choosing it feel like putting something in the earth rather than
+## picking from a menu.
+##
+##
+## WHY THE WHOLE SCREEN IS REBUILT AFTER EVERY ACTION
+##
+## Four plots and a seed rack is not enough on screen to be worth diffing, and
+## a rebuild cannot leave a stale badge behind saying a plot is thirsty after
+## it has been watered. DragField's slots are registered once when it is built,
+## so a rebuild is also the honest way to change which plots will accept a seed.
+
+const Farm := preload("res://scripts/garden/farm_save.gd")
+const Growth := preload("res://scripts/garden/offline_growth.gd")
+const Coins := preload("res://scripts/shop/currency_manager.gd")
+
+## How far apart two beds have to be, derived from the snap radius rather than
+## chosen by eye.
+##
+## DragField clicks a released piece into any slot within SNAP of it, so two
+## beds closer together than twice that can both claim the same drop -- and a
+## child who watched his carrot land in the wrong bed has no way to move it.
+## The margin on top is for the thumb: releasing 40px off centre is normal.
+##
+## Written as arithmetic on DragField.SNAP on purpose. The first cut picked 260
+## across and 200 down by eye, which was under the line in one direction, and
+## the touch probe caught it. Retuning the snap radius now moves the beds with
+## it instead of quietly breaking them.
+const BED_GAP := DragField.SNAP * 2.0 + 26.0
+
+const PLOT_BOX := Vector2(240, 168)
+const SEED_TILE := Vector2(104, 84)
+const TOP_BAR := 96.0
+const SHELF := 168.0
+
+var _field: DragField
+var _play: Control
+var _shelf: Control
+var _rebuild_queued := false
+
+
+## A room, not a level: nothing here completes and nothing here is scored.
+func auto_complete_on_target() -> bool:
+	return false
+
+
+func setup_level() -> void:
+	# Whatever grew while he was away, before the first thing is drawn. Growth
+	# is worked out from timestamps, so this is the only moment it has to
+	# happen -- there is nothing ticking to keep up with afterwards.
+	SaveManager.settle_farm()
+	build_world(self, 0.42)
+	_rebuild()
+
+
+func _farm() -> Dictionary:
+	return SaveManager.data.get("farm", {})
+
+
+func _plots() -> Array:
+	return _farm().get("plots", [])
+
+
+# --- the screen ---------------------------------------------------------
+
+func _rebuild() -> void:
+	for child in get_children():
+		if child is Control or child is DragField:
+			child.queue_free()
+	_field = null
+
+	var view := get_viewport_rect().size
+	_play = UiKit.play_area(self, true)
+	_top_bar(view)
+	_plot_beds(view)
+	_seed_rack(view)
+
+
+func _queue_rebuild() -> void:
+	# Rebuilding inside a signal handler would free the node that is still
+	# delivering it. One frame later is soon enough and always safe.
+	if _rebuild_queued:
+		return
+	_rebuild_queued = true
+	await get_tree().process_frame
+	_rebuild_queued = false
+	if is_inside_tree():
+		_rebuild()
+
+
+func _top_bar(view: Vector2) -> void:
+	var back := UiKit.back_button(func(): quit_level())
+	back.position = Vector2(26, 22)
+	_play.add_child(back)
+
+	var title := UiKit.title_on_art(I18n.t("garden.title"), 46)
+	title.position = Vector2(view.x * 0.5 - 220.0, 26)
+	title.size = Vector2(440, 60)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_play.add_child(title)
+
+	# The purse, read-only. Nothing in the garden spends or earns yet -- that
+	# arrives with the orders -- but the number he is used to seeing in every
+	# other room should not vanish in this one.
+	var purse := UiKit.card(Color(1.0, 0.98, 0.90))
+	purse.position = Vector2(view.x - 208.0, 24)
+	purse.custom_minimum_size = Vector2(182, 56)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var coin := UiKit.picture("star_coin", 34.0)
+	if coin != null:
+		row.add_child(coin)
+	var amount := UiKit.title(str(Coins.balance()), 30)
+	row.add_child(amount)
+	purse.add_child(row)
+	_play.add_child(purse)
+
+
+func _plot_beds(view: Vector2) -> void:
+	_field = DragField.new()
+	_play.add_child(_field)
+	_field.dropped.connect(_on_seed_dropped)
+
+	var plots := _plots()
+	for i in range(plots.size()):
+		_one_bed(plots[i], i, _bed_centre(i))
+
+
+func _one_bed(plot: Dictionary, index: int, at: Vector2) -> void:
+	var tilled := bool(plot.get("tilled", false))
+	var crop_id := str(plot.get("crop_id", ""))
+	var crop: Dictionary = GameData.get_crop(crop_id)
+	var ready := bool(plot.get("ready_to_harvest", false))
+	var thirsty := str(plot.get("care_event", "")) == Growth.CARE_THIRSTY
+
+	var bed := Button.new()
+	# NOT flat. A flat Button skips its stylebox entirely, which is how the
+	# first cut of this screen came out as four invisible patches of earth
+	# with progress rings floating in the sky above them.
+	bed.flat = false
+	bed.position = at - PLOT_BOX * 0.5
+	bed.custom_minimum_size = PLOT_BOX
+	bed.size = PLOT_BOX
+	bed.focus_mode = Control.FOCUS_NONE
+	var earth := Color(0.45, 0.32, 0.22) if tilled else Color(0.38, 0.62, 0.34)
+	for state in ["normal", "hover", "pressed", "focus"]:
+		bed.add_theme_stylebox_override(state, UiKit.panel_style(earth, 26))
+	_play.add_child(bed)
+	bed.pressed.connect(func(): _tap_plot(index))
+
+	# What is growing, if anything, and how far along it is.
+	if crop_id != "" and not crop.is_empty():
+		var done := Growth.fraction_done(plot, crop)
+		var size := 56.0 + 62.0 * done
+		var art := UiKit.picture(str(crop.get("icon", "sprout")), size)
+		if art != null:
+			art.position = at - Vector2(size, size) * 0.5 - Vector2(0, 8)
+			_play.add_child(art)
+		_ring(at, 64.0, done)
+	elif tilled:
+		# Turned and empty: the one state a seed may be dropped into. The
+		# dashed ring is DragField's own idea of a target, so it lights up on
+		# its own when a seed is picked up.
+		var hole := UiKit.picture("seed", 78.0)
+		if hole != null:
+			hole.modulate = Color(1, 1, 1, 0.55)
+			hole.position = at - Vector2(39, 39)
+			_play.add_child(hole)
+		var target := Node2D.new()
+		target.position = at
+		_play.add_child(target)
+		_field.add_slot(target, at, "", 1)
+
+	# The badge: the one thing this plot is asking for. Icons, not words --
+	# he cannot read, and this is the only instruction on the screen.
+	var badge := ""
+	if not tilled:
+		badge = "soil"
+	elif ready:
+		badge = "basket"
+	elif thirsty:
+		badge = "watering_can"
+	elif crop_id == "":
+		badge = ""
+	if badge != "":
+		_badge(at + Vector2(PLOT_BOX.x * 0.5 - 30.0, -PLOT_BOX.y * 0.5 + 30.0), badge)
+
+
+func _badge(at: Vector2, icon_name: String) -> void:
+	var disc := Panel.new()
+	disc.add_theme_stylebox_override("panel",
+		UiKit.panel_style(Color(1.0, 0.99, 0.94), 26))
+	disc.position = at - Vector2(30, 30)
+	disc.custom_minimum_size = Vector2(60, 60)
+	disc.size = Vector2(60, 60)
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play.add_child(disc)
+	var art := UiKit.picture(icon_name, 44.0)
+	if art != null:
+		art.position = at - Vector2(22, 22)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_play.add_child(art)
+	Juice.idle_bob(disc, 5.0, 2.2)
+
+
+## A ring that fills as the crop grows. A six-year-old reads a ring filling up;
+## he cannot read "stage 3 of 5".
+func _ring(centre: Vector2, radius: float, fraction: float) -> void:
+	var back := Node2D.new()
+	back.position = Vector2.ZERO
+	_play.add_child(back)
+	Shapes.fill(back, _annulus(centre, radius, 7.0, 1.0),
+		Color(1, 1, 1, 0.45), 1.0)
+	if fraction > 0.01:
+		Shapes.fill(back, _annulus(centre, radius, 7.0, fraction),
+			Color(1.0, 0.80, 0.18), 1.0)
+
+
+func _annulus(centre: Vector2, radius: float, width: float,
+		fraction: float) -> PackedVector2Array:
+	var steps := maxi(3, int(round(48.0 * clampf(fraction, 0.0, 1.0))))
+	var outer := PackedVector2Array()
+	var inner := PackedVector2Array()
+	for i in range(steps + 1):
+		var a: float = -PI * 0.5 + TAU * clampf(fraction, 0.0, 1.0) * (float(i) / float(steps))
+		var dir := Vector2(cos(a), sin(a))
+		outer.append(centre + dir * radius)
+		inner.append(centre + dir * (radius - width))
+	inner.reverse()
+	var ring := PackedVector2Array(outer)
+	ring.append_array(inner)
+	return ring
+
+
+func _seed_rack(view: Vector2) -> void:
+	var shelf_h := 168.0
+	var shelf := Panel.new()
+	shelf.add_theme_stylebox_override("panel",
+		UiKit.panel_style(Color(1.0, 0.99, 0.94), 0))
+	shelf.position = Vector2(0, view.y - shelf_h)
+	shelf.custom_minimum_size = Vector2(view.x, shelf_h)
+	shelf.size = Vector2(view.x, shelf_h)
+	shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play.add_child(shelf)
+	_shelf = shelf
+
+	var unlocked: Array = _farm().get("unlocked_crops", [])
+	var x := 90.0
+	var y := view.y - shelf_h * 0.5
+	for crop_id in unlocked:
+		var crop: Dictionary = GameData.get_crop(str(crop_id))
+		if crop.is_empty():
+			continue
+		var tile := Node2D.new()
+		tile.position = Vector2(x, y)
+		_play.add_child(tile)
+		Shapes.fill(tile, Shapes.rounded_rect(
+			-SEED_TILE * 0.5, SEED_TILE, 18.0), Color(0.96, 0.92, 0.82), 1.0)
+		var art := UiKit.picture(str(crop.get("icon", "seed")), 58.0)
+		if art != null:
+			art.position = Vector2(x - 29.0, y - 34.0)
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_play.add_child(art)
+		_field.add_item(tile, Vector2(x, y), str(crop_id))
+		x += SEED_TILE.x + 26.0
+
+
+# --- what a tap does ----------------------------------------------------
+
+func _tap_plot(index: int) -> void:
+	var plots := _plots()
+	if index < 0 or index >= plots.size():
+		return
+	var plot: Dictionary = plots[index]
+	var crop_id := str(plot.get("crop_id", ""))
+
+	if not bool(plot.get("tilled", false)):
+		plot["tilled"] = true
+		AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
+	elif bool(plot.get("ready_to_harvest", false)):
+		_harvest(plot)
+	elif str(plot.get("care_event", "")) == Growth.CARE_THIRSTY:
+		plot = Growth.water(plot)
+		AudioManager.play_sfx("res://assets/audio/water.ogg")
+	elif crop_id == "":
+		# Turned, empty, and tapped: he is trying to plant by tapping. Point at
+		# the rack rather than doing nothing, which is the same as being broken.
+		if _shelf != null:
+			Juice.pop(_shelf, 0.04)
+		return
+	else:
+		# Growing, watered, nothing to do. Say so with the plant itself rather
+		# than with a refusal.
+		AudioManager.play_sfx("res://assets/audio/correct.ogg")
+		plots[index] = plot
+		return
+
+	plots[index] = plot
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	_queue_rebuild()
+
+
+func _harvest(plot: Dictionary) -> void:
+	var crop: Dictionary = GameData.get_crop(str(plot.get("crop_id", "")))
+	var picked := maxi(int(crop.get("yield", 1)), 1)
+	var barn: Dictionary = _farm().get("warehouse", {})
+	barn[str(plot.get("crop_id", ""))] = int(barn.get(str(plot.get("crop_id", "")), 0)) + picked
+	SaveManager.data["farm"]["warehouse"] = barn
+
+	# The plot goes back to turned earth, ready for the next seed. Harvest is a
+	# CONSUMPTION: the crop is gone, which is what stops one planting ever
+	# paying out twice however far the clock is moved.
+	var fresh: Dictionary = Farm.fresh_plot(0)
+	fresh["plot_id"] = plot.get("plot_id", "")
+	fresh["tilled"] = true
+	for key in fresh.keys():
+		plot[key] = fresh[key]
+
+	AudioManager.play_sfx("res://assets/audio/star.ogg")
+	AudioManager.say("praise_1")
+
+
+func _on_seed_dropped(item: Dictionary, slot: Variant, correct: bool) -> void:
+	if not correct or slot == null:
+		return
+	var at: Vector2 = slot.get("at", Vector2.ZERO)
+	var plots := _plots()
+	var index := -1
+	var best := 1e9
+	for i in range(plots.size()):
+		var centre := _bed_centre(i)
+		var d := centre.distance_to(at)
+		if d < best:
+			best = d
+			index = i
+	if index < 0:
+		return
+	var plot: Dictionary = plots[index]
+	# There is no "is this bed already planted" check here, and there does not
+	# need to be: a bed only offers DragField a slot while it is turned AND
+	# empty, so a planted bed is not a target at all. The child never sees a
+	# ring light up over his carrot, which is a better answer than refusing him
+	# after he has already let go. Deleting the check and watching the touch
+	# probe stay green is how it was found to be unreachable.
+	plot["crop_id"] = str(item.get("key", ""))
+	plot["planted_at"] = GameClock.now_unix()
+	plot["last_updated_at"] = GameClock.now_unix()
+	plot["growth_stage"] = 0
+	plot["growth_progress"] = 0.0
+	plot["water_level"] = 1.0
+	plot["ready_to_harvest"] = false
+	plot["care_event"] = ""
+	plots[index] = plot
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
+	_queue_rebuild()
+
+
+## Where plot `index` sits, measured from the viewport every time.
+##
+## Never from a hard-coded 720: the island stretches with aspect=expand, so a
+## 4:3 tablet hands this screen a 1280x960 viewport, and anything positioned
+## against 720 ends up floating a quarter of the way down. That has shipped
+## here twice.
+func _bed_centre(index: int) -> Vector2:
+	var view := get_viewport_rect().size
+	var gap := maxf(BED_GAP, PLOT_BOX.x + 40.0)
+	var middle := TOP_BAR + (view.y - TOP_BAR - SHELF) * 0.5
+	# The block sits left of centre. The right third is where the order board
+	# goes when there are orders to put on it.
+	var origin := Vector2(view.x * 0.33 - gap * 0.5, middle - BED_GAP * 0.5)
+	return origin + Vector2(float(index % 2) * gap, float(index / 2) * BED_GAP)

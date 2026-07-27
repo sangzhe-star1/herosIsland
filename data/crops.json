@@ -15,7 +15,7 @@
   {
     "id": "corn",
     "name_key": "crop.corn",
-    "icon": "leaf",
+    "icon": "corn",
     "yield": 2,
     "thirst_seconds": 4800,
     "stage_seconds": [
@@ -28,7 +28,7 @@
   {
     "id": "strawberry",
     "name_key": "crop.strawberry",
-    "icon": "berries",
+    "icon": "strawberry",
     "yield": 3,
     "thirst_seconds": 9600,
     "stage_seconds": [
@@ -41,7 +41,7 @@
   {
     "id": "tomato",
     "name_key": "crop.tomato",
-    "icon": "potion",
+    "icon": "tomato",
     "yield": 3,
     "thirst_seconds": 19200,
     "stage_seconds": [
