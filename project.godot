@@ -19,6 +19,9 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+; GameClock is first because it depends on nothing and everything below may
+; want to read a clock during its own _ready.
+GameClock="*res://scripts/core/game_clock.gd"
 GameData="*res://scripts/core/game_data.gd"
 SaveManager="*res://scripts/core/save_manager.gd"
 I18n="*res://scripts/core/i18n.gd"

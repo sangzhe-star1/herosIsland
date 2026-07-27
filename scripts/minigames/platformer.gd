@@ -50,6 +50,8 @@ extends LevelManager
 ##               knockback that drops you to the bottom. Falling here still
 ##               floats you back to the last safe ledge, and it always will.
 
+const Coins := preload("res://scripts/shop/currency_manager.gd")
+
 const GRAVITY := 1500.0
 const MOVE_SPEED := 265.0
 const JUMP_VELOCITY := -640.0
@@ -1238,7 +1240,8 @@ func _check_flag() -> void:
 		# A collected coin that vanished at the flag would be a broken
 		# promise at any age.
 		if _coins_got + _balloons_got > 0:
-			SaveManager.add_coins(_coins_got + _balloons_got)
+			Coins.earn(_coins_got + _balloons_got,
+				"platformer:%s" % str(level_data.get("id", "")))
 		# Every coin found earns one extra confetti moment before the result.
 		if _coins_got >= _coins_total and _coins_total > 0:
 			Juice.burst(_world, _hero.position + Vector2(0, -120), 26)

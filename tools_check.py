@@ -477,6 +477,11 @@ for path, what in [("scripts/world/world_style.gd", "scenery of its own"),
 #
 #   * nothing outside currency_manager.gd may decrement a balance
 #   * the retired spend_stars() may not gain a caller again
+#
+# The first version of this rule only matched a dictionary WRITE, which meant
+# SaveManager.add_coins() and SaveManager.spend_coins() -- two real back doors
+# with real callers -- were invisible to it. Both are gone now, and these two
+# extra patterns are what stops them growing back under a new name.
 for path in gd:
     # The definition site and the probe that proves it is dead are exempt.
     if path.endswith("currency_manager.gd") or path.endswith("save_manager.gd") \
@@ -492,6 +497,46 @@ for path in gd:
         errors.append(f"{path}: writes rewards.coins directly. Money goes "
                       f"through currency_manager.gd so that every change to "
                       f"it is in one file")
+
+# The two retired back doors, checked EVERYWHERE including save_manager.gd and
+# the probes -- there is no legitimate caller left anywhere, so there is no
+# exemption to make. add_coins() also skipped progress_changed, so the 星星币
+# chip kept showing the old number after a level that paid out.
+for path in gd:
+    src = open(path).read()
+    for gone, instead in (("add_coins", "Coins.earn(amount, reason)"),
+                          ("spend_coins", "Coins.spend(amount)")):
+        if re.search(r'\bSaveManager\.' + gone + r'\s*\(', src):
+            errors.append(f"{path}: calls SaveManager.{gone}(), which was "
+                          f"removed. Money moves through "
+                          f"scripts/shop/currency_manager.gd -- use {instead}")
+    if path.endswith("save_manager.gd") and re.search(
+            r'^func (add_coins|spend_coins)\b', src, re.M):
+        errors.append(f"{path}: defines add_coins/spend_coins again. These are "
+                      f"back doors around currency_manager.gd; the whole point "
+                      f"of one money file is that there is only one")
+
+# --- 5o. there is one clock, and everything reads it through GameClock
+#
+# A clock that is read from wherever it is needed cannot be pointed anywhere,
+# and anything that depends on real time then has no test that does not
+# involve waiting until tomorrow. It is also how three hours of an app sitting
+# suspended in a bag got banked as three hours of a child playing: the site
+# that measured the session and the site that decided what "today" meant had
+# no idea they were talking about the same clock.
+#
+# scripts/core/game_clock.gd is the one place allowed to call Time directly.
+for path in gd:
+    if path.endswith("game_clock.gd") or path.startswith("tests"):
+        continue
+    src = open(path).read()
+    for hit in re.finditer(r'\bTime\.get_\w+\s*\(', src):
+        line = src[:hit.start()].count("\n") + 1
+        errors.append(f"{path}:{line}: reads Time directly. Every clock on the "
+                      f"island goes through GameClock (scripts/core/"
+                      f"game_clock.gd) so that a probe can move time on "
+                      f"purpose -- use GameClock.now_unix() / now_date() / "
+                      f"ticks_ms() / elapsed_since()")
 
 # --- 5f. the shop may not contain a slot machine
 #

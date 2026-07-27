@@ -7,6 +7,9 @@ extends Node
 ## Runs headless, snapshots the save first and restores it after, so it can
 ## run on a machine with a real child's save without touching it.
 
+
+const Coins := preload("res://scripts/shop/currency_manager.gd")
+
 var _failures: Array[String] = []
 
 
@@ -69,9 +72,9 @@ func _check_xp_and_coins() -> void:
 
 func _check_stickers() -> void:
 	SaveManager.data["rewards"]["coins"] = 10
-	_ok(not SaveManager.spend_coins(11), "spending more than owned must fail")
+	_ok(not Coins.spend(11), "spending more than owned must fail")
 	_ok(int(SaveManager.data["rewards"]["coins"]) == 10, "failed spend must not deduct")
-	_ok(SaveManager.spend_coins(8), "affordable spend must succeed")
+	_ok(Coins.spend(8), "affordable spend must succeed")
 	_ok(int(SaveManager.data["rewards"]["coins"]) == 2, "spend must deduct exactly")
 	SaveManager.add_sticker("check")
 	_ok(SaveManager.has_sticker("check"), "sticker must be owned after purchase")

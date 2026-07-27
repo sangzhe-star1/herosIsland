@@ -13,18 +13,30 @@ var _last_result: LevelResult = null
 
 
 func _ready() -> void:
-	_session_start_ms = Time.get_ticks_msec()
+	_session_start_ms = GameClock.ticks_ms()
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST \
+			or what == NOTIFICATION_APPLICATION_PAUSED \
+			or what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		flush_playtime()
+	elif what == NOTIFICATION_APPLICATION_RESUMED:
+		# The clock this counts with does NOT stop while iOS holds the app
+		# suspended, and nothing here used to notice coming back -- so twenty
+		# minutes of play plus three hours in a bag was banked as three hours
+		# and twenty minutes of play, and a child who had played once that
+		# morning was told he was finished for the day.
+		#
+		# Start a fresh session instead of flushing: the time spent in the bag
+		# belongs to nobody.
+		_session_start_ms = GameClock.ticks_ms()
 
 
 ## Bank the elapsed time so the Parent Center is accurate even if the app is
 ## closed abruptly, which with a six-year-old is the normal case.
 func flush_playtime() -> void:
-	var now := Time.get_ticks_msec()
+	var now := GameClock.ticks_ms()
 	var elapsed := float(now - _session_start_ms) / 1000.0
 	if elapsed > 0.0:
 		SaveManager.add_playtime(elapsed)

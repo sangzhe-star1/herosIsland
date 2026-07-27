@@ -14,6 +14,7 @@ extends Control
 ## It is also the only thing in this game that says "there is more" -- and it
 ## says it without a shop, a timer or a locked box.
 const Album := preload("res://scripts/reward/monster_album.gd")
+const Coins := preload("res://scripts/shop/currency_manager.gd")
 
 
 
@@ -562,7 +563,7 @@ func _build_sticker(sticker: Dictionary) -> Control:
 func _try_buy(sticker_id: String, cost: int, tile: Button, icon: Control, price: Control) -> void:
 	if SaveManager.has_sticker(sticker_id):
 		return
-	if not SaveManager.spend_coins(cost):
+	if not Coins.spend(cost):
 		# Not enough yet: the price tag wiggles, nothing is lost, and the next
 		# level is the way to fix it. No error sound, no popup.
 		Juice.nudge(price)

@@ -38,7 +38,7 @@ func _default_data() -> Dictionary:
 		"profile": {
 			"name": "",
 			"character_id": str(GameData.characters.get("default", "light_hero")),
-			"created_at": Time.get_unix_time_from_system(),
+			"created_at": GameClock.now_unix(),
 			# Hero experience: only ever rises, one shared number for the one
 			# child. Levels come out of it via hero_level().
 			"xp": 0,
@@ -215,12 +215,47 @@ func _migrate(loaded: Dictionary) -> Dictionary:
 	for key in base.keys():
 		if not loaded.has(key):
 			loaded[key] = base[key]
+		elif not _same_shape(loaded[key], base[key]):
+			# A key of the WRONG TYPE is worse than a missing one. has(key) is
+			# true, so this used to be left alone, and the very next
+			# data["rewards"]["coins"] read took the game down during autoload --
+			# before any screen exists to say what happened. From the child's
+			# side that is a grey window and a lost afternoon.
+			push_warning("SaveManager: '%s' was %s, expected %s -- reset to default"
+				% [key, type_string(typeof(loaded[key])),
+					type_string(typeof(base[key]))])
+			loaded[key] = base[key]
 		elif base[key] is Dictionary and loaded[key] is Dictionary:
 			for sub in base[key].keys():
 				if not loaded[key].has(sub):
 					loaded[key][sub] = base[key][sub]
+				elif not _same_shape(loaded[key][sub], base[key][sub]):
+					push_warning("SaveManager: '%s.%s' was %s, expected %s -- reset"
+						% [key, sub, type_string(typeof(loaded[key][sub])),
+							type_string(typeof(base[key][sub]))])
+					loaded[key][sub] = base[key][sub]
+	# `save_version` is the one that gets READ. `version` is its predecessor:
+	# it has been written on every save since the beginning and never once
+	# looked at, so a save carrying version 1 and no save_version really is a
+	# version 1 save and can say so.
+	if not loaded.has("save_version"):
+		loaded["save_version"] = int(loaded.get("version", SAVE_VERSION))
 	loaded["version"] = SAVE_VERSION
 	return loaded
+
+
+## Two values are the same shape when they are the same kind of thing.
+##
+## int and float count as one kind on purpose: JSON has a single number type,
+## so a 0 written to disk can come back as either, and calling that damage
+## would reset the child's XP to zero every time he opens the game.
+func _same_shape(a: Variant, b: Variant) -> bool:
+	var ta := typeof(a)
+	var tb := typeof(b)
+	if ta == tb:
+		return true
+	return (ta == TYPE_INT or ta == TYPE_FLOAT) \
+		and (tb == TYPE_INT or tb == TYPE_FLOAT)
 
 
 ## Everything that has to happen once, after a save is loaded and merged.
@@ -531,10 +566,14 @@ func is_level_unlocked(level_id: String) -> bool:
 
 
 # --- rewards ---
-
-func add_coins(amount: int) -> void:
-	data["rewards"]["coins"] = int(data["rewards"]["coins"]) + amount
-	save_game()
+#
+# add_coins() used to live here. It was a second way in beside
+# scripts/shop/currency_manager.gd, it forgot to emit progress_changed (so the
+# 星星币 chip in the corner went on showing the old number), and being a method
+# call rather than a dictionary write it was invisible to the static rule that
+# is supposed to keep money in one file. Money now arrives only through
+# Coins.earn(amount, reason) -- and `reason` is the point: every call site has
+# to say out loud what the child did to deserve it.
 
 
 # --- hero level and challenges ---
@@ -736,14 +775,10 @@ func wear_outfit(slot: String, outfit_id: String) -> void:
 	progress_changed.emit()
 
 
-## Coins go out only through here, and only if they are really there.
-func spend_coins(amount: int) -> bool:
-	if amount <= 0 or int(data["rewards"]["coins"]) < amount:
-		return false
-	data["rewards"]["coins"] = int(data["rewards"]["coins"]) - amount
-	save_game()
-	progress_changed.emit()
-	return true
+# spend_coins() used to live here too -- a second, duplicate implementation of
+# Coins.spend(). Two functions that both take the child's money is one more
+# than can be checked. It is gone; use Coins.spend(), which returns false and
+# changes nothing when it will not fit.
 
 
 func has_sticker(sticker_id: String) -> bool:
@@ -799,12 +834,12 @@ const BACKUP_PREFIX := "heroes_island_progress"
 ## see it). THEN try to also drop a copy somewhere friendlier, and report
 ## that path if it lands. The backup always exists either way.
 func export_progress() -> String:
-	var stamp: Dictionary = Time.get_datetime_dict_from_system()
+	var stamp: Dictionary = GameClock.now_datetime()
 	var file_name := "%s_%04d-%02d-%02d_%02d%02d.json" % [BACKUP_PREFIX,
 		stamp.year, stamp.month, stamp.day, stamp.hour, stamp.minute]
 	var payload := JSON.stringify({
 		"heroes_island_backup": true,
-		"exported_at": Time.get_datetime_string_from_system(),
+		"exported_at": GameClock.now_datetime_string(),
 		"data": data,
 	}, "\t")
 
@@ -884,6 +919,13 @@ func _merge_progress(theirs: Dictionary) -> void:
 				float(t.get("best_accuracy", 0.0))),
 			"attempts": maxi(int(m.get("attempts", 0)), int(t.get("attempts", 0))),
 			"completed": bool(m.get("completed", false)) or bool(t.get("completed", false)),
+			# This line was missing. Rewriting the whole entry without it meant
+			# one import from the Parent Center reset found_hidden across every
+			# level -- and found_hidden is the latch that stops the hidden-gem
+			# bonus being paid twice. Importing a backup was a way to earn the
+			# 5 星星币 again, once per level, as often as you liked.
+			"found_hidden": bool(m.get("found_hidden", false))
+				or bool(t.get("found_hidden", false)),
 		}
 	for level_id in theirs.get("challenges", {}).keys():
 		data["challenges"][level_id] = maxi(get_challenge_rank(str(level_id)),
@@ -915,10 +957,10 @@ func _merge_progress(theirs: Dictionary) -> void:
 # --- playtime, for the Parent Center ---
 
 func add_playtime(seconds: float) -> void:
-	var today := Time.get_date_string_from_system()
+	var today := GameClock.now_date()
 	data["playtime"][today] = float(data["playtime"].get(today, 0.0)) + seconds
 	save_game()
 
 
 func playtime_today() -> float:
-	return float(data["playtime"].get(Time.get_date_string_from_system(), 0.0))
+	return float(data["playtime"].get(GameClock.now_date(), 0.0))

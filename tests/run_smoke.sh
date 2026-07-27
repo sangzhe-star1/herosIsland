@@ -104,6 +104,14 @@ no_script_errors() {
   # SKIPS the rest of its own checks and then prints PASSED, which is how a
   # broken companion test once reported success while never running. Any
   # probe output carrying a script fault fails the suite.
+  # A missing file is not "no errors found", it is the check not running. That
+  # is exactly how three of these went dead: the rm was moved above the call and
+  # grep answered "no match" for a file that no longer existed, forever.
+  if [[ ! -f "$1" ]]; then
+    echo "HARNESS BUG: ${2:-a probe}'s output file is gone before it was checked."
+    echo "  no_script_errors must run BEFORE the rm, and inside the same if."
+    exit 1
+  fi
   if grep -qE "SCRIPT ERROR|Parse Error|Parser Error" "$1"; then
     echo "SCRIPT ERRORS FOUND in ${2:-a probe}:"
     grep -nE "SCRIPT ERROR|Parse Error|Parser Error" "$1" | head -25
@@ -162,9 +170,13 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
     echo "Tap probe failed."
     exit 1
   fi
+  # Inside the if, and BEFORE the rm. Both matter: outside the if this reads an
+  # unset variable on a headless box with no xvfb (set -u kills the run), and
+  # after the rm it greps a file that is gone, which grep answers "no match" --
+  # so a probe that faulted halfway and still printed PASSED went unnoticed.
+  no_script_errors "$TAP_OUT" "Tap Probe"
   rm -f "$TAP_OUT"
 fi
-no_script_errors "$TAP_OUT" "Tap Probe"
 
 # The difficulty probe boots one level per template at Gentle and again at
 # Brave and checks the knob each template promises to bend. A dial that
@@ -186,9 +198,9 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
     echo "Difficulty probe failed."
     exit 1
   fi
+  no_script_errors "$DIFF_OUT" "Difficulty Probe"
   rm -f "$DIFF_OUT"
 fi
-no_script_errors "$DIFF_OUT" "Difficulty Probe"
 
 # The upgrade probe proves a drafted skill actually changes the gun --
 # cooldown, radius, damage, bolt count AND colour. Needs a window.
@@ -208,9 +220,9 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
     echo "Upgrade probe failed."
     exit 1
   fi
+  no_script_errors "$UP_OUT" "Upgrade Probe"
   rm -f "$UP_OUT"
 fi
-no_script_errors "$UP_OUT" "Upgrade Probe"
 
 # The echo probe drives Dance Mode / Light Song the way thumbs do: phrase
 # generation, the handover, the note lamps, and a completed phrase scoring.
@@ -407,6 +419,38 @@ if ! grep -q "ALBUM PROBE PASSED" "$ALBUM_OUT"; then
 fi
 no_script_errors "$ALBUM_OUT" "Album Probe"
 rm -f "$ALBUM_OUT"
+
+# The clock. Everything here is unwatchable by playing: an app in a bag, a
+# tablet whose date has been dragged backwards, a thing that grows overnight.
+# It also carries the regression for the three-hours-in-a-bag bug, where time
+# the app spent suspended was banked as time the child spent playing.
+echo
+echo "Running clock probe..."
+CLOCK_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/ClockProbe.tscn 2>&1 | tee "$CLOCK_OUT"
+if ! grep -q "CLOCK PROBE PASSED" "$CLOCK_OUT"; then
+  rm -f "$CLOCK_OUT"
+  echo "Clock probe failed."
+  exit 1
+fi
+no_script_errors "$CLOCK_OUT" "Clock Probe"
+rm -f "$CLOCK_OUT"
+
+# The "what comes next" chain -- the big green button on the result screen.
+# This probe existed for months without ever being wired in here, so nothing
+# was checking that the chain does not loop back on itself or point at a level
+# that was renamed away. It puts the save back when it is done.
+echo
+echo "Running next probe..."
+NEXT_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/NextProbe.tscn 2>&1 | tee "$NEXT_OUT"
+if ! grep -q "NEXT PROBE PASSED" "$NEXT_OUT"; then
+  rm -f "$NEXT_OUT"
+  echo "Next probe failed."
+  exit 1
+fi
+no_script_errors "$NEXT_OUT" "Next Probe"
+rm -f "$NEXT_OUT"
 
 # The save probe tears the save file the way a force-closed tablet does and
 # proves the child's history survives. Runs LAST: it ends on a deliberately

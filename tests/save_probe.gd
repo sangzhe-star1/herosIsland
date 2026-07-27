@@ -4,6 +4,8 @@ extends Node
 ## exists because the game shipped without it and a real child's real stars
 ## really vanished.
 
+const Coins := preload("res://scripts/shop/currency_manager.gd")
+
 var _failures: Array[String] = []
 
 
@@ -19,7 +21,7 @@ func _ready() -> void:
 	# A little history worth protecting.
 	SaveManager.data = SaveManager._default_data()
 	SaveManager.record_level_result("hero_city_01", 3, 1.0)
-	SaveManager.add_coins(42)
+	Coins.earn(42, "probe setup")
 	SaveManager.add_item("heart_potion")
 	var stars_before: int = SaveManager.total_stars()
 	_ok(stars_before == 3, "probe setup should bank three stars")
@@ -62,7 +64,7 @@ func _ready() -> void:
 	_ok(mirrored, "a backup copy always exists in the app's own folder")
 	SaveManager.data = SaveManager._default_data()
 	SaveManager.record_level_result("piglet_town_01", 2, 0.8)   # local-only progress
-	SaveManager.add_coins(10)
+	Coins.earn(10, "local-only progress")
 	var result: Dictionary = SaveManager.import_progress(exported)
 	_ok(bool(result.get("ok", false)), "importing a real backup succeeds")
 	_ok(SaveManager.total_stars() == 5,
@@ -78,6 +80,53 @@ func _ready() -> void:
 	_ok(SaveManager.total_stars() == 5, "a refused import changes nothing")
 	DirAccess.remove_absolute(exported)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://not_a_backup.json"))
+
+	# --- what an import must not quietly undo ---
+	#
+	# found_hidden is a latch: it turns true when the child finds the hidden gem
+	# and never turns back, which is what stops the 5 星星币 bonus being paid a
+	# second time. _merge_progress rewrites the whole level entry, and it used to
+	# rewrite it without this field -- so one trip through the Parent Center's
+	# import reset the latch on EVERY level and the bonus became repeatable.
+	SaveManager.data = SaveManager._default_data()
+	SaveManager.record_level_result("sunny_park_01", 3, 1.0, true)
+	SaveManager._merge_progress({"levels": {"sunny_park_01": {
+		"stars": 2, "best_accuracy": 0.5, "attempts": 1,
+		"completed": true, "found_hidden": false,
+	}}})
+	_ok(bool(SaveManager.get_level_progress("sunny_park_01").get("found_hidden", false)),
+		"importing a backup must not reset found_hidden -- the gem bonus pays once")
+
+	# --- a save of the wrong SHAPE ---
+	#
+	# has(key) was the only test, so a rewards that came back as an Array (a
+	# hand-edited file, a half-written one, a save from some other build) went
+	# straight through and the next data["rewards"]["coins"] read took the game
+	# down during autoload -- a grey window with nothing to say.
+	var bent: Dictionary = SaveManager._migrate(
+		{"version": 1, "rewards": [], "levels": {}, "profile": {}})
+	_ok(bent.get("rewards") is Dictionary,
+		"a top-level key of the wrong type is replaced, not carried through")
+	_ok(bent.get("levels") is Dictionary, "a correctly-typed key is left alone")
+
+	# ...and the tolerance that has to come with it. JSON has ONE number type,
+	# so an xp of 359 written as an int comes back as a float. If that counted
+	# as damage, every load would reset the child's experience to zero.
+	var lived_in := SaveManager._default_data()
+	lived_in["profile"]["xp"] = 359
+	lived_in["rewards"]["coins"] = 120
+	lived_in["levels"]["sunny_park_01"] = {"stars": 3, "best_accuracy": 1.0,
+		"attempts": 4, "completed": true, "found_hidden": true}
+	lived_in.erase("save_version")
+	var round_trip: Dictionary = SaveManager._migrate(
+		JSON.parse_string(JSON.stringify(lived_in)))
+	_ok(int(round_trip["profile"]["xp"]) == 359,
+		"a save that has been to disk and back keeps its xp")
+	_ok(int(round_trip["rewards"]["coins"]) == 120, "...and its coins")
+	_ok(bool(round_trip["levels"]["sunny_park_01"]["found_hidden"]),
+		"...and its hidden gem")
+	_ok(int(round_trip.get("save_version", -1)) == 1,
+		"a save with no save_version is version 1, not version unknown")
 
 	# Only when BOTH generations are gone does the island start over.
 	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
