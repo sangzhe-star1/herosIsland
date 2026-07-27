@@ -10,6 +10,19 @@ func _ready() -> void:
 	# blank, the last line printed is the step that failed.
 	print("[boot] 1 entering _ready")
 
+	# A new sitting starts here.
+	#
+	# RestDirector.new_session() was written months ago with a comment saying
+	# it is called when the game boots, and then never called by anything.
+	# levels_this_session lives in settings, so it survived every restart and
+	# only ever went up -- which does not mean the break came too often, it
+	# means it came at an arbitrary moment: the every-third-level rhythm was
+	# counted from some point weeks ago instead of from when he sat down. A
+	# break offered after his first level of the morning, or not until his
+	# fifth, is a break that has stopped meaning "you have been at this a
+	# while".
+	RestDirector.new_session()
+
 	# The world first, with no dependencies beyond the drawing layer, so even a
 	# total failure further down leaves a recognisable sky rather than engine
 	# grey. There used to be a flat navy ColorRect here as the failsafe; it sat

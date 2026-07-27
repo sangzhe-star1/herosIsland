@@ -245,6 +245,13 @@ func _there_is_a_way_out() -> void:
 			and back.global_position.x + back.size.x < view.x
 			and back.global_position.y + back.size.y < view.y,
 		"...and it is on the screen he is holding")
+	# Wired to something. Not pressed here on purpose: pressing it changes the
+	# scene, which would take this probe out of the tree mid-run. Where it goes
+	# is LevelManager.quit_level(), shared with all thirty-four levels and
+	# walked by map_probe -- what is garden-specific is only that the button is
+	# there and connected.
+	_ok(back.pressed.get_connections().size() > 0,
+		"...and pressing it does something")
 	await get_tree().process_frame
 
 

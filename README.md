@@ -347,9 +347,9 @@ folder for it to add another.
 Verified, in this order, after the rendering rewrite:
 
 ```
-python3 tools_check.py     ->  0 errors, 0 warnings
-./tests/run_smoke.sh       ->  355 checks, 0 failures  (all 36 levels boot)
-./tests/shots.sh           ->  17 screens rendered and looked at
+python3 tools_check.py     ->  0 errors, 186 warnings   (warnings are old debt)
+./tests/run_smoke.sh       ->  22 checkpoints, ending "All good."
+./tests/shots.sh           ->  21 screens rendered and looked at
 ```
 
 What has never happened: **a child has played it.** That is Phase 4 in

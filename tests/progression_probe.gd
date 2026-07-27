@@ -24,6 +24,7 @@ func _ready() -> void:
 
 	_check_xp_and_coins()
 	_check_stickers()
+	_check_a_sitting_starts_when_he_sits_down()
 	await _check_challenge_scaling()
 
 	SaveManager.data = snapshot
@@ -118,3 +119,34 @@ func _check_challenge_scaling() -> void:
 	level.queue_free()
 	await get_tree().process_frame
 	print("  challenge scaling holds")
+
+
+## A sitting starts when he sits down.
+##
+## RestDirector.new_session() existed for months without a caller, so
+## levels_this_session only ever went up: the every-third-level break was
+## counted from an arbitrary moment weeks in the past rather than from when he
+## picked the tablet up. boot.gd calls it now, and this notices if that line is
+## ever taken out again -- a helper with no caller is not a feature.
+func _check_a_sitting_starts_when_he_sits_down() -> void:
+	SaveManager.set_setting("levels_this_session", 9)
+	RestDirector.new_session()
+	_ok(RestDirector.so_far() == 0, "a new sitting starts the level count at zero")
+
+	var rhythm: Array = []
+	for i in range(6):
+		rhythm.append(RestDirector.should_offer())
+	_ok(rhythm == [false, false, true, false, false, true],
+		"and the break comes every third level of THIS sitting, not of all time")
+
+	# On a line that is CODE. The first version of this check just searched the
+	# whole file, and the explanation of why the call exists sits in a comment
+	# directly above it -- so deleting the call left the check passing on its
+	# own footnote.
+	var calls_it := false
+	for line in FileAccess.get_file_as_string("res://scripts/ui/boot.gd").split("\n"):
+		if not line.strip_edges().begins_with("#") \
+				and line.contains("RestDirector.new_session()"):
+			calls_it = true
+	_ok(calls_it, "and boot actually calls it, in code and not in a comment")
+	print("  the rest rhythm is measured from this sitting")
