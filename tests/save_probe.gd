@@ -5,6 +5,7 @@ extends Node
 ## really vanished.
 
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
 var _failures: Array[String] = []
 
@@ -80,6 +81,72 @@ func _ready() -> void:
 	_ok(SaveManager.total_stars() == 5, "a refused import changes nothing")
 	DirAccess.remove_absolute(exported)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://not_a_backup.json"))
+
+	# --- what an import must actually bring ---
+	#
+	# For months this merged stars, coins, badges and experience and nothing
+	# else. A parent moving to a new tablet got a child with his score intact
+	# and no clothes, an empty 怪兽图鉴, no skills, none of the things he had
+	# made and no garden -- with no way to notice and no way back once the old
+	# device was wiped.
+	SaveManager.data = SaveManager._default_data()
+	SaveManager.record_level_result("sunny_park_01", 3, 1.0, true)
+	SaveManager.data["rewards"]["album"] = ["stone_cub", "twin_horn"]
+	SaveManager.data["rewards"]["skills"] = ["double_jump"]
+	SaveManager.data["rewards"]["creations"] = {"base": ["star"]}
+	SaveManager.data["shop"]["owned"] = ["hat_crown", "cape_star"]
+	SaveManager.data["shop"]["worn"] = {"tiga": {"head": "hat_crown"}}
+	SaveManager.data["shop"]["wishlist"] = ["dress_fairy"]
+	SaveManager.data["shop"]["free_gift_taken"] = true
+	SaveManager.data["farm"]["plots"][0]["tilled"] = true
+	SaveManager.data["farm"]["plots"][0]["crop_id"] = "carrot"
+	SaveManager.data["farm"]["warehouse"] = {"strawberry": 5}
+	SaveManager.data["farm_orders"]["delivered"] = ["bear_carrots"]
+	SaveManager.data["inventory"] = {"seed_rare": 2}
+	SaveManager.save_game()
+	var travelled := SaveManager.export_progress()
+
+	# ...arriving on a blank tablet.
+	SaveManager.data = SaveManager._default_data()
+	SaveManager._settle_after_load()
+	SaveManager.import_progress(travelled)
+
+	_ok(SaveManager.data["rewards"]["album"].size() == 2,
+		"a backup carries the 怪兽图鉴")
+	_ok(SaveManager.data["rewards"]["skills"].size() == 1, "...and the skills")
+	_ok(SaveManager.data["rewards"]["creations"].has("base"),
+		"...and the things he made")
+	_ok(SaveManager.data["shop"]["owned"].size() == 2,
+		"...and every 星星币 he ever spent on clothes")
+	_ok(str(SaveManager.data["shop"]["worn"].get("tiga", {}).get("head", ""))
+			== "hat_crown", "...and what each hero was wearing")
+	_ok(SaveManager.data["shop"]["wishlist"].size() == 1, "...and the wish list")
+	_ok(str(SaveManager.data["farm"]["plots"][0].get("crop_id", "")) == "carrot",
+		"...and the carrot that was in the ground")
+	_ok(Barn.count("strawberry") == 5, "...and what was in the barn")
+	_ok("bear_carrots" in SaveManager.data["farm_orders"]["delivered"],
+		"...and which orders were already paid for, so none can be paid twice")
+	_ok(int(SaveManager.data["inventory"].get("seed_rare", 0)) == 2,
+		"...and the seeds")
+	_ok(bool(SaveManager.data["shop"]["free_gift_taken"]),
+		"and two devices do not add up to two free gifts")
+
+	# The other half: a merge must not overwrite what THIS device has.
+	SaveManager.data = SaveManager._default_data()
+	SaveManager.data["rewards"]["creations"] = {"base": ["local_thing"]}
+	SaveManager.data["shop"]["worn"] = {"tiga": {"head": "cap_cloud"}}
+	SaveManager.data["farm"]["plots"][0]["tilled"] = true
+	SaveManager.data["farm"]["plots"][0]["crop_id"] = "tomato"
+	SaveManager.import_progress(travelled)
+	_ok(str(SaveManager.data["rewards"]["creations"]["base"][0]) == "local_thing",
+		"an import never paints over something he made on THIS device")
+	_ok(str(SaveManager.data["shop"]["worn"]["tiga"]["head"]) == "cap_cloud",
+		"...nor over what a hero is wearing here")
+	_ok(str(SaveManager.data["farm"]["plots"][0]["crop_id"]) == "tomato",
+		"...nor over a garden with something growing in it")
+	_ok(SaveManager.data["shop"]["owned"].size() == 2,
+		"but the clothes still travel")
+	DirAccess.remove_absolute(travelled)
 
 	# --- what an import must not quietly undo ---
 	#

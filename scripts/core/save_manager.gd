@@ -1061,6 +1061,155 @@ func _merge_progress(theirs: Dictionary) -> void:
 			data["growth"][attribute] = maxi(int(data["growth"][attribute]),
 				int(theirs["growth"][attribute]))
 
+	# --- everything above is what this function merged for months ---
+	#
+	# Below is what it did NOT, which was found by exporting a played-in save
+	# and importing it onto a blank one and counting what arrived. Stars, coins,
+	# badges and experience came through. The child arrived with no clothes, an
+	# empty 怪兽图鉴, no skills, none of the things he had made, and no garden.
+	#
+	# A parent moving to a new tablet has no way to know any of that happened,
+	# and no way back once the old device is wiped.
+	_merge_collection(tr, "album")
+	_merge_collection(tr, "skills")
+	for key in tr.get("creations", {}).keys():
+		# Never overwrite something he made on THIS device with something he
+		# made on that one. Only fill in what is missing here.
+		if not data["rewards"]["creations"].has(key):
+			data["rewards"]["creations"][key] = tr["creations"][key]
+
+	_merge_shop(theirs.get("shop", {}))
+	_merge_farm(theirs)
+
+
+## Union two lists of things he has earned. Order follows this device's, so a
+## merge never reshuffles a shelf he is used to looking at.
+func _merge_collection(tr: Dictionary, key: String) -> void:
+	if not data["rewards"].has(key) or not data["rewards"][key] is Array:
+		data["rewards"][key] = []
+	for entry in tr.get(key, []):
+		if not entry in data["rewards"][key]:
+			data["rewards"][key].append(entry)
+
+
+## The wardrobe. 92 things to buy live in here, and losing it is losing every
+## 星星币 he ever spent.
+func _merge_shop(ts: Dictionary) -> void:
+	if ts.is_empty():
+		return
+	if not data.has("shop") or not data["shop"] is Dictionary:
+		data["shop"] = _default_shop()
+	var shop: Dictionary = data["shop"]
+
+	for list_key in ["owned", "bundles_done", "seen_new"]:
+		if not shop.has(list_key) or not shop[list_key] is Array:
+			shop[list_key] = []
+		for entry in ts.get(list_key, []):
+			if not entry in shop[list_key]:
+				shop[list_key].append(entry)
+
+	# The wish list has a ceiling, and a merge must not push it through.
+	if not shop.has("wishlist") or not shop["wishlist"] is Array:
+		shop["wishlist"] = []
+	for entry in ts.get("wishlist", []):
+		if shop["wishlist"].size() >= 5:
+			break
+		if not entry in shop["wishlist"] and not entry in shop["owned"]:
+			shop["wishlist"].append(entry)
+
+	# What each hero is WEARING is not an achievement, it is a choice. A choice
+	# made on this device wins; a hero this device has never dressed takes the
+	# other device's answer rather than standing there in nothing.
+	var worn: Dictionary = shop.get("worn", {})
+	for character_id in ts.get("worn", {}).keys():
+		var mine: Dictionary = worn.get(character_id, {})
+		var wearing_something := false
+		for slot in mine.keys():
+			if str(mine[slot]) != "":
+				wearing_something = true
+		if not wearing_something:
+			worn[character_id] = (ts["worn"][character_id] as Dictionary).duplicate(true)
+	shop["worn"] = worn
+
+	# Saved looks: fill the empty pegs, never replace a full one.
+	var presets: Array = shop.get("presets", ["", "", ""])
+	var theirs_presets: Array = ts.get("presets", [])
+	for i in range(presets.size()):
+		if str(presets[i]) == "" and i < theirs_presets.size():
+			presets[i] = theirs_presets[i]
+	shop["presets"] = presets
+
+	# Once taken, taken. Two devices must not add up to two free gifts.
+	shop["free_gift_taken"] = bool(shop.get("free_gift_taken", false)) \
+		or bool(ts.get("free_gift_taken", false))
+
+
+## 星光菜园.
+##
+## Two gardens cannot be added together -- there is no sensible answer to "he
+## planted a carrot here and corn there in the same bed". So the plots are all
+## or nothing: a garden nobody has touched on this device takes the other
+## device's whole garden; a garden with anything growing in it keeps its own.
+## Everything that IS a running total -- the barn, the seeds, who he has
+## befriended -- takes the higher of the two either way.
+func _merge_farm(theirs: Dictionary) -> void:
+	var tf: Dictionary = theirs.get("farm", {})
+	if not tf.is_empty():
+		var farm: Dictionary = data.get("farm", {})
+		var busy := false
+		for plot in farm.get("plots", []):
+			if str(plot.get("crop_id", "")) != "" or bool(plot.get("tilled", false)):
+				busy = true
+		if not busy:
+			farm["plots"] = Farm.normalise_farm(tf).get("plots", farm.get("plots", []))
+			farm["last_seen_at"] = int(tf.get("last_seen_at", 0))
+
+		farm["farm_level"] = maxi(int(farm.get("farm_level", 1)),
+			int(tf.get("farm_level", 1)))
+		farm["plot_count"] = maxi(int(farm.get("plot_count", 4)),
+			int(tf.get("plot_count", 4)))
+		farm["clock_high_water"] = maxi(int(farm.get("clock_high_water", 0)),
+			int(tf.get("clock_high_water", 0)))
+		farm["opened"] = bool(farm.get("opened", false)) or bool(tf.get("opened", false))
+
+		var barn: Dictionary = farm.get("warehouse", {})
+		for crop_id in tf.get("warehouse", {}).keys():
+			barn[crop_id] = maxi(int(barn.get(crop_id, 0)),
+				int(tf["warehouse"][crop_id]))
+		farm["warehouse"] = barn
+
+		for list_key in ["unlocked_crops", "unlocked_recipes", "decorations",
+				"completed_missions"]:
+			var mine: Array = farm.get(list_key, [])
+			for entry in tf.get(list_key, []):
+				if not entry in mine:
+					mine.append(entry)
+			farm[list_key] = mine
+
+		var friends: Dictionary = farm.get("npc_friendship", {})
+		for npc in tf.get("npc_friendship", {}).keys():
+			friends[npc] = maxi(int(friends.get(npc, 0)), int(tf["npc_friendship"][npc]))
+		farm["npc_friendship"] = friends
+		data["farm"] = farm
+
+	var inventory: Dictionary = data.get("inventory", {})
+	for item_id in theirs.get("inventory", {}).keys():
+		inventory[item_id] = maxi(int(inventory.get(item_id, 0)),
+			int(theirs["inventory"][item_id]))
+	data["inventory"] = inventory
+
+	# Delivered orders are a UNION and never anything else. An order paid for
+	# on either device is paid for; dropping one would let it be filled a
+	# second time, which is the one thing the whole order system promises
+	# cannot happen.
+	var orders: Dictionary = data.get("farm_orders", Farm.default_orders())
+	var delivered: Array = orders.get("delivered", [])
+	for order_id in theirs.get("farm_orders", {}).get("delivered", []):
+		if not order_id in delivered:
+			delivered.append(order_id)
+	orders["delivered"] = delivered
+	data["farm_orders"] = orders
+
 
 # --- playtime, for the Parent Center ---
 
