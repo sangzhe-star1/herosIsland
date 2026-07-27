@@ -63,7 +63,7 @@ SHOTS=(
   "boot|res://scenes/boot/Boot.tscn|"
   "home|res://scenes/home/Home.tscn|"
   "map|res://scenes/map/WorldMap.tscn|"
-  "house|res://scenes/house/HeroHouse.tscn|"
+  "house|res://scenes/shop/HeroHouseScreen.tscn|"
   "rewards|res://scenes/reward/RewardCenter.tscn|"
   "parent|res://scenes/parent/ParentCenter.tscn|"
   "result|res://scenes/ui/ResultScreen.tscn|"

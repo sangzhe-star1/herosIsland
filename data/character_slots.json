@@ -1,0 +1,235 @@
+{
+  "_comment": "英雄单位：全身 232 高。width 是这件画多宽，at 是锚点在骨骼局部坐标里的位置。pair 的从中线切开左右各一份。",
+  "slots": {
+    "head": {
+      "bone": "_head",
+      "width": 104,
+      "at": [
+        0,
+        -99
+      ],
+      "pair": false,
+      "behind": false
+    },
+    "body": {
+      "bone": "_torso",
+      "width": 92,
+      "at": [
+        0,
+        -78
+      ],
+      "pair": false,
+      "behind": false
+    },
+    "back": {
+      "bone": "_root",
+      "width": 104,
+      "at": [
+        0,
+        -96
+      ],
+      "pair": false,
+      "behind": true
+    },
+    "feet": {
+      "bone": "_leg",
+      "width": 30,
+      "at": [
+        2,
+        40
+      ],
+      "pair": true,
+      "behind": false
+    },
+    "hands": {
+      "bone": "_arm",
+      "width": 26,
+      "at": [
+        2,
+        48
+      ],
+      "pair": true,
+      "behind": false
+    },
+    "pal": {
+      "bone": "_pal",
+      "width": 78,
+      "at": [
+        86,
+        0
+      ],
+      "pair": false,
+      "behind": false
+    }
+  },
+  "items": {
+    "crown_brave": {
+      "width": 78,
+      "at": [
+        0,
+        -118
+      ]
+    },
+    "crown_party": {
+      "width": 82,
+      "at": [
+        0,
+        -112
+      ]
+    },
+    "tiara_rainbow": {
+      "width": 84,
+      "at": [
+        0,
+        -116
+      ]
+    },
+    "headband_bunny": {
+      "width": 88,
+      "at": [
+        0,
+        -112
+      ]
+    },
+    "goggles_sky": {
+      "width": 96.0,
+      "at": [
+        0.0,
+        -76.0
+      ]
+    },
+    "visor_sun": {
+      "width": 104,
+      "at": [
+        0,
+        -86
+      ]
+    },
+    "hat_wizard": {
+      "width": 108,
+      "at": [
+        0,
+        -112
+      ]
+    },
+    "helmet_space": {
+      "width": 112.0,
+      "at": [
+        0.0,
+        -110.0
+      ]
+    },
+    "hood_monster": {
+      "width": 116.0,
+      "at": [
+        0.0,
+        -98.0
+      ]
+    },
+    "hood_dino_red": {
+      "width": 116.0,
+      "at": [
+        0.0,
+        -106.0
+      ]
+    },
+    "cap_captain": {
+      "width": 104,
+      "at": [
+        0,
+        -96
+      ]
+    },
+    "balloon_party": {
+      "width": 84,
+      "at": [
+        0,
+        -150
+      ]
+    },
+    "fan_peacock": {
+      "width": 126,
+      "at": [
+        0,
+        -104
+      ]
+    },
+    "wings_sky": {
+      "width": 128,
+      "at": [
+        0,
+        -92
+      ]
+    },
+    "wings_butterfly": {
+      "width": 126,
+      "at": [
+        0,
+        -94
+      ]
+    },
+    "wings_monster": {
+      "width": 112,
+      "at": [
+        0,
+        -90
+      ]
+    },
+    "wings_leaf": {
+      "width": 116,
+      "at": [
+        0,
+        -90
+      ]
+    },
+    "cape_castle": {
+      "width": 108,
+      "at": [
+        0,
+        -92
+      ]
+    },
+    "cape_rainbow_dream": {
+      "width": 108,
+      "at": [
+        0,
+        -92
+      ]
+    },
+    "skates_rainbow": {
+      "width": 34,
+      "at": [
+        2,
+        42
+      ]
+    },
+    "slippers_bunny": {
+      "width": 32,
+      "at": [
+        2,
+        42
+      ]
+    },
+    "paws_monster": {
+      "width": 30,
+      "at": [
+        2,
+        48
+      ]
+    },
+    "gauntlets_brave": {
+      "width": 28,
+      "at": [
+        2,
+        46
+      ]
+    },
+    "beret_rainbow": {
+      "width": 100,
+      "at": [
+        0,
+        -100
+      ]
+    }
+  }
+}

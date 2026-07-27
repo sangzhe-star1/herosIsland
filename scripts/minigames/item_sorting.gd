@@ -400,7 +400,7 @@ func _accept() -> void:
 	var destination: Vector2 = target.global_position + BIN_SIZE / 2.0 - ITEM_SIZE / 2.0 \
 		if target != null else _item.global_position
 
-	AudioManager.play_voice("res://assets/audio/voice/level/well_done.ogg")
+	AudioManager.say("praise_1")
 	if target != null:
 		Juice.burst(_play_area, target.position + BIN_SIZE / 2.0)
 		Juice.pop(target)
@@ -425,7 +425,7 @@ func _accept() -> void:
 
 func _reject() -> void:
 	_instruction.text = I18n.t("sorting.not_there")
-	AudioManager.play_voice("res://assets/audio/voice/level/try_again.ogg")
+	AudioManager.say("retry")
 	_shake_item()
 	score_mistake()
 	await _return_item_home()

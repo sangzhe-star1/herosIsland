@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/skin/character_skin.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ember"
+display_name_key = "character.ember"
+build_width = 74.0
+crest_kind = "star_crest"
+chest_pattern = "star"
+body_color = Color(1, 0.96, 0.9, 1)
+accent_color = Color(0.95, 0.42, 0.18, 1)
+trim_color = Color(1, 0.82, 0.3, 1)
+eye_color = Color(1, 0.88, 0.55, 1)
+core_color = Color(1, 0.62, 0.22, 1)
+body_size = Vector2(64, 96)

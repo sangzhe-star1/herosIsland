@@ -14,6 +14,7 @@ extends Node
 
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Shop := preload("res://scripts/shop/shop_manager.gd")
+const Presets := preload("res://scripts/shop/preset_manager.gd")
 const Wishes := preload("res://scripts/shop/wishlist_manager.gd")
 
 var _out: Array[String] = []
@@ -214,19 +215,31 @@ func _fresh_shop() -> void:
 	SaveManager.data["shop"] = SaveManager.default_shop()
 	SaveManager.data["rewards"]["coins"] = 0
 	SaveManager.data["levels"] = {}
+	# WHICH HERO, explicitly.
+	#
+	# Wearing is per character now, and equip() refuses a hero who cannot wear
+	# the thing. This probe passed on its own and failed inside the suite,
+	# because an earlier probe had left "bluey" -- who wears nothing -- in the
+	# save file on disk. A test that depends on state it did not set is a test
+	# that will lie to you eventually.
+	SaveManager.data["profile"]["character_id"] = "tiga"
 
 
 func _the_catalogue_is_whole() -> void:
 	var items: Array = Shop.items()
 	var cats: Array = Shop.categories()
 	print("  catalogue: %d items in %d categories" % [items.size(), cats.size()])
-	_ok(cats.size() == 7, "expected 7 categories, found %d" % cats.size())
-	_ok(items.size() >= 21, "expected at least 21 items, found %d" % items.size())
+	_ok(cats.size() >= 7, "expected at least 7 categories, found %d" % cats.size())
+	_ok(items.size() >= 80, "expected at least 80 items, found %d" % items.size())
 
 	# Every category has something in it. An empty tab is a dead end a child
-	# taps once and never again.
+	# taps once and never again. `set` is the exception on purpose: the twelve
+	# themed outfits are built from outfit_presets.json rather than being items
+	# of their own, so its drawer is filled by preset_manager.
 	for cat in cats:
 		var cid := str(cat.get("id", ""))
+		if cid == "set":
+			continue
 		_ok(Shop.in_category(cid).size() > 0, "category '%s' is empty" % cid)
 
 	# Ids are unique, prices are real, and nothing is free by accident.
@@ -235,112 +248,136 @@ func _the_catalogue_is_whole() -> void:
 		var iid := str(entry.get("id", ""))
 		_ok(not seen.has(iid), "duplicate item id '%s'" % iid)
 		seen[iid] = true
-		_ok(int(entry.get("price", 0)) > 0, "'%s' costs nothing" % iid)
+		# A face is the one thing that may be priced 0: ten of the fourteen are
+		# free from the first minute and are in the item list only so that one
+		# drawer and one purchase flow cover the whole cast. A free face must
+		# be marked free in characters.json, though -- a 0-star card that is
+		# not unlocked would be a thing nobody could ever get.
+		if Shop.is_who(entry):
+			var cid := Shop.who_id(entry)
+			var meta: Dictionary = GameData.characters.get("characters", {})\
+				.get(cid, {})
+			_ok(not meta.is_empty(), "'%s' is a card for nobody" % iid)
+			if int(entry.get("price", 0)) == 0:
+				_ok(bool(meta.get("unlocked", false)),
+					"'%s' costs nothing and is not free either" % iid)
+			else:
+				_ok(not bool(meta.get("unlocked", false)),
+					"'%s' is free from the start but still has a price" % iid)
+		else:
+			_ok(int(entry.get("price", 0)) > 0, "'%s' costs nothing" % iid)
 
 
 ## Locked things stay locked, and open on exactly the condition they name.
 func _unlocking() -> void:
 	_fresh_shop()
-	var cloud := Shop.item("cap_cloud")          # world_done: sunny_park
-	_ok(not Shop.unlocked(cloud), "cap_cloud is open before the park is done")
-	for level in GameData.get_levels_for_world("sunny_park"):
+	var helmet := Shop.item("helmet_rescue")     # world_done: night_city
+	_ok(not Shop.unlocked(helmet), "helmet_rescue is open before the city is done")
+	for level in GameData.get_levels_for_world("night_city"):
 		var lid := str(level.get("id", ""))
 		if lid != "hero_studio":
 			SaveManager.record_level_result(lid, 2, 1.0)
-	_ok(Shop.unlocked(cloud), "cap_cloud stayed shut after the park was finished")
-	print("  cap_cloud: shut before 阳光公园, open after")
+	_ok(Shop.unlocked(helmet), "helmet_rescue stayed shut after 夜光城市 was done")
+	print("  helmet_rescue: shut before 夜光城市, open after")
 
 	_fresh_shop()
-	var boots := Shop.item("boots_bolt")         # three_stars: 3
-	_ok(not Shop.unlocked(boots), "boots_bolt is open with no three-star runs")
-	for lid in ["sunny_park_01", "sunny_park_02", "sunny_park_03"]:
+	var hood := Shop.item("hood_dino_red")       # three_stars: 4
+	_ok(not Shop.unlocked(hood), "hood_dino_red is open with no three-star runs")
+	for lid in ["sunny_park_01", "sunny_park_02", "sunny_park_03", "sunny_park_04"]:
 		SaveManager.record_level_result(lid, 3, 1.0)
-	_ok(Shop.unlocked(boots), "boots_bolt stayed shut after three perfect levels")
-	print("  boots_bolt: shut at 0 three-stars, open at 3")
+	_ok(Shop.unlocked(hood), "hood_dino_red stayed shut after four perfect levels")
+	print("  hood_dino_red: shut at 0 three-stars, open at 4")
 
 
 func _buying_and_wearing() -> void:
 	_fresh_shop()
 	SaveManager.data["rewards"]["coins"] = 100
 
-	_ok(Shop.buy("act_wave") == "", "could not buy the cheapest thing in the shop")
-	_ok(Shop.owns("act_wave"), "bought it and does not own it")
-	_ok(Coins.balance() == 92, "8 should have left 92, balance is %d" % Coins.balance())
-	_ok(Shop.buy("act_wave") == "owned", "bought the same thing twice")
-	_ok(Coins.balance() == 92, "the second purchase still took money")
+	var cheap := Shop.item("mittens_cloud")      # always unlocked, 15
+	var price := int(cheap.get("price", 0))
+	_ok(Shop.buy("mittens_cloud") == "", "could not buy the cheapest thing in the shop")
+	_ok(Shop.owns("mittens_cloud"), "bought it and does not own it")
+	_ok(Coins.balance() == 100 - price,
+		"%d should have left %d, balance is %d" % [price, 100 - price, Coins.balance()])
+	_ok(Shop.buy("mittens_cloud") == "owned", "bought the same thing twice")
+	_ok(Coins.balance() == 100 - price, "the second purchase still took money")
 
 	# Locked and unaffordable both refuse, and both leave the purse alone.
-	_ok(Shop.buy("ride_cloud") == "locked", "bought a locked item")
+	_ok(Shop.buy("tiara_rainbow") == "locked", "bought a locked item")
 	SaveManager.data["rewards"]["coins"] = 5
-	_ok(Shop.buy("fx_starstep") in ["poor", "locked"], "bought with 5 星星币")
+	_ok(Shop.buy("crown_party") in ["poor", "locked"], "bought with 5 星星币")
 	_ok(Coins.balance() == 5, "a refused purchase moved the purse")
 	print("  buy / own / no-double-buy / locked / too-poor all behave")
 
 	# Wearing: one per slot.
 	SaveManager.data["rewards"]["coins"] = 200
 	Shop.grant_free("cap_cloud")
-	Shop.grant_free("crown_brave")
+	Shop.grant_free("cap_sun")
 	_ok(Shop.equip("cap_cloud"), "could not wear a hat he owns")
 	_ok(Shop.equipped_in("head") == "cap_cloud", "the hat did not go on his head")
-	_ok(Shop.equip("crown_brave"), "could not swap hats")
-	_ok(Shop.equipped_in("head") == "crown_brave", "the second hat did not replace the first")
+	_ok(Shop.equip("cap_sun"), "could not swap hats")
+	_ok(Shop.equipped_in("head") == "cap_sun", "the second hat did not replace the first")
 	_ok(not Shop.is_equipped("cap_cloud"), "he is somehow wearing two hats")
 	Shop.unequip("head")
 	_ok(Shop.equipped_in("head") == "", "taking the hat off did not work")
 	print("  one hat per head, swapping replaces, taking off works")
 
 	# Wearing something he does not own must be impossible.
-	_ok(not Shop.equip("vest_rescue"), "wore something he never bought")
+	_ok(not Shop.equip("vest_park"), "wore something he never bought")
 
 
 ## Undo returns the money AND takes the thing back off.
 func _undo_is_whole() -> void:
 	_fresh_shop()
 	SaveManager.data["rewards"]["coins"] = 100
-	Shop.buy("act_wave")
-	Shop.equip("act_wave")
-	_ok(Shop.undo("act_wave"), "could not put it back")
-	_ok(not Shop.owns("act_wave"), "put it back and still owns it")
+	Shop.buy("mittens_cloud")
+	Shop.equip("mittens_cloud")
+	_ok(Shop.undo("mittens_cloud"), "could not put it back")
+	_ok(not Shop.owns("mittens_cloud"), "put it back and still owns it")
 	_ok(Coins.balance() == 100, "undo left him with %d, not 100" % Coins.balance())
-	_ok(Shop.equipped_in("action") == "",
+	_ok(Shop.equipped_in("hands") == "",
 		"he is still using something he put back")
 	print("  put back: money returned, item gone, no longer equipped")
 
 
-## A bundle must never charge twice for a piece he already has.
+## Buying a whole themed outfit must never cost more than the pieces do.
+##
+## The old catalogue had one gift box with a price of its own and a pro-rata
+## discount for pieces already owned. The wardrobe replaced it with twelve
+## themed outfits assembled from ordinary items -- so there is no box price to
+## get wrong, and the thing worth checking is that the twelve are real: every
+## piece exists, covers a different slot, and can actually be collected.
 func _bundles_discount_what_he_owns() -> void:
 	_fresh_shop()
-	# The box opens when 阳光公园 is finished, so finish it -- otherwise this
-	# tests nothing but the lock, which _unlocking() already covers.
-	for level in GameData.get_levels_for_world("sunny_park"):
-		var lid := str(level.get("id", ""))
-		if lid != "hero_studio":
-			SaveManager.record_level_result(lid, 2, 1.0)
-	_ok(Shop.unlocked(Shop.bundle("bundle_park")),
-		"the park box is still shut after finishing the park")
-	var full := Shop.bundle_price("bundle_park")
-	print("  公园野餐礼盒 full price: %d" % full)
-	_ok(full == 68, "bundle should cost 68, says %d" % full)
-
-	Shop.grant_free("deco_sofa")          # the 45-coin piece, already his
-	var after := Shop.bundle_price("bundle_park")
-	print("  after already owning 云朵沙发 (45 of 95): %d" % after)
-	_ok(after < full, "owning a piece did not reduce the box at all")
-	_ok(after == 36, "expected 36 after the discount, got %d" % after)
-
-	SaveManager.data["rewards"]["coins"] = 100
-	_ok(Shop.buy_bundle("bundle_park") == "", "could not buy the box")
-	_ok(Coins.balance() == 100 - after,
-		"the box charged %d, not the discounted %d" % [100 - Coins.balance(), after])
-	for member in ["cap_cloud", "act_spin", "deco_sofa", "set_park_stickers"]:
-		_ok(Shop.owns(member), "the box did not deliver %s" % member)
-	print("  box delivered all four, charged the discounted price")
+	var sets: Array = Presets.sets()
+	print("  %d themed outfits" % sets.size())
+	_ok(sets.size() >= 6, "only %d themed outfits" % sets.size())
+	for spec in sets:
+		var set_id := str(spec.get("id", ""))
+		var slots := {}
+		var total := 0
+		for piece in spec.get("pieces", []):
+			var entry: Dictionary = Shop.item(str(piece))
+			_ok(not entry.is_empty(),
+				"outfit '%s' wants '%s', which is not in the catalogue"
+					% [set_id, piece])
+			if entry.is_empty():
+				continue
+			var slot := str(entry.get("slot", ""))
+			_ok(not slots.has(slot),
+				"outfit '%s' puts two things in the '%s' slot" % [set_id, slot])
+			slots[slot] = true
+			total += int(entry.get("price", 0))
+		_ok(slots.has("head") and slots.has("body") and slots.has("back")
+			and slots.has("feet"),
+			"outfit '%s' is not a whole outfit: %s" % [set_id, slots.keys()])
+		_ok(total > 0, "outfit '%s' is free" % set_id)
 
 
 func _the_wish_box() -> void:
 	_fresh_shop()
-	for iid in ["cape_star", "cap_cloud", "vest_rescue", "boots_bolt",
-			"gloves_rainbow"]:
+	for iid in ["cape_star", "cap_cloud", "vest_park", "boots_bolt",
+			"gloves_leaf"]:
 		_ok(Wishes.add(iid), "could not wish for %s" % iid)
 	_ok(Wishes.full(), "five wishes and the box is not full")
 	_ok(not Wishes.add("crown_brave"), "a sixth wish went in")
@@ -348,13 +385,22 @@ func _the_wish_box() -> void:
 		"the box holds %d, not %d" % [Wishes.all().size(), Wishes.MAX])
 	print("  wish box holds %d and refuses the sixth" % Wishes.MAX)
 
-	# The one it points at is the one he is closest to affording.
+	# The one it points at is the one he is closest to affording. Worked out
+	# from the catalogue rather than written down: hard-coding the answer meant
+	# that changing one price turned this into a test of last month's shop.
 	SaveManager.data["rewards"]["coins"] = 20
+	var want := ""
+	var best := 1 << 30
+	for iid in Wishes.all():
+		var gap: int = Wishes.gap_to(Shop.item(str(iid)))
+		if gap < best:
+			best = gap
+			want = str(iid)
 	var near := Wishes.closest()
-	print("  closest wish at 20 星星币: %s, short by %d"
-		% [str(near.get("id", "-")), Wishes.gap_to(near)])
-	_ok(str(near.get("id", "")) == "cap_cloud",
-		"pointed at %s, but 云朵帽 (18) is nearest" % str(near.get("id", "-")))
+	print("  closest wish at 20 星星币: %s (short by %d); cheapest gap is %s (%d)"
+		% [str(near.get("id", "-")), Wishes.gap_to(near), want, best])
+	_ok(str(near.get("id", "")) == want,
+		"pointed at %s, but %s is nearest" % [str(near.get("id", "-")), want])
 
 	# Buying it takes it off the list.
 	SaveManager.data["rewards"]["coins"] = 100
@@ -384,16 +430,16 @@ func _the_free_gift() -> void:
 func _shop_survives_a_restart() -> void:
 	_fresh_shop()
 	SaveManager.data["rewards"]["coins"] = 200
-	Shop.buy("act_wave")
-	Shop.equip("act_wave")
+	Shop.buy("mittens_cloud")
+	Shop.equip("mittens_cloud")
 	Wishes.add("crown_brave")
 	SaveManager.save_game()
 	SaveManager.load_game()
 	print("  after a restart: owns %d, wearing '%s', %d wishes, %d 星星币"
-		% [Shop.owned_count(), Shop.equipped_in("action"),
+		% [Shop.owned_count(), Shop.equipped_in("hands"),
 			Wishes.all().size(), Coins.balance()])
-	_ok(Shop.owns("act_wave"), "what he bought did not survive the restart")
-	_ok(Shop.equipped_in("action") == "act_wave",
+	_ok(Shop.owns("mittens_cloud"), "what he bought did not survive the restart")
+	_ok(Shop.equipped_in("hands") == "mittens_cloud",
 		"what he was wearing did not survive the restart")
 	_ok(Wishes.has("crown_brave"), "his wish list did not survive the restart")
 
@@ -406,5 +452,5 @@ func _clothes_know_who_can_wear_them() -> void:
 	_ok(not Shop.fits(hat, "bluey"),
 		"a hat claims to fit bluey, who is never dressed by the renderer")
 	# Non-garments fit everybody.
-	_ok(Shop.fits(Shop.item("pal_orb"), "bluey"), "a companion refused bluey")
+	_ok(Shop.fits(Shop.item("pal_light_orb"), "bluey"), "a companion refused bluey")
 	print("  garments fit the drawn heroes and not bluey; pals fit everyone")

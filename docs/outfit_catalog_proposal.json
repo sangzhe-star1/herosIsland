@@ -1,0 +1,2145 @@
+{
+  "items": [
+    {
+      "id": "cap_cloud",
+      "name_key": "outfit.cap_cloud",
+      "name_zh": "云朵帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 18,
+      "tier": 1,
+      "theme": "sky",
+      "art": "res://assets/outfits/head/cap_cloud.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "cap_sun",
+      "name_key": "outfit.cap_sun",
+      "name_zh": "太阳帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 18,
+      "tier": 1,
+      "theme": "park",
+      "art": "res://assets/outfits/head/cap_sun.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "park"
+    },
+    {
+      "id": "visor_sun",
+      "name_key": "outfit.visor_sun",
+      "name_zh": "遮阳帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 18,
+      "tier": 1,
+      "theme": "park",
+      "art": "res://assets/outfits/head/visor_sun.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "beanie_rainbow",
+      "name_key": "outfit.beanie_rainbow",
+      "name_zh": "彩虹毛线帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 18,
+      "tier": 1,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/head/beanie_rainbow.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "headband_bunny",
+      "name_key": "outfit.headband_bunny",
+      "name_zh": "兔耳发箍",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 18,
+      "tier": 1,
+      "theme": "bunny",
+      "art": "res://assets/outfits/head/headband_bunny.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "beret_rainbow",
+      "name_key": "outfit.beret_rainbow",
+      "name_zh": "彩虹贝雷帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 30,
+      "tier": 2,
+      "theme": "fairy",
+      "art": "res://assets/outfits/head/beret_rainbow.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 6
+      },
+      "set_id": "fairy"
+    },
+    {
+      "id": "cap_detective",
+      "name_key": "outfit.cap_detective",
+      "name_zh": "侦探帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 30,
+      "tier": 2,
+      "theme": "detective",
+      "art": "res://assets/outfits/head/cap_detective.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "badges",
+        "count": 3
+      },
+      "set_id": ""
+    },
+    {
+      "id": "helmet_rescue",
+      "name_key": "outfit.helmet_rescue",
+      "name_zh": "救援头盔",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 30,
+      "tier": 2,
+      "theme": "rescue",
+      "art": "res://assets/outfits/head/helmet_rescue.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "night_city"
+      },
+      "set_id": "rescue"
+    },
+    {
+      "id": "hood_monster",
+      "name_key": "outfit.hood_monster",
+      "name_zh": "怪兽兜帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 30,
+      "tier": 2,
+      "theme": "monster",
+      "art": "res://assets/outfits/head/hood_monster.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "monster_valley"
+      },
+      "set_id": "monster"
+    },
+    {
+      "id": "hood_dino_red",
+      "name_key": "outfit.hood_dino_red",
+      "name_zh": "恐龙兜帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 30,
+      "tier": 2,
+      "theme": "dino",
+      "art": "res://assets/outfits/head/hood_dino_red.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 4
+      },
+      "set_id": "dino"
+    },
+    {
+      "id": "goggles_sky",
+      "name_key": "outfit.goggles_sky",
+      "name_zh": "飞行护目镜",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 30,
+      "tier": 2,
+      "theme": "sky",
+      "art": "res://assets/outfits/head/goggles_sky.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "sky_base"
+      },
+      "set_id": "sky"
+    },
+    {
+      "id": "cap_captain",
+      "name_key": "outfit.cap_captain",
+      "name_zh": "船长帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 30,
+      "tier": 2,
+      "theme": "pirate",
+      "art": "res://assets/outfits/head/cap_captain.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 14
+      },
+      "set_id": "pirate"
+    },
+    {
+      "id": "crown_brave",
+      "name_key": "outfit.crown_brave",
+      "name_zh": "勇气王冠",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 48,
+      "tier": 3,
+      "theme": "castle",
+      "art": "res://assets/outfits/head/crown_brave.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "dark_castle"
+      },
+      "set_id": "castle"
+    },
+    {
+      "id": "crown_party",
+      "name_key": "outfit.crown_party",
+      "name_zh": "生日皇冠",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 30,
+      "tier": 2,
+      "theme": "party",
+      "art": "res://assets/outfits/head/crown_party.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "party"
+    },
+    {
+      "id": "hat_wizard",
+      "name_key": "outfit.hat_wizard",
+      "name_zh": "魔法师帽",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 48,
+      "tier": 3,
+      "theme": "wizard",
+      "art": "res://assets/outfits/head/hat_wizard.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "badges",
+        "count": 8
+      },
+      "set_id": "wizard"
+    },
+    {
+      "id": "helmet_space",
+      "name_key": "outfit.helmet_space",
+      "name_zh": "太空头盔",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 48,
+      "tier": 3,
+      "theme": "space",
+      "art": "res://assets/outfits/head/helmet_space.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 10
+      },
+      "set_id": "space"
+    },
+    {
+      "id": "tiara_rainbow",
+      "name_key": "outfit.tiara_rainbow",
+      "name_zh": "彩虹王冠",
+      "category": "wardrobe",
+      "slot": "head",
+      "price": 48,
+      "tier": 3,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/head/tiara_rainbow.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "boss_beaten"
+      },
+      "set_id": "rainbow"
+    },
+    {
+      "id": "tee_bolt",
+      "name_key": "outfit.tee_bolt",
+      "name_zh": "闪电T恤",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 22,
+      "tier": 1,
+      "theme": "sport",
+      "art": "res://assets/outfits/body/tee_bolt.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "sweater_sun",
+      "name_key": "outfit.sweater_sun",
+      "name_zh": "太阳毛衣",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 22,
+      "tier": 1,
+      "theme": "cosy",
+      "art": "res://assets/outfits/body/sweater_sun.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "vest_park",
+      "name_key": "outfit.vest_park",
+      "name_zh": "探险背心",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 22,
+      "tier": 1,
+      "theme": "park",
+      "art": "res://assets/outfits/body/vest_park.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "park"
+    },
+    {
+      "id": "hoodie_rainbow",
+      "name_key": "outfit.hoodie_rainbow",
+      "name_zh": "彩虹卫衣",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 22,
+      "tier": 1,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/body/hoodie_rainbow.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "tee_monster",
+      "name_key": "outfit.tee_monster",
+      "name_zh": "怪兽T恤",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 35,
+      "tier": 2,
+      "theme": "monster",
+      "art": "res://assets/outfits/body/tee_monster.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "monster_valley"
+      },
+      "set_id": "monster"
+    },
+    {
+      "id": "coat_rain",
+      "name_key": "outfit.coat_rain",
+      "name_zh": "雨衣",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 35,
+      "tier": 2,
+      "theme": "rain",
+      "art": "res://assets/outfits/body/coat_rain.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "apron_baker",
+      "name_key": "outfit.apron_baker",
+      "name_zh": "小厨师围裙",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 35,
+      "tier": 2,
+      "theme": "baker",
+      "art": "res://assets/outfits/body/apron_baker.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 10
+      },
+      "set_id": ""
+    },
+    {
+      "id": "hoodie_dino",
+      "name_key": "outfit.hoodie_dino",
+      "name_zh": "恐龙卫衣",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 35,
+      "tier": 2,
+      "theme": "dino",
+      "art": "res://assets/outfits/body/hoodie_dino.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 4
+      },
+      "set_id": "dino"
+    },
+    {
+      "id": "jacket_sky",
+      "name_key": "outfit.jacket_sky",
+      "name_zh": "飞行夹克",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 35,
+      "tier": 2,
+      "theme": "sky",
+      "art": "res://assets/outfits/body/jacket_sky.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "sky_base"
+      },
+      "set_id": "sky"
+    },
+    {
+      "id": "suit_rescue",
+      "name_key": "outfit.suit_rescue",
+      "name_zh": "救援制服",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 35,
+      "tier": 2,
+      "theme": "rescue",
+      "art": "res://assets/outfits/body/suit_rescue.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "night_city"
+      },
+      "set_id": "rescue"
+    },
+    {
+      "id": "coat_pirate",
+      "name_key": "outfit.coat_pirate",
+      "name_zh": "船长外套",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 35,
+      "tier": 2,
+      "theme": "pirate",
+      "art": "res://assets/outfits/body/coat_pirate.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 14
+      },
+      "set_id": "pirate"
+    },
+    {
+      "id": "dress_party",
+      "name_key": "outfit.dress_party",
+      "name_zh": "庆典礼服",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 35,
+      "tier": 2,
+      "theme": "party",
+      "art": "res://assets/outfits/body/dress_party.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "party"
+    },
+    {
+      "id": "dress_fairy",
+      "name_key": "outfit.dress_fairy",
+      "name_zh": "花仙子裙",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 55,
+      "tier": 3,
+      "theme": "fairy",
+      "art": "res://assets/outfits/body/dress_fairy.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_stars",
+        "world": "sunny_park",
+        "count": 15
+      },
+      "set_id": "fairy"
+    },
+    {
+      "id": "robe_wizard",
+      "name_key": "outfit.robe_wizard",
+      "name_zh": "魔法长袍",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 55,
+      "tier": 3,
+      "theme": "wizard",
+      "art": "res://assets/outfits/body/robe_wizard.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "badges",
+        "count": 8
+      },
+      "set_id": "wizard"
+    },
+    {
+      "id": "armor_castle",
+      "name_key": "outfit.armor_castle",
+      "name_zh": "城堡胸甲",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 55,
+      "tier": 3,
+      "theme": "castle",
+      "art": "res://assets/outfits/body/armor_castle.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "dark_castle"
+      },
+      "set_id": "castle"
+    },
+    {
+      "id": "suit_space",
+      "name_key": "outfit.suit_space",
+      "name_zh": "太空服",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 55,
+      "tier": 3,
+      "theme": "space",
+      "art": "res://assets/outfits/body/suit_space.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 10
+      },
+      "set_id": "space"
+    },
+    {
+      "id": "dress_rainbow_dream",
+      "name_key": "outfit.dress_rainbow_dream",
+      "name_zh": "彩虹梦裙",
+      "category": "wardrobe",
+      "slot": "body",
+      "price": 55,
+      "tier": 3,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/body/dress_rainbow_dream.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "boss_beaten"
+      },
+      "set_id": "rainbow"
+    },
+    {
+      "id": "cape_star",
+      "name_key": "outfit.cape_star",
+      "name_zh": "星星披风",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 20,
+      "tier": 1,
+      "theme": "basic",
+      "art": "res://assets/outfits/back/cape_star.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "free_gift"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "backpack_park",
+      "name_key": "outfit.backpack_park",
+      "name_zh": "探险背包",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 20,
+      "tier": 1,
+      "theme": "park",
+      "art": "res://assets/outfits/back/backpack_park.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "park"
+    },
+    {
+      "id": "backpack_cloud_balloon",
+      "name_key": "outfit.backpack_cloud_balloon",
+      "name_zh": "云朵气球包",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 20,
+      "tier": 1,
+      "theme": "sky",
+      "art": "res://assets/outfits/back/backpack_cloud_balloon.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "balloon_party",
+      "name_key": "outfit.balloon_party",
+      "name_zh": "生日气球",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 20,
+      "tier": 1,
+      "theme": "party",
+      "art": "res://assets/outfits/back/balloon_party.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "party"
+    },
+    {
+      "id": "backpack_rainbow",
+      "name_key": "outfit.backpack_rainbow",
+      "name_zh": "彩虹背包",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 32,
+      "tier": 2,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/back/backpack_rainbow.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "wings_leaf",
+      "name_key": "outfit.wings_leaf",
+      "name_zh": "树叶之翼",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 32,
+      "tier": 2,
+      "theme": "dino",
+      "art": "res://assets/outfits/back/wings_leaf.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 4
+      },
+      "set_id": "dino"
+    },
+    {
+      "id": "wings_monster",
+      "name_key": "outfit.wings_monster",
+      "name_zh": "怪兽小翼",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 32,
+      "tier": 2,
+      "theme": "monster",
+      "art": "res://assets/outfits/back/wings_monster.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "monster_valley"
+      },
+      "set_id": "monster"
+    },
+    {
+      "id": "satchel_treasure",
+      "name_key": "outfit.satchel_treasure",
+      "name_zh": "藏宝挎包",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 32,
+      "tier": 2,
+      "theme": "pirate",
+      "art": "res://assets/outfits/back/satchel_treasure.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 14
+      },
+      "set_id": "pirate"
+    },
+    {
+      "id": "cape_music",
+      "name_key": "outfit.cape_music",
+      "name_zh": "音乐披风",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 32,
+      "tier": 2,
+      "theme": "wizard",
+      "art": "res://assets/outfits/back/cape_music.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 20
+      },
+      "set_id": "wizard"
+    },
+    {
+      "id": "jetpack_rescue",
+      "name_key": "outfit.jetpack_rescue",
+      "name_zh": "救援喷射包",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 32,
+      "tier": 2,
+      "theme": "rescue",
+      "art": "res://assets/outfits/back/jetpack_rescue.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "night_city"
+      },
+      "set_id": "rescue"
+    },
+    {
+      "id": "wings_sky",
+      "name_key": "outfit.wings_sky",
+      "name_zh": "天空之翼",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 50,
+      "tier": 3,
+      "theme": "sky",
+      "art": "res://assets/outfits/back/wings_sky.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "sky_base"
+      },
+      "set_id": "sky"
+    },
+    {
+      "id": "fan_peacock",
+      "name_key": "outfit.fan_peacock",
+      "name_zh": "孔雀羽扇",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 50,
+      "tier": 3,
+      "theme": "fancy",
+      "art": "res://assets/outfits/back/fan_peacock.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "badges",
+        "count": 12
+      },
+      "set_id": ""
+    },
+    {
+      "id": "wings_butterfly",
+      "name_key": "outfit.wings_butterfly",
+      "name_zh": "蝴蝶之翼",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 50,
+      "tier": 3,
+      "theme": "fairy",
+      "art": "res://assets/outfits/back/wings_butterfly.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_stars",
+        "world": "sunny_park",
+        "count": 15
+      },
+      "set_id": "fairy"
+    },
+    {
+      "id": "cape_castle",
+      "name_key": "outfit.cape_castle",
+      "name_zh": "城堡长披风",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 50,
+      "tier": 3,
+      "theme": "castle",
+      "art": "res://assets/outfits/back/cape_castle.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "dark_castle"
+      },
+      "set_id": "castle"
+    },
+    {
+      "id": "jetpack_rocket",
+      "name_key": "outfit.jetpack_rocket",
+      "name_zh": "火箭背包",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 50,
+      "tier": 3,
+      "theme": "space",
+      "art": "res://assets/outfits/back/jetpack_rocket.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 10
+      },
+      "set_id": "space"
+    },
+    {
+      "id": "cape_rainbow_star",
+      "name_key": "outfit.cape_rainbow_star",
+      "name_zh": "彩虹星披风",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 50,
+      "tier": 3,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/back/cape_rainbow_star.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_stars",
+        "world": "sky_base",
+        "count": 15
+      },
+      "set_id": ""
+    },
+    {
+      "id": "cape_rainbow_dream",
+      "name_key": "outfit.cape_rainbow_dream",
+      "name_zh": "彩虹梦披风",
+      "category": "wardrobe",
+      "slot": "back",
+      "price": 50,
+      "tier": 3,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/back/cape_rainbow_dream.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "boss_beaten"
+      },
+      "set_id": "rainbow"
+    },
+    {
+      "id": "boots_park",
+      "name_key": "outfit.boots_park",
+      "name_zh": "探险短靴",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 18,
+      "tier": 1,
+      "theme": "park",
+      "art": "res://assets/outfits/feet/boots_park.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "park"
+    },
+    {
+      "id": "shoes_soccer",
+      "name_key": "outfit.shoes_soccer",
+      "name_zh": "足球鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 18,
+      "tier": 1,
+      "theme": "sport",
+      "art": "res://assets/outfits/feet/shoes_soccer.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "slippers_cloud",
+      "name_key": "outfit.slippers_cloud",
+      "name_zh": "云朵拖鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 18,
+      "tier": 1,
+      "theme": "cosy",
+      "art": "res://assets/outfits/feet/slippers_cloud.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "wizard"
+    },
+    {
+      "id": "boots_rain_duck",
+      "name_key": "outfit.boots_rain_duck",
+      "name_zh": "小鸭雨靴",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 18,
+      "tier": 1,
+      "theme": "rain",
+      "art": "res://assets/outfits/feet/boots_rain_duck.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "slippers_bunny",
+      "name_key": "outfit.slippers_bunny",
+      "name_zh": "兔子拖鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 18,
+      "tier": 1,
+      "theme": "bunny",
+      "art": "res://assets/outfits/feet/slippers_bunny.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "shoes_party",
+      "name_key": "outfit.shoes_party",
+      "name_zh": "庆典皮鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 28,
+      "tier": 2,
+      "theme": "party",
+      "art": "res://assets/outfits/feet/shoes_party.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "party"
+    },
+    {
+      "id": "boots_bolt",
+      "name_key": "outfit.boots_bolt",
+      "name_zh": "闪电靴",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 28,
+      "tier": 2,
+      "theme": "rescue",
+      "art": "res://assets/outfits/feet/boots_bolt.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "night_city"
+      },
+      "set_id": "rescue"
+    },
+    {
+      "id": "shoes_monster",
+      "name_key": "outfit.shoes_monster",
+      "name_zh": "怪兽脚爪鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 28,
+      "tier": 2,
+      "theme": "monster",
+      "art": "res://assets/outfits/feet/shoes_monster.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "monster_valley"
+      },
+      "set_id": "monster"
+    },
+    {
+      "id": "shoes_dino",
+      "name_key": "outfit.shoes_dino",
+      "name_zh": "恐龙鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 28,
+      "tier": 2,
+      "theme": "dino",
+      "art": "res://assets/outfits/feet/shoes_dino.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 4
+      },
+      "set_id": "dino"
+    },
+    {
+      "id": "boots_pirate",
+      "name_key": "outfit.boots_pirate",
+      "name_zh": "船长靴",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 28,
+      "tier": 2,
+      "theme": "pirate",
+      "art": "res://assets/outfits/feet/boots_pirate.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 14
+      },
+      "set_id": "pirate"
+    },
+    {
+      "id": "skates_rainbow",
+      "name_key": "outfit.skates_rainbow",
+      "name_zh": "彩虹轮滑鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 28,
+      "tier": 2,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/feet/skates_rainbow.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 20
+      },
+      "set_id": ""
+    },
+    {
+      "id": "boots_sky",
+      "name_key": "outfit.boots_sky",
+      "name_zh": "飞行靴",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 28,
+      "tier": 2,
+      "theme": "sky",
+      "art": "res://assets/outfits/feet/boots_sky.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "sky_base"
+      },
+      "set_id": "sky"
+    },
+    {
+      "id": "sneakers_rainbow_star",
+      "name_key": "outfit.sneakers_rainbow_star",
+      "name_zh": "彩虹星球鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 28,
+      "tier": 2,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/feet/sneakers_rainbow_star.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "shoes_fairy_wing",
+      "name_key": "outfit.shoes_fairy_wing",
+      "name_zh": "仙子翅鞋",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 45,
+      "tier": 3,
+      "theme": "fairy",
+      "art": "res://assets/outfits/feet/shoes_fairy_wing.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_stars",
+        "world": "sunny_park",
+        "count": 15
+      },
+      "set_id": "fairy"
+    },
+    {
+      "id": "boots_castle",
+      "name_key": "outfit.boots_castle",
+      "name_zh": "勇者战靴",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 45,
+      "tier": 3,
+      "theme": "castle",
+      "art": "res://assets/outfits/feet/boots_castle.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "dark_castle"
+      },
+      "set_id": "castle"
+    },
+    {
+      "id": "boots_space",
+      "name_key": "outfit.boots_space",
+      "name_zh": "太空靴",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 45,
+      "tier": 3,
+      "theme": "space",
+      "art": "res://assets/outfits/feet/boots_space.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 10
+      },
+      "set_id": "space"
+    },
+    {
+      "id": "boots_rainbow_dream",
+      "name_key": "outfit.boots_rainbow_dream",
+      "name_zh": "彩虹梦靴",
+      "category": "wardrobe",
+      "slot": "feet",
+      "price": 45,
+      "tier": 3,
+      "theme": "rainbow",
+      "art": "res://assets/outfits/feet/boots_rainbow_dream.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "boss_beaten"
+      },
+      "set_id": "rainbow"
+    },
+    {
+      "id": "mittens_cloud",
+      "name_key": "outfit.mittens_cloud",
+      "name_zh": "云朵手套",
+      "category": "wardrobe",
+      "slot": "hands",
+      "price": 15,
+      "tier": 1,
+      "theme": "sky",
+      "art": "res://assets/outfits/hands/mittens_cloud.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "sky"
+    },
+    {
+      "id": "mittens_bunnypaw",
+      "name_key": "outfit.mittens_bunnypaw",
+      "name_zh": "兔掌手套",
+      "category": "wardrobe",
+      "slot": "hands",
+      "price": 15,
+      "tier": 1,
+      "theme": "bunny",
+      "art": "res://assets/outfits/hands/mittens_bunnypaw.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "gloves_leaf",
+      "name_key": "outfit.gloves_leaf",
+      "name_zh": "树叶手套",
+      "category": "wardrobe",
+      "slot": "hands",
+      "price": 15,
+      "tier": 1,
+      "theme": "park",
+      "art": "res://assets/outfits/hands/gloves_leaf.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": "park"
+    },
+    {
+      "id": "gloves_rescue",
+      "name_key": "outfit.gloves_rescue",
+      "name_zh": "救援手套",
+      "category": "wardrobe",
+      "slot": "hands",
+      "price": 24,
+      "tier": 2,
+      "theme": "rescue",
+      "art": "res://assets/outfits/hands/gloves_rescue.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "night_city"
+      },
+      "set_id": "rescue"
+    },
+    {
+      "id": "paws_monster",
+      "name_key": "outfit.paws_monster",
+      "name_zh": "怪兽爪套",
+      "category": "wardrobe",
+      "slot": "hands",
+      "price": 24,
+      "tier": 2,
+      "theme": "monster",
+      "art": "res://assets/outfits/hands/paws_monster.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "monster_valley"
+      },
+      "set_id": "monster"
+    },
+    {
+      "id": "gloves_robot",
+      "name_key": "outfit.gloves_robot",
+      "name_zh": "机械手套",
+      "category": "wardrobe",
+      "slot": "hands",
+      "price": 24,
+      "tier": 2,
+      "theme": "space",
+      "art": "res://assets/outfits/hands/gloves_robot.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 10
+      },
+      "set_id": "space"
+    },
+    {
+      "id": "gauntlets_brave",
+      "name_key": "outfit.gauntlets_brave",
+      "name_zh": "勇者护手",
+      "category": "wardrobe",
+      "slot": "hands",
+      "price": 38,
+      "tier": 3,
+      "theme": "castle",
+      "art": "res://assets/outfits/hands/gauntlets_brave.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "dark_castle"
+      },
+      "set_id": "castle"
+    },
+    {
+      "id": "gloves_magic",
+      "name_key": "outfit.gloves_magic",
+      "name_zh": "魔法手套",
+      "category": "wardrobe",
+      "slot": "hands",
+      "price": 38,
+      "tier": 3,
+      "theme": "wizard",
+      "art": "res://assets/outfits/hands/gloves_magic.png",
+      "character_compatibility": [
+        "tiga",
+        "zero",
+        "light_hero",
+        "grigio",
+        "yullian"
+      ],
+      "unlock_condition": {
+        "type": "badges",
+        "count": 8
+      },
+      "set_id": "wizard"
+    },
+    {
+      "id": "pal_light_orb",
+      "name_key": "outfit.pal_light_orb",
+      "name_zh": "小光球",
+      "category": "pal",
+      "slot": "pal",
+      "price": 65,
+      "tier": 2,
+      "theme": "basic",
+      "art": "res://assets/outfits/pal/pal_light_orb.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 3
+      },
+      "set_id": ""
+    },
+    {
+      "id": "pal_bee",
+      "name_key": "outfit.pal_bee",
+      "name_zh": "小蜜蜂",
+      "category": "pal",
+      "slot": "pal",
+      "price": 65,
+      "tier": 2,
+      "theme": "park",
+      "art": "res://assets/outfits/pal/pal_bee.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "pal_kitten",
+      "name_key": "outfit.pal_kitten",
+      "name_zh": "小猫",
+      "category": "pal",
+      "slot": "pal",
+      "price": 85,
+      "tier": 3,
+      "theme": "cosy",
+      "art": "res://assets/outfits/pal/pal_kitten.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 12
+      },
+      "set_id": ""
+    },
+    {
+      "id": "pal_puppy",
+      "name_key": "outfit.pal_puppy",
+      "name_zh": "小狗",
+      "category": "pal",
+      "slot": "pal",
+      "price": 85,
+      "tier": 3,
+      "theme": "cosy",
+      "art": "res://assets/outfits/pal/pal_puppy.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 12
+      },
+      "set_id": ""
+    },
+    {
+      "id": "pal_fox",
+      "name_key": "outfit.pal_fox",
+      "name_zh": "小狐狸",
+      "category": "pal",
+      "slot": "pal",
+      "price": 85,
+      "tier": 3,
+      "theme": "park",
+      "art": "res://assets/outfits/pal/pal_fox.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "world_stars",
+        "world": "monster_valley",
+        "count": 15
+      },
+      "set_id": ""
+    },
+    {
+      "id": "pal_cloud_bird",
+      "name_key": "outfit.pal_cloud_bird",
+      "name_zh": "云朵鸟",
+      "category": "pal",
+      "slot": "pal",
+      "price": 85,
+      "tier": 3,
+      "theme": "sky",
+      "art": "res://assets/outfits/pal/pal_cloud_bird.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "world_done",
+        "world": "sky_base"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "pal_baby_dragon",
+      "name_key": "outfit.pal_baby_dragon",
+      "name_zh": "小飞龙",
+      "category": "pal",
+      "slot": "pal",
+      "price": 85,
+      "tier": 3,
+      "theme": "dino",
+      "art": "res://assets/outfits/pal/pal_baby_dragon.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "boss_beaten"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "pal_robot",
+      "name_key": "outfit.pal_robot",
+      "name_zh": "小机器人",
+      "category": "pal",
+      "slot": "pal",
+      "price": 85,
+      "tier": 3,
+      "theme": "space",
+      "art": "res://assets/outfits/pal/pal_robot.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "three_stars",
+        "count": 10
+      },
+      "set_id": ""
+    },
+    {
+      "id": "wardrobe_wood",
+      "name_key": "outfit.wardrobe_wood",
+      "name_zh": "木衣柜",
+      "category": "base",
+      "slot": "furniture",
+      "price": 40,
+      "tier": 2,
+      "theme": "room",
+      "art": "res://assets/outfits/furniture/wardrobe_wood.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "wardrobe_star_pink",
+      "name_key": "outfit.wardrobe_star_pink",
+      "name_zh": "星星衣柜",
+      "category": "base",
+      "slot": "furniture",
+      "price": 40,
+      "tier": 2,
+      "theme": "room",
+      "art": "res://assets/outfits/furniture/wardrobe_star_pink.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 10
+      },
+      "set_id": ""
+    },
+    {
+      "id": "mirror_cloud",
+      "name_key": "outfit.mirror_cloud",
+      "name_zh": "云朵镜",
+      "category": "base",
+      "slot": "furniture",
+      "price": 40,
+      "tier": 2,
+      "theme": "room",
+      "art": "res://assets/outfits/furniture/mirror_cloud.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "mirror_heart",
+      "name_key": "outfit.mirror_heart",
+      "name_zh": "爱心镜",
+      "category": "base",
+      "slot": "furniture",
+      "price": 40,
+      "tier": 2,
+      "theme": "room",
+      "art": "res://assets/outfits/furniture/mirror_heart.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 16
+      },
+      "set_id": ""
+    },
+    {
+      "id": "rug_cloud",
+      "name_key": "outfit.rug_cloud",
+      "name_zh": "云朵地毯",
+      "category": "base",
+      "slot": "furniture",
+      "price": 25,
+      "tier": 1,
+      "theme": "room",
+      "art": "res://assets/outfits/furniture/rug_cloud.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "rug_rainbow_cloud",
+      "name_key": "outfit.rug_rainbow_cloud",
+      "name_zh": "彩虹云地毯",
+      "category": "base",
+      "slot": "furniture",
+      "price": 40,
+      "tier": 2,
+      "theme": "room",
+      "art": "res://assets/outfits/furniture/rug_rainbow_cloud.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "badges",
+        "count": 6
+      },
+      "set_id": ""
+    },
+    {
+      "id": "stool_star",
+      "name_key": "outfit.stool_star",
+      "name_zh": "星星凳",
+      "category": "base",
+      "slot": "furniture",
+      "price": 25,
+      "tier": 1,
+      "theme": "room",
+      "art": "res://assets/outfits/furniture/stool_star.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "always"
+      },
+      "set_id": ""
+    },
+    {
+      "id": "stool_moon",
+      "name_key": "outfit.stool_moon",
+      "name_zh": "月亮凳",
+      "category": "base",
+      "slot": "furniture",
+      "price": 40,
+      "tier": 2,
+      "theme": "room",
+      "art": "res://assets/outfits/furniture/stool_moon.png",
+      "character_compatibility": [],
+      "unlock_condition": {
+        "type": "levels_done",
+        "count": 22
+      },
+      "set_id": ""
+    }
+  ],
+  "sets": [
+    {
+      "id": "park",
+      "name_key": "set.park",
+      "name_zh": "公园探险",
+      "pieces": [
+        "cap_sun",
+        "vest_park",
+        "backpack_park",
+        "boots_park",
+        "gloves_leaf"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "rescue",
+      "name_key": "set.rescue",
+      "name_zh": "城市救援",
+      "pieces": [
+        "helmet_rescue",
+        "suit_rescue",
+        "jetpack_rescue",
+        "boots_bolt",
+        "gloves_rescue"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "monster",
+      "name_key": "set.monster",
+      "name_zh": "怪兽朋友",
+      "pieces": [
+        "hood_monster",
+        "tee_monster",
+        "wings_monster",
+        "shoes_monster",
+        "paws_monster"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "sky",
+      "name_key": "set.sky",
+      "name_zh": "天空飞行",
+      "pieces": [
+        "goggles_sky",
+        "jacket_sky",
+        "wings_sky",
+        "boots_sky",
+        "mittens_cloud"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "castle",
+      "name_key": "set.castle",
+      "name_zh": "城堡勇者",
+      "pieces": [
+        "crown_brave",
+        "armor_castle",
+        "cape_castle",
+        "boots_castle",
+        "gauntlets_brave"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "party",
+      "name_key": "set.party",
+      "name_zh": "生日庆典",
+      "pieces": [
+        "crown_party",
+        "dress_party",
+        "balloon_party",
+        "shoes_party"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "rainbow",
+      "name_key": "set.rainbow",
+      "name_zh": "彩虹梦想",
+      "pieces": [
+        "tiara_rainbow",
+        "dress_rainbow_dream",
+        "cape_rainbow_dream",
+        "boots_rainbow_dream"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "space",
+      "name_key": "set.space",
+      "name_zh": "太空旅行",
+      "pieces": [
+        "helmet_space",
+        "suit_space",
+        "jetpack_rocket",
+        "boots_space",
+        "gloves_robot"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "dino",
+      "name_key": "set.dino",
+      "name_zh": "恐龙伙伴",
+      "pieces": [
+        "hood_dino_red",
+        "hoodie_dino",
+        "wings_leaf",
+        "shoes_dino"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "wizard",
+      "name_key": "set.wizard",
+      "name_zh": "小魔法师",
+      "pieces": [
+        "hat_wizard",
+        "robe_wizard",
+        "cape_music",
+        "slippers_cloud",
+        "gloves_magic"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "pirate",
+      "name_key": "set.pirate",
+      "name_zh": "海盗船长",
+      "pieces": [
+        "cap_captain",
+        "coat_pirate",
+        "satchel_treasure",
+        "boots_pirate"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "fairy",
+      "name_key": "set.fairy",
+      "name_zh": "花仙子",
+      "pieces": [
+        "beret_rainbow",
+        "dress_fairy",
+        "wings_butterfly",
+        "shoes_fairy_wing"
+      ],
+      "reward_action": "act_hero"
+    }
+  ]
+}

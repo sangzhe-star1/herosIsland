@@ -1,0 +1,169 @@
+{
+  "sets": [
+    {
+      "id": "park",
+      "name_key": "set.park",
+      "name_zh": "公园探险",
+      "pieces": [
+        "cap_sun",
+        "vest_park",
+        "backpack_park",
+        "boots_park",
+        "gloves_leaf"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "rescue",
+      "name_key": "set.rescue",
+      "name_zh": "城市救援",
+      "pieces": [
+        "helmet_rescue",
+        "suit_rescue",
+        "jetpack_rescue",
+        "boots_bolt",
+        "gloves_rescue"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "monster",
+      "name_key": "set.monster",
+      "name_zh": "怪兽朋友",
+      "pieces": [
+        "hood_monster",
+        "tee_monster",
+        "wings_monster",
+        "shoes_monster",
+        "paws_monster"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "sky",
+      "name_key": "set.sky",
+      "name_zh": "天空飞行",
+      "pieces": [
+        "goggles_sky",
+        "jacket_sky",
+        "wings_sky",
+        "boots_sky",
+        "mittens_cloud"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "castle",
+      "name_key": "set.castle",
+      "name_zh": "城堡勇者",
+      "pieces": [
+        "crown_brave",
+        "armor_castle",
+        "cape_castle",
+        "boots_castle",
+        "gauntlets_brave"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "party",
+      "name_key": "set.party",
+      "name_zh": "生日庆典",
+      "pieces": [
+        "crown_party",
+        "dress_party",
+        "balloon_party",
+        "shoes_party"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "rainbow",
+      "name_key": "set.rainbow",
+      "name_zh": "彩虹梦想",
+      "pieces": [
+        "tiara_rainbow",
+        "dress_rainbow_dream",
+        "cape_rainbow_dream",
+        "boots_rainbow_dream"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "space",
+      "name_key": "set.space",
+      "name_zh": "太空旅行",
+      "pieces": [
+        "helmet_space",
+        "suit_space",
+        "jetpack_rocket",
+        "boots_space",
+        "gloves_robot"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "dino",
+      "name_key": "set.dino",
+      "name_zh": "恐龙伙伴",
+      "pieces": [
+        "hood_dino_red",
+        "hoodie_dino",
+        "wings_leaf",
+        "shoes_dino"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "wizard",
+      "name_key": "set.wizard",
+      "name_zh": "小魔法师",
+      "pieces": [
+        "hat_wizard",
+        "robe_wizard",
+        "cape_music",
+        "slippers_cloud",
+        "gloves_magic"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "pirate",
+      "name_key": "set.pirate",
+      "name_zh": "海盗船长",
+      "pieces": [
+        "cap_captain",
+        "coat_pirate",
+        "satchel_treasure",
+        "boots_pirate"
+      ],
+      "reward_action": "act_hero"
+    },
+    {
+      "id": "fairy",
+      "name_key": "set.fairy",
+      "name_zh": "花仙子",
+      "pieces": [
+        "beret_rainbow",
+        "dress_fairy",
+        "wings_butterfly",
+        "shoes_fairy_wing"
+      ],
+      "reward_action": "act_hero"
+    }
+  ],
+  "daily_pool": [
+    "park",
+    "rescue",
+    "monster",
+    "sky",
+    "castle",
+    "party",
+    "rainbow",
+    "space",
+    "dino",
+    "wizard",
+    "pirate",
+    "fairy"
+  ]
+}

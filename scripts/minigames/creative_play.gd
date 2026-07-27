@@ -55,6 +55,17 @@ func setup_level() -> void:
 
 	build_world(self, 0.30)
 	_canvas = UiKit.play_area(self, true)
+	# Through the CONTROL, not through _unhandled_input.
+	#
+	# The play area is a full-screen Control that catches input, which means it
+	# eats every press and drag before the node ever sees them. On a Mac that
+	# was survivable by accident; with a real finger it meant the one gesture
+	# this whole room is made of -- pick a sticker up and move it -- did
+	# nothing at all. Reported from an iPad: "拖动没响应".
+	#
+	# The other four templates built on play_area() have always used
+	# `gui_input`. This one was the odd one out.
+	_canvas.gui_input.connect(_pointer)
 
 	_build_base()
 	_restore()
@@ -66,7 +77,10 @@ func setup_level() -> void:
 
 func _build_base() -> void:
 	_base = Node2D.new()
-	_base.position = Vector2(640, 470)
+	# Standing ON the floor of whatever screen this is, rather than at y=470 --
+	# which on a taller iPad viewport left the base hanging in mid-air with a
+	# strip of empty ground under it.
+	_base.position = Vector2(640, shelf_y() - 148.0)
 	_canvas.add_child(_base)
 	_paint_base()
 
@@ -146,15 +160,41 @@ func _remember() -> void:
 
 # --- the tray, and dragging out of it ---------------------------------------------
 
+## Where the shelf sits on THIS screen.
+##
+## `stretch/aspect` is "expand", so the viewport is 1280 wide on everything but
+## only 720 tall on a 16:9 Mac -- a 4:3 iPad gets 1280x960. Every y in this
+## file used to be written for 720, which put the shelf a third of the way up
+## an iPad screen with a band of empty room underneath it, and left the
+## "dropped on the shelf means put it away" line at y=600 cutting straight
+## through the middle of the room a child draws in.
+##
+## One number, asked of the real viewport, and the three places that need it
+## all agree.
+const SHELF_H := 92.0
+const SHELF_GAP := 10.0
+
+
+func shelf_y() -> float:
+	var tall: float = get_viewport_rect().size.y
+	return maxf(tall - SHELF_H - SHELF_GAP, 200.0)
+
+
+## Below this line, letting go means "put it back". It has to sit just above
+## the shelf and nowhere near the middle of the screen.
+func _shelf_line() -> float:
+	return shelf_y() - 18.0
+
+
 func _build_tray() -> void:
 	_tray = Control.new()
 	_tray.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_tray.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(_tray)
 	var shelf := Node2D.new()
-	shelf.position = Vector2(0, 618)
+	shelf.position = Vector2(0, shelf_y())
 	_tray.add_child(shelf)
-	Shapes.fill(shelf, Shapes.rounded_rect(Vector2(16, 0), Vector2(1248, 92), 26.0),
+	Shapes.fill(shelf, Shapes.rounded_rect(Vector2(16, 0), Vector2(1248, SHELF_H), 26.0),
 		Color(0.05, 0.10, 0.22, 0.62), 0.0)
 
 	var owned: Array = []
@@ -164,7 +204,7 @@ func _build_tray() -> void:
 			owned.append(name)          # the first eight are always available
 	for i in range(owned.size()):
 		var node := Node2D.new()
-		node.position = Vector2(88.0 + float(i) * 74.0, 664.0)
+		node.position = Vector2(88.0 + float(i) * 74.0, shelf_y() + SHELF_H * 0.5)
 		node.set_meta("icon", str(owned[i]))
 		_tray.add_child(node)
 		var art: Control = UiKit.picture(str(owned[i]), 56)
@@ -174,7 +214,13 @@ func _build_tray() -> void:
 			node.add_child(art)
 
 
+## Kept as a safety net for any event that somehow arrives outside the play
+## area. The real path is _canvas.gui_input, connected in setup_level().
 func _unhandled_input(event: InputEvent) -> void:
+	_pointer(event)
+
+
+func _pointer(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and _touch == -1:
@@ -235,7 +281,7 @@ func _let_go(at: Vector2) -> void:
 	_dragging.z_index = 0
 	# Dropped back on the shelf: put it away. That is the only "delete" in
 	# here, and it is the one gesture a child works out by themselves.
-	if at.y > 600.0:
+	if at.y > _shelf_line():
 		_placed.erase(_drag_spec)
 		_dragging.queue_free()
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")

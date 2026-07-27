@@ -1,44 +1,56 @@
 [
   {
-    "id": "wardrobe",
-    "name_key": "shop.cat.wardrobe",
-    "icon": "tshirt",
+    "id": "who",
+    "name_key": "cat.who",
+    "icon": "shield",
     "order": 1
   },
   {
-    "id": "pal",
-    "name_key": "shop.cat.pal",
-    "icon": "paw",
+    "id": "head",
+    "name_key": "cat.head",
+    "icon": "crown",
     "order": 2
   },
   {
-    "id": "ride",
-    "name_key": "shop.cat.ride",
-    "icon": "board",
+    "id": "body",
+    "name_key": "cat.body",
+    "icon": "tshirt",
     "order": 3
   },
   {
-    "id": "fx",
-    "name_key": "shop.cat.fx",
-    "icon": "spark",
+    "id": "back",
+    "name_key": "cat.back",
+    "icon": "cape_star",
     "order": 4
   },
   {
-    "id": "action",
-    "name_key": "shop.cat.action",
-    "icon": "wave",
+    "id": "hands",
+    "name_key": "cat.hands",
+    "icon": "gloves",
     "order": 5
   },
   {
-    "id": "base",
-    "name_key": "shop.cat.base",
-    "icon": "home",
+    "id": "feet",
+    "name_key": "cat.feet",
+    "icon": "boots",
     "order": 6
   },
   {
-    "id": "keepsake",
-    "name_key": "shop.cat.keepsake",
-    "icon": "picture_book",
+    "id": "colour",
+    "name_key": "cat.colour",
+    "icon": "star",
     "order": 7
+  },
+  {
+    "id": "pal",
+    "name_key": "cat.pal",
+    "icon": "paw",
+    "order": 8
+  },
+  {
+    "id": "set",
+    "name_key": "cat.set",
+    "icon": "sparkle",
+    "order": 9
   }
 ]

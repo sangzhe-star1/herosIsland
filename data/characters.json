@@ -30,6 +30,46 @@
       "skin": "res://resources/skins/bluey.tres",
       "name_key": "character.bluey",
       "unlocked": true
+    },
+    "ember": {
+      "skin": "res://resources/skins/ember.tres",
+      "name_key": "character.ember",
+      "unlocked": true
+    },
+    "tide": {
+      "skin": "res://resources/skins/tide.tres",
+      "name_key": "character.tide",
+      "unlocked": false
+    },
+    "sprout": {
+      "skin": "res://resources/skins/sprout.tres",
+      "name_key": "character.sprout",
+      "unlocked": true
+    },
+    "luna": {
+      "skin": "res://resources/skins/luna.tres",
+      "name_key": "character.luna",
+      "unlocked": false
+    },
+    "coco": {
+      "skin": "res://resources/skins/coco.tres",
+      "name_key": "character.coco",
+      "unlocked": true
+    },
+    "bolt": {
+      "skin": "res://resources/skins/bolt.tres",
+      "name_key": "character.bolt",
+      "unlocked": true
+    },
+    "rainbow": {
+      "skin": "res://resources/skins/rainbow.tres",
+      "name_key": "character.rainbow",
+      "unlocked": false
+    },
+    "pebble": {
+      "skin": "res://resources/skins/pebble.tres",
+      "name_key": "character.pebble",
+      "unlocked": false
     }
   }
 }

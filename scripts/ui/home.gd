@@ -41,7 +41,7 @@ func _ready() -> void:
 	grid.add_child(rewards)
 
 	var house := UiKit.icon_button(I18n.t("home.house"), "house", Palette.PURPLE)
-	house.pressed.connect(func(): SceneManager.goto_scene("res://scenes/house/HeroHouse.tscn"))
+	house.pressed.connect(func(): SceneManager.goto_scene("res://scenes/shop/HeroHouseScreen.tscn"))
 	grid.add_child(house)
 
 	# Press-and-hold, then an arithmetic gate on the next screen.

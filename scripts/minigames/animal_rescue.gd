@@ -283,7 +283,7 @@ func _on_hazard_input(event: InputEvent, hazard: Control) -> void:
 	if not pressed:
 		return
 	_instruction.text = I18n.t("rescue.avoid")
-	AudioManager.play_voice("res://assets/audio/voice/level/try_again.ogg")
+	AudioManager.say("retry")
 	Juice.nudge(hazard)
 	score_mistake()
 
@@ -349,7 +349,7 @@ func _draw_path_segment(from_index: int, to_index: int) -> void:
 
 func _wrong_step(_index: int) -> void:
 	_instruction.text = I18n.t("rescue.not_next")
-	AudioManager.play_voice("res://assets/audio/voice/level/try_again.ogg")
+	AudioManager.say("retry")
 	if _next_step < _steps.size():
 		Juice.nudge(_steps[_next_step], 10.0)
 	score_mistake()
@@ -359,7 +359,7 @@ func _finish_round(goal: Control) -> void:
 	_resolving = true
 	_rounds_done += 1
 	_instruction.text = I18n.t("rescue.found")
-	AudioManager.play_voice("res://assets/audio/voice/level/well_done.ogg")
+	AudioManager.say("praise_1")
 	Juice.burst(_play_area, goal.position + goal.size / 2.0, 26)
 
 	score_correct()

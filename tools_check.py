@@ -1,4 +1,4 @@
-import json, os, re, sys, glob
+import json, os, re, sys, glob, hashlib
 
 root = "."
 errors, warnings = [], []
@@ -18,7 +18,11 @@ tres = glob.glob("resources/**/*.tres", recursive=True)
 OPTIONAL_PREFIXES = ("res://assets/",)
 PLANNED = set(re.findall(r'"(res://scenes/minigames/[^"]+)"',
                          open("scripts/core/game_data.gd").read()))
-for f in gd + tscn + tres + ["project.godot"]:
+# The shell scripts count too. `tests/shots.sh` kept pointing at
+# scenes/house/HeroHouse.tscn for a whole session after that scene was deleted
+# -- nothing complained, because the scanner only ever read .gd/.tscn/.tres,
+# and a screenshot tool that names a scene that is gone just fails at 3am.
+for f in gd + tscn + tres + glob.glob("tests/*.sh") + ["project.godot"]:
     for m in re.finditer(r'res://[A-Za-z0-9_./%-]+', open(f).read()):
         p = m.group(0)
         if p.endswith(('%s.ogg',)) or '%s' in p:
@@ -171,9 +175,16 @@ for f in gd:
 for f in gd:
     src = open(f).read()
     defined = set(re.findall(r'^\s*(?:static\s+)?func\s+(\w+)', src, re.M))
-    for method in re.findall(r'\.connect\(\s*(_\w+)', src):
-        if method not in defined:
-            errors.append(f"{f}: connect() references {method}(), which is not "
+    fields = set(re.findall(r'^\s*(?:@\w+\s+)?var\s+(\w+)', src, re.M))
+    for method in re.findall(r'\.connect\(\s*(_\w+)(\s*\.)?', src):
+        name, is_field = method[0], bool(method[1].strip())
+        # `x.connect(_thing.close)` hands over a METHOD OF ANOTHER OBJECT,
+        # which is a perfectly ordinary thing to do and not a callback this
+        # file has to define. Only a bare `_name` is one.
+        if is_field or name in fields:
+            continue
+        if name not in defined:
+            errors.append(f"{f}: connect() references {name}(), which is not "
                           f"defined in this file")
 
 # --- 3d. Godot's global class cache goes stale.
@@ -516,9 +527,19 @@ if os.path.exists("data/shop_items.json"):
     # The price bands from the brief. A shop where a hat costs more than a ride
     # is one a child cannot reason about.
     BANDS = {
-        "action": (5, 20), "keepsake": (5, 25), "wardrobe": (15, 60),
-        "fx": (25, 50), "base": (25, 70), "pal": (60, 90), "ride": (70, 120),
+        "head": (15, 60), "body": (15, 60), "back": (15, 60),
+        "hands": (10, 60), "feet": (15, 60), "colour": (10, 60),
+        "pal": (40, 90), "action": (5, 20), "keepsake": (5, 25),
+        "wardrobe": (15, 60), "fx": (25, 50), "base": (25, 70),
+        "ride": (70, 120),
+        # A face is free (0) or costs about what a companion does. The ten
+        # free ones are priced 0 deliberately: they are in the item list so
+        # that ONE drawer and ONE purchase flow cover the whole cast.
+        "who": (0, 90),
     }
+    # A drawer built from data rather than from the item list. 整套 shows the
+    # twelve themed outfits, which live in outfit_presets.json.
+    DATA_DRIVEN_CATS = {"set"}
     seen_ids = set()
     for it in shop_items:
         iid = it["id"]
@@ -528,21 +549,39 @@ if os.path.exists("data/shop_items.json"):
         if it["category"] not in cat_ids:
             errors.append(f"shop_items.json: '{iid}' is in category "
                           f"'{it['category']}', which does not exist")
-        # A missing icon is a blank card. Silent, and the child cannot tell
-        # what he is being offered.
-        if it["icon"] not in icon_names:
-            errors.append(f"shop_items.json: '{iid}' wants icon "
-                          f"'{it['icon']}', which IconLibrary cannot draw")
+        # A blank card is silent, and the child cannot tell what he is being
+        # offered. A thing may carry EITHER a painted picture on disk or an
+        # icon IconLibrary can draw -- but it must carry one of them.
+        # A face carries no picture file: item_card draws the real figure from
+        # its skin, which is checked separately below.
+        art = it.get("art", "")
+        if it["category"] == "who":
+            pass
+        elif art:
+            if not os.path.exists(res(art)):
+                errors.append(f"shop_items.json: '{iid}' points at {art}, "
+                              f"which is not on disk")
+        elif it.get("icon", "") not in icon_names:
+            errors.append(f"shop_items.json: '{iid}' has neither a picture "
+                          f"nor an icon IconLibrary can draw")
         lo, hi = BANDS.get(it["category"], (1, 1000))
         if not lo <= it["price"] <= hi:
             errors.append(f"shop_items.json: '{iid}' costs {it['price']}, "
                           f"outside the {lo}-{hi} band for {it['category']}")
         # A garment nobody can wear is a garment nobody should be sold.
-        if it["slot"] and not it["character_compatibility"]:
+        #
+        # Only things worn ON the body, though. A companion walks beside the
+        # hero rather than being painted onto him, so it works for every
+        # character -- including the puppy, who can wear nothing at all and
+        # would otherwise have an empty shop.
+        WORN_ON_BODY = {"head", "body", "back", "hands", "feet", "colour"}
+        if it["slot"] in WORN_ON_BODY and not it["character_compatibility"]:
             errors.append(f"shop_items.json: '{iid}' fills the "
                           f"'{it['slot']}' slot but fits no character")
 
     for cat in shop_cats:
+        if cat["id"] in DATA_DRIVEN_CATS:
+            continue
         if not any(i["category"] == cat["id"] for i in shop_items):
             errors.append(f"shop_categories.json: '{cat['id']}' has no items; "
                           f"it would be a tab that opens onto nothing")
@@ -609,6 +648,221 @@ for path, key, kinds_used in [
         errors.append(f"{os.path.basename(path)}: '{kind}' is implemented but "
                       f"no level uses it -- a child can never see it")
 
+# --- 5j. a data file nobody loads
+#
+# data/monsters.json shipped while the one line that reads it stayed behind on
+# the other machine. The game booted fine, GameData.monsters was empty, and
+# 怪兽图鉴 drew an empty shelf -- the only symptom being "I can't see it".
+# Every file in data/ has to be named in game_data.gd.
+gd_data = open("scripts/core/game_data.gd").read()
+for path in sorted(glob.glob("data/*.json")):
+    if os.path.basename(path) == "strings.json":
+        continue                      # I18n loads this one
+    if f'"res://{path}"' not in gd_data:
+        errors.append(f"{path}: nothing in game_data.gd loads it -- it will "
+                      f"be silently empty at runtime")
+
+# --- 3a3. a screen that catches input may not listen for it somewhere else
+#
+# `UiKit.play_area(self, true)` puts a full-screen MOUSE_FILTER_STOP Control
+# over the level. That Control then EATS every press and drag -- including
+# InputEventScreenTouch and InputEventScreenDrag -- so a node that catches
+# input through `_unhandled_input` never hears a thing.
+#
+# On a desktop that looked survivable, because a tap still reached the Control
+# and most templates only tap. 英雄基地 is made entirely of drags, and it did
+# nothing at all: reported from an iPad as "拖动没响应". Four of the five
+# templates on play_area() had always used gui_input; the fifth was the one
+# that broke.
+for path in glob.glob("scripts/**/*.gd", recursive=True):
+    src = open(path).read()
+    if "play_area(self, true)" not in src and "play_area(self,true)" not in src:
+        continue
+    if "gui_input.connect" in src:
+        continue
+    if re.search(r'^func _(unhandled_)?input\(', src, re.M):
+        errors.append(f"{os.path.basename(path)}: puts a MOUSE_FILTER_STOP "
+                      f"play area over the screen and then listens on "
+                      f"_input/_unhandled_input -- the Control eats the "
+                      f"press, so nothing is ever touchable")
+
+# --- 3a4. the screen is not always 1280x720
+#
+# `stretch/aspect` is "expand", so the viewport is 1280 wide everywhere and
+# 720 tall only on a 16:9 screen. A 4:3 iPad gets 1280x960. Anything that
+# writes 720 (or a y near it) into a drawn layout puts furniture a third of
+# the way up the child's screen -- and any "below this line" rule written as a
+# fixed y ends up slicing through the middle of the play area.
+BOTTOM = [
+    # the y slot of a Vector2, down where the bottom of a 16:9 screen is
+    re.compile(r'Vector2\([^,()]+,\s*(?:6[2-9]\d|7[0-2]\d)(?:\.\d+)?\s*[),]'),
+    # 720 used as "the height of the screen"
+    re.compile(r'(?<![\w.])720(?:\.0)?\s*[-*/]'),
+]
+for path in (glob.glob("scripts/minigames/*.gd") + glob.glob("scripts/adventure/*.gd")
+             + glob.glob("scripts/ui/*.gd") + glob.glob("scripts/shop/*.gd")):
+    src = open(path).read()
+    # The exemption used to be file-wide: one `get_viewport_rect()` anywhere in
+    # the file and the whole thing went unchecked. reward_center.gd measures the
+    # viewport in ONE line and hard-codes the album page's whole layout in the
+    # other 580 -- and that page is where "iPad shows a blank card" lives. A
+    # file that asks the screen how tall it is once has not thereby asked
+    # everywhere. Exempt the FUNCTION that measures, not the file.
+    measured: set = set()
+    current = -1
+    for i, line in enumerate(src.splitlines(), 1):
+        if line.startswith(("func ", "static func ")):
+            current = i
+        if "get_viewport_rect()" in line or "get_visible_rect()" in line:
+            measured.add(current)
+    current = -1
+    for i, line in enumerate(src.splitlines(), 1):
+        if line.startswith(("func ", "static func ")):
+            current = i
+        if line.lstrip().startswith("#"):
+            continue
+        if current in measured:
+            continue      # this function already asks the screen how tall it is
+        if any(rx.search(line) for rx in BOTTOM):
+            warnings.append(f"{os.path.basename(path)}:{i}: a y near the "
+                            f"bottom of a 720-tall screen, hard-coded -- a "
+                            f"4:3 tablet viewport is 960 tall")
+
+# --- 5l. a sound that is not there makes no noise and no error
+#
+# `AudioManager.play_sfx()` on a path that does not exist does exactly nothing
+# -- no warning, no crash, just a button that feels dead. The gift box in
+# 英雄小屋 shipped asking for chest_open.ogg, which had never been generated,
+# and the one moment the whole purchase flow builds up to was silent.
+#
+# res:// checking (rule 1) deliberately skips assets/ because audio and fonts
+# are optional by design. Sound effects are not optional: every one of them is
+# generated by tools/make_audio.py, so a path with no file behind it is a typo
+# or a sound somebody forgot to add to the generator.
+audio_asked = set()
+for path in gd:
+    for m in re.finditer(r'"(res://assets/audio/[a-z0-9_/]+\.ogg)"', open(path).read()):
+        audio_asked.add((m.group(1), os.path.basename(path)))
+for sound, where in sorted(audio_asked):
+    if not os.path.exists(res(sound)):
+        errors.append(f"{where}: asks for {sound}, which is not on disk -- "
+                      f"play_sfx() on a missing file is silent, not an error")
+
+# ...and the same for spoken lines. AudioManager.say() returns whether it
+# actually spoke, so a missing line is survivable -- but it should be in the
+# script for somebody to record, not lost.
+voice_dir = "assets/audio/voice/level"
+script_doc = ""
+if os.path.exists("docs/VOICE_SCRIPT.md"):
+    script_doc = open("docs/VOICE_SCRIPT.md").read()
+for path in gd:
+    for m in re.finditer(r'AudioManager\.say\(\s*"([a-z0-9_]+)"', open(path).read()):
+        line_id = m.group(1)
+        have = any(os.path.exists(os.path.join(voice_dir, line_id + ext))
+                   for ext in (".ogg", ".wav"))
+        if not have and line_id not in script_doc:
+            warnings.append(f"{os.path.basename(path)}: says '{line_id}', which "
+                            f"is neither recorded nor in docs/VOICE_SCRIPT.md")
+
+# --- 5i. every card in the 怪兽图鉴 can actually be earned
+#
+# A collection is a promise: ten slots means ten are gettable. A card nothing
+# in the game ever awards is a slot that stays grey for ever, and a six-year-
+# old cannot tell "not yet" from "never" -- he just keeps looking.
+#
+# It has already gone wrong twice in one week. The six duel bosses recorded
+# nothing at all, so the biggest monsters in the game left no trace in the
+# book; and three of the small ones were only ever fought in dark_castle_04,
+# five worlds after their own island. This is the static half -- the album
+# probe plays it for real -- and it is here because the failure is silent.
+monsters = json.load(open("data/monsters.json"))
+monster_ids = [str(m.get("id", "")) for m in monsters]
+gd_text = "".join(
+    open(os.path.join(r, f)).read()
+    for r, _, fs in os.walk("scripts") for f in fs if f.endswith(".gd"))
+level_text = json.dumps(levels)
+for mid in monster_ids:
+    if f'"{mid}"' not in level_text and f'"{mid}"' not in gd_text:
+        errors.append(f"monsters.json: '{mid}' has a card in the album but "
+                      f"nothing in the game ever awards it -- that slot can "
+                      f"never be filled")
+
+# ...and nothing may fight a monster the album has never heard of, or the card
+# he earns is a card that does not exist. A level names a monster in two
+# places: a duel's config, and a `monsters` list on an adventure section.
+named_in_levels = set()
+for lv in levels:
+    cfg = lv.get("config", {})
+    if cfg.get("monster", {}).get("id"):
+        named_in_levels.add(str(cfg["monster"]["id"]))
+    for sec in cfg.get("sections", []):
+        for mid in sec.get("monsters", []):
+            named_in_levels.add(str(mid))
+        if sec.get("monster"):
+            named_in_levels.add(str(sec["monster"]))
+for mid in sorted(named_in_levels - set(monster_ids)):
+    errors.append(f"levels.json: something fights '{mid}', which is not in "
+                  f"monsters.json")
+
+# --- 5k. every monster has its own picture, and every picture has a monster
+#
+# The creature in the fight, the small foe on a ledge and the card in the book
+# are one drawing loaded from one file. So: a monster with no file falls back
+# to the code-drawn creature and quietly stops matching its own card; a file
+# with no monster is art nobody will ever see; and two identical files are two
+# cards showing the same animal, which is the failure the old hand-drawn set
+# had for months and nobody noticed.
+ART_DIR = "assets/characters/monsters"
+art_files = {os.path.splitext(os.path.basename(p))[0]: p
+             for p in glob.glob(os.path.join(ART_DIR, "*.png"))}
+drawn = []
+for mid in monster_ids:
+    if mid not in art_files:
+        drawn.append(mid)
+for extra in sorted(set(art_files) - set(monster_ids)):
+    errors.append(f"{ART_DIR}/{extra}.png: no monster in monsters.json uses "
+                  f"this picture")
+if drawn and len(drawn) != len(monster_ids):
+    errors.append(f"monsters.json: {', '.join(drawn)} have no picture while "
+                  f"the rest do -- they will come out in the old code-drawn "
+                  f"style and stop matching their own album card")
+
+by_hash = {}
+for mid, path in sorted(art_files.items()):
+    with open(path, "rb") as f:
+        digest = hashlib.sha256(f.read()).hexdigest()
+    if digest in by_hash:
+        errors.append(f"{ART_DIR}: '{mid}.png' is byte-for-byte the same file "
+                      f"as '{by_hash[digest]}.png' -- two cards, one creature")
+    by_hash[digest] = mid
+
+# The hand-drawn builder is still there for any monster without a picture, and
+# these two rules guard it. They only make sense while such a monster exists:
+# with fifteen painted monsters there is nothing to compare, and firing on an
+# empty set would just be noise demanding ears nobody wears.
+if drawn:
+    seen_look = {}
+    for m in monsters:
+        if str(m.get("id")) not in drawn:
+            continue
+        look = (m.get("body_color"), m.get("horns"), m.get("spikes"),
+                m.get("eyes"), round(float(m.get("width", 1.0)), 2))
+        if look in seen_look:
+            errors.append(f"monsters.json: '{m.get('id')}' is drawn exactly "
+                          f"like '{seen_look[look]}' -- two cards, one creature")
+        seen_look[look] = m.get("id")
+
+    mon_src = open("scripts/battle/monster.gd").read()
+    ear_block = re.search(r'func _draw_ears.*?(?=\n\nfunc )', mon_src, re.S)
+    if ear_block:
+        ear_kinds = set(re.findall(r'^\t\t\t"(\w+)":', ear_block.group(0), re.M))
+        ear_kinds.add("none")
+        ears_used = {str(m.get("ears", "round")) for m in monsters
+                     if str(m.get("id")) in drawn}
+        for kind in sorted(ear_kinds - ears_used):
+            errors.append(f"monster.gd: the '{kind}' ear shape is drawn but no "
+                          f"code-drawn monster wears it")
+
 # --- 6. every badge is reachable
 awarded = {lv.get("reward", {}).get("badge", "") for lv in levels}
 for b in sorted(badges - awarded):
@@ -641,6 +895,111 @@ for i, (name, path) in enumerate(autoloads):
         if re.search(r'\b%s\.' % other, ready.group(0)):
             errors.append(f"autoload order: {name}._ready() uses {other}, "
                           f"which loads after it")
+
+# --- 3a5. a sprite with no picture in it
+#
+# Sprite2D.new() gives a node that positions, scales, rotates and reports a
+# perfectly sensible transform while drawing absolutely nothing. The companion
+# on the dressing-room stage was built this way for weeks: the picture was
+# loaded, measured, and used to compute the scale -- and never assigned. It
+# looked like "choosing the puppy does nothing", which is not a phrase anybody
+# would search the drawing code for.
+for path in gd:
+    lines = open(path).read().splitlines()
+    for i, line in enumerate(lines):
+        m = re.search(r'(?:var\s+)?(\w+)\s*(?::=|=|:\s*Sprite2D\s*=)\s*'
+                      r'Sprite2D\.new\(\)', line)
+        if not m:
+            continue
+        name = m.group(1)
+        window = "\n".join(lines[i:i + 16])
+        if not re.search(r'\b%s\.texture\s*=' % re.escape(name), window):
+            errors.append(f"{os.path.relpath(path)}:{i+1}: '{name}' is a "
+                          f"Sprite2D that never gets a texture -- it will "
+                          f"draw nothing at all")
+
+# --- 5m. a face the game cannot draw
+#
+# A skin is data: crest_kind and chest_pattern are strings a .tres hands to
+# HeroArt's match statements. A typo does not crash and does not warn -- the
+# match falls through and the character is simply drawn bald, which nobody
+# notices until a six-year-old asks where the cat ears went. So every value
+# any skin asks for must be an arm HeroArt actually draws, and every arm
+# HeroArt draws should be worn by somebody.
+skins = {}
+for path in sorted(glob.glob("resources/skins/*.tres")):
+    src = open(path).read()
+    skins[os.path.basename(path)[:-5]] = {
+        "crest": (re.search(r'crest_kind\s*=\s*"(\w+)"', src) or [None, ""])[1]
+                 if re.search(r'crest_kind\s*=\s*"(\w+)"', src) else "",
+        "pattern": (re.search(r'chest_pattern\s*=\s*"(\w+)"', src).group(1)
+                    if re.search(r'chest_pattern\s*=\s*"(\w+)"', src) else ""),
+        "renderer": (re.search(r'renderer\s*=\s*"(\w+)"', src).group(1)
+                     if re.search(r'renderer\s*=\s*"(\w+)"', src) else "hero"),
+    }
+hero_art_src = open(res("res://scripts/world/hero_art.gd")).read()
+drawn_arms = match_arms("scripts/world/hero_art.gd")
+# `"blade", _:` is the default arm and match_arms only reads all-quoted labels.
+drawn_arms |= set(re.findall(r'^\s*"(\w+)"\s*,\s*_\s*:\s*$',
+                             hero_art_src, re.M))
+used_crest, used_pattern = set(), set()
+for sid, d in sorted(skins.items()):
+    if d["renderer"] != "hero":
+        continue
+    for key, field in (("crest", "crest_kind"), ("pattern", "chest_pattern")):
+        value = d[key]
+        if value == "":
+            continue          # the .tres omitted it: the export default applies
+        (used_crest if key == "crest" else used_pattern).add(value)
+        if value not in drawn_arms:
+            errors.append(f"{sid}.tres: {field} '{value}' is not something "
+                          f"hero_art.gd draws -- that character renders bare")
+# The enum in character_skin.gd is what an editor offers; it must not promise
+# a shape the drawing does not have.
+skin_script = open(res("res://scripts/skin/character_skin.gd")).read()
+for field in ("crest_kind", "chest_pattern"):
+    m = re.search(r'@export_enum\(([^)]*)\)\s*(?:\n)?var %s' % field, skin_script)
+    if not m:
+        continue
+    for value in re.findall(r'"(\w+)"', m.group(1)):
+        if value not in drawn_arms:
+            errors.append(f"character_skin.gd: {field} offers '{value}', "
+                          f"which hero_art.gd cannot draw")
+        elif value not in (used_crest if field == "crest_kind" else used_pattern):
+            warnings.append(f"{field} '{value}' is drawn but no character "
+                            f"wears it")
+
+# --- 5n. the cast holds together
+#
+# Fourteen faces across three files: characters.json says who exists,
+# strings.json names them, resources/skins holds the design, and shop_items
+# carries the four that cost stars. A face missing from any one of them is a
+# blank card, an empty name, or a character who can never be chosen.
+cast = json.load(open("data/characters.json"))["characters"]
+who_items = {i["id"]: i for i in shop_items if i["category"] == "who"}
+for cid, meta in sorted(cast.items()):
+    skin_path = res(meta.get("skin", ""))
+    if not os.path.exists(skin_path):
+        errors.append(f"characters.json: '{cid}' points at {meta.get('skin')}, "
+                      f"which is not on disk")
+    for locale in ("zh", "en"):
+        if meta.get("name_key", "") not in strings.get(locale, {}):
+            errors.append(f"strings.json: no {locale} name for character '{cid}'")
+    if "who_" + cid not in who_items:
+        errors.append(f"shop_items.json: character '{cid}' has no card in the "
+                      f"形象 drawer, so he can never be chosen")
+for iid, entry in sorted(who_items.items()):
+    cid = entry.get("character_id", "")
+    if cid not in cast:
+        errors.append(f"shop_items.json: '{iid}' is a card for character "
+                      f"'{cid}', who is not in characters.json")
+    free = bool(cast.get(cid, {}).get("unlocked", False))
+    if free and entry["price"] != 0:
+        errors.append(f"shop_items.json: '{iid}' is free from the start but "
+                      f"is priced at {entry['price']}")
+    if not free and entry["price"] <= 0:
+        errors.append(f"shop_items.json: '{iid}' costs nothing but is not "
+                      f"unlocked, so nothing can ever hand it over")
 
 print("=" * 60)
 print(f"scripts: {len(gd)}   scenes: {len(tscn)}   levels: {len(levels)}")

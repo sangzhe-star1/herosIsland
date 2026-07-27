@@ -1,5 +1,168 @@
 # Changelog
 
+## 英雄小屋 变成了换装屋 — 26 July 2026
+
+98 张素材接进来了，旧的配置页没了。
+
+**两套衣柜合成一套。** 英雄小屋用 `rewards.outfits` + `profile.outfit`，槽位叫
+hat/face/suit/back/colour；星光礼物屋用 `data.shop`，槽位叫
+head/body/back/hands/feet，规则全写好了但**没有任何 UI 在调**。`back` 是唯一
+撞名的槽位，装的还是不同的东西。现在一套：`data.shop` 的结构胜出，旧的 17 件
+按 id 对照表迁过去。**探针造一个旧存档跑迁移，四件进四件出，一件不丢，而且跑
+两次不会翻倍**——上周怪兽换 id 就是这个坑。
+
+**每个英雄记住自己的衣服。** `profile.outfit` 以前是全局的：给迪迦戴上王冠，
+切到赛罗，赛罗也戴着。对孩子来说那是"只有一个人换了皮肤"。现在
+`data.shop.worn` 按角色分，五个英雄可以打扮成五个完全不同的样子。买是共享的
+——衣服属于孩子，不属于某一个英雄。
+
+**衣服挂在骨头上。** `hero_art.gd` 的节点树本来就在跟着姿势动，所以把 PNG 精灵
+挂进 `_head`/`_torso`/`_leg_front`，衣服自动跟着走路、跳跃、转圈、欢呼——
+**动画代码一行没写**。这是全案最大的技术风险，动手前先做了一次性验证，四个姿势
+都对了才开始写正式代码。验证过程挖出两件事：成对的鞋和手套必须从中线切开（不切
+就是一只脚四只靴子），素材是按图标比例画的（直接挂上去帽子比人还大）——都不用
+重画，每件三个数字，在 `data/character_slots.json`。
+
+**帽子不再削掉头冠。** 迪迦的鳍从救援头盔顶上露出来，看着像故意设计的。
+而且写了 `tools/fit_head_pieces.py`：把眼睛的位置投影进每张帽子图里读 alpha，
+**挡住眼睛就自动往上抬**。17 顶里 4 顶被抬了（太空头盔抬了 18 个单位，恐龙兜帽
+12 个）——这类问题眼睛看得见，但看 17 遍看不准。
+
+**92 件商品，98 张素材一张不剩。** 一开始能买 31 件，**60 件是玩出来的**
+（打通世界 20、累计通关 14、三星关卡 10、徽章 6、世界星章 5、打赢 Boss 5），
+1 件是第一次进来免费送的星星披风。12 套主题，从公园探险 ⭐93 到城堡勇者 ⭐236，
+正对着关卡顺序。
+
+**试穿永远免费。** `preview_outfit()` 一个字节都不碰存档。探针连试 30 件，
+星星币和拥有列表纹丝不动——而且它还检查"预览真的把帽子挂上去了"，否则整个测试
+测的是空气。
+
+**六种状态，全部画出来。** 未解锁是**真实剪影加图形化的解锁条件**（三颗星、
+世界图标、徽章、旗子加数字），不是问号；穿戴中是整圈金框加勾；不兼容显示
+「换个英雄试试」。状态不缓存，每次重新问——留一张过期的查找表是这个月栽过
+四次的坑。
+
+**小狗有出路了。** bluey 用另一套渲染器，永远穿不了任何衣服，但以前商品照样
+卖给它。现在选中它，衣柜整片换成一张卡片「小狗不用穿衣服，它有毛！不过它可以有
+玩具伙伴 →」，一按就跳到伙伴分类。伙伴站在旁边而不是穿在身上，所以小狗完全可以有。
+
+**买东西要按两次，五秒内能反悔。** 点卡片先免费试穿，试完才问「喜欢吗？」；
+确认卡只有三个数字（现在有 / 要花 / 还剩）；买完礼物盒六帧开箱，然后「放回去」
+停留五秒，全额退款。星星不够时没有红色、没有叉，一句温和的话加三个大按钮
+（去闯关 / 放进愿望盒 / 继续看看）。
+
+**新 `HeroHouseProbe`，跑你列的 17 条**：试穿不扣费、买了扣对、重复购买被拦、
+未解锁买不了、撤销全额退、一槽一件、跨槽不打架、小狗穿不上、每个英雄各自的衣服、
+魔法搭配 200 次没出现过没买的东西、撤销 5 步逐步正确、保存的搭配退出重进还在、
+两种分辨率下角色占展示区 68-72% 且没有东西出界。
+
+**顺手修的两件**：`Shapes.lit` 的高光按形状**尺度**偏移，画在 540px 长条上就是
+54px 的位移，高光飘到条子上面变成第二根柱子——长条要用 `fill`。还有探针的顺序
+依赖：商店探针单独跑过、在套件里挂，因为前一个探针在磁盘存档里留下了"当前角色是
+小狗"。两个探针都改成显式设置自己需要的状态，并且**故意把存档写成小狗验证过修好了**。
+
+
+## 十五只画出来的怪兽 — 26 July 2026
+
+第二版素材包接进来了。图鉴、决斗、冒险关里的小怪，现在是同一张画。
+
+**第一版一张都用不了，问题不在画。** 15 张 512×512 的成品卡，边框和名牌烤进
+图里，背景是蓝灰渐变加发光——自动抠图 15 张失败 10 张，剩下 5 张带毛边。所以
+先写了 `docs/MONSTER_ART_PROMPTS.md`（五条硬要求：纯绿平背景、无边框无文字、
+全身站姿脚在下缘、1024 见方、15 只统一比例）和 `tools/check_monster_art.py`
+（逐张验收，说清哪张差在哪）。第二版 15 张全过。
+
+**抠图不是"留最大连通块"。** 第一版脚本那么干，缩略图看着完美——放大才发现
+两腿之间、腋下那些封闭的绿色被"填洞"填成了怪兽的一部分。绿幕上看不见，贴到
+游戏的天空上就是腋下一扇绿窗。`tools/cut_monsters.py` 是真正的色度键：绿就是
+背景，封不封闭都一样，边缘按色度算半透明，再把渗进边缘的绿抽掉。15 张残留绿点
+全部为 0。8.6 MB 压到 1.4 MB。
+
+**一张图，三个地方用。** `scripts/reward/monster_art.gd` 是唯一加载点，决斗里
+的 Boss、冒险关里巡逻的小怪、图鉴里的卡片都从这里取——这就是图鉴的意义。它也
+顶住了这个项目栽过一次的 .import 陷阱：`load()` 返回 null 时直接读磁盘上的 PNG。
+
+**「是谁」和「怎么打」分开了。** 冒险关的小怪以前只有 `kinds`，值是
+walker / spitter / armoured——那是三种**行为**。它同时被当成图鉴 id 用，所以
+图鉴前三张卡的名字就是三个行为的名字。现在 `kinds` 管行为，`monsters` 管是谁。
+
+**世界分布从 1/2/3/4/5 改成 3/3/3/3/3。** 素材包里阳光公园只有一只，孩子头六关
+只能收到一张卡；天空基地挤了五只。每个世界现在是"两只小的 + 一只 Boss"，难度
+也一路往上排。
+
+**图鉴卡可以点开了。** 素材包给了每只的属性、技能、弱点和一句话介绍，126 px 的
+卡放不下——点一下开一页大的：画像、属性·产地、会用的招、怎么赢、一段介绍。
+
+**Boss 的大小阶梯修好了。** 高度以前是"怪兽自己的高 × 关卡的 scale"，各自有了
+高度以后就乱了；现在 scale 只表示"比别人大多少"，像素在一处算。六场决斗
+304 → 334 → 319 → 354 → 389 → 440 px，最后一战最大。
+
+**旧存档不会丢卡。** 十只手绘怪兽的 id 全部作废了，而 id 对不上就是卡片凭空
+消失——孩子不知道游戏被重做了，他只知道自己打赢的那只不见了。`save_manager`
+里有一张改名表，按"同一个世界、同一个位置"把旧卡换成新卡。
+
+**探针和静态检查跟上了**：`AlbumProbe` 现在验 15 只、每只都能在不同关卡first
+拿到、15 张图真的能解码（不是"文件在不在"）、每张卡的名字/产地/技能/弱点/介绍
+都有文案。`tools_check.py` 新增：每只怪兽必须有图、每张图必须有主人、两张图不
+能字节相同、关卡不能打图鉴里没有的怪兽；手绘那套"长得不一样""耳朵形状没人用"
+的规则只在还有手绘怪兽时才生效。
+
+
+## 怪兽图鉴 — 26 July 2026
+
+He beats a monster; the monster goes in the book. Ten of them, and the book
+tells him which ones are still out there.
+
+**The six bosses were one creature.** The monster builder takes colours,
+horns, spikes, eye count, proportions and a tail. Every duel level passed it
+`{"scale": 1.15}` and nothing else -- so every boss on the island was the same
+purple monster at six different sizes. The kaiju designer was written months
+ago; nobody had ever filled in the form. `data/monsters.json` is that form,
+filled in ten times, and it is now the ONE source for what a monster looks
+like: the creature in the fight, the card in the book and the little face on
+the health bar are all built from the same entry and cannot drift apart.
+
+**The album was unfillable.** There was already a shelf of four silhouettes,
+filled by the adventure levels. The duels recorded nothing at all -- so the
+six fights a child actually tells you about left no trace. And the shelf drew
+every card with the same generic monster icon in four tints, so the thing he
+beat and the card he collected were two different drawings and only one of
+them was his. Cards now draw the real creature.
+
+**Three small monsters lived five worlds from home.** `walker`, `spitter` and
+`armoured` were only ever fought in `dark_castle_04`, at the far end of the
+game. They have their own islands now: sunny_park_05, night_city_04,
+monster_valley_04.
+
+**Ten creatures, one outline.** Every monster wore the same two big round
+ears, which is the largest shape on the head -- ten colours of one animal.
+Ears come from the data now (round / pointed / small / long / fin / none),
+all six shapes in use, and horns and spikes were moved outside the body
+silhouette where they can actually be seen. That is what makes the grey
+not-yet-met cards readable as ten different promises rather than ten smudges.
+
+**The final boss did not fit on the screen.** A level's `scale` used to
+multiply the monster's own height, which was safe while every monster was 300
+px tall and stopped being safe the moment they each got a size: 1.4 x 370 put
+660 px of creature on a 720 px screen, head off the top, health bar across
+its eyes. `scale` now means *how big compared to the others* and the pixels
+are worked out in one place, capped so only the last boss touches the ceiling.
+
+**Album cards had their captions on the hillside.** The names sat below the
+card, which on the bottom row meant pale blue text over green scenery. The
+card is one white panel now and the writing lives inside it.
+
+**New `AlbumProbe`, in the smoke suite**, asking the only question that
+matters about a collection: can every card actually be earned by playing?
+(All ten, each first reachable in a different level.) Plus: ten distinct
+looks, beating the same monster twice does not hand out the card twice, and
+the whole book is finishable. `DuelLengthProbe` now also measures whether
+each boss fits on the screen -- a screenshot only catches the duel somebody
+happens to look at, and there are six. `tools_check.py` gained three rules:
+no card the game never awards, no monster drawn exactly like another, and no
+ear shape the builder can draw that nobody wears.
+
+
 ## The island speaks — 26 July 2026
 
 Forty-four recorded lines arrived and the game uses them.

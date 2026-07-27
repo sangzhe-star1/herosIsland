@@ -134,6 +134,18 @@
           "kind": "checkpoint"
         },
         {
+          "kind": "foes",
+          "count": 2,
+          "kinds": [
+            "walker",
+            "spitter"
+          ],
+          "monsters": [
+            "stone_cub",
+            "twin_horn"
+          ]
+        },
+        {
           "kind": "crate"
         },
         {
@@ -169,6 +181,7 @@
       "ult_needed": 5,
       "goo_interval": 6.5,
       "monster": {
+        "id": "red_wing",
         "scale": 1.05
       },
       "instruction_key": "duel.instruction"
@@ -271,6 +284,18 @@
           "kind": "checkpoint"
         },
         {
+          "kind": "foes",
+          "count": 2,
+          "kinds": [
+            "walker",
+            "spitter"
+          ],
+          "monsters": [
+            "moon_lizard",
+            "drill_armor"
+          ]
+        },
+        {
           "kind": "crate_shelf"
         },
         {
@@ -319,6 +344,7 @@
       "ult_needed": 6,
       "goo_interval": 5.5,
       "monster": {
+        "id": "steel_spine",
         "scale": 1.15
       },
       "instruction_key": "duel.instruction"
@@ -424,6 +450,7 @@
       "ult_needed": 6,
       "goo_interval": 4.6,
       "monster": {
+        "id": "sand_fist",
         "scale": 1.1
       },
       "instruction_key": "duel.instruction"
@@ -465,6 +492,17 @@
         },
         {
           "kind": "checkpoint"
+        },
+        {
+          "kind": "foes",
+          "count": 2,
+          "kinds": [
+            "spitter",
+            "armoured"
+          ],
+          "monsters": [
+            "rock_horn"
+          ]
         },
         {
           "kind": "seq_plates",
@@ -519,7 +557,8 @@
       "goo_interval": 4.4,
       "roar_interval": 9.0,
       "monster": {
-        "scale": 1.28
+        "id": "crystal_armor",
+        "scale": 1.22
       },
       "instruction_key": "duel.instruction"
     }
@@ -642,6 +681,18 @@
           "gate_gap": 260
         },
         {
+          "kind": "foes",
+          "count": 2,
+          "kinds": [
+            "walker",
+            "spitter"
+          ],
+          "monsters": [
+            "light_bug",
+            "blue_wing_armor"
+          ]
+        },
+        {
           "kind": "crate_shelf"
         },
         {
@@ -672,7 +723,8 @@
       "goo_interval": 4.2,
       "roar_interval": 8.5,
       "monster": {
-        "scale": 1.22
+        "id": "thunder_wyvern",
+        "scale": 1.34
       },
       "instruction_key": "duel.instruction"
     }
@@ -721,6 +773,16 @@
         {
           "kind": "fire",
           "count": 2
+        },
+        {
+          "kind": "foes",
+          "count": 1,
+          "kinds": [
+            "walker"
+          ],
+          "monsters": [
+            "flame_tail"
+          ]
         },
         {
           "kind": "switch",
@@ -839,6 +901,9 @@
             "walker",
             "spitter",
             "armoured"
+          ],
+          "monsters": [
+            "flame_tail"
           ]
         },
         {
@@ -848,7 +913,8 @@
           "kind": "checkpoint"
         },
         {
-          "kind": "boss"
+          "kind": "boss",
+          "monster": "blaze_claw"
         },
         {
           "kind": "chest"
@@ -897,7 +963,8 @@
       "goo_interval": 4.0,
       "roar_interval": 7.5,
       "monster": {
-        "scale": 1.4
+        "id": "shadow_wing",
+        "scale": 1.52
       },
       "instruction_key": "duel.instruction"
     }

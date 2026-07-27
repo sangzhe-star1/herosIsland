@@ -8,6 +8,26 @@ the bottom of this page and *look*.
 
 ---
 
+## 0. The companion
+
+The puppy (or bee, or dragon) in the `pal` slot hangs off `SkinnedCharacter`,
+not off the dressing-room stage — so every screen that puts a hero on it gets
+the companion for free, and there is one place where "does he come along?" is
+answered. He is scenery: no collision, no input, `z_index -1` so he never
+covers what the child is trying to tap, and `show_pal = false` on the 100 px
+card portraits and the row of faces, where a hero and a puppy in that space
+shows neither.
+
+He trails. The offset flips to whichever side the hero is *not* walking
+towards and lerps across, which reads as following without a single line of
+path-finding. The travel signal is `position.x` plus the mover's
+`position.x` — deliberately NOT `global_position`, because the adventure
+levels have no camera and scroll by sliding the whole world sideways, so a
+companion reading global x thinks the hero is standing still. The minigames do
+the opposite and move the figure itself. Adding the two covers both.
+
+---
+
 ## 1. The figure
 
 **Proportions: chibi, ~2.2 heads.** The second pass used heroic
@@ -61,8 +81,8 @@ looking, all violated by the first pass):
 | Field | What it changes |
 |---|---|
 | `build_width` | the whole figure's bulk, one number |
-| `crest_kind` | `fin` (dorsal blade) / `twin` (paired sweeps) / `horns` (broad side blades) / `tiara` (gold band, three points, a gem) — the silhouette from across the room |
-| `chest_pattern` | `blade` / `chevron` / `bands` |
+| `crest_kind` | ten shapes — `fin` (dorsal blade) / `twin` (paired sweeps) / `horns` (broad side blades) / `tiara` (gold band, three points, a gem) / `ears` (cat ears, sat on the skull so a hat still fits) / `star_crest` (a star on a short stalk) / `antenna` (two lit beads, the only crest that uses `core_color`) / `ponytail` (fringe plus a tail beside the head) / `bun` (hair dome and a tie) / `unicorn` (one spiral horn, the tallest of the set) — the silhouette from across the room |
+| `chest_pattern` | `blade` / `chevron` / `bands` / `star` / `heart` / `ring`. The last three are drawn AROUND the chest core rather than on the upper chest: the chin covers the torso above −108, the core plate and its halo own the middle, and the arms cover past x 20. Two earlier cuts of these three rendered invisible for exactly that reason. |
 | `lashes` | three strokes off each eye's outer rim, warmer blush, rosier mouth — the feminine read at chibi scale; the eyes stay as big as everyone's |
 | `body_color` | the suit |
 | `accent_color` | sweeps, caps, gauntlets, boots, crest |
@@ -70,11 +90,32 @@ looking, all violated by the first pass):
 | `eye_color` | the lamps |
 | `core_color` | the chest light — gameplay recolours this |
 
-Ships with five: `light_hero` (twin / bands / red-gold), `tiga`-like
-(fin / chevron / crimson-purple), `zero`-like (horns / blade / blue-red),
-and two heroines added by request from the playtester's father --
-`grigio`-like (twin / chevron / rose-silver, lashes) and `yullian`-like
-(tiara / bands / red-gold, lashes). A sixth hero is a new `.tres`, no code.
+Ships with fourteen faces. Five from the first pass: `light_hero`
+(twin / bands / red-gold), `tiga`-like (fin / chevron / crimson-purple),
+`zero`-like (horns / blade / blue-red), and two heroines added by request from
+the playtester's father -- `grigio`-like (twin / chevron / rose-silver, lashes)
+and `yullian`-like (tiara / bands / red-gold, lashes). `bluey` is drawn by the
+puppy renderer instead and is never dressed.
+
+Eight originals were added when the six new crests went in, each one a
+different outline so a row of thumbnails has no two alike:
+
+| id | 名字 | crest / pattern | build | reads as |
+|---|---|---|---|---|
+| `ember` | 小火苗 | star_crest / star | 74 | warm orange, the cheerful one |
+| `tide` | 浪花 | fin / ring | 76 | deep blue, the calm one |
+| `sprout` | 小芽 | ears / heart | 68 | green cat ears, the small one |
+| `luna` | 月亮 | bun / ring | 68 | violet, lashes, the quiet one |
+| `coco` | 可可 | ponytail / heart | 70 | brown hair, lashes, the friendly one |
+| `bolt` | 闪电 | antenna / bands | 78 | yellow and navy, the fast one |
+| `rainbow` | 小彩虹 | unicorn / star | 68 | pink, lashes, the tallest crest |
+| `pebble` | 小石头 | horns / chevron | 86 | stone and ochre, the heavy one |
+
+Four of the eight -- `tide` (60), `luna` (70), `rainbow` (80), `pebble` (60) --
+are bought with 星星币 through the ordinary try-on-then-decide flow. The rest
+are free from the first minute. A fifteenth hero is a new `.tres`, a line in
+`characters.json`, a `who_` row in `shop_items.json` and two names in
+`strings.json` -- and `tools_check.py` rule 5n fails until all four exist.
 
 ---
 

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/skin/character_skin.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rainbow"
+display_name_key = "character.rainbow"
+build_width = 68.0
+crest_kind = "unicorn"
+chest_pattern = "star"
+lashes = true
+body_color = Color(1, 0.95, 0.98, 1)
+accent_color = Color(0.92, 0.4, 0.62, 1)
+trim_color = Color(1, 0.84, 0.35, 1)
+eye_color = Color(1, 0.8, 0.9, 1)
+core_color = Color(0.7, 0.9, 1, 1)
+body_size = Vector2(64, 96)

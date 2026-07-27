@@ -13,79 +13,223 @@ extends Control
 ## that there are four and they have two, without being able to count or read.
 ## It is also the only thing in this game that says "there is more" -- and it
 ## says it without a shop, a timer or a locked box.
-const ALBUM := [
-	{"id": "walker", "icon": "monster", "tint": "#95919c",
-		"name": "monster.walker"},
-	{"id": "spitter", "icon": "goo", "tint": "#8cd26b",
-		"name": "monster.spitter"},
-	{"id": "armoured", "icon": "rock", "tint": "#7f8496",
-		"name": "monster.armoured"},
-	{"id": "rock_giant", "icon": "monster", "tint": "#b0a6c9",
-		"name": "monster.rock_giant"},
-]
+const Album := preload("res://scripts/reward/monster_album.gd")
 
 
+
+## 怪兽图鉴 -- a card for every monster on the island.
+##
+## Each card draws the REAL creature, at the size a card can hold, from the
+## same data the duel builds it from. A generic "monster" icon in four tints
+## was what stood here before, which meant the thing he beat and the thing he
+## collected were two different drawings and only one of them was his.
+##
+## Unmet monsters keep their true silhouette, dark, with no question mark: the
+## shape is the promise. A question mark tells a child nothing except that
+## something is being withheld.
 func _album_shelf() -> Control:
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 8)
 
-	var met := 0
-	for entry in ALBUM:
-		if SaveManager.has_met(str(entry["id"])):
-			met += 1
 	var heading := UiKit.title("%s   %d / %d" % [
-		I18n.t("album.title"), met, ALBUM.size()], 32)
-	heading.add_theme_color_override("font_color", Color(0.86, 0.92, 1.0))
+		I18n.t("album.title"), Album.met_count(), Album.total()], 32)
+	heading.add_theme_color_override("font_color", Color(0.16, 0.26, 0.42))
 	box.add_child(heading)
 
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 20)
-	for entry in ALBUM:
-		var known: bool = SaveManager.has_met(str(entry["id"]))
-		var tile := VBoxContainer.new()
-		tile.add_theme_constant_override("separation", 2)
-
-		var face := Control.new()
-		face.custom_minimum_size = Vector2(112, 112)
-		face.pivot_offset = Vector2(56, 56)
-		var pad := Node2D.new()
-		face.add_child(pad)
-		Shapes.fill(pad, Shapes.rounded_rect(Vector2(2, 2), Vector2(108, 108), 26.0),
-			Color(0.05, 0.09, 0.20, 0.55), 0.0)
-		var art: Control = UiKit.picture(str(entry["icon"]), 74)
-		if art != null:
-			art.position = Vector2(19, 19)
-			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			if known:
-				art.modulate = Color.from_string(str(entry["tint"]), Color.WHITE)
-			else:
-				# A silhouette, not a blank: the shape is a promise.
-				art.modulate = Color(0.16, 0.19, 0.30)
-			face.add_child(art)
-		if not known:
-			var mark := Label.new()
-			mark.text = "?"
-			mark.add_theme_font_size_override("font_size", 46)
-			mark.add_theme_color_override("font_color", Color(0.55, 0.62, 0.80))
-			mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			mark.position = Vector2(0, 30)
-			mark.size = Vector2(112, 52)
-			mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			face.add_child(mark)
-		tile.add_child(face)
-
-		var name_label := Label.new()
-		name_label.text = I18n.t(str(entry["name"])) if known else "???"
-		name_label.add_theme_font_size_override("font_size", 22)
-		name_label.add_theme_color_override("font_color",
-			Color(0.92, 0.96, 1.0) if known else Color(0.52, 0.58, 0.72))
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_label.custom_minimum_size = Vector2(112, 0)
-		tile.add_child(name_label)
-		row.add_child(tile)
-	box.add_child(row)
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 14)
+	grid.add_theme_constant_override("v_separation", 12)
+	for entry in Album.all():
+		grid.add_child(_album_card(entry))
+	var centre := HBoxContainer.new()
+	centre.alignment = BoxContainer.ALIGNMENT_CENTER
+	centre.add_child(grid)
+	box.add_child(centre)
 	return box
+
+
+## The card is ONE white panel, and the writing lives INSIDE it.
+##
+## It used to be a picture panel with two loose labels hanging underneath, and
+## on the bottom row those labels came to rest on the hills and bushes of the
+## background -- pale blue text on a green hillside, which a six-year-old
+## cannot read at all. A caption that is not on the card is not on anything.
+const CARD := Vector2(126, 192)
+## Everything above this line is picture; everything below it is writing.
+const CARD_ART := 130.0
+## The page that opens when he taps a card he has earned.
+const PAGE := Vector2(880, 460)
+
+
+func _album_card(entry: Dictionary) -> Control:
+	var known: bool = Album.met(str(entry.get("id", "")))
+	var face := Control.new()
+	face.custom_minimum_size = CARD
+	face.clip_contents = true
+
+	var pad := Node2D.new()
+	face.add_child(pad)
+	# A soft drop shadow, then the panel: the same white card the rest of this
+	# screen is made of, so the album belongs to the page instead of sitting on
+	# top of it.
+	Shapes.fill(pad, Shapes.rounded_rect(Vector2(3, 6), CARD - Vector2(6, 6), 22.0),
+		Color(0.20, 0.28, 0.42, 0.20), 0.0)
+	Shapes.fill(pad, Shapes.rounded_rect(Vector2(2, 2), CARD - Vector2(6, 8), 22.0),
+		Color(1.0, 1.0, 1.0, 0.96) if known else Color(0.90, 0.93, 0.97, 0.94),
+		0.0)
+
+	# The creature itself, built by the same script the duel uses and scaled
+	# down to fit the card. Standing on the card's floor, not floating.
+	face.add_child(_beast(entry, known, CARD.x * 0.5, CARD_ART - 6.0,
+		CARD_ART - 22.0))
+
+	var name_label := Label.new()
+	name_label.text = I18n.t(str(entry.get("name_key", ""))) if known else "???"
+	name_label.add_theme_font_size_override("font_size", 21)
+	name_label.add_theme_color_override("font_color",
+		Color(0.16, 0.22, 0.34) if known else Color(0.55, 0.60, 0.70))
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.position = Vector2(0, CARD_ART)
+	name_label.size = Vector2(CARD.x, 28)
+	face.add_child(name_label)
+
+	# Where he met it -- which is the part that turns a list into a memory.
+	var where := Label.new()
+	where.text = I18n.t(str(entry.get("where_key", ""))) if known \
+		else I18n.t("album.not_yet")
+	where.add_theme_font_size_override("font_size", 16)
+	where.add_theme_color_override("font_color",
+		Color(0.38, 0.50, 0.68) if known else Color(0.62, 0.67, 0.76))
+	where.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	where.position = Vector2(2, CARD_ART + 30.0)
+	where.size = Vector2(CARD.x - 4, 26)
+	face.add_child(where)
+
+	# Tapping a card he has earned opens the page about it. The catalogue knows
+	# each monster's move, its weakness and a sentence about how it behaves,
+	# and none of that fits on a 126 px card -- but it is the part that turns a
+	# shelf of stickers into a book worth opening twice.
+	if known:
+		var hit := Button.new()
+		hit.flat = true
+		hit.focus_mode = Control.FOCUS_NONE
+		hit.position = Vector2.ZERO
+		hit.size = CARD
+		hit.pressed.connect(func(): _open_page(entry))
+		face.add_child(hit)
+	return face
+
+
+## The creature, built by the same script the duel uses, from the same album
+## entry. `at_y` is the floor it stands on; `room` is how tall it may be.
+func _beast(entry: Dictionary, known: bool, at_x: float, at_y: float,
+		room: float) -> Node2D:
+	var beast: Node2D = preload("res://scripts/battle/monster.gd").new()
+	beast.position = Vector2(at_x, at_y)
+	var config: Dictionary = entry.duplicate(true)
+	if not known:
+		# Flat grey, shape only. For a painted monster this is a shader (see
+		# monster.gd); the colours here are the fallback for any creature still
+		# drawn by code.
+		config["body_color"] = "#aab2c1"
+		config["belly_color"] = "#c4cad4"
+		config["accent_color"] = "#8d96a7"
+		config["silhouette"] = true
+	beast.build(config)
+	var tall: float = maxf(float(entry.get("height", 300.0)), 1.0)
+	var fit: float = room / tall
+	beast.scale = Vector2(fit, fit)
+	return beast
+
+
+## One monster's page: the picture big, and the four things the catalogue
+## knows about it. Opened by tapping its card.
+func _open_page(entry: Dictionary) -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 40
+	add_child(layer)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.06, 0.10, 0.20, 0.62)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(dim)
+
+	var page := Control.new()
+	page.custom_minimum_size = PAGE
+	layer.add_child(page)
+	# Placed by hand, not by a preset. PRESET_CENTER sets the anchors AND the
+	# offsets, so a position written afterwards is measured from the centre
+	# rather than from the corner and the page slides off the bottom right --
+	# which is exactly what the first screenshot showed.
+	page.size = PAGE
+	page.position = ((page.get_viewport_rect().size - PAGE) * 0.5).floor()
+
+	var pad := Node2D.new()
+	page.add_child(pad)
+	Shapes.fill(pad, Shapes.rounded_rect(Vector2(4, 10), PAGE, 30.0),
+		Color(0.18, 0.24, 0.38, 0.28), 0.0)
+	Shapes.fill(pad, Shapes.rounded_rect(Vector2.ZERO, PAGE, 30.0),
+		Color(1.0, 1.0, 1.0, 0.98), 0.0)
+
+	page.add_child(_beast(entry, true, 172.0, PAGE.y - 54.0, PAGE.y - 130.0))
+
+	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 44)
+	name_label.add_theme_color_override("font_color", Color(0.14, 0.20, 0.32))
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	name_label.position = Vector2(330, 34)
+	name_label.size = Vector2(PAGE.x - 360, 54)
+	page.add_child(name_label)
+
+	var rows: Array = [
+		[I18n.t("album.element"), "%s · %s"
+			% [I18n.t(str(entry.get("element_key", ""))),
+				I18n.t(str(entry.get("where_key", "")))]],
+		[I18n.t("album.skill"), I18n.t(str(entry.get("skill_key", "")))],
+		[I18n.t("album.weakness"), I18n.t(str(entry.get("weakness_key", "")))],
+	]
+	var y := 96.0
+	for row in rows:
+		var tag := Label.new()
+		tag.text = str(row[0])
+		tag.add_theme_font_size_override("font_size", 21)
+		tag.add_theme_color_override("font_color", Color(0.52, 0.60, 0.74))
+		tag.position = Vector2(330, y)
+		tag.size = Vector2(96, 30)
+		page.add_child(tag)
+		var val := Label.new()
+		val.text = str(row[1])
+		val.add_theme_font_size_override("font_size", 25)
+		val.add_theme_color_override("font_color", Color(0.16, 0.24, 0.38))
+		val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		val.position = Vector2(432, y - 2)
+		val.size = Vector2(PAGE.x - 468, 62)
+		page.add_child(val)
+		y += 62.0
+
+	var about := Label.new()
+	about.text = I18n.t(str(entry.get("about_key", "")))
+	about.add_theme_font_size_override("font_size", 23)
+	about.add_theme_color_override("font_color", Color(0.30, 0.38, 0.52))
+	about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	about.position = Vector2(330, y + 6)
+	# Stops above the close button rather than running under it -- the first
+	# render had the last line of the description sitting behind 返回.
+	about.size = Vector2(PAGE.x - 366, PAGE.y - y - 102.0)
+	page.add_child(about)
+
+	var close := UiKit.big_button(I18n.t("common.back"), Palette.BLUE)
+	close.custom_minimum_size = Vector2(148, 72)
+	close.position = Vector2(PAGE.x - 172, PAGE.y - 92)
+	close.pressed.connect(func(): layer.queue_free())
+	page.add_child(close)
+	# Tapping the dark part closes it too -- a six-year-old taps outside the
+	# box long before they find a button.
+	dim.gui_input.connect(func(event: InputEvent):
+		if UiKit.is_press(event):
+			layer.queue_free())
+	Juice.pop(page, 0.18)
 
 
 func _ready() -> void:
@@ -135,8 +279,6 @@ func _ready() -> void:
 	header.add_child(shop)
 	root.add_child(header)
 
-	root.add_child(_album_shelf())
-
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -146,6 +288,13 @@ func _ready() -> void:
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", 20)
 	scroll.add_child(list)
+
+	# Inside the scroll, not above it. Ten monster cards is 460 px of fixed
+	# height, and sitting outside the scroll it simply pushed the treasure and
+	# the badges off the bottom of the screen -- the same trap the result
+	# screen fell into: a column that grows with content, in a space that does
+	# not.
+	list.add_child(_album_shelf())
 
 	# --- treasure card ---------------------------------------------------
 	var treasure_card := UiKit.card()

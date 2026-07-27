@@ -424,7 +424,7 @@ func _walk_across() -> void:
 	_walking = false
 	_cross_button.disabled = false
 	_instruction.text = I18n.t("traffic.well_done")
-	AudioManager.play_voice("res://assets/audio/voice/level/well_done.ogg")
+	AudioManager.say("praise_1")
 	Juice.burst(self, _hero.position)
 	# A little hop on the safe kerb: relief with feet.
 	_hero.hop()

@@ -20,6 +20,60 @@ const ROCK := Color(0.58, 0.56, 0.64)
 const GOO := Color(0.55, 0.82, 0.42)
 const EYE := Color(0.10, 0.13, 0.22)
 
+## The same picture the duel and the album card use.
+const MonsterArt := preload("res://scripts/reward/monster_art.gd")
+## How tall a small foe stands. The drawn ones are about 70 px of body; a
+## painted one gets more, because its art includes its horns and its tail.
+const FOE_H := 104.0
+
+
+static func has_art(monster_id: String) -> bool:
+	return MonsterArt.has_art(monster_id)
+
+
+## A patrol monster wearing its face from 怪兽图鉴 instead of a drawn one.
+##
+## Everything else belongs to the drawn foe: the same ground shadow, the same
+## `body` node the level squashes and tips over when it is beaten, the same
+## weak spot on an armoured one. Only the picture changes -- which is the
+## point. The child fights the creature whose card he is about to earn, rather
+## than a grey pebble that hands him a picture of something he never saw.
+static func painted(parent: Node, monster_id: String, kind: String) -> Dictionary:
+	var tex: Texture2D = MonsterArt.texture(monster_id)
+	if tex == null:
+		return walker(parent)
+	var node := Node2D.new()
+	parent.add_child(node)
+	Shapes.ground_shadow(node, Vector2.ZERO, 118.0, 0.20)
+
+	var body := Node2D.new()
+	node.add_child(body)
+	var sprite := Sprite2D.new()
+	sprite.texture = tex
+	var s: float = FOE_H / maxf(float(tex.get_height()), 1.0)
+	sprite.scale = Vector2(s, s)
+	sprite.position = Vector2(0, -FOE_H * 0.5)
+	body.add_child(sprite)
+
+	var parts := {"node": node, "body": body}
+	if kind == "armoured":
+		# The weak spot still floats above it: "get above it" is the lesson,
+		# and it has to stay visible whatever the monster looks like.
+		var spot := Node2D.new()
+		spot.position = Vector2(0, -FOE_H - 18.0)
+		body.add_child(spot)
+		Shapes.glow(spot, Vector2.ZERO, 74.0, Color(1.0, 0.86, 0.38), 4, 0.5)
+		Shapes.lit(spot, Shapes.star_points(Vector2.ZERO, 20.0, 0.44, 5),
+			Color(1.0, 0.88, 0.42), 0.9)
+		if Juice.motion_enabled():
+			var t := spot.create_tween().set_loops()
+			t.tween_property(spot, "scale", Vector2(1.22, 1.22), 0.55)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			t.tween_property(spot, "scale", Vector2.ONE, 0.55)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		parts["weak"] = spot
+	return parts
+
 
 ## The plain patrol monster: a rounded pebble-body with two feet and a big
 ## friendly-but-grumpy face. One heart. Walks between two posts and turns

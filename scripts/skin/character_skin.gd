@@ -31,10 +31,16 @@ extends Resource
 ## from across the room, so it is the design's signature. "tiara" is the
 ## princess band -- gold arc, three points, a gem -- worn by the island's
 ## heroines.
-@export_enum("fin", "twin", "horns", "tiara") var crest_kind: String = "fin"
+## Ten shapes, so a row of thumbnails has ten different outlines -- which is
+## how a six-year-old tells them apart, long before he reads the names.
+## "ears" cat ears, "star_crest" a star on a stalk, "antenna" two lit beads,
+## "ponytail" and "bun" are hair rather than armour, "unicorn" is the tallest.
+@export_enum("fin", "twin", "horns", "tiara", "ears", "star_crest",
+	"antenna", "ponytail", "bun", "unicorn") var crest_kind: String = "fin"
 
 ## How the accent sweeps across the chest.
-@export_enum("blade", "chevron", "bands") var chest_pattern: String = "blade"
+@export_enum("blade", "chevron", "bands", "star", "heart", "ring")
+var chest_pattern: String = "blade"
 
 ## Long lashes, a warmer blush and a rosier mouth -- the feminine read at
 ## chibi scale, where colours and silhouette do most of the work and these

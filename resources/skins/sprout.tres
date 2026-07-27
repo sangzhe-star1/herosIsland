@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/skin/character_skin.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sprout"
+display_name_key = "character.sprout"
+build_width = 68.0
+crest_kind = "ears"
+chest_pattern = "heart"
+body_color = Color(0.96, 0.98, 0.92, 1)
+accent_color = Color(0.35, 0.7, 0.34, 1)
+trim_color = Color(1, 0.9, 0.42, 1)
+eye_color = Color(0.86, 1, 0.78, 1)
+core_color = Color(0.72, 0.95, 0.45, 1)
+body_size = Vector2(64, 96)

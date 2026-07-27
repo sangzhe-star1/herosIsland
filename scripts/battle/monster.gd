@@ -25,6 +25,10 @@ signal left()
 
 var config: Dictionary = {}
 
+## The one place a monster's picture is loaded, shared with the adventure's
+## small foes and with the album card -- so all three are the same drawing.
+const MonsterArt := preload("res://scripts/reward/monster_art.gd")
+
 var _rig: Node2D          # everything visual, so squash never fights placement
 var _eye_whites: Array[Node2D] = []
 var _eye_pupils: Array[Node2D] = []
@@ -59,26 +63,58 @@ func build(monster_config: Dictionary) -> void:
 	_rig = Node2D.new()
 	add_child(_rig)
 
-	# A hand-painted monster can still be dropped in at
-	# assets/characters/monsters/<id>.png, feet at the bottom edge. It keeps
-	# every animation below except the ones that move a face.
-	var art := "res://assets/characters/monsters/%s.png" % str(config.get("id", ""))
-	if ResourceLoader.exists(art):
-		_build_textured(art)
+	# Height is settled BEFORE the branch, so `_h` means "how tall this monster
+	# is drawn" whichever way it was drawn. It used to be set only inside
+	# _build_drawn(), which left every painted monster reporting the default
+	# 300 -- and the check that measures whether a boss fits on the screen was
+	# measuring 300 for all six of them.
+	_h = float(config.get("height", 300.0))
+	_w = _h * float(config.get("width", 0.82))
+
+	# A painted monster lives at assets/characters/monsters/<id>.png, feet at
+	# the bottom edge. It keeps every animation below except the ones that move
+	# a face -- a picture has no eyelids.
+	var tex: Texture2D = MonsterArt.texture(str(config.get("id", "")))
+	if tex != null:
+		_build_textured(tex)
 	else:
 		_build_drawn()
 	_sway()
 
 
-func _build_textured(art: String) -> void:
+func _build_textured(tex: Texture2D) -> void:
 	var sprite := Sprite2D.new()
-	var tex: Texture2D = load(art)
 	sprite.texture = tex
 	var height := float(config.get("height", 300.0))
 	var s: float = height / maxf(float(tex.get_height()), 1.0)
 	sprite.scale = Vector2(s, s)
 	sprite.position = Vector2(0, -height * 0.5)
+	if bool(config.get("silhouette", false)):
+		sprite.material = _silhouette_material()
 	_rig.add_child(sprite)
+
+
+## The album's not-yet-met card: every opaque pixel one flat grey, alpha kept.
+##
+## modulate() cannot do this -- it MULTIPLIES, so a dark monster stays dark and
+## a bright one stays bright, and the fifteen "silhouettes" come out as fifteen
+## dimmed portraits with their colours still legible. That is not a silhouette,
+## it is a spoiler. Two lines of shader gets the real thing.
+static var _silhouette: ShaderMaterial
+
+
+static func _silhouette_material() -> ShaderMaterial:
+	if _silhouette != null:
+		return _silhouette
+	var shader := Shader.new()
+	shader.code = "shader_type canvas_item;\n" \
+		+ "uniform vec4 tint : source_color = vec4(0.62, 0.66, 0.74, 1.0);\n" \
+		+ "void fragment() {\n" \
+		+ "\tCOLOR = vec4(tint.rgb, texture(TEXTURE, UV).a * tint.a);\n" \
+		+ "}\n"
+	_silhouette = ShaderMaterial.new()
+	_silhouette.shader = shader
+	return _silhouette
 
 
 # --- the drawing ---------------------------------------------------------
@@ -102,7 +138,12 @@ func _build_drawn() -> void:
 	_draw_body()
 	_draw_tail()
 	_draw_arms()
-	_draw_face()
+	# A silhouette is the body and nothing else: no eyes, no smile, no cheeks.
+	# The album draws the not-yet-met monsters this way. Greying the face out
+	# instead of leaving it off looks like a monster he HAS met and the game
+	# has faded, which is the opposite of the promise a silhouette makes.
+	if not bool(config.get("silhouette", false)):
+		_draw_face()
 
 
 func _draw_tail() -> void:
@@ -121,15 +162,66 @@ func _draw_tail() -> void:
 		_belly, 1.0)
 
 
+## Ears are the biggest shape on the head, and for a long time every monster
+## on the island had the same two big round ones. Ten different colours with
+## one identical outline reads as ONE creature recoloured -- which is exactly
+## what a child says when he looks at the album: "they're all the same".
+##
+## So the ears come from the data now, one of:
+##
+##   round    the friendly default -- soft, wide, mouse-like
+##   pointed  triangles, up and alert
+##   small    barely there, tucked against the head
+##   long     tall and drooping, rabbit-ish
+##   fin      swept back along the head instead of up
+##   none     no ears at all (the ones whose horns ARE their ears)
+##
+## Two variants also mean two SILHOUETTES, which is what still works when the
+## album card is 126 px wide and the colour is turned off.
 func _draw_ears() -> void:
+	var kind := str(config.get("ears", "round"))
+	if kind == "none":
+		return
 	for side in [-1.0, 1.0]:
 		var ear := Node2D.new()
-		ear.position = Vector2(side * _w * 0.40, -_h * 0.78)
 		_rig.add_child(ear)
-		Shapes.lit(ear, Shapes.oval_points(Vector2(side * _w * 0.10, 0),
-			Vector2(_w * 0.15, _w * 0.19), 18), _body.darkened(0.06), 1.0)
-		Shapes.fill(ear, Shapes.oval_points(Vector2(side * _w * 0.10, _w * 0.01),
-			Vector2(_w * 0.08, _w * 0.11), 14), _belly, 0.8)
+		var inner: Color = _belly
+		match kind:
+			"pointed":
+				ear.position = Vector2(side * _w * 0.36, -_h * 0.80)
+				var tip := Vector2(side * _w * 0.22, -_h * 0.20)
+				Shapes.lit(ear, PackedVector2Array([
+					Vector2(side * _w * -0.04, _w * 0.10),
+					tip, Vector2(side * _w * 0.22, _w * 0.06),
+				]), _body.darkened(0.06), 1.0)
+				Shapes.fill(ear, PackedVector2Array([
+					Vector2(side * _w * 0.02, _w * 0.06),
+					tip * 0.66, Vector2(side * _w * 0.16, _w * 0.03),
+				]), inner, 0.8)
+			"small":
+				ear.position = Vector2(side * _w * 0.40, -_h * 0.72)
+				Shapes.lit(ear, Shapes.oval_points(Vector2(side * _w * 0.05, 0),
+					Vector2(_w * 0.085, _w * 0.075), 14), _body.darkened(0.06), 1.0)
+			"long":
+				ear.position = Vector2(side * _w * 0.30, -_h * 0.80)
+				Shapes.lit(ear, Shapes.oval_points(Vector2(side * _w * 0.14, -_h * 0.09),
+					Vector2(_w * 0.09, _h * 0.15), 20), _body.darkened(0.06), 1.0)
+				Shapes.fill(ear, Shapes.oval_points(Vector2(side * _w * 0.14, -_h * 0.09),
+					Vector2(_w * 0.045, _h * 0.10), 16), inner, 0.8)
+			"fin":
+				# Swept BACK, not up: the shape stays inside the head's height,
+				# which is what makes a swimmer look like a swimmer.
+				ear.position = Vector2(side * _w * 0.38, -_h * 0.70)
+				Shapes.lit(ear, PackedVector2Array([
+					Vector2(0, -_w * 0.10), Vector2(side * _w * 0.30, -_w * 0.02),
+					Vector2(side * _w * 0.26, _w * 0.12), Vector2(0, _w * 0.10),
+				]), _body.darkened(0.06), 1.0)
+			_:
+				ear.position = Vector2(side * _w * 0.40, -_h * 0.78)
+				Shapes.lit(ear, Shapes.oval_points(Vector2(side * _w * 0.10, 0),
+					Vector2(_w * 0.15, _w * 0.19), 18), _body.darkened(0.06), 1.0)
+				Shapes.fill(ear, Shapes.oval_points(Vector2(side * _w * 0.10, _w * 0.01),
+					Vector2(_w * 0.08, _w * 0.11), 14), inner, 0.8)
 		_ears.append(ear)
 
 
@@ -141,27 +233,29 @@ func _draw_horns() -> void:
 		# One horn on a round head reads as a pin stuck in it. An antenna with
 		# a little lamp on the end reads as part of the creature, and it gives
 		# the monster something that glows when it is about to throw.
-		var stalk := Vector2(0, -_h * 0.90)
-		Shapes.fill(_rig, Shapes.taper(stalk + Vector2(0, _h * 0.03),
-			stalk + Vector2(_w * 0.05, -_h * 0.13), _w * 0.045, _w * 0.028),
+		var stalk := Vector2(0, -_h * 0.94)
+		Shapes.fill(_rig, Shapes.taper(stalk + Vector2(0, _h * 0.05),
+			stalk + Vector2(_w * 0.06, -_h * 0.19), _w * 0.055, _w * 0.034),
 			_accent, 1.0)
-		Shapes.glow(_rig, stalk + Vector2(_w * 0.05, -_h * 0.14), _w * 0.34,
-			Color(1.0, 0.86, 0.52), 5, 0.34)
-		Shapes.lit(_rig, Shapes.circle_points(stalk + Vector2(_w * 0.05, -_h * 0.14),
-			_w * 0.075, 16), Color(1.0, 0.88, 0.54), 1.0)
+		Shapes.glow(_rig, stalk + Vector2(_w * 0.06, -_h * 0.20), _w * 0.44,
+			Color(1.0, 0.86, 0.52), 5, 0.38)
+		Shapes.lit(_rig, Shapes.circle_points(stalk + Vector2(_w * 0.06, -_h * 0.20),
+			_w * 0.105, 16), Color(1.0, 0.88, 0.54), 1.0)
 		return
 
-	var places: Array = [-0.28, 0.28]
+	var places: Array = [-0.16, 0.16]
+	if horns >= 3:
+		places = [-0.24, 0.0, 0.24]
 	for place in places:
-		var base := Vector2(float(place) * _w, -_h * 0.86)
+		var base := Vector2(float(place) * _w, -_h * 0.93)
 		var lean: float = signf(float(place)) if place != 0.0 else 0.0
 		# A curved horn rather than a triangle: three segments narrowing to a
 		# rounded tip, which reads as grown rather than glued on.
 		var curve := PackedVector2Array([
 			base,
-			base + Vector2(lean * _w * 0.09, -_h * 0.10),
-			base + Vector2(lean * _w * 0.22, -_h * 0.17),
-			base + Vector2(lean * _w * 0.36, -_h * 0.21),
+			base + Vector2(lean * _w * 0.10, -_h * 0.13),
+			base + Vector2(lean * _w * 0.24, -_h * 0.22),
+			base + Vector2(lean * _w * 0.40, -_h * 0.28),
 		])
 		var horn := PackedVector2Array()
 		var left := PackedVector2Array()
@@ -185,10 +279,10 @@ func _draw_spikes() -> void:
 	for i in range(spikes):
 		var t: float = (float(i) + 0.5) / float(maxi(spikes, 1))
 		var a: float = lerpf(-2.5, -0.7, t)
-		var base := Vector2(cos(a) * _w * 0.48, -_h * 0.52 + sin(a) * _h * 0.42)
+		var base := Vector2(cos(a) * _w * 0.52, -_h * 0.52 + sin(a) * _h * 0.44)
 		var dir: Vector2 = (base - Vector2(0, -_h * 0.52)).normalized()
-		var tip: Vector2 = base + dir * _h * 0.12
-		var side_v := Vector2(-dir.y, dir.x) * _w * 0.075
+		var tip: Vector2 = base + dir * _h * 0.19
+		var side_v := Vector2(-dir.y, dir.x) * _w * 0.085
 		# Rounded shoulders on the spike so it reads soft, not sharp. This is
 		# a friendly monster; nothing on it should look like it would hurt.
 		Shapes.lit(_rig, PackedVector2Array([

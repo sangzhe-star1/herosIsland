@@ -227,6 +227,40 @@ func _build_torso(parent: Node2D) -> void:
 				Shapes.fill(parent, Shapes.rounded_rect(
 					Vector2(-half, y), Vector2(half * 2.0, _u(9.0)), 4.5),
 					design.accent_color, 0.7)
+		# The three below sit as a BADGE on the left chest. The first two cuts
+		# put them in the middle -- once big and centred on the core, once in a
+		# band above it -- and both came out invisible: the chin covers the
+		# chest above -108, the core plate and its halo own the middle, and the
+		# arms cover past x 20. What is actually seen from the front is the
+		# flank, which is where blade and chevron have always lived.
+		"star":
+			# Big, and deliberately BEHIND the chest light: the core becomes the
+			# star's middle and the points radiate into the parts of the torso
+			# that are actually visible. A badge-sized star on the flank was
+			# tried first and disappeared under the shoulder cap.
+			Shapes.lit(parent, Shapes.star_points(
+				Vector2(0.0, _u(-88.0)), _u(27.0), 0.44, 5),
+				design.accent_color, 0.8)
+		"heart":
+			# Same trick: the heart frames the core rather than hiding behind
+			# it.
+			for side in [-1.0, 1.0]:
+				Shapes.fill(parent, Shapes.oval_points(
+					Vector2(side * _u(12.0), _u(-94.0)),
+					Vector2(_u(14.0), _u(12.0)), 20), design.accent_color, 0.7)
+			Shapes.fill(parent, PackedVector2Array([
+				Vector2(_u(-25.0), _u(-93.0)),
+				Vector2(_u(25.0), _u(-93.0)),
+				Vector2(0.0, _u(-61.0)),
+			]), design.accent_color, 0.7)
+		"ring":
+			# Beads arching over the core: a full ring would have its bottom
+			# half behind the core plate and never be seen.
+			for i2 in range(7):
+				var ra: float = lerpf(PI * 1.10, PI * 1.90, float(i2) / 6.0)
+				Shapes.fill(parent, Shapes.circle_points(
+					Vector2(cos(ra) * _u(25.0), _u(-92.0) + sin(ra) * _u(21.0)),
+					_u(5.0), 12), design.accent_color, 0.7)
 		"blade", _:
 			for side in [-1.0, 1.0]:
 				Shapes.fill(parent, PackedVector2Array([
@@ -350,10 +384,15 @@ func _build_head(parent: Node2D) -> void:
 		ry * 0.037),
 		Color(0.82, 0.42, 0.48, 0.9) if design.lashes else design.body_color.darkened(0.18), 0.0)
 
-	# The crest -- the silhouette. Scaled to the big head, swept back. A hat
-	# REPLACES the crest: a crown balanced on a dorsal fin reads as an
-	# accident, and every hat in the shop earns its slot by becoming the
-	# silhouette instead.
+	# The crest -- the silhouette. Scaled to the big head, swept back.
+	#
+	# An OLD code-drawn hat still replaces it: those four were designed to sit
+	# flat on the skull, and a crown balanced on a dorsal fin read as an
+	# accident. A PAINTED hat does not replace it, and must not. 迪迦's fin and
+	# 赛罗's horns are the first thing a six-year-old uses to tell one hero
+	# from another, and the brief says plainly that a costume may not hide the
+	# main head silhouette. Side by side they look deliberate -- the fin comes
+	# up through the crown of the rescue helmet as though it were made to.
 	if str(outfit.get("hat", "")) != "":
 		_build_hat(parent, centre, rx, ry)
 		_build_face_piece(parent, centre, rx, ry)
@@ -423,6 +462,100 @@ func _build_head(parent: Node2D) -> void:
 				centre + Vector2(rx * 0.16, -ry * 0.84),
 				centre + Vector2(-rx * 0.16, -ry * 0.84),
 			]), design.accent_color, 1.0)
+		"ears":
+			# Cat ears: a triangle each side with a softer inner triangle. The
+			# ears sit ON the skull rather than above it, so the head stays the
+			# same height and no hat has to be re-fitted.
+			for side in [-1.0, 1.0]:
+				Shapes.lit(parent, PackedVector2Array([
+					centre + Vector2(side * rx * 0.26, -ry * 0.84),
+					centre + Vector2(side * rx * 0.54, -ry * 1.52),
+					centre + Vector2(side * rx * 0.94, -ry * 0.72),
+				]), design.accent_color, 1.0)
+				Shapes.fill(parent, PackedVector2Array([
+					centre + Vector2(side * rx * 0.44, -ry * 0.88),
+					centre + Vector2(side * rx * 0.55, -ry * 1.22),
+					centre + Vector2(side * rx * 0.72, -ry * 0.84),
+				]), design.trim_color, 0.5)
+		"star_crest":
+			# One five-pointed star standing on the crown, on a short stalk so
+			# it reads as worn rather than pasted on the forehead.
+			Shapes.fill(parent, Shapes.rounded_rect(
+				Vector2(centre.x - rx * 0.06, centre.y - ry * 1.26),
+				Vector2(rx * 0.12, ry * 0.34), rx * 0.06),
+				design.trim_color, 0.0)
+			Shapes.lit(parent, Shapes.star_points(
+				centre + Vector2(0.0, -ry * 1.46), rx * 0.44, 0.44, 5),
+				design.accent_color, 1.0)
+		"antenna":
+			# Two bobbing antennae with a lit bead on each -- the friendly
+			# robot read, and the only crest that uses the core colour.
+			for side in [-1.0, 1.0]:
+				Shapes.fill(parent, Shapes.ribbon(PackedVector2Array([
+					centre + Vector2(side * rx * 0.22, -ry * 0.90),
+					centre + Vector2(side * rx * 0.40, -ry * 1.20),
+					centre + Vector2(side * rx * 0.34, -ry * 1.48),
+				]), rx * 0.09), design.trim_color, 0.0)
+				Shapes.lit(parent, Shapes.circle_points(
+					centre + Vector2(side * rx * 0.34, -ry * 1.56), rx * 0.19, 16),
+					design.core_color, 1.0)
+		"ponytail":
+			# Hair, not armour: a fringe across the brow and a tail swinging
+			# off the side. The tail hangs BESIDE the head so a hat can still
+			# sit flat on top.
+			Shapes.lit(parent, PackedVector2Array([
+				centre + Vector2(-rx * 1.02, -ry * 0.30),
+				centre + Vector2(-rx * 0.96, -ry * 0.92),
+				centre + Vector2(-rx * 0.44, -ry * 1.16),
+				centre + Vector2(rx * 0.44, -ry * 1.16),
+				centre + Vector2(rx * 0.96, -ry * 0.92),
+				centre + Vector2(rx * 1.02, -ry * 0.30),
+				centre + Vector2(rx * 0.72, -ry * 0.52),
+				centre + Vector2(rx * 0.30, -ry * 0.40),
+				centre + Vector2(-rx * 0.30, -ry * 0.46),
+				centre + Vector2(-rx * 0.72, -ry * 0.52),
+			]), design.accent_color, 1.0)
+			Shapes.lit(parent, Shapes.oval_points(
+				centre + Vector2(rx * 1.16, -ry * 0.46),
+				Vector2(rx * 0.30, ry * 0.62), 22), design.accent_color, 0.9)
+			Shapes.fill(parent, Shapes.rounded_rect(
+				Vector2(centre.x + rx * 0.86, centre.y - ry * 0.98),
+				Vector2(rx * 0.26, ry * 0.20), rx * 0.08),
+				design.trim_color, 0.0)
+		"bun":
+			# A round bun on top with a bright tie. Softest silhouette of the
+			# set, and the one six-year-olds read as "the little one".
+			Shapes.lit(parent, PackedVector2Array([
+				centre + Vector2(-rx * 1.00, -ry * 0.34),
+				centre + Vector2(-rx * 0.92, -ry * 0.96),
+				centre + Vector2(0.0, -ry * 1.20),
+				centre + Vector2(rx * 0.92, -ry * 0.96),
+				centre + Vector2(rx * 1.00, -ry * 0.34),
+				centre + Vector2(rx * 0.62, -ry * 0.50),
+				centre + Vector2(-rx * 0.62, -ry * 0.50),
+			]), design.accent_color, 1.0)
+			Shapes.lit(parent, Shapes.circle_points(
+				centre + Vector2(0.0, -ry * 1.34), rx * 0.34, 20),
+				design.accent_color, 1.0)
+			Shapes.fill(parent, Shapes.rounded_rect(
+				Vector2(centre.x - rx * 0.30, centre.y - ry * 1.16),
+				Vector2(rx * 0.60, ry * 0.14), rx * 0.06),
+				design.trim_color, 0.0)
+		"unicorn":
+			# One spiral horn. Deliberately the tallest crest in the set: it is
+			# the silhouette a child picks out of a row of thumbnails.
+			Shapes.lit(parent, PackedVector2Array([
+				centre + Vector2(-rx * 0.22, -ry * 0.92),
+				centre + Vector2(0.0, -ry * 1.82),
+				centre + Vector2(rx * 0.22, -ry * 0.92),
+			]), design.trim_color, 1.0)
+			for i4 in range(3):
+				var ty: float = -ry * (1.02 + 0.22 * float(i4))
+				var tw: float = rx * (0.18 - 0.042 * float(i4))
+				Shapes.fill(parent, Shapes.rounded_rect(
+					Vector2(centre.x - tw, centre.y + ty),
+					Vector2(tw * 2.0, ry * 0.07), tw * 0.5),
+					design.accent_color, 0.0)
 	_build_face_piece(parent, centre, rx, ry)
 
 

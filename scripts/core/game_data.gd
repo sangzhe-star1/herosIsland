@@ -10,6 +10,12 @@ var rewards: Dictionary = {}
 var shop_items: Array = []
 var shop_categories: Array = []
 var shop_bundles: Array = []
+## 怪兽图鉴. What each monster looks like AND what goes on its album card --
+## one source, so the creature in the duel and the card can never disagree.
+var monsters: Array = []
+## Mount points for painted clothes, and the twelve themed outfits.
+var character_slots: Dictionary = {}
+var outfit_presets: Dictionary = {}
 var characters: Dictionary = {}
 
 var _levels_by_id: Dictionary = {}
@@ -25,13 +31,35 @@ func _ready() -> void:
 	shop_items = _load_json("res://data/shop_items.json", [])
 	shop_categories = _load_json("res://data/shop_categories.json", [])
 	shop_bundles = _load_json("res://data/shop_bundles.json", [])
+	monsters = _load_json("res://data/monsters.json", [])
+	# The wardrobe: where each garment hangs on the figure, and the twelve
+	# themed outfits. Loaded here with everything else so a missing file is
+	# one loud error at boot rather than an empty shelf three screens in.
+	character_slots = _load_json("res://data/character_slots.json", {})
+	outfit_presets = _load_json("res://data/outfit_presets.json", {})
 
 	for w in worlds:
 		_worlds_by_id[w.get("id", "")] = w
 	for l in levels:
 		_levels_by_id[l.get("id", "")] = l
 	_register_dropin_characters()
-	print("[autoload] GameData ok: %d worlds, %d levels" % [worlds.size(), levels.size()])
+	# Every count, not just two.
+	#
+	# 怪兽图鉴 went out with one file left behind on the other machine, so the
+	# game booted happily with zero monsters and the album drew an empty shelf
+	# -- and the only symptom anybody could see was "it isn't there". A line
+	# that says `0 monsters` at startup turns a silent half-install into
+	# something you can read in two seconds.
+	print("[autoload] GameData ok: %d worlds, %d levels, %d monsters, "
+		% [worlds.size(), levels.size(), monsters.size()]
+		+ "%d shop items, %d characters, %d outfit sets"
+		% [shop_items.size(), characters.size(),
+			int(outfit_presets.get("sets", []).size())])
+	for pair in [["levels", levels.size()], ["worlds", worlds.size()],
+			["monsters", monsters.size()], ["shop items", shop_items.size()]]:
+		if int(pair[1]) == 0:
+			push_error("GameData: %s is EMPTY -- a data file is missing or "
+				% str(pair[0]) + "the code that loads it is out of date")
 
 
 func _load_json(path: String, fallback: Variant) -> Variant:

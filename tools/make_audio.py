@@ -229,6 +229,33 @@ def s_found():
     return mix(*parts)
 
 
+## A present opening. Lid off, then the thing inside catching the light.
+##
+## Deliberately NOT a fanfare: this plays every single time he buys anything,
+## and a four-second flourish that a child hears forty times stops being a
+## celebration and becomes a wait. Two seconds, and the second half is the
+## same sparkle that already means "something good" everywhere else here.
+def s_chest_open():
+    lid = pad(np.concatenate([
+        noise(0.09, 0.55) * env(int(0.09 * RATE), 0.002, 0.06) * 0.5,
+        np.zeros(int(0.02 * RATE)),
+    ]), 0.5)
+    rise = []
+    for i, f in enumerate((PENT[1], PENT[3], PENT[5], PENT[7 % len(PENT)])):
+        rise.append(pad(np.concatenate([
+            np.zeros(int((0.10 + i * 0.075) * RATE)),
+            tone(f, 0.30, "tri") * env(int(0.30 * RATE), 0.006, 0.24),
+        ]), 0.42))
+    shimmer = np.zeros(int(0.9 * RATE))
+    rng = np.random.default_rng(17)
+    for i in range(6):
+        at = int(rng.uniform(0.34, 0.72) * RATE)
+        f = PENT[rng.integers(3, len(PENT))] * 2
+        g = tone(f, 0.18, "sine") * env(int(0.18 * RATE), 0.004, 0.16) * 0.30
+        shimmer[at: at + len(g)] += g
+    return mix(lid, *rise, pad(shimmer, 0.5))
+
+
 def s_sparkle():
     n = int(0.5 * RATE)
     out = np.zeros(n)
@@ -329,7 +356,7 @@ SOUNDS = {
     "ultimate": s_ultimate, "monster_roar": s_monster_roar,
     "monster_defeat": s_monster_defeat, "warn": s_warn, "found": s_found,
     "sparkle": s_sparkle, "whoosh": s_whoosh, "pop": s_pop,
-    "rustle": s_rustle, "hint": s_hint,
+    "rustle": s_rustle, "hint": s_hint, "chest_open": s_chest_open,
 }
 
 MUSIC = {

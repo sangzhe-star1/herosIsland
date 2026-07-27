@@ -713,23 +713,39 @@ func _build_puzzle(section: Dictionary, at: float) -> void:
 func _build_foes(section: Dictionary, at: float) -> void:
 	var count: int = clampi(harder_i(int(section.get("count", 2)), 1), 1, 4)
 	var kinds: Array = section.get("kinds", ["walker"])
+	# WHICH monster, as opposed to HOW IT BEHAVES.
+	#
+	# `kinds` is behaviour -- walks at you, throws goo, shrugs off a hit from
+	# the front -- and it stays, because those three are what the level is
+	# teaching. `monsters` is who: an id from 怪兽图鉴, which decides the
+	# picture and the card the child earns.
+	#
+	# They used to be the same field. That is why the album's first three
+	# entries were called "walker", "spitter" and "armoured": the only monsters
+	# a child could collect were the names of three behaviours.
+	var named: Array = section.get("monsters", [])
 	var zone := _flat_zone_near(at, _zone_width(section))
 	for i in range(count):
 		var kind := str(kinds[i % kinds.size()])
+		var monster_id := "" if named.is_empty() else str(named[i % named.size()])
 		var parts: Dictionary
-		match kind:
-			"spitter":
-				parts = Foes.spitter(_world)
-			"armoured":
-				parts = Foes.armoured(_world)
-			_:
-				parts = Foes.walker(_world)
+		if monster_id != "" and Foes.has_art(monster_id):
+			parts = Foes.painted(_world, monster_id, kind)
+		else:
+			match kind:
+				"spitter":
+					parts = Foes.spitter(_world)
+				"armoured":
+					parts = Foes.armoured(_world)
+				_:
+					parts = Foes.walker(_world)
 		var fx: float = lerpf(float(zone["left"]) + 120.0, float(zone["right"]) - 120.0,
 			0.5 if count == 1 else float(i) / float(count - 1))
 		(parts["node"] as Node2D).position = Vector2(fx, _ground_y)
 		_foes.append({
 			"node": parts["node"], "body": parts["body"], "weak": parts.get("weak"),
-			"kind": kind, "hearts": 2 if kind == "armoured" else 1,
+			"kind": kind, "monster": monster_id,
+			"hearts": 2 if kind == "armoured" else 1,
 			"home": fx, "range": 130.0, "dir": 1.0,
 			# Slow. A monster a child cannot walk away from is a monster that
 			# turns exploring into a chase, and this is not a chase game.
@@ -767,6 +783,10 @@ func _build_boss(section: Dictionary, at: float) -> void:
 	_boss = {
 		"node": parts["node"], "body": parts["body"], "arms": parts["arms"],
 		"weak": parts["weak"], "shell": parts["shell"],
+		# Which card this arena hands out. It used to be the string
+		# "rock_giant" written into the code below, which meant the adventure's
+		# one boss could only ever be one monster, in one world, for ever.
+		"monster": str(section.get("monster", "")),
 		"at": arena_right - 200.0, "left": arena_left, "right": arena_right,
 		# Three phases, three hits each: short enough to hold a six-year-old,
 		# long enough that beating it is a story they tell afterwards.
@@ -1482,7 +1502,8 @@ func _hurt_foe(foe: Dictionary) -> void:
 	# Beaten, not killed: it sits down, waves, and pops away in sparkles.
 	foe["down"] = true
 	_drop_telegraph(foe)
-	_remember_monster(str(foe["kind"]))
+	# The monster, not the behaviour: a card called "walker" is not a card.
+	_remember_monster(str(foe.get("monster", "")))
 	score_correct()
 	AudioManager.play_sfx("res://assets/audio/star.ogg")
 	Juice.burst(_world, node.position + Vector2(0, -60.0), 26)
@@ -1702,7 +1723,7 @@ func _wound_boss() -> void:
 ## Beaten, not beaten UP: it sits down, rubs its head, and waves.
 func _finish_boss() -> void:
 	_boss["beaten"] = true
-	_remember_monster("rock_giant")
+	_remember_monster(str(_boss.get("monster", "")))
 	_drop_telegraph(_boss)
 	var shell: Node2D = _boss["shell"]
 	if is_instance_valid(shell):

@@ -49,6 +49,11 @@ static func item(item_id: String) -> Dictionary:
 	for entry in GameData.shop_items:
 		if str(entry.get("id", "")) == item_id:
 			return entry
+	# A drop-in face has no row in the data file; see _cast_rows().
+	if item_id.begins_with(WHO_CATEGORY + "_"):
+		for entry in _cast_rows():
+			if str(entry.get("id", "")) == item_id:
+				return entry
 	return {}
 
 
@@ -60,6 +65,8 @@ static func bundle(bundle_id: String) -> Dictionary:
 
 
 static func in_category(category: String) -> Array:
+	if category == WHO_CATEGORY:
+		return _cast_rows()
 	var out: Array = []
 	for entry in GameData.shop_items:
 		if str(entry.get("category", "")) == category:
@@ -212,11 +219,16 @@ static func undo(item_id: String) -> bool:
 	var owned: Array = shop.get("owned", [])
 	owned.erase(item_id)
 	shop["owned"] = owned
-	# Taking it off first: leaving him wearing something he no longer owns is
-	# the kind of state that turns into a blank hat three screens later.
-	for slot in shop.get("equipped", {}):
-		if str(shop["equipped"][slot]) == item_id:
-			shop["equipped"][slot] = ""
+	# Taking it off first -- off EVERY hero, not just the one on screen.
+	# Leaving him wearing something he no longer owns is the kind of state that
+	# turns into a blank hat three screens later.
+	var everyones: Dictionary = shop.get("worn", {})
+	for character_id in everyones:
+		var mine: Dictionary = everyones[character_id]
+		for slot in mine:
+			if str(mine[slot]) == item_id:
+				mine[slot] = ""
+	shop["worn"] = everyones
 	SaveManager.data[SAVE_KEY] = shop
 	Coins.refund(int(entry.get("price", 0)))
 	SaveManager.save_game()
@@ -225,21 +237,35 @@ static func undo(item_id: String) -> bool:
 
 
 # --- wearing ------------------------------------------------------------
+#
+# Everything here is per CHARACTER. It used to be one global `equipped`, which
+# meant dressing 迪迦 also dressed 赛罗 -- six heroes reading as one hero in
+# six colours. Owning is still shared, because the clothes belong to the child.
 
-static func equipped_in(slot: String) -> String:
-	return str(_shop().get("equipped", {}).get(slot, ""))
+static func who() -> String:
+	return str(SaveManager.get_profile().get("character_id", "tiga"))
 
 
-static func is_equipped(item_id: String) -> bool:
-	for slot in _shop().get("equipped", {}):
-		if str(_shop()["equipped"][slot]) == item_id:
+static func worn(character_id: String = "") -> Dictionary:
+	return SaveManager.worn_by(character_id if character_id != "" else who())
+
+
+static func equipped_in(slot: String, character_id: String = "") -> String:
+	return str(worn(character_id).get(slot, ""))
+
+
+static func is_equipped(item_id: String, character_id: String = "") -> bool:
+	if item_id == "":
+		return false
+	for slot in worn(character_id):
+		if str(worn(character_id)[slot]) == item_id:
 			return true
 	return false
 
 
 ## Wear it, or take it off by passing "". One thing per slot: the crown goes
 ## back on its hook when the party hat goes on.
-static func equip(item_id: String) -> bool:
+static func equip(item_id: String, character_id: String = "") -> bool:
 	if item_id == "":
 		return false
 	var entry := item(item_id)
@@ -248,24 +274,147 @@ static func equip(item_id: String) -> bool:
 	var slot := _slot_of(entry)
 	if slot == "":
 		return false
-	var shop := _shop()
-	var worn: Dictionary = shop.get("equipped", {})
-	worn[slot] = item_id
-	shop["equipped"] = worn
-	SaveManager.data[SAVE_KEY] = shop
-	SaveManager.save_game()
-	SaveManager.progress_changed.emit()
+	var target := character_id if character_id != "" else who()
+	if not fits(entry, target):
+		return false
+	SaveManager.wear_item(target, slot, item_id)
 	return true
 
 
-static func unequip(slot: String) -> void:
+static func unequip(slot: String, character_id: String = "") -> void:
+	SaveManager.wear_item(character_id if character_id != "" else who(), slot, "")
+
+
+## Six states, and a card is in exactly one of them. Nothing is cached: the
+## answer is recomputed every time it is asked, because a stale lookup table
+## is how this project has lost a rename four times this month.
+enum State { LOCKED, INCOMPATIBLE, BUYABLE, OWNED, WEARING }
+
+
+static func state_of(entry: Dictionary, character_id: String = "") -> State:
+	var target := character_id if character_id != "" else who()
+	var item_id := str(entry.get("id", ""))
+	# A face is not worn in a slot -- "wearing" one means BEING him -- so the
+	# cast answers before the wardrobe rules get a chance to.
+	if is_who(entry):
+		var cid := who_id(entry)
+		if cid == target:
+			return State.WEARING
+		if have_character(cid):
+			return State.OWNED
+		if not unlocked(entry):
+			return State.LOCKED
+		return State.BUYABLE
+	if not fits(entry, target):
+		return State.INCOMPATIBLE
+	if is_equipped(item_id, target):
+		return State.WEARING
+	if owns(item_id):
+		return State.OWNED
+	if not unlocked(entry):
+		return State.LOCKED
+	return State.BUYABLE
+
+
+# --- the cast -------------------------------------------------------------
+#
+# Fourteen faces, ten of them free from the first minute and four bought with
+# stars like anything else. They are shop items so that ONE purchase flow
+# covers them -- try on, see the three numbers, decide, and 放回去 for five
+# seconds afterwards. What makes them different is only what "wearing" means:
+# the profile changes rather than a wardrobe slot, which is why every function
+# below exists instead of reusing equip().
+
+const WHO_CATEGORY := "who"
+
+
+static func is_who(entry: Dictionary) -> bool:
+	return str(entry.get("category", "")) == WHO_CATEGORY
+
+
+static func who_id(entry: Dictionary) -> String:
+	return str(entry.get("character_id", ""))
+
+
+## Free from the start, or bought. Both count, and neither is stored twice:
+## characters.json says who is free and the owned list says who was paid for.
+static func have_character(character_id: String) -> bool:
+	var cast: Dictionary = GameData.characters.get("characters", {})
+	if not cast.has(character_id):
+		return false
+	if bool(cast[character_id].get("unlocked", false)):
+		return true
+	return owns(WHO_CATEGORY + "_" + character_id)
+
+
+## Become him. Refuses a character he has not got, so a stale save or a bad
+## card cannot strand the game on a face that does not exist.
+static func become(character_id: String) -> bool:
+	if not have_character(character_id):
+		return false
+	if who() == character_id:
+		return true
+	SaveManager.set_character(character_id)
+	return true
+
+
+## Everyone he could be, whether or not he can be them yet.
+static func cast() -> Array:
+	return _cast_rows()
+
+
+## The cards for the 形象 drawer: the fourteen in the data file, plus any face
+## the game picked up at boot that the data file has never heard of.
+##
+## That last part is not hypothetical. GameData scans assets/characters for a
+## drop-in -- a scan of a drawing -- and adds it to the cast at runtime. Before
+## this, such a face appeared in the row of heads under the stage but had no
+## card in the drawer, which is exactly the kind of half-present thing this
+## project keeps finding months later.
+static func _cast_rows() -> Array:
+	var rows: Array = []
+	var carded: Dictionary = {}
+	for entry in GameData.shop_items:
+		if str(entry.get("category", "")) == WHO_CATEGORY:
+			rows.append(entry)
+			carded[who_id(entry)] = true
+	for cid in GameData.characters.get("characters", {}):
+		if carded.has(cid):
+			continue
+		var meta: Dictionary = GameData.characters["characters"][cid]
+		rows.append({
+			"id": WHO_CATEGORY + "_" + str(cid),
+			"name_key": str(meta.get("name_key", "")),
+			"category": WHO_CATEGORY,
+			"slot": "",
+			"price": 0,
+			"art": "",
+			"icon": "",
+			"character_id": str(cid),
+			"character_compatibility": [],
+			"unlock_condition": {"type": "always"},
+			"set_id": "",
+			"world_theme": "",
+			"bundle_id": "",
+		})
+	return rows
+
+
+## The "new!" mark: owned, and he has not looked at it yet. One small star in
+## the corner, gone after the first look -- never a red dot that keeps pulsing.
+static func is_new(item_id: String) -> bool:
+	return owns(item_id) and not (item_id in _shop().get("seen_new", []))
+
+
+static func mark_seen(item_id: String) -> void:
 	var shop := _shop()
-	var worn: Dictionary = shop.get("equipped", {})
-	worn[slot] = ""
-	shop["equipped"] = worn
+	var seen: Array = shop.get("seen_new", [])
+	if item_id in seen:
+		return
+	seen.append(item_id)
+	shop["seen_new"] = seen
 	SaveManager.data[SAVE_KEY] = shop
 	SaveManager.save_game()
-	SaveManager.progress_changed.emit()
 
 
 ## Garments answer with their body slot; companions, rides, trails and poses

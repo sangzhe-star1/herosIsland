@@ -139,15 +139,28 @@ func default_shop() -> Dictionary:
 	return _default_shop()
 
 
+## Every slot a hero can wear something in, in the order they are drawn.
+const OUTFIT_SLOTS := ["back", "body", "feet", "hands", "head", "colour", "pal"]
+
+
+func empty_outfit() -> Dictionary:
+	var out := {}
+	for slot in OUTFIT_SLOTS:
+		out[slot] = ""
+	return out
+
+
 func _default_shop() -> Dictionary:
 	return {
-		# What he owns and what he has on. `equipped` carries every slot up
-		# front so a screen can read one without checking whether it exists.
+		# What he owns. One list -- clothes belong to the CHILD, not to a hero.
 		"owned": [],
-		"equipped": {
-			"head": "", "body": "", "back": "", "hands": "", "feet": "",
-			"pal": "", "ride": "", "fx": "", "action": "",
-		},
+		# What each hero has ON. Per character on purpose: dressing 迪迦 used to
+		# dress 赛罗 too, because there was one global outfit, and that made six
+		# heroes read as one hero in six colours. Five heroes he can dress five
+		# different ways is most of what makes this a dressing-up game.
+		"worn": {},
+		# Three looks he can save and put back on with one tap.
+		"presets": ["", "", ""],
 		# Up to five things he is saving for. See wishlist_manager.gd.
 		"wishlist": [],
 		# Decorations placed in the hero base, and which shelves have opened.
@@ -157,7 +170,44 @@ func _default_shop() -> Dictionary:
 		"seen_new": [],
 		"bundles_done": [],
 		"free_gift_taken": false,
+		"tutorial_done": false,
 	}
+
+
+# --- the wardrobe --------------------------------------------------------
+
+## What this hero is wearing. Always every slot, so a screen can read one
+## without checking whether it is there.
+func worn_by(character_id: String) -> Dictionary:
+	var shop: Dictionary = data.get("shop", {})
+	var all: Dictionary = shop.get("worn", {})
+	var mine: Dictionary = all.get(character_id, {})
+	var out := empty_outfit()
+	for slot in out:
+		out[slot] = str(mine.get(slot, ""))
+	return out
+
+
+func wear_item(character_id: String, slot: String, item_id: String) -> void:
+	if not data.has("shop"):
+		data["shop"] = _default_shop()
+	var all: Dictionary = data["shop"].get("worn", {})
+	var mine: Dictionary = all.get(character_id, {})
+	mine[slot] = item_id
+	all[character_id] = mine
+	data["shop"]["worn"] = all
+	save_game()
+	progress_changed.emit()
+
+
+func wear_whole(character_id: String, outfit: Dictionary) -> void:
+	if not data.has("shop"):
+		data["shop"] = _default_shop()
+	var all: Dictionary = data["shop"].get("worn", {})
+	all[character_id] = outfit.duplicate(true)
+	data["shop"]["worn"] = all
+	save_game()
+	progress_changed.emit()
 
 
 func _migrate(loaded: Dictionary) -> Dictionary:
@@ -181,8 +231,189 @@ func _migrate(loaded: Dictionary) -> Dictionary:
 ## balance looked right every time and the file never changed, so it would have
 ## paid out again every morning forever.
 func _settle_after_load() -> void:
-	if _refund_spent_stars():
+	var changed := _refund_spent_stars()
+	changed = _rename_old_monsters() or changed
+	changed = _move_wardrobe_in() or changed
+	changed = _split_wardrobes() or changed
+	if changed:
 		save_game()
+
+
+## The old wardrobe moves into the new one, and nothing he owns is lost.
+##
+## There were two wardrobes. The Hero House kept ownership in
+## `rewards.outfits` and what-is-worn in `profile.outfit`, with slots called
+## hat/face/suit/back/colour. The gift shop kept both in `data.shop`, with
+## slots called head/body/back/hands/feet -- and `back` meant a different thing
+## in each. They shared only the coin balance.
+##
+## This is the merge. It runs once, converts the old ids to their new
+## equivalents, and leaves the old keys alone rather than deleting them: if
+## this is ever wrong, the original is still on disk to read.
+##
+## A card that vanishes is the failure this project has already had once, with
+## the monster album. It is worse here -- these are things he SPENT stars on.
+const OUTFIT_RENAMES := {
+	# hats
+	"crown": "crown_brave", "party_hat": "crown_party",
+	"cap": "cap_cloud", "cowboy_hat": "cap_captain",
+	# the old face slot has no home; the nearest thing is a head piece
+	"sunglasses": "goggles_sky", "bandana": "headband_bunny",
+	# suits
+	"dress": "dress_party", "vest": "vest_park", "star_robe": "robe_wizard",
+	# backs
+	"cape_red": "cape_castle", "wings": "wings_sky",
+	# colours
+	"sky": "colour_sky", "mint": "colour_mint", "rose": "colour_rose",
+	"sun": "colour_sun", "violet": "colour_violet", "shadow": "colour_cloud",
+}
+const OLD_TO_NEW_SLOT := {
+	"hat": "head", "face": "head", "suit": "body",
+	"back": "back", "colour": "colour",
+}
+
+
+func _move_wardrobe_in() -> bool:
+	var rewards: Dictionary = data.get("rewards", {})
+	var old_owned: Array = rewards.get("outfits", [])
+	var old_worn: Dictionary = data.get("profile", {}).get("outfit", {})
+	if old_owned.is_empty() and old_worn.is_empty():
+		return false
+	if not data.has("shop"):
+		data["shop"] = _default_shop()
+	if bool(data["shop"].get("wardrobe_moved", false)):
+		return false
+
+	var catalogue := {}
+	for entry in GameData.shop_items:
+		catalogue[str(entry.get("id", ""))] = true
+	if catalogue.is_empty():
+		return false            # the catalogue failed to load; touch nothing
+
+	var owned: Array = data["shop"].get("owned", [])
+	for old_id in old_owned:
+		var new_id := str(OUTFIT_RENAMES.get(str(old_id), str(old_id)))
+		if catalogue.has(new_id) and not owned.has(new_id):
+			owned.append(new_id)
+	data["shop"]["owned"] = owned
+
+	# Whatever he had on goes on the hero he was PLAYING, and on nobody else.
+	#
+	# The first cut put it on all of them, reasoning that there had only ever
+	# been one outfit so it could not have been meant for one hero. That was
+	# wrong the moment there were fourteen faces: it dressed the whole cast
+	# identically, and a row of fourteen heads in the same crown is a row a
+	# child reads as one character repeated.
+	var outfit := empty_outfit()
+	for old_slot in old_worn:
+		var new_slot := str(OLD_TO_NEW_SLOT.get(str(old_slot), ""))
+		var new_id := str(OUTFIT_RENAMES.get(str(old_worn[old_slot]), ""))
+		if new_slot != "" and catalogue.has(new_id) and owned.has(new_id):
+			outfit[new_slot] = new_id
+	var worn: Dictionary = data["shop"].get("worn", {})
+	var chosen := str(data.get("profile", {}).get("character_id", ""))
+	if chosen != "" and not worn.has(chosen):
+		worn[chosen] = outfit.duplicate(true)
+	data["shop"]["worn"] = worn
+	data["shop"]["wardrobe_moved"] = true
+	# The old dictionary has been read; leaving it in place is what made every
+	# hero wear the same drawn crown. It stays on disk as `outfit_old` so the
+	# original is still there to look at if this was ever wrong.
+	data["profile"]["outfit_old"] = old_worn.duplicate(true)
+	data["profile"]["outfit"] = {}
+	return true
+
+
+## Saves that already came through the move are still carrying the old global
+## wardrobe and a copy of it on every hero. Undo exactly that, once.
+##
+## Only outfits IDENTICAL to the chosen hero's are cleared: if he has since
+## dressed 赛罗 differently, that was a decision and it stays. Nothing he owns
+## is touched -- clothes belong to the child, so undressing a hero costs him
+## nothing but a tap to put it back.
+func _split_wardrobes() -> bool:
+	if not data.has("shop"):
+		return false
+	var shop: Dictionary = data["shop"]
+	if bool(shop.get("wardrobe_split", false)):
+		return false
+	shop["wardrobe_split"] = true
+	var changed := false
+	if not (data.get("profile", {}).get("outfit", {}) as Dictionary).is_empty():
+		data["profile"]["outfit_old"] = data["profile"]["outfit"].duplicate(true)
+		data["profile"]["outfit"] = {}
+		changed = true
+	var worn: Dictionary = shop.get("worn", {})
+	var chosen := str(data.get("profile", {}).get("character_id", ""))
+	var mine: Dictionary = worn.get(chosen, {})
+	if mine.is_empty():
+		return true
+	for character_id in worn.keys():
+		if str(character_id) == chosen:
+			continue
+		var theirs: Dictionary = worn[character_id]
+		var same := theirs.size() == mine.size()
+		if same:
+			for slot in mine:
+				if str(theirs.get(slot, "")) != str(mine[slot]):
+					same = false
+					break
+		if same:
+			worn.erase(character_id)
+			changed = true
+	shop["worn"] = worn
+	return changed or true
+
+
+## 怪兽图鉴 was rebuilt with painted art and fifteen new monsters, and the ten
+## old ids went with the old drawings.
+##
+## A save file still holds the old ids, and an id that matches nothing is a
+## card that silently disappears. A six-year-old does not know his game was
+## rebuilt. He knows the monster he beat is gone out of his book -- which is
+## the one thing a collection must never do.
+##
+## So the old ones are renamed to whoever took their place: same world, same
+## job in that world. Anything with no successor is dropped rather than left to
+## sit in the save as a card that can never be drawn.
+const MONSTER_RENAMES := {
+	"walker": "stone_cub",           # the first small foe in the park
+	"spitter": "twin_horn",          # the second one
+	"armoured": "drill_armor",       # the one you have to get above
+	"rock_giant": "blaze_claw",      # the arena boss in the castle
+	"horn_beast": "red_wing",        # first duel, sunny park
+	"spark_eel": "steel_spine",      # duel, neon city
+	"big_arms": "sand_fist",         # duel, monster valley
+	"valley_king": "crystal_armor",  # second duel, monster valley
+	"sky_watcher": "thunder_wyvern", # duel, sky base
+	"castle_shadow": "shadow_wing",  # the last fight in the game
+}
+
+
+func _rename_old_monsters() -> bool:
+	var album: Array = data["rewards"].get("album", [])
+	if album.is_empty():
+		return false
+	var known := {}
+	for entry in GameData.monsters:
+		known[str(entry.get("id", ""))] = true
+	if known.is_empty():
+		return false     # the catalogue failed to load; touch nothing
+	var fresh: Array = []
+	var changed := false
+	for old in album:
+		var id := str(old)
+		if known.has(id):
+			if not fresh.has(id):
+				fresh.append(id)
+			continue
+		changed = true
+		var new_id := str(MONSTER_RENAMES.get(id, ""))
+		if new_id != "" and known.has(new_id) and not fresh.has(new_id):
+			fresh.append(new_id)
+	if changed:
+		data["rewards"]["album"] = fresh
+	return changed
 
 
 func save_game() -> void:

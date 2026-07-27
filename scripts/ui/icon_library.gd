@@ -919,6 +919,73 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 					[Color(0.90, 0.32, 0.30), Color(0.97, 0.94, 0.88),
 						Color(0.90, 0.32, 0.30)][k])
 			_circle(p, c, s * 0.05, Color(0.97, 0.94, 0.88))
+		"next":
+			# 换一个: two chevrons pointing on. The spin arrow that stood here
+			# meant "undo" to anyone who had just seen the undo button, and the
+			# two buttons sit side by side.
+			for k in range(2):
+				var dx: float = -s * 0.12 + s * 0.24 * float(k)
+				_poly(p, PackedVector2Array([
+					c + Vector2(dx - s * 0.09, -s * 0.22),
+					c + Vector2(dx + s * 0.09, 0.0),
+					c + Vector2(dx - s * 0.09, s * 0.22),
+					c + Vector2(dx - s * 0.19, s * 0.22),
+					c + Vector2(dx - s * 0.01, 0.0),
+					c + Vector2(dx - s * 0.19, -s * 0.22),
+				]), Color(0.99, 0.99, 1.0))
+		"palette":
+			# 颜色: four blobs of paint on a palette. A single blue crayon --
+			# which is what stood here -- reads as "a blue thing", and the
+			# drawer is about choosing BETWEEN colours.
+			_circle(p, c, s * 0.34, Color(0.98, 0.96, 0.90))
+			_circle(p, c + Vector2(s * 0.16, s * 0.14), s * 0.09,
+				Color(0.99, 0.99, 1.0))
+			_circle(p, c + Vector2(-s * 0.14, -s * 0.14), s * 0.085,
+				Color(0.90, 0.34, 0.36))
+			_circle(p, c + Vector2(s * 0.10, -s * 0.17), s * 0.085,
+				Color(0.98, 0.78, 0.28))
+			_circle(p, c + Vector2(-s * 0.20, s * 0.08), s * 0.085,
+				Color(0.36, 0.68, 0.94))
+			_circle(p, c + Vector2(-s * 0.01, s * 0.10), s * 0.085,
+				Color(0.42, 0.78, 0.50))
+		"hero_face":
+			# 形象: a hero's head with a crest, which is exactly what the
+			# drawer offers -- a different face. A shield stood here first and
+			# read as "armour", not "who you are".
+			var suit := Color(0.93, 0.95, 0.98)
+			var mark := Color(0.90, 0.34, 0.34)
+			_tri(p, c + Vector2(-s * 0.07, -s * 0.22), c + Vector2(s * 0.10, -s * 0.20),
+				c + Vector2(0, -s * 0.44), mark)
+			_circle(p, c + Vector2(0, s * 0.02), s * 0.30, suit)
+			_circle(p, c + Vector2(-s * 0.12, s * 0.0), s * 0.09, Color(1.0, 0.90, 0.46))
+			_circle(p, c + Vector2(s * 0.12, s * 0.0), s * 0.09, Color(1.0, 0.90, 0.46))
+			_round_rect(p, c + Vector2(0, s * 0.16), Vector2(s * 0.12, s * 0.04),
+				Color(0.72, 0.76, 0.84), s * 0.02)
+		"outfit_set":
+			# 整套: a shirt with a pair of trousers under it -- the whole
+			# outfit in one picture. A coat hanger was tried first and came out
+			# reading as a shopping bag at 40 px.
+			var top_c := Color(0.42, 0.68, 0.94)
+			var leg_c := Color(0.36, 0.44, 0.62)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.16, -s * 0.40),
+				c + Vector2(s * 0.16, -s * 0.40),
+				c + Vector2(s * 0.30, -s * 0.28),
+				c + Vector2(s * 0.22, -s * 0.18),
+				c + Vector2(s * 0.18, -s * 0.02),
+				c + Vector2(-s * 0.18, -s * 0.02),
+				c + Vector2(-s * 0.22, -s * 0.18),
+				c + Vector2(-s * 0.30, -s * 0.28),
+			]), top_c)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.18, s * 0.04),
+				c + Vector2(s * 0.18, s * 0.04),
+				c + Vector2(s * 0.17, s * 0.40),
+				c + Vector2(s * 0.03, s * 0.40),
+				c + Vector2(0, s * 0.20),
+				c + Vector2(-s * 0.03, s * 0.40),
+				c + Vector2(-s * 0.17, s * 0.40),
+			]), leg_c)
 		"crown":
 			var gold := Color(1.0, 0.82, 0.30)
 			_round_rect(p, c + Vector2(-s * 0.30, s * 0.06), Vector2(s * 0.60, s * 0.16), gold, s * 0.04)

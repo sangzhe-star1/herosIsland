@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterSkin" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/skin/character_skin.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "tide"
+display_name_key = "character.tide"
+build_width = 76.0
+crest_kind = "fin"
+chest_pattern = "ring"
+body_color = Color(0.9, 0.95, 0.99, 1)
+accent_color = Color(0.18, 0.52, 0.82, 1)
+trim_color = Color(0.98, 0.99, 1, 1)
+eye_color = Color(0.8, 0.96, 1, 1)
+core_color = Color(0.35, 0.85, 1, 1)
+body_size = Vector2(64, 96)

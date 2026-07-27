@@ -99,6 +99,18 @@ echo "────────────────────────�
 
 # Godot reports script faults on stdout without failing the process, so the
 # exit code alone is not enough to trust.
+no_script_errors() {
+  # $1 is a probe's captured output. A probe that faults halfway through
+  # SKIPS the rest of its own checks and then prints PASSED, which is how a
+  # broken companion test once reported success while never running. Any
+  # probe output carrying a script fault fails the suite.
+  if grep -qE "SCRIPT ERROR|Parse Error|Parser Error" "$1"; then
+    echo "SCRIPT ERRORS FOUND in ${2:-a probe}:"
+    grep -nE "SCRIPT ERROR|Parse Error|Parser Error" "$1" | head -25
+    exit 1
+  fi
+}
+
 if grep -qE "SCRIPT ERROR|Parse Error|Parser Error" "$OUT"; then
   echo "SCRIPT ERRORS FOUND:"
   grep -nE "SCRIPT ERROR|Parse Error|Parser Error" "$OUT" | head -25
@@ -114,6 +126,7 @@ if ! grep -q "SMOKE TEST PASSED" "$OUT"; then
   echo "Exit status was $STATUS."
   exit 1
 fi
+no_script_errors "$OUT" "Smoke Test"
 # The progression probe guards the meta-layer: XP maths, improvement-only
 # coins, the sticker economy, and challenge scaling actually gating
 # completion (a bug the probe caught once already).
@@ -126,6 +139,7 @@ if ! grep -q "PROGRESSION PROBE PASSED" "$PROG_OUT"; then
   echo "Progression probe failed."
   exit 1
 fi
+no_script_errors "$PROG_OUT" "Progression Probe"
 rm -f "$PROG_OUT"
 
 # The tap probe pushes ONE real click through the input pipeline and counts
@@ -150,6 +164,7 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
   fi
   rm -f "$TAP_OUT"
 fi
+no_script_errors "$TAP_OUT" "Tap Probe"
 
 # The difficulty probe boots one level per template at Gentle and again at
 # Brave and checks the knob each template promises to bend. A dial that
@@ -173,6 +188,7 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
   fi
   rm -f "$DIFF_OUT"
 fi
+no_script_errors "$DIFF_OUT" "Difficulty Probe"
 
 # The upgrade probe proves a drafted skill actually changes the gun --
 # cooldown, radius, damage, bolt count AND colour. Needs a window.
@@ -194,6 +210,7 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
   fi
   rm -f "$UP_OUT"
 fi
+no_script_errors "$UP_OUT" "Upgrade Probe"
 
 # The echo probe drives Dance Mode / Light Song the way thumbs do: phrase
 # generation, the handover, the note lamps, and a completed phrase scoring.
@@ -206,6 +223,7 @@ if ! grep -q "ECHO PROBE PASSED" "$ECHO_OUT"; then
   echo "Echo probe failed."
   exit 1
 fi
+no_script_errors "$ECHO_OUT" "Echo Probe"
 rm -f "$ECHO_OUT"
 
 # The adventure probe walks a whole platform_adventure level with the two
@@ -237,6 +255,7 @@ if ! grep -q "VOICE CHECK PASSED" "$VOICE_OUT"; then
   echo "Voice check failed."
   exit 1
 fi
+no_script_errors "$VOICE_OUT" "Voice Check"
 rm -f "$VOICE_OUT"
 
 # The result screen, loaded with everything it can possibly show at once. It
@@ -252,6 +271,7 @@ if ! grep -q "RESULT PROBE PASSED" "$RESULT_OUT"; then
   echo "Result probe failed."
   exit 1
 fi
+no_script_errors "$RESULT_OUT" "Result Probe"
 rm -f "$RESULT_OUT"
 
 # The one check that presses things. Every other check here answers "does it
@@ -267,7 +287,24 @@ if ! grep -q "TOUCH PROBE PASSED" "$TOUCH_OUT"; then
   echo "Touch probe failed."
   exit 1
 fi
+no_script_errors "$TOUCH_OUT" "Touch Probe"
 rm -f "$TOUCH_OUT"
+
+# 英雄基地 with a finger, at two screen shapes. The touch probe taps, and it
+# taps by pushing a mouse event that the desktop emulates into a touch -- so
+# the drag, which is the only thing this room is made of, was never tested the
+# way an iPad delivers it. It did nothing at all.
+echo
+echo "Running studio probe..."
+STUDIO_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/StudioProbe.tscn 2>&1 | tee "$STUDIO_OUT"
+if ! grep -q "STUDIO PROBE PASSED" "$STUDIO_OUT"; then
+  rm -f "$STUDIO_OUT"
+  echo "Studio probe failed."
+  exit 1
+fi
+no_script_errors "$STUDIO_OUT" "Studio Probe"
+rm -f "$STUDIO_OUT"
 
 # The parent's unlock-everything switch. It is only allowed to be a VIEW of the
 # save: flip it both ways and his son's stars have to come out untouched.
@@ -280,6 +317,7 @@ if ! grep -q "UNLOCK PROBE PASSED" "$UNLOCK_OUT"; then
   echo "Unlock probe failed."
   exit 1
 fi
+no_script_errors "$UNLOCK_OUT" "Unlock Probe"
 rm -f "$UNLOCK_OUT"
 
 # The money. Above all: buying a thing must never cost him a 关卡星章 -- that
@@ -294,6 +332,7 @@ if ! grep -q "SHOP PROBE PASSED" "$SHOP_OUT"; then
   echo "Shop probe failed."
   exit 1
 fi
+no_script_errors "$SHOP_OUT" "Shop Probe"
 rm -f "$SHOP_OUT"
 
 # How long a duel actually lasts, fought perfectly. Catches both ends: a boss
@@ -308,6 +347,7 @@ if ! grep -q "DUEL LENGTH PROBE PASSED" "$DUEL_OUT"; then
   echo "Duel length probe failed."
   exit 1
 fi
+no_script_errors "$DUEL_OUT" "Duel Length Probe"
 rm -f "$DUEL_OUT"
 
 echo
@@ -319,6 +359,7 @@ if ! grep -q "MAP PROBE PASSED" "$MAP_OUT"; then
   echo "Map probe failed."
   exit 1
 fi
+no_script_errors "$MAP_OUT" "Map Probe"
 rm -f "$MAP_OUT"
 
 echo
@@ -330,7 +371,42 @@ if ! grep -q "ADVENTURE PROBE PASSED" "$ADV_OUT"; then
   echo "Adventure probe failed."
   exit 1
 fi
+no_script_errors "$ADV_OUT" "Adventure Probe"
 rm -f "$ADV_OUT"
+
+# 英雄小屋. A dressing-up room is almost entirely state -- what he owns, what
+# he has on, which hero he is, what he was trying and did not buy -- and state
+# is what a screenshot cannot show. The first thing it checks is that trying
+# something on is free, because a room that charges for looking is a room a
+# six-year-old stops touching.
+echo
+echo "Running hero house probe..."
+HOUSE_OUT=$(mktemp)
+timeout 240 "$GODOT" --headless --path . res://tests/HeroHouseProbe.tscn 2>&1 | tee "$HOUSE_OUT"
+if ! grep -q "HERO HOUSE PROBE PASSED" "$HOUSE_OUT"; then
+  rm -f "$HOUSE_OUT"
+  echo "Hero house probe failed."
+  exit 1
+fi
+no_script_errors "$HOUSE_OUT" "Hero House Probe"
+rm -f "$HOUSE_OUT"
+
+# 怪兽图鉴. A collection a child cannot finish is a broken promise, so this
+# asks the only question that matters: is every one of the ten cards actually
+# reachable by playing? It also checks the ten look like ten (all six bosses
+# were one purple creature at six different sizes until this week) and that
+# beating the same monster twice does not hand out the card twice.
+echo
+echo "Running album probe..."
+ALBUM_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/AlbumProbe.tscn 2>&1 | tee "$ALBUM_OUT"
+if ! grep -q "ALBUM PROBE PASSED" "$ALBUM_OUT"; then
+  rm -f "$ALBUM_OUT"
+  echo "Album probe failed."
+  exit 1
+fi
+no_script_errors "$ALBUM_OUT" "Album Probe"
+rm -f "$ALBUM_OUT"
 
 # The save probe tears the save file the way a force-closed tablet does and
 # proves the child's history survives. Runs LAST: it ends on a deliberately
@@ -344,6 +420,7 @@ if ! grep -q "SAVE PROBE PASSED" "$SAVE_OUT"; then
   echo "Save probe failed."
   exit 1
 fi
+no_script_errors "$SAVE_OUT" "Save Probe"
 rm -f "$SAVE_OUT"
 
 echo "All good."

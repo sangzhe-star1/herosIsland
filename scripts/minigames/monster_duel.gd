@@ -21,11 +21,40 @@ extends LevelManager
 ## lost, there is no hero health bar, misses are not mistakes, and the duel
 ## ends the way every battle here ends: the monster tired, happy, waving.
 
+## Reached by preload, never by class name: an unknown class name is a parse
+## error on a machine whose editor has not rescanned, and that takes the whole
+## game grey rather than one screen.
+const Album := preload("res://scripts/reward/monster_album.gd")
+
 const GROUND_Y := 620.0
 const HERO_POS := Vector2(250, 620)
 const MONSTER_POS := Vector2(690, GROUND_Y)   # clear of the skill pad, bottom right
 ## How many unblocked hits the hero can take before the light bar empties.
 const LIGHT_PIPS := 3
+
+## How tall a boss stands on screen at "scale": 1.0, and the most it may ever
+## be. The level's `scale` used to multiply the monster's own height directly,
+## which was harmless while every monster in the game was 300 px tall and
+## stopped being harmless the moment they each got their own size: the final
+## boss is 370 and its level asks for 1.4, so it came out 660 px of creature
+## on a 720 px screen with its head off the top and the health bar drawn
+## across its face.
+##
+## So `scale` now means what a level author thinks it means -- how big this
+## one is COMPARED TO the others -- and the pixels are worked out here.
+## Deliberately low enough that only the LAST boss on the island touches the
+## ceiling. At 300 the top three all clamped to the same pixel height, which
+## quietly threw away the one thing the numbers were for: the final monster
+## has to be the biggest thing he has ever seen.
+const MONSTER_STAND := 290.0
+## The tallest a boss may be drawn, horns and all. The health bar sits at
+## y=84 and the ground at y=620, so anything past this is standing in the HUD.
+const MONSTER_CEILING := 440.0
+
+
+func _fit_monster(tall: float, want: float) -> float:
+	var target: float = minf(MONSTER_STAND * want, MONSTER_CEILING)
+	return target / maxf(tall, 1.0)
 
 const BEAM_ART := "res://assets/effects/energy_beam.png"
 const HIT_ART := "res://assets/effects/hit_burst.png"
@@ -58,6 +87,8 @@ var _monster: Node2D
 var _shield_bubble: Control
 var _hp_fill: Control          # the monster's health, drawn as a draining bar
 var _hp_face: Control
+var _monster_id := ""
+var _met_new_monster := false
 var _beam_button: Control
 var _shield_button: Control
 var _ult_button: Control
@@ -130,9 +161,21 @@ func _build_scene(config: Dictionary) -> void:
 
 	_monster = preload("res://scripts/battle/monster.gd").new()
 	_monster.position = MONSTER_POS
-	_monster.scale = Vector2.ONE * float(config.get("monster", {}).get("scale", 1.15))
 	_play_area.add_child(_monster)
-	_monster.build(config.get("monster", {}))
+	# From the album, so the monster he fights and the card he collects are one
+	# drawing. Before this every duel passed only a scale, and all six bosses on
+	# the island were the same purple creature at six different sizes.
+	var monster_id := str(config.get("monster", {}).get("id", ""))
+	_monster_id = monster_id
+	var entry: Dictionary = Album.get_monster(monster_id)
+	if monster_id != "" and not entry.is_empty():
+		_monster.build(entry)
+	else:
+		entry = config.get("monster", {})
+		_monster.build(entry)
+	_monster.scale = Vector2.ONE * _fit_monster(
+		float(entry.get("height", 300.0)),
+		float(config.get("monster", {}).get("scale", 1.15)))
 
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
@@ -180,6 +223,53 @@ const HP_AT := Vector2(360.0, 84.0)
 ## pixels of a 560 px bar, animated, next to a monster's face that is watching
 ## the bar go down. The rule underneath is the one this whole game runs on:
 ## every action a child takes has to visibly do something, immediately.
+## A small round portrait of the monster being fought -- the same creature,
+## built the same way, cropped to its head. Returns null if this level fights
+## something the album has never heard of, so the caller can fall back.
+func _monster_head(size: float) -> Control:
+	var entry: Dictionary = Album.get_monster(_monster_id)
+	if entry.is_empty():
+		return null
+	var frame := Control.new()
+	frame.custom_minimum_size = Vector2(size, size)
+	frame.size = Vector2(size, size)
+	frame.clip_contents = true
+	var disc := Node2D.new()
+	frame.add_child(disc)
+	Shapes.fill(disc, Shapes.circle_points(Vector2(size * 0.5, size * 0.5),
+		size * 0.5, 24), Color(0.06, 0.09, 0.18, 0.9), 0.0)
+	var beast: Node2D = preload("res://scripts/battle/monster.gd").new()
+	frame.add_child(beast)
+	beast.build(entry)
+	var tall: float = maxf(float(entry.get("height", 300.0)), 1.0)
+	# The head is roughly the top half of the drawing, so fit THAT, not the
+	# whole creature -- a whole monster shrunk into 52 px is a smudge.
+	var fit: float = (size * 0.92) / (tall * 0.58)
+	beast.scale = Vector2(fit, fit)
+	beast.position = Vector2(size * 0.5, size * 0.5 + tall * 0.70 * fit)
+
+	# clip_contents crops to a RECTANGLE, so the head came out as a square
+	# stamp with the monster's shoulders showing in the corners. A thick ring
+	# painted on top cuts a round window in it, in the same dark as the health
+	# track behind, so the portrait and the bar read as one piece of HUD.
+	#
+	# It has to reach past the corner (0.707 x size) to cover it, which is the
+	# whole reason the outer radius looks too big.
+	var ring := Node2D.new()
+	frame.add_child(ring)
+	var mid := Vector2(size * 0.5, size * 0.5)
+	var band := PackedVector2Array()
+	var outer := Shapes.circle_points(mid, size * 0.80, 28)
+	var inner := Shapes.circle_points(mid, size * 0.44, 28)
+	band.append_array(outer)
+	band.append(outer[0])
+	for i in range(inner.size() - 1, -1, -1):
+		band.append(inner[i])
+	band.append(inner[inner.size() - 1])
+	Shapes.fill(ring, band, Color(0.06, 0.09, 0.18, 0.85), 0.0)
+	return frame
+
+
 func _build_meter() -> void:
 	var holder := Control.new()
 	holder.position = HP_AT
@@ -189,9 +279,16 @@ func _build_meter() -> void:
 
 	# Whose health this is. Without the face it is just a bar, and the child
 	# has two of them on screen.
-	_hp_face = UiKit.picture("monster", 52.0)
+	#
+	# THIS monster's face, not a generic one: the whole point of giving every
+	# boss its own drawing is undone if the bar above it still shows the same
+	# purple stand-in on all six islands. Same album entry as the creature and
+	# the album card, so all three can never drift apart.
+	_hp_face = _monster_head(52.0)
+	if _hp_face == null:
+		_hp_face = UiKit.picture("monster", 52.0)
 	if _hp_face != null:
-		_hp_face.position = Vector2(-64, -10)
+		_hp_face.position = Vector2(-58, -10)
 		_hp_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		holder.add_child(_hp_face)
 
@@ -907,6 +1004,9 @@ func complete_level() -> void:
 		result.found_hidden = _used_ult
 		result.clean_run = _light_left >= LIGHT_PIPS
 		_instruction.text = I18n.t("battle.bye")
+		# Into the 图鉴. Beaten, not merely met -- a card he won is worth more
+		# than one he was handed for turning up.
+		_met_new_monster = Album.beat_monster(_monster_id)
 		_hero.celebrate()
 		Juice.burst(_play_area, _monster.position + Vector2(0, -160), 30)
 		AudioManager.play_sfx("res://assets/audio/level_complete.ogg")

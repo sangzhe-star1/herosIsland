@@ -52,6 +52,31 @@ func _fight(level_id: String) -> Array[String]:
 	for i in range(6):
 		await get_tree().process_frame
 
+	# Does the boss FIT?
+	#
+	# Every monster used to be 300 px tall, so a level's "scale": 1.4 was a
+	# safe thing to write. Then each monster got its own height, and 1.4 x 370
+	# put 660 px of creature on a 720 px screen: head off the top, health bar
+	# drawn across its eyes. A screenshot caught it -- but a screenshot only
+	# catches the duel someone happens to look at, and there are six.
+	var beast: Node2D = game.get("_monster")
+	if beast != null and is_instance_valid(beast):
+		# _h is the monster's own drawn height, painted or code-drawn. The
+		# sprite art already includes its horns, so there is no fudge factor.
+		# _h was set only by the code-drawn path until the painted monsters
+		# arrived, so every one of these read 300 -- the default -- and this
+		# check was silently measuring the same number six times.
+		var tall: float = float(beast.get("_h")) * beast.scale.y
+		var head_top: float = beast.position.y - tall
+		print("  %-18s stands %.0f px, head at y=%.0f"
+			% [level_id, tall, head_top])
+		if head_top < 140.0:
+			out.append("%s: the monster's head reaches y=%.0f, up behind the "
+				% [level_id, head_top] + "health bar")
+		if tall < 220.0:
+			out.append("%s: the monster stands only %.0f px -- that is not a "
+				% [level_id, tall] + "boss")
+
 	var need: int = game.call("target_value", "correct", 0)
 	if need <= 0:
 		out.append("%s has no target -- it will end on the first hit" % level_id)

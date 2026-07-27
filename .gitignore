@@ -22,3 +22,6 @@ Thumbs.db
 
 # Scratch bin for files the sandboxed session cannot delete
 _to_delete/
+
+# 素材压缩包的落脚点，不进仓库
+tmp/

@@ -184,7 +184,7 @@ func _check_scenes() -> void:
 	var screens := [
 		"res://scenes/boot/Boot.tscn",
 		"res://scenes/home/Home.tscn",
-		"res://scenes/house/HeroHouse.tscn",
+		"res://scenes/shop/HeroHouseScreen.tscn",
 		"res://scenes/map/WorldMap.tscn",
 		"res://scenes/reward/RewardCenter.tscn",
 		"res://scenes/parent/ParentCenter.tscn",

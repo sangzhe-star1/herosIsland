@@ -12,6 +12,13 @@ extends Node2D
 ## which is how the previous version ended up with the same "if the PNG exists,
 ## use it" test copy-pasted into every template.
 
+## Painted clothes, hung on the figure's bones. Reached by preload, never by
+## class name: an unknown class name is a parse error on a machine whose editor
+## has not rescanned, and that greys the whole game rather than one screen.
+const Layers := preload("res://scripts/shop/outfit_layer.gd")
+const Shop := preload("res://scripts/shop/shop_manager.gd")
+const PalArt := preload("res://scripts/reward/monster_art.gd")
+
 @export var skin: CharacterSkin: set = set_skin
 
 var _art: HeroArt
@@ -56,17 +63,28 @@ func _build() -> void:
 		_pup.set_height(_height if _height > 0.0 else skin.body_size.y * 1.9)
 	elif skin.is_drawn():
 		_art = HeroArt.new(skin)
-		# Dressed from the save before entering the tree (HeroArt builds in
-		# _ready). The outfit follows the child across heroes and levels;
-		# textured skins (photo cut-outs, drop-in PNGs) stay as they came --
-		# and so does the puppy: paint sticks to neither photographs nor fur.
-		_art.outfit = SaveManager.get_outfit()
+		# NOT dressed from profile.outfit any more. That dictionary is the old
+		# single global wardrobe, and feeding it here put the SAME code-drawn
+		# hat and the SAME palette on all fourteen faces -- and a drawn hat
+		# replaces the crest, so every character in the row came out identical.
+		# The real wardrobe is per character and arrives through _hang_clothes.
+		_art.outfit = {}
 		add_child(_art)
 		# Fitted to the same footprint the old placeholder occupied, so every
 		# position a level already chose keeps working.
 		_art.set_height(_height if _height > 0.0 else skin.body_size.y * 1.9)
 	else:
 		_build_textured()
+
+	# Dressed AFTER the branch, not inside one of them.
+	#
+	# Clothes only stick to the hero rig -- paint sticks to neither fur nor a
+	# photograph -- but the COMPANION is not paint. It stands beside whoever is
+	# on screen, and the puppy is the one thing Bluey is allowed to have. This
+	# call used to live inside the hero branch, so choosing a pet while playing
+	# as Bluey did nothing at all, which is the same bug as the invisible
+	# sprite wearing a different coat.
+	_hang_clothes()
 
 	set_core_color(skin.core_color)
 
@@ -96,11 +114,209 @@ func _build_textured() -> void:
 
 ## Re-dress after the wardrobe changes, without rebuilding the whole node.
 func refresh_outfit() -> void:
+	# The companion first, and outside the guard: Bluey and the photo skins
+	# have no rig to dress, but they still walk with a pet.
+	_refresh_pal()
 	if _art == null or not is_instance_valid(_art):
 		return
-	_art.outfit = SaveManager.get_outfit()
+	_art.outfit = {}
 	_art.rebuild()
+	_hang_clothes()
 	_art.set_pose(HeroArt.Pose.IDLE, false)
+
+
+# --- the painted wardrobe -------------------------------------------------
+#
+# Two wardrobes reach this node. The old one is `_art.outfit`, five slots of
+# code-drawn garments, still here because a save may still hold them. The new
+# one is a set of painted PNGs hung on the hero's bones by outfit_layer.gd.
+# They coexist: the old drawings sit underneath, the painted pieces on top.
+
+## Set while trying something on. NOT the save: try-on is free, and the only
+## way to keep it free is for the preview to have its own copy of the truth.
+var _preview: Dictionary = {}
+var _previewing := false
+
+
+func _hang_clothes() -> void:
+	_refresh_pal()
+	if _art == null or not is_instance_valid(_art):
+		return
+	Layers.dress(_art, _outfit_now())
+
+
+# --- the companion --------------------------------------------------------
+#
+# The puppy belongs to the CHILD, not to the dressing-up room, so it lives
+# here rather than on the room's stage: every level that puts a hero on screen
+# gets him walking beside it for free, and there is one place where "does the
+# companion show up?" is answered.
+#
+# He is scenery and nothing else. No collision, no input, drawn BEHIND the
+# hero, and offset to whichever side the hero is not walking towards -- so he
+# trails rather than blocking the thing the child is trying to tap.
+
+## Off for thumbnails: a card 100 px tall showing a hero AND a puppy shows
+## neither. The row of faces under the stage crops to the head anyway, but it
+## says so explicitly for the same reason.
+var show_pal := true
+
+var _pal: Sprite2D
+var _pal_id := ""
+var _pal_side := 1.0
+var _pal_clock := 0.0
+var _pal_last_x := 0.0
+
+
+func _figure_height() -> float:
+	if _height > 0.0:
+		return _height
+	if skin != null:
+		return skin.body_size.y * 1.9
+	return 180.0
+
+
+func _refresh_pal() -> void:
+	var want := str(_outfit_now().get("pal", "")) if show_pal else ""
+	if want == _pal_id and (_pal != null) == (want != ""):
+		_place_pal()
+		return
+	_pal_id = want
+	if _pal != null and is_instance_valid(_pal):
+		_pal.queue_free()
+	_pal = null
+	if want == "":
+		return
+	var entry: Dictionary = Shop.item(want)
+	var tex: Texture2D = PalArt._load(str(entry.get("art", "")))
+	if tex == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.texture = tex
+	sprite.z_index = -1
+	add_child(sprite)
+	_pal = sprite
+	_pal_last_x = _travel()
+	_place_pal()
+
+
+func _place_pal() -> void:
+	if _pal == null or not is_instance_valid(_pal) or _pal.texture == null:
+		return
+	var tall: float = _figure_height() * 0.34
+	var s: float = tall / maxf(float(_pal.texture.get_height()), 1.0)
+	_pal.scale = Vector2(s, s)
+	_pal.position = Vector2(_pal_side * _figure_height() * 0.36, -tall * 0.5)
+
+
+## How far he has travelled, in whatever way this level moves him.
+##
+## NOT global_position: the adventure levels have no camera -- they scroll by
+## sliding the whole world sideways -- so the hero's global x barely changes
+## while he runs, and a companion that reads global x thinks he is standing
+## still. The minigames do the opposite and move the figure itself. Adding the
+## figure's own x to its mover's covers both without either of them having to
+## tell this node anything.
+func _travel() -> float:
+	var out: float = position.x
+	var mover := get_parent()
+	if mover is Node2D:
+		out += (mover as Node2D).position.x
+	return out
+
+
+## Trail him. The offset flips to the far side when the hero sets off, which
+## is what reads as "following" without any path-finding: a child sees the
+## puppy fall in behind and that is the whole trick.
+func _walk_pal(delta: float) -> void:
+	if _pal == null or not is_instance_valid(_pal) or _pal.texture == null:
+		return
+	var tall: float = _figure_height() * 0.34
+	var here: float = _travel()
+	var moved: float = here - _pal_last_x
+	_pal_last_x = here
+	if absf(moved) > 0.4:
+		_pal_side = -signf(moved)
+	if not Juice.motion_enabled():
+		_place_pal()
+		return
+	_pal_clock += delta
+	var want_x: float = _pal_side * _figure_height() * 0.36
+	_pal.position.x = lerpf(_pal.position.x, want_x, clampf(delta * 5.0, 0.0, 1.0))
+	var bob: float = absf(sin(_pal_clock * 7.0)) * tall * 0.10 \
+		if absf(moved) > 0.4 else (sin(_pal_clock * 2.0) + 1.0) * tall * 0.02
+	_pal.position.y = -tall * 0.5 - bob
+
+
+func _process(delta: float) -> void:
+	_walk_pal(delta)
+
+
+func _outfit_now() -> Dictionary:
+	if _previewing:
+		return _preview
+	var who := str(SaveManager.get_profile().get("character_id", ""))
+	if skin != null and skin.id != "":
+		who = _character_for_skin()
+	return SaveManager.worn_by(who)
+
+
+## The save keys characters, not skins, and one skin can serve two characters.
+## Falling back to the chosen character keeps the two in step.
+func _character_for_skin() -> String:
+	var chosen := str(SaveManager.get_profile().get("character_id", ""))
+	var entry: Dictionary = GameData.characters.get("characters", {}).get(chosen, {})
+	if str(entry.get("skin", "")) == skin.id or chosen == skin.id:
+		return chosen
+	return skin.id
+
+
+## Try something on. `overrides` is slot -> item id, merged over what this
+## hero is already wearing; "" in a slot takes that piece off.
+##
+## This writes NOTHING. It is the whole reason a child can tap every hat in
+## the shop and still have every star he started with -- and the probe checks
+## exactly that, because a comment cannot keep it true.
+func preview_outfit(overrides: Dictionary) -> void:
+	var base := SaveManager.worn_by(_character_for_skin())
+	for slot in overrides:
+		base[slot] = str(overrides[slot])
+	_preview = base
+	_previewing = true
+	_hang_clothes()
+
+
+## Back to what he actually owns and is wearing.
+func clear_preview() -> void:
+	_previewing = false
+	_preview = {}
+	_hang_clothes()
+
+
+func is_previewing() -> bool:
+	return _previewing
+
+
+## The named actions the shop sells, mapped onto the verbs the figure already
+## has. No new animation code -- the hero could always do all of this; nothing
+## had ever asked.
+func play_action(action_id: String) -> void:
+	match action_id:
+		"act_wave", "wave":
+			celebrate()
+		"act_spin", "spin":
+			if _art != null and is_instance_valid(_art):
+				_art.spin(1.0, 0.55)
+		"act_hero", "hero":
+			brace()
+		"act_jump", "jump":
+			hop()
+		"act_victory", "victory":
+			victory()
+		"act_star", "star":
+			power_up()
+		_:
+			celebrate()
 
 
 func set_core_color(value: Color) -> void:
@@ -129,6 +345,7 @@ func core_position() -> Vector2:
 ## scale, so a hero is the same size in the forest as in the city.
 func set_height(pixels: float) -> void:
 	_height = pixels
+	_place_pal()
 	if _art != null and is_instance_valid(_art):
 		_art.set_height(pixels)
 	if _pup != null and is_instance_valid(_pup):
