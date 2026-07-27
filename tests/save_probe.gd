@@ -5,6 +5,7 @@ extends Node
 ## really vanished.
 
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
 var _failures: Array[String] = []
@@ -98,7 +99,7 @@ func _ready() -> void:
 	SaveManager.data["shop"]["worn"] = {"tiga": {"head": "hat_crown"}}
 	SaveManager.data["shop"]["wishlist"] = ["dress_fairy"]
 	SaveManager.data["shop"]["free_gift_taken"] = true
-	SaveManager.data["farm"]["plots"][0]["tilled"] = true
+	SaveManager.data["farm"]["plots"][0]["state"] = Farm.TILLED
 	SaveManager.data["farm"]["plots"][0]["crop_id"] = "carrot"
 	SaveManager.data["farm"]["warehouse"] = {"strawberry": 5}
 	SaveManager.data["farm_orders"]["delivered"] = ["bear_carrots"]
@@ -135,7 +136,7 @@ func _ready() -> void:
 	SaveManager.data = SaveManager._default_data()
 	SaveManager.data["rewards"]["creations"] = {"base": ["local_thing"]}
 	SaveManager.data["shop"]["worn"] = {"tiga": {"head": "cap_cloud"}}
-	SaveManager.data["farm"]["plots"][0]["tilled"] = true
+	SaveManager.data["farm"]["plots"][0]["state"] = Farm.TILLED
 	SaveManager.data["farm"]["plots"][0]["crop_id"] = "tomato"
 	SaveManager.import_progress(travelled)
 	_ok(str(SaveManager.data["rewards"]["creations"]["base"][0]) == "local_thing",

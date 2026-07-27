@@ -1,33 +1,35 @@
 [
   {
     "id": "bear_carrots",
-    "npc": "bear",
-    "npc_icon": "teddy",
+    "customer_id": "bear",
+    "customer_icon": "teddy",
     "name_key": "npc.bear",
-    "wants": {
-      "carrot": 3
-    },
-    "reward_coins": 12
+    "requirements": {"carrot": 3},
+    "rewards": {"coins": 10},
+    "unlock_condition": "",
+    "repeatable": false,
+    "completion_transaction_key": "farm_order_bear_carrots"
   },
   {
-    "id": "puppy_corn",
-    "npc": "puppy",
-    "npc_icon": "paw",
-    "name_key": "npc.puppy",
-    "wants": {
-      "corn": 2
-    },
-    "reward_coins": 14
-  },
-  {
-    "id": "robot_berries",
-    "npc": "robot",
-    "npc_icon": "robot",
+    "id": "robot_supply",
+    "customer_id": "robot",
+    "customer_icon": "robot",
     "name_key": "npc.robot",
-    "wants": {
-      "strawberry": 2,
-      "carrot": 1
-    },
-    "reward_coins": 18
+    "requirements": {"corn": 2, "tomato": 2},
+    "rewards": {"coins": 18},
+    "unlock_condition": "",
+    "repeatable": false,
+    "completion_transaction_key": "farm_order_robot_supply"
+  },
+  {
+    "id": "puppy_berries",
+    "customer_id": "puppy",
+    "customer_icon": "paw",
+    "name_key": "npc.puppy",
+    "requirements": {"strawberry": 4, "tomato": 1},
+    "rewards": {"coins": 20},
+    "unlock_condition": "",
+    "repeatable": false,
+    "completion_transaction_key": "farm_order_puppy_berries"
   }
 ]

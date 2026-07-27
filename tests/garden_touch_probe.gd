@@ -11,6 +11,7 @@ extends Node
 ## Everything below goes through _glass().
 
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 
@@ -57,7 +58,10 @@ func _run_on_a(window: Vector2i) -> void:
 	await _dragging_a_seed_lands_in_the_bed_he_aimed_at()
 	await _one_bed_takes_one_crop()
 	await _tapping_a_ripe_bed_fills_the_barn()
+	await _a_harvest_is_paid_for_once()
 	await _handing_an_order_over_pays_once()
+	await _the_lesson_happens_once_in_a_childhood()
+	await _a_break_is_offered_not_pushed()
 	await _there_is_a_way_out()
 
 	_close()
@@ -161,12 +165,12 @@ func _the_beds_are_on_the_screen_he_is_holding(view: Vector2) -> void:
 
 
 func _tapping_grass_turns_it_over() -> void:
-	_ok(not bool(_plots()[0].get("tilled", true)), "bed 0 starts as grass")
+	_ok(str(_plots()[0].get("state", "")) == Farm.EMPTY, "bed 0 starts as grass")
 	await _tap(_bed(0))
-	_ok(bool(_plots()[0].get("tilled", false)),
+	_ok(Farm.is_tilled(_plots()[0]),
 		"one tap on grass turns it into earth -- no tool to pick first")
 	# ...and the OTHER beds are untouched. One tap, one bed.
-	_ok(not bool(_plots()[1].get("tilled", true)),
+	_ok(not Farm.is_tilled(_plots()[1]),
 		"and only the bed he tapped")
 
 
@@ -204,25 +208,26 @@ func _one_bed_takes_one_crop() -> void:
 ## out twice.
 func _tapping_a_ripe_bed_fills_the_barn() -> void:
 	var plots := _plots()
-	plots[3]["tilled"] = true
 	plots[3]["crop_id"] = "strawberry"
 	plots[3]["growth_stage"] = 4
-	plots[3]["ready_to_harvest"] = true
+	plots[3]["plant_cycle_id"] = 7
+	plots[3]["state"] = Farm.READY
+	SaveManager.data["farm"]["paid_harvests"] = []
 	SaveManager.data["farm"]["warehouse"] = {}
 	SaveManager.save_game()
 	_garden.call("_rebuild")
 	await get_tree().process_frame
 
-	var expected := int(GameData.get_crop("strawberry").get("yield", 0))
+	var expected := int(GameData.get_crop("strawberry").get("harvest_amount", 0))
 	await _tap(_bed(3))
 	var barn: Dictionary = SaveManager.data["farm"].get("warehouse", {})
 	_ok(int(barn.get("strawberry", 0)) == expected,
 		"picking a ripe bed puts exactly its yield in the barn")
 	_ok(str(_plots()[3].get("crop_id", "")) == "",
 		"and leaves bare earth behind")
-	_ok(bool(_plots()[3].get("tilled", false)),
+	_ok(Farm.is_tilled(_plots()[3]),
 		"still turned over, so the next seed can go straight in")
-	_ok(not bool(_plots()[3].get("ready_to_harvest", true)),
+	_ok(not Farm.is_ready(_plots()[3]),
 		"and nothing left to pick")
 
 	# Tapping the empty bed again must not pay a second time.
@@ -230,6 +235,81 @@ func _tapping_a_ripe_bed_fills_the_barn() -> void:
 	barn = SaveManager.data["farm"].get("warehouse", {})
 	_ok(int(barn.get("strawberry", 0)) == expected,
 		"tapping the same bed again pays nothing -- one planting, one harvest")
+
+	# The transaction id was written down, and it names the bed and the planting.
+	var paid: Array = SaveManager.data["farm"].get("paid_harvests", [])
+	_ok("farm_harvest_plot_4_7" in paid,
+		"the harvest is recorded against the bed and the planting it came from")
+
+
+## The harvest is paid for ONCE, proved the three ways it can be asked twice.
+##
+## The bed emptying is not enough on its own to prove this. It is the thing
+## that makes a second tap harmless TODAY, and it stops being enough the moment
+## anything is added that pays 星星币 or a badge for picking -- so the once-only
+## rule is asserted directly, against the transaction id, rather than inferred
+## from a side effect that happens to cover it.
+func _a_harvest_is_paid_for_once() -> void:
+	var plots := _plots()
+	plots[2]["crop_id"] = "carrot"
+	plots[2]["growth_stage"] = 4
+	plots[2]["plant_cycle_id"] = 3
+	plots[2]["state"] = Farm.READY
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.data["farm"]["paid_harvests"] = []
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+	var expected := int(GameData.get_crop("carrot").get("harvest_amount", 0))
+
+	# 1. Straight through the screen's own harvest, bypassing the button -- a
+	#    second call while the bed is still READY is the case a disabled button
+	#    would hide.
+	var ripe: Dictionary = _plots()[2]
+	_garden.call("_harvest", ripe)
+	var first := int(SaveManager.data["farm"]["warehouse"].get("carrot", 0))
+	_ok(first == expected, "the first pick fills the barn")
+	# The bed is empty again, and the planting number it was paid against is
+	# still on it. Reset that number and the NEXT planting in this bed reuses a
+	# transaction id that has already been paid for -- so that harvest pays
+	# nothing, silently, and the child picks a carrot and gets no carrot.
+	_ok(int(_plots()[2].get("plant_cycle_id", 0)) == 3,
+		"the harvest leaves the planting number behind for the next crop to pass")
+
+	# 2. The same bed, put back to ripe with the SAME planting, asked again.
+	#    Nothing may come of it: the transaction id has been used.
+	var again: Dictionary = _plots()[2]
+	again["crop_id"] = "carrot"
+	again["growth_stage"] = 4
+	again["plant_cycle_id"] = 3
+	again["state"] = Farm.READY
+	_garden.call("_harvest", again)
+	_ok(int(SaveManager.data["farm"]["warehouse"].get("carrot", 0)) == first,
+		"the same planting cannot be picked twice, even put back by hand")
+
+	# 3. A restart. The ledger is on disk, so the reload has to remember.
+	SaveManager.save_game()
+	SaveManager.load_game()
+	var reopened: Dictionary = SaveManager.data["farm"]["plots"][2]
+	reopened["crop_id"] = "carrot"
+	reopened["growth_stage"] = 4
+	reopened["plant_cycle_id"] = 3
+	reopened["state"] = Farm.READY
+	_garden.call("_harvest", reopened)
+	_ok(int(SaveManager.data["farm"]["warehouse"].get("carrot", 0)) == first,
+		"and not after closing the game and coming back either")
+
+	# A NEW planting in the same bed pays normally -- the guard is on the
+	# planting, not on the bed.
+	var next_cycle: Dictionary = SaveManager.data["farm"]["plots"][2]
+	next_cycle["crop_id"] = "carrot"
+	next_cycle["growth_stage"] = 4
+	next_cycle["plant_cycle_id"] = 4
+	next_cycle["state"] = Farm.READY
+	_garden.call("_harvest", next_cycle)
+	_ok(int(SaveManager.data["farm"]["warehouse"].get("carrot", 0)) == first + expected,
+		"but planting again in the same bed pays again -- once per planting")
 
 
 ## Acceptance #16. A child who wants out has to be able to get out.
@@ -279,8 +359,8 @@ func _find_back_button(node: Node) -> Button:
 ## six-year-old presses things twice.
 func _handing_an_order_over_pays_once() -> void:
 	var order: Dictionary = GameData.garden_orders[0]
-	var wants: Dictionary = order.get("wants", {})
-	var price := int(order.get("reward_coins", 0))
+	var wants: Dictionary = order.get("requirements", {})
+	var price := int(order.get("rewards", {}).get("coins", 0))
 
 	# Fill the barn with exactly what the bear asked for.
 	SaveManager.data["farm"]["warehouse"] = {}
@@ -369,3 +449,116 @@ func _collect_order_cards(node: Node, out: Array) -> void:
 				and (child as Button).size.y > 80.0:
 			out.append(child)
 		_collect_order_cards(child, out)
+
+## The first planting is taught once, and then never again.
+##
+## "Never again" is the half that matters. A lesson that replays every visit is
+## a lesson a child learns to tap through, and after that the game has no way
+## left to teach him anything.
+func _the_lesson_happens_once_in_a_childhood() -> void:
+	_fresh_garden()
+	_ok(not bool(SaveManager.data["farm"].get("tutorial_completed", true)),
+		"a brand new garden has not taught the lesson yet")
+
+	_close()
+	_open()
+	for i in range(4):
+		await get_tree().process_frame
+	_ok(is_instance_valid(_garden.get("_lesson")),
+		"a child opening the garden for the first time gets the lesson")
+
+	# Let it run out. The director frees itself at the end, so everything after
+	# this asks is_instance_valid rather than == null -- a freed object is not
+	# null, and a probe that compared against null would have passed whether the
+	# lesson ran again or not.
+	await get_tree().create_timer(9.0).timeout
+	_ok(bool(SaveManager.data["farm"].get("tutorial_completed", false)),
+		"and finishing it is written down")
+
+	# Second visit: nothing.
+	_close()
+	_open()
+	for i in range(4):
+		await get_tree().process_frame
+	_ok(not is_instance_valid(_garden.get("_lesson")),
+		"the second visit does not teach it again")
+
+	# Nor after closing the game and coming back.
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_close()
+	_open()
+	for i in range(4):
+		await get_tree().process_frame
+	_ok(not is_instance_valid(_garden.get("_lesson")),
+		"nor tomorrow, nor on any day after that")
+
+	# The lesson uses a shortened carrot, and crops.json is NOT edited to do it.
+	_ok(int(GameData.get_crop("carrot").get("stage_seconds", [0])[0]) == 300,
+		"the lesson leaves the real carrot exactly as long as it always was")
+
+
+## The break is offered after something good, with a way to carry on.
+##
+## Checked for what it must NOT do as much as for what it does: no countdown,
+## no reward for staying, and the way to keep playing is the first button.
+func _a_break_is_offered_not_pushed() -> void:
+	_fresh_garden()
+	SaveManager.data["farm"]["tutorial_completed"] = true
+	_close()
+	_open()
+	for i in range(4):
+		await get_tree().process_frame
+
+	_ok(not bool(_garden.get("_rest_offered")),
+		"walking in is not a reason to suggest leaving")
+
+	# Fill the barn and hand over an order -- the good thing.
+	var order: Dictionary = GameData.garden_orders[0]
+	for crop_id in order.get("requirements", {}).keys():
+		Barn.put(str(crop_id), int(order["requirements"][crop_id]))
+	SaveManager.data["farm_orders"] = {"active": [], "delivered": []}
+	_garden.call("_deliver", order)
+	await get_tree().process_frame
+
+	_ok(bool(_garden.get("_rest_offered")),
+		"a finished order is a good moment to suggest a break")
+
+	# Two ways out of the card, and the way to CARRY ON is one of them.
+	var buttons: Array = []
+	for node in _every_control(_garden):
+		if node is BaseButton and (node as Control).visible \
+				and (node as Control).get_global_rect().size.x > 120.0:
+			buttons.append(node)
+	_ok(buttons.size() >= 2,
+		"the break card offers both carrying on and stopping")
+
+	# And it is offered ONCE. Counted in cards on the screen, not read off the
+	# flag that is supposed to stop it: deliberately removing the guard left the
+	# flag reading true either way, so the flag version of this assertion passed
+	# with three break cards stacked on top of each other.
+	var cards_before := _big_cards()
+	_garden.call("_offer_a_break")
+	_garden.call("_offer_a_break")
+	_ok(_big_cards() == cards_before,
+		"and asked once a visit, never stacked up again and again")
+
+
+## How many break-sized cards are on the screen right now.
+func _big_cards() -> int:
+	var n := 0
+	for node in _every_control(_garden):
+		if node is PanelContainer and (node as Control).visible \
+				and (node as Control).get_global_rect().size.x > 400.0:
+			n += 1
+	return n
+
+
+func _every_control(root: Node) -> Array:
+	var out: Array = [root]
+	var i := 0
+	while i < out.size():
+		for child in (out[i] as Node).get_children():
+			out.append(child)
+		i += 1
+	return out

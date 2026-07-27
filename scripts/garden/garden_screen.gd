@@ -30,6 +30,9 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
+const Hints := preload("res://scripts/shared/hint_director.gd")
+const Rest := preload("res://scripts/shared/rest_director.gd")
 
 ## How far apart two beds have to be, derived from the snap radius rather than
 ## chosen by eye.
@@ -50,10 +53,32 @@ const SEED_TILE := Vector2(104, 84)
 const TOP_BAR := 96.0
 const SHELF := 168.0
 
+## How long a plot stays untappable after being picked. Long enough to cover
+## the crops flying into the barn, short enough that a child who taps twice on
+## purpose is not left wondering why the second one did nothing.
+const HARVEST_LOCK_SECONDS := 0.45
+
 var _field: DragField
 var _play: Control
 var _shelf: Control
 var _rebuild_queued := false
+
+## plot_id -> true while its harvest animation is running. In memory only, on
+## purpose: see _tap_plot. Cleared HARVEST_LOCK_SECONDS after the pick.
+var _harvesting: Dictionary = {}
+## Whether anything has been picked or delivered this visit. The rest hint is
+## offered once, after something good happens, and never on the way in.
+var _harvested_something := false
+var _rest_offered := false
+## The graded helper. Watches for a child who has stopped doing anything and
+## nudges, then shows, then does the hard part -- the same escalation the
+## thirty main levels use, so the garden does not teach a second language.
+var _hints: Hints
+## The first-planting lesson, while it is running.
+var _lesson: Tutorial
+## Seconds the tutorial carrot takes, replacing its real 30 minutes for the
+## length of the lesson and never written to crops.json.
+var _tutorial_growth := 0
 
 
 ## A room, not a level: nothing here completes and nothing here is scored.
@@ -66,8 +91,21 @@ func setup_level() -> void:
 	# is worked out from timestamps, so this is the only moment it has to
 	# happen -- there is nothing ticking to keep up with afterwards.
 	SaveManager.settle_farm()
+	# When he last actually stood here, as opposed to when growth was last
+	# settled -- which anything that loads the save does, including a level.
+	SaveManager.data["farm"]["last_farm_visit_at"] = GameClock.now_unix()
 	build_world(self, 0.42)
 	_rebuild()
+
+	# The graded helper, watching from now on. Same three steps as every level:
+	# say it again, show the finger, then do the hardest part and leave the last
+	# move to him.
+	_hints = Hints.new()
+	add_child(_hints)
+	_hints.watch(_nudge, _show_the_move, _do_the_hard_part)
+
+	if not bool(_farm().get("tutorial_completed", false)):
+		_teach_the_first_planting()
 
 
 func _farm() -> Dictionary:
@@ -148,10 +186,11 @@ func _plot_beds(view: Vector2) -> void:
 
 
 func _one_bed(plot: Dictionary, index: int, at: Vector2) -> void:
-	var tilled := bool(plot.get("tilled", false))
+	var doing := str(plot.get("state", Farm.EMPTY))
+	var tilled := Farm.is_tilled(plot)
 	var crop_id := str(plot.get("crop_id", ""))
 	var crop: Dictionary = GameData.get_crop(crop_id)
-	var ready := bool(plot.get("ready_to_harvest", false))
+	var ready := Farm.is_ready(plot)
 	var thirsty := str(plot.get("care_event", "")) == Growth.CARE_THIRSTY
 
 	var bed := Button.new()
@@ -164,13 +203,13 @@ func _one_bed(plot: Dictionary, index: int, at: Vector2) -> void:
 	bed.size = PLOT_BOX
 	bed.focus_mode = Control.FOCUS_NONE
 	var earth := Color(0.45, 0.32, 0.22) if tilled else Color(0.38, 0.62, 0.34)
-	for state in ["normal", "hover", "pressed", "focus"]:
-		bed.add_theme_stylebox_override(state, UiKit.panel_style(earth, 26))
+	for look in ["normal", "hover", "pressed", "focus"]:
+		bed.add_theme_stylebox_override(look, UiKit.panel_style(earth, 26))
 	_play.add_child(bed)
 	bed.pressed.connect(func(): _tap_plot(index))
 
 	# What is growing, if anything, and how far along it is.
-	if crop_id != "" and not crop.is_empty():
+	if Farm.is_planted(plot) and not crop.is_empty():
 		var done := Growth.fraction_done(plot, crop)
 		var size := 56.0 + 62.0 * done
 		var art := UiKit.picture(str(crop.get("icon", "sprout")), size)
@@ -178,8 +217,9 @@ func _one_bed(plot: Dictionary, index: int, at: Vector2) -> void:
 			art.position = at - Vector2(size, size) * 0.5 - Vector2(0, 8)
 			_play.add_child(art)
 		_ring(at, 64.0, done)
-	elif tilled:
-		# Turned and empty: the one state a seed may be dropped into. The
+	elif doing == Farm.TILLED:
+		# Turned and empty: the ONE state a seed may be dropped into, which is
+		# now a single word rather than two booleans that have to agree. The
 		# dashed ring is DragField's own idea of a target, so it lights up on
 		# its own when a seed is picked up.
 		var hole := UiKit.picture("seed", 78.0)
@@ -195,16 +235,13 @@ func _one_bed(plot: Dictionary, index: int, at: Vector2) -> void:
 	# The badge: the one thing this plot is asking for. Icons, not words --
 	# he cannot read, and this is the only instruction on the screen.
 	var badge := ""
-	if not tilled:
-		badge = "soil"
-	elif ready:
-		badge = "basket"
-	elif thirsty:
-		badge = "watering_can"
-	elif str(plot.get("care_event", "")) == Growth.CARE_WEEDS:
-		badge = "weed"
-	elif crop_id == "":
-		badge = ""
+	match doing:
+		Farm.EMPTY:
+			badge = "soil"
+		Farm.READY:
+			badge = "basket"
+		Farm.NEEDS_CARE:
+			badge = "watering_can" if thirsty else "weed"
 	if badge != "":
 		_badge(at + Vector2(PLOT_BOX.x * 0.5 - 30.0, -PLOT_BOX.y * 0.5 + 30.0), badge)
 
@@ -290,59 +327,132 @@ func _seed_rack(view: Vector2) -> void:
 
 # --- what a tap does ----------------------------------------------------
 
+## One tap, dispatched on the plot's state and nothing else.
+##
+## This used to ask four booleans in a fixed order, and the ORDER was the rule:
+## whether a plot that was both ripe and thirsty got watered or picked was
+## decided by which `elif` came first, and nothing said so. Now the state says
+## what the plot is doing and the branches below say what a tap does to it,
+## which is a thing that can be read rather than a thing that has to be traced.
 func _tap_plot(index: int) -> void:
 	var plots := _plots()
 	if index < 0 or index >= plots.size():
 		return
 	var plot: Dictionary = plots[index]
-	var crop_id := str(plot.get("crop_id", ""))
+	var plot_id := str(plot.get("plot_id", ""))
 
-	if not bool(plot.get("tilled", false)):
-		plot["tilled"] = true
-		AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
-	elif bool(plot.get("ready_to_harvest", false)):
-		_harvest(plot)
-	elif str(plot.get("care_event", "")) == Growth.CARE_THIRSTY:
-		plot = Growth.water(plot)
-		AudioManager.play_sfx("res://assets/audio/water.ogg")
-	elif str(plot.get("care_event", "")) == Growth.CARE_WEEDS:
-		plot = Growth.weed(plot)
-		AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
-	elif crop_id == "":
-		# Turned, empty, and tapped: he is trying to plant by tapping. Point at
-		# the rack rather than doing nothing, which is the same as being broken.
-		if _shelf != null:
-			Juice.pop(_shelf, 0.04)
+	# A plot in the middle of its harvest is not tappable. This is the whole of
+	# that rule, and it lives in memory rather than in the save on purpose: a
+	# tablet closed mid-animation must not come back holding a patch of earth
+	# that is permanently mid-animation and can never be touched again.
+	if plot_id in _harvesting:
 		return
-	else:
-		# Growing, watered, nothing to do. Say so with the plant itself rather
-		# than with a refusal.
-		AudioManager.play_sfx("res://assets/audio/correct.ogg")
-		plots[index] = plot
-		return
+
+	match str(plot.get("state", Farm.EMPTY)):
+		Farm.EMPTY:
+			plot["state"] = Farm.TILLED
+			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
+		Farm.READY:
+			_harvest(plot)
+		Farm.NEEDS_CARE:
+			match str(plot.get("care_event", "")):
+				Growth.CARE_THIRSTY:
+					plot = Growth.water(plot)
+					AudioManager.play_sfx("res://assets/audio/water.ogg")
+				Growth.CARE_WEEDS:
+					plot = Growth.weed(plot)
+					AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
+				_:
+					# Waiting for care, but not for anything with a name. Repair
+					# it rather than leave a plot no tap can ever move.
+					plot["state"] = Farm.GROWING
+		Farm.TILLED:
+			# Turned, empty, and tapped: he is trying to plant by tapping. Point
+			# at the rack rather than doing nothing, which is the same as being
+			# broken.
+			if _shelf != null:
+				Juice.pop(_shelf, 0.04)
+			return
+		_:
+			# SEEDED or GROWING. Nothing to do yet -- say so with the plant
+			# itself rather than with a refusal.
+			AudioManager.play_sfx("res://assets/audio/correct.ogg")
+			return
 
 	plots[index] = plot
 	SaveManager.data["farm"]["plots"] = plots
 	SaveManager.save_game()
+	if _hints != null:
+		_hints.progress()
 	_queue_rebuild()
 
 
+## Pick it, and pay for it exactly once.
+##
+## THE TRANSACTION ID
+##
+## `farm_harvest_<plot_id>_<plant_cycle_id>` -- the patch of earth, and which
+## planting in it. plant_cycle_id rises by one every time a seed goes in and
+## never resets, so no two harvests in the history of a save can ever produce
+## the same id, and the same id presented twice is always a repeat.
+##
+## There are three ways a repeat can arrive and this covers all three: a second
+## tap while the animation runs (also blocked by _harvesting), a tap that
+## arrives between the reward and the save landing, and a restart from a save
+## written after the payment. RewardManager owns the check, because the rule
+## "a thing is paid for once" belongs in one place for the whole island rather
+## than being re-implemented per screen.
 func _harvest(plot: Dictionary) -> void:
-	var crop: Dictionary = GameData.get_crop(str(plot.get("crop_id", "")))
-	var picked := maxi(int(crop.get("yield", 1)), 1)
-	Barn.put(str(plot.get("crop_id", "")), picked)
+	var farm := _farm()
+	var plot_id := str(plot.get("plot_id", ""))
+	var crop_id := str(plot.get("crop_id", ""))
+	var cycle := int(plot.get("plant_cycle_id", 0))
+	var key := "farm_harvest_%s_%d" % [plot_id, cycle]
 
-	# The plot goes back to turned earth, ready for the next seed. Harvest is a
-	# CONSUMPTION: the crop is gone, which is what stops one planting ever
-	# paying out twice however far the clock is moved.
+	var paid: Array = farm.get("paid_harvests", [])
+	if not paid is Array:
+		paid = []
+	# Ask first, take second. If this is a repeat nothing at all happens --
+	# including no crops into the barn, which is the half that would otherwise
+	# have kept paying out silently.
+	if not RewardManager.record("garden:harvest:%s" % crop_id, key, paid):
+		return
+	Farm.remember_paid(farm, key)
+
+	_harvesting[plot_id] = true
+
+	var crop: Dictionary = GameData.get_crop(crop_id)
+	var picked := maxi(int(crop.get("harvest_amount", 1)), 1)
+	Barn.put(crop_id, picked)
+
+	# The plot goes back to TURNED EARTH rather than to grass.
+	#
+	# A deviation from the brief, which says EMPTY, and a deliberate one: going
+	# back to grass means three swipes of tilling between every harvest and the
+	# next seed, forever, for a six-year-old who has already learned what
+	# tilling is. The lesson is worth teaching once, not once per carrot.
+	#
+	# plant_cycle_id survives the reset. It is the only field that does, and it
+	# has to: reset it and the next planting in this bed would reuse a
+	# transaction id that has already been paid for, and the harvest after that
+	# would pay nothing at all.
 	var fresh: Dictionary = Farm.fresh_plot(0)
-	fresh["plot_id"] = plot.get("plot_id", "")
-	fresh["tilled"] = true
-	for key in fresh.keys():
-		plot[key] = fresh[key]
+	fresh["plot_id"] = plot_id
+	fresh["state"] = Farm.TILLED
+	fresh["plant_cycle_id"] = cycle
+	for k in fresh.keys():
+		plot[k] = fresh[k]
 
 	AudioManager.play_sfx("res://assets/audio/star.ogg")
 	AudioManager.say("praise_1")
+	_harvested_something = true
+	_release_after_the_animation(plot_id)
+
+
+## Let go of the plot once the picking animation has had its moment.
+func _release_after_the_animation(plot_id: String) -> void:
+	await get_tree().create_timer(HARVEST_LOCK_SECONDS).timeout
+	_harvesting.erase(plot_id)
 
 
 func _on_seed_dropped(item: Dictionary, slot: Variant, correct: bool) -> void:
@@ -368,13 +478,18 @@ func _on_seed_dropped(item: Dictionary, slot: Variant, correct: bool) -> void:
 	# after he has already let go. Deleting the check and watching the touch
 	# probe stay green is how it was found to be unreachable.
 	plot["crop_id"] = str(item.get("key", ""))
+	plot["state"] = Farm.SEEDED
+	# A new planting, and therefore a new transaction id for whatever comes out
+	# of it. Rising by one here is the whole reason a harvest cannot be paid
+	# for twice; see _harvest().
+	plot["plant_cycle_id"] = int(plot.get("plant_cycle_id", 0)) + 1
 	plot["planted_at"] = GameClock.now_unix()
 	plot["last_updated_at"] = GameClock.now_unix()
 	plot["growth_stage"] = 0
 	plot["growth_progress"] = 0.0
 	plot["water_level"] = 1.0
-	plot["ready_to_harvest"] = false
 	plot["care_event"] = ""
+	plot["care_completed"] = false
 	plots[index] = plot
 	SaveManager.data["farm"]["plots"] = plots
 	SaveManager.save_game()
@@ -454,7 +569,7 @@ func _order_board(view: Vector2) -> void:
 	for order in GameData.garden_orders:
 		var order_id := str(order.get("id", ""))
 		var done: bool = order_id in delivered
-		var wants: Dictionary = order.get("wants", {})
+		var wants: Dictionary = order.get("requirements", {})
 		var can: bool = Barn.can_pay(wants)
 
 		var card := Button.new()
@@ -473,7 +588,7 @@ func _order_board(view: Vector2) -> void:
 			card.pressed.connect(func(): _deliver(order))
 			UiKit.breathe(card, 0.02, 1.4)
 
-		var who := UiKit.picture(str(order.get("npc_icon", "heart")), 54.0)
+		var who := UiKit.picture(str(order.get("customer_icon", "heart")), 54.0)
 		if who != null:
 			who.position = Vector2(at.x + 16.0, y + 20.0)
 			who.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -510,7 +625,7 @@ func _order_board(view: Vector2) -> void:
 				coin.position = Vector2(at.x + 286.0, y + 24.0)
 				coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				_play.add_child(coin)
-			var price := UiKit.title(str(int(order.get("reward_coins", 0))), 26)
+			var price := UiKit.title(str(int(order.get("rewards", {}).get("coins", 0))), 26)
 			price.position = Vector2(at.x + 286.0, y + 58.0)
 			price.size = Vector2(60, 30)
 			price.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -537,11 +652,11 @@ func _deliver(order: Dictionary) -> void:
 	# not of the rule.
 	if order_id in delivered:
 		return
-	var wants: Dictionary = order.get("wants", {})
+	var wants: Dictionary = order.get("requirements", {})
 	if not Barn.pay(wants):
 		return
 	var paid := RewardManager.grant("garden:order:%s" % order_id,
-		int(order.get("reward_coins", 0)), order_id, delivered)
+		int(order.get("rewards", {}).get("coins", 0)), order_id, delivered)
 	orders["delivered"] = delivered
 	SaveManager.data["farm_orders"] = orders
 	SaveManager.save_game()
@@ -549,4 +664,158 @@ func _deliver(order: Dictionary) -> void:
 	if paid > 0:
 		AudioManager.play_sfx("res://assets/audio/coin.ogg")
 		AudioManager.say("praise_2")
+		_harvested_something = true
+		_offer_a_break()
+	if _hints != null:
+		_hints.progress()
 	_queue_rebuild()
+
+
+# --- the first planting, the graded help, and the way to stop ------------
+
+## The lesson, run once in a child's life.
+##
+## Not a script that plays AT him: the helper points, he does it, the helper
+## points at the next thing. Every step is a real action on the real garden --
+## there is no rehearsal mode and nothing is faked, so what he learns is the
+## thing he will do tomorrow.
+##
+## The carrot grows in `tutorial_growth_override` seconds instead of its real
+## thirty minutes, for this planting only. crops.json is NOT edited: a lesson
+## that changed the crop would leave every later carrot fast too, and the
+## override lives on the plot where it belongs.
+func _teach_the_first_planting() -> void:
+	var plan: Dictionary = GameData.garden_tutorial
+	var crop_id := str(plan.get("crop_id", "carrot"))
+	_tutorial_growth = int(GameData.get_crop(crop_id).get(
+		"tutorial_growth_override", 0))
+
+	_lesson = Tutorial.new()
+	_play.add_child(_lesson)
+	var bed := _bed_centre(int(plan.get("plot_index", 0)))
+	# Point at the earth, then at the seed rack, then at the earth again --
+	# turn it over, put something in it, look after it. Three moves, in the
+	# order he will do them.
+	_lesson.add_step(bed, bed, 1.2)
+	_lesson.add_step(_seed_rack_centre(), bed, 1.4)
+	_lesson.add_step(bed, bed, 1.0)
+	_lesson.finished.connect(_the_lesson_is_over)
+	AudioManager.say("garden_tut_welcome")
+	_lesson.play()
+
+
+## Written down the moment the lesson ends, and never asked again.
+func _the_lesson_is_over() -> void:
+	var farm := _farm()
+	farm["tutorial_completed"] = true
+	SaveManager.save_game()
+
+
+## Roughly where the seed rack sits, for the finger to point at.
+func _seed_rack_centre() -> Vector2:
+	var view := get_viewport_rect().size
+	return Vector2(view.x * 0.5, view.y - SHELF * 0.5)
+
+
+## The one plot that most wants attention, or -1 if the garden is content.
+##
+## Order is what a child should do first, not what is most urgent to a
+## programmer: something ripe is the reward and comes first, then something
+## that has stopped and is waiting, then bare earth to turn.
+func _the_plot_that_wants_something() -> int:
+	var plots := _plots()
+	for want in [Farm.READY, Farm.NEEDS_CARE, Farm.EMPTY, Farm.TILLED]:
+		for i in range(plots.size()):
+			if str(plots[i].get("state", "")) == want:
+				return i
+	return -1
+
+
+## Help, step one: say it again, and make the thing glow.
+func _nudge() -> void:
+	var index := _the_plot_that_wants_something()
+	if index < 0:
+		return
+	var plots := _plots()
+	match str(plots[index].get("state", "")):
+		Farm.READY: AudioManager.say("garden_tut_harvest")
+		Farm.NEEDS_CARE: AudioManager.say("garden_tut_water")
+		Farm.EMPTY: AudioManager.say("garden_tut_till")
+		_: AudioManager.say("garden_tut_plant")
+	Juice.shockwave(_play, _bed_centre(index), 140.0,
+		Color(1.0, 0.94, 0.62, 0.5))
+
+
+## Help, step two: show the finger doing it.
+func _show_the_move() -> void:
+	var index := _the_plot_that_wants_something()
+	if index < 0:
+		return
+	var hand := Tutorial.new()
+	_play.add_child(hand)
+	var bed := _bed_centre(index)
+	var from: Vector2 = _seed_rack_centre() \
+		if str(_plots()[index].get("state", "")) == Farm.TILLED else bed
+	hand.add_step(from, bed, 1.3)
+	hand.play()
+
+
+## Help, step three: do the hard part, and leave the last move to him.
+##
+## The rule the whole hint system is built on -- never finish it FOR him. For
+## a plot that needs turning, that means turning it, because the move after it
+## (dropping a seed in) is the one worth having. For a plot that is waiting on
+## water or weeds there is only one move, so this stops at showing it again:
+## doing it would be doing the whole thing.
+func _do_the_hard_part() -> void:
+	var index := _the_plot_that_wants_something()
+	if index < 0:
+		return
+	var plots := _plots()
+	if str(plots[index].get("state", "")) != Farm.EMPTY:
+		_show_the_move()
+		return
+	plots[index]["state"] = Farm.TILLED
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
+	_queue_rebuild()
+
+
+## "The garden is looked after. Shall we go and do something else?"
+##
+## Offered once per visit, after something good has happened, and never on the
+## way in. It is a suggestion with two buttons and no countdown, no reward for
+## staying and no penalty for leaving -- see rest_director.gd for why the game
+## does this rather than leaving it to the parent.
+func _offer_a_break() -> void:
+	if _rest_offered or not _harvested_something:
+		return
+	_rest_offered = true
+
+	var view := get_viewport_rect().size
+	var card := UiKit.card(Color(1.0, 0.99, 0.93))
+	card.custom_minimum_size = Vector2(560, 190)
+	card.position = Vector2(view.x * 0.5 - 280.0, view.y * 0.5 - 95.0)
+	_play.add_child(card)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 16)
+	card.add_child(column)
+	var line := UiKit.title(I18n.t(Rest.line()), 30)
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(line)
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 22)
+	column.add_child(row)
+	# Staying is the first and largest button on purpose. The break is offered,
+	# not pushed -- a child who is happily gardening should not have to hunt for
+	# the way to carry on.
+	var stay := UiKit.big_button(I18n.t("garden.keep_planting"), Palette.GREEN)
+	stay.pressed.connect(func(): card.queue_free())
+	row.add_child(stay)
+	var leave := UiKit.big_button(I18n.t("garden.go_exploring"), Palette.BLUE)
+	leave.pressed.connect(func(): quit_level())
+	row.add_child(leave)

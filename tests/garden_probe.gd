@@ -35,6 +35,9 @@ func _ready() -> void:
 	_an_old_save_grows_a_garden()
 	_opening_the_garden_twice_changes_nothing()
 	_a_damaged_garden_is_repaired_not_believed()
+	_a_plot_says_what_it_is_doing_in_one_word()
+	_a_save_from_before_the_state_machine_still_knows_what_it_was_doing()
+	_a_planting_cycle_never_repeats()
 	# --- stage two: growing ---
 	_a_carrot_goes_through_five_stages()
 	_it_grows_while_he_is_playing_a_level()
@@ -80,9 +83,9 @@ func _a_new_child_finds_four_empty_plots() -> void:
 	for plot in plots:
 		ids[str(plot.get("plot_id", ""))] = true
 		_ok(str(plot.get("crop_id", "")) == "", "every new plot is empty")
-		_ok(not bool(plot.get("tilled", true)), "every new plot is unturned")
+		_ok(str(plot.get("state", "")) == Farm.EMPTY, "every new plot is untouched grass")
 		_ok(int(plot.get("planted_at", -1)) == 0, "nothing has been planted yet")
-		_ok(not bool(plot.get("ready_to_harvest", true)),
+		_ok(not Farm.is_ready(plot),
 			"nothing is ready on the first morning")
 	_ok(ids.size() == 4, "the four plots have four different ids, not one repeated")
 
@@ -159,7 +162,7 @@ func _opening_the_garden_twice_changes_nothing() -> void:
 	SaveManager.data = SaveManager._default_data()
 	SaveManager._settle_after_load()
 	# The child plays: turns a patch over, puts a carrot in it.
-	SaveManager.data["farm"]["plots"][0]["tilled"] = true
+	SaveManager.data["farm"]["plots"][0]["state"] = Farm.TILLED
 	SaveManager.data["farm"]["plots"][0]["crop_id"] = "carrot"
 	SaveManager.data["farm"]["plots"][0]["planted_at"] = 1_700_000_000
 	SaveManager.data["farm"]["warehouse"] = {"carrot": 6}
@@ -239,8 +242,9 @@ func _plant(crop_id: String, at: int) -> void:
 	GameClock.set_test_now(at, 0)
 	SaveManager.load_game()
 	var plot: Dictionary = SaveManager.data["farm"]["plots"][0]
-	plot["tilled"] = true
+	plot["state"] = Farm.SEEDED
 	plot["crop_id"] = crop_id
+	plot["plant_cycle_id"] = int(plot.get("plant_cycle_id", 0)) + 1
 	plot["planted_at"] = at
 	plot["last_updated_at"] = at
 	SaveManager.data["farm"]["last_seen_at"] = at
@@ -292,7 +296,7 @@ func _a_carrot_goes_through_five_stages() -> void:
 		_ok(int(_plot0().get("growth_stage", -1)) == i + 1,
 			"after stage %d's time is up it is at stage %d" % [i, i + 1])
 
-	_ok(bool(_plot0().get("ready_to_harvest", false)),
+	_ok(Farm.is_ready(_plot0()),
 		"when the last stage is done the carrot is ready to pick")
 	GameClock.clear_test_now()
 
@@ -355,7 +359,7 @@ func _a_clock_dragged_forwards_ripens_once() -> void:
 	# A year away does NOT hand him a finished carrot. One tank of water is as
 	# far as any absence gets, so what a year buys is exactly what a night
 	# buys: a thirsty plant, waiting, having lost nothing.
-	_ok(not bool(_plot0().get("ready_to_harvest", false)),
+	_ok(not Farm.is_ready(_plot0()),
 		"a year away does not finish a plant nobody watered")
 	_ok(str(_plot0().get("care_event", "")) == "thirsty",
 		"it is waiting for help, which is the worst it can be")
@@ -371,7 +375,7 @@ func _a_clock_dragged_forwards_ripens_once() -> void:
 	SaveManager.data["farm"]["plots"][0] = Growth.water(_plot0())
 	GameClock.set_test_now(NOON + 731 * 24 * 60 * 60, 0)
 	SaveManager.settle_farm()
-	_ok(bool(_plot0().get("ready_to_harvest", false)),
+	_ok(Farm.is_ready(_plot0()),
 		"one watering finishes it")
 	var stage := int(_plot0().get("growth_stage", 0))
 
@@ -412,7 +416,7 @@ func _a_ripe_plot_is_frozen() -> void:
 	SaveManager.settle_farm()
 
 	var plot := _plot0()
-	_ok(bool(plot.get("ready_to_harvest", false)), "measured watering ripens it")
+	_ok(Farm.is_ready(plot), "measured watering ripens it")
 	var water_left := float(plot.get("water_level", 0.0))
 	_ok(water_left > 0.1, "and it finished with water still in the soil")
 
@@ -444,32 +448,50 @@ func _a_crop_never_dies() -> void:
 		"...thirsty, which is the worst a fortnight can do to it")
 	_ok(str(plot.get("care_event", "")) != "dead",
 		"there is no state called dead, and there never will be")
-	_ok(not bool(plot.get("ready_to_harvest", false)),
+	_ok(not Farm.is_ready(plot),
 		"it did not finish itself while he was away")
 	# One watering, and the fortnight has cost him nothing.
 	SaveManager.data["farm"]["plots"][0] = Growth.water(plot)
 	GameClock.set_test_now(NOON + 15 * 24 * 60 * 60, 0)
 	SaveManager.settle_farm()
-	_ok(bool(_plot0().get("ready_to_harvest", false)),
+	_ok(Farm.is_ready(_plot0()),
 		"and one watering after a fortnight away still gets him his carrot")
 
 	# And a crop that ran out of water mid-way waits rather than dying.
-	_plant("tomato", NOON)
+	# A thirst crop, deliberately: since crops.json started saying which job
+	# each one raises, corn and tomato never run dry at all -- one job per
+	# planting -- so asking a tomato to get thirsty would be asking it for
+	# something it can no longer do, and the assertion would have been quietly
+	# testing nothing.
+	_plant("strawberry", NOON)
 	var thirsty: Dictionary = _plot0()
 	thirsty["water_level"] = 0.05
-	var tomato: Dictionary = GameData.get_crop("tomato")
-	var parched: Dictionary = Growth.advance(thirsty, tomato, 14 * 24 * 60 * 60)
+	var berry: Dictionary = GameData.get_crop("strawberry")
+	var parched: Dictionary = Growth.advance(thirsty, berry, 14 * 24 * 60 * 60)
 	_ok(float(parched.get("water_level", 1.0)) == 0.0, "the water runs out")
 	_ok(str(parched.get("care_event", "")) == "thirsty",
 		"and the plot says it is thirsty")
-	_ok(not bool(parched.get("ready_to_harvest", false)),
+	_ok(not Farm.is_ready(parched),
 		"a thirsty plant waits instead of finishing")
 	var revived: Dictionary = Growth.water(parched)
 	_ok(float(revived.get("water_level", 0.0)) == 1.0, "one watering fills it")
-	var moved_on: Dictionary = Growth.advance(revived, tomato, 8 * 60 * 60)
-	_ok(Growth.fraction_done(moved_on, tomato)
-			> Growth.fraction_done(parched, tomato),
+	var moved_on: Dictionary = Growth.advance(revived, berry, 4 * 60 * 60)
+	_ok(Growth.fraction_done(moved_on, berry)
+			> Growth.fraction_done(parched, berry),
 		"and it picks up exactly where it stopped, having lost nothing")
+
+	# The weeds crops wait too, and just as harmlessly.
+	var corn: Dictionary = GameData.get_crop("corn")
+	var weedy: Dictionary = Farm.fresh_plot(0)
+	weedy["state"] = Farm.SEEDED
+	weedy["crop_id"] = "corn"
+	weedy = Growth.advance(weedy, corn, 14 * 24 * 60 * 60)
+	_ok(str(weedy.get("care_event", "")) == Growth.CARE_WEEDS,
+		"a fortnight leaves the corn waiting to be weeded")
+	_ok(not Farm.is_ready(weedy), "a fortnight cannot weed it for him")
+	var tidied: Dictionary = Growth.advance(Growth.weed(weedy), corn, 2 * 60 * 60)
+	_ok(Farm.is_ready(tidied),
+		"and pulling them, whenever he gets round to it, still gets him his corn")
 	GameClock.clear_test_now()
 
 
@@ -481,7 +503,7 @@ func _the_four_plots_do_not_share_a_clock() -> void:
 	var later := [0, 600, 1800, 3600]
 	var crops := ["carrot", "corn", "strawberry", "tomato"]
 	for i in range(1, 4):
-		farm["plots"][i]["tilled"] = true
+		farm["plots"][i]["state"] = Farm.TILLED
 		farm["plots"][i]["crop_id"] = crops[i]
 		farm["plots"][i]["planted_at"] = NOON + later[i]
 		farm["plots"][i]["last_updated_at"] = NOON
@@ -494,10 +516,26 @@ func _the_four_plots_do_not_share_a_clock() -> void:
 		var plot: Dictionary = SaveManager.data["farm"]["plots"][i]
 		readings.append(Growth.fraction_done(
 			plot, GameData.get_crop(str(plot.get("crop_id", "")))))
-	_ok(readings[0] >= readings[1], "the carrot is further along than the corn")
-	_ok(readings[1] > readings[2], "the corn is further along than the strawberry")
-	_ok(readings[2] > readings[3], "the strawberry is further along than the tomato")
-	_ok(readings[3] > 0.0, "and even the tomato has started")
+	# All four moved, each by its own crop's clock, from its own planting time.
+	#
+	# This used to rank the four against each other -- carrot ahead of corn
+	# ahead of strawberry -- which was only ever a proxy for independence and
+	# stopped being true the moment corn started stopping at its weeds. Ranking
+	# crops that raise different jobs measures the jobs, not the clocks.
+	for i in range(4):
+		_ok(readings[i] > 0.0, "plot %d moved on its own" % (i + 1))
+	# Same crop, planted at different times: the one planted first is ahead.
+	# Same job, same timings -- so this compares clocks and nothing else.
+	var same: Array = []
+	for i in range(2):
+		var plot: Dictionary = Farm.fresh_plot(i)
+		plot["state"] = Farm.SEEDED
+		plot["crop_id"] = "strawberry"
+		same.append(Growth.advance(plot, GameData.get_crop("strawberry"),
+			3600 if i == 0 else 1800))
+	_ok(Growth.fraction_done(same[0], GameData.get_crop("strawberry"))
+			> Growth.fraction_done(same[1], GameData.get_crop("strawberry")),
+		"two beds of the same crop, planted an hour apart, are an hour apart")
 
 	# Harvesting one must not touch the others, so prove they are separate
 	# objects and not four references to the same dictionary.
@@ -554,7 +592,7 @@ func _an_order_is_all_or_nothing() -> void:
 func _an_order_pays_once() -> void:
 	_fresh_save()
 	var order: Dictionary = GameData.garden_orders[0]
-	var price := int(order.get("reward_coins", 0))
+	var price := int(order.get("rewards", {}).get("coins", 0))
 	var order_id := str(order.get("id", ""))
 	var before := Coins.balance()
 	var delivered: Array = SaveManager.data["farm_orders"]["delivered"]
@@ -604,15 +642,15 @@ func _the_garden_cannot_touch_his_score() -> void:
 	GameClock.set_test_now(NOON, 0)
 	SaveManager.data["farm"]["last_seen_at"] = NOON
 	var plots: Array = SaveManager.data["farm"]["plots"]
-	plots[0]["tilled"] = true
+	plots[0]["state"] = Farm.TILLED
 	plots[0]["crop_id"] = "carrot"
 	plots[0]["planted_at"] = NOON
 	GameClock.set_test_now(NOON + 8 * 60 * 60, 0)
 	SaveManager.settle_farm()
 	Barn.put("carrot", 3)
 	var order: Dictionary = GameData.garden_orders[0]
-	Barn.pay(order.get("wants", {}))
-	RewardManager.grant("garden:order", int(order.get("reward_coins", 0)),
+	Barn.pay(order.get("requirements", {}))
+	RewardManager.grant("garden:order", int(order.get("rewards", {}).get("coins", 0)),
 		str(order.get("id", "")), SaveManager.data["farm_orders"]["delivered"])
 
 	_ok(SaveManager.total_stars() == stars_before,
@@ -628,26 +666,181 @@ func _the_garden_cannot_touch_his_score() -> void:
 
 ## Weeds are a job, not a punishment -- and the same job only once.
 func _weeds_come_once_and_never_hurt_anything() -> void:
-	var crop: Dictionary = GameData.get_crop("carrot")
+	var crop: Dictionary = GameData.get_crop("corn")
 	var plot: Dictionary = Farm.fresh_plot(0)
-	plot["tilled"] = true
-	plot["crop_id"] = "carrot"
+	plot["state"] = Farm.SEEDED
+	plot["crop_id"] = "corn"
 
 	# Far enough in to reach the stage weeds arrive at.
-	var grown: Dictionary = Growth.advance(plot, crop, 800)
-	_ok(int(grown.get("growth_stage", 0)) >= Growth.WEEDS_AT_STAGE,
-		"the carrot reaches the stage weeds come at")
+	var grown: Dictionary = Growth.advance(plot, crop, 3000)
+	_ok(int(grown.get("growth_stage", 0)) >= Growth.weeds_stage(crop),
+		"the corn reaches the stage weeds come at")
 	_ok(str(grown.get("care_event", "")) == Growth.CARE_WEEDS,
 		"and weeds arrive -- every time, for every child, not by chance")
+	_ok(str(grown.get("state", "")) == Farm.NEEDS_CARE,
+		"and the bed says so in one word")
 
-	# Weeds do not stop it growing. They are something to do, not a tax.
-	var kept_going: Dictionary = Growth.advance(grown, crop, 300)
-	_ok(Growth.fraction_done(kept_going, crop)
-			> Growth.fraction_done(grown, crop),
-		"a weedy plot keeps growing while it waits to be tidied")
+	# Weeds STOP it. That is what NEEDS_CARE means, and it did not use to: a
+	# weedy plot once ripened on its own while the badge asked to be tapped,
+	# so the job was decoration. A job that can be ignored teaches nothing.
+	var waited: Dictionary = Growth.advance(grown, crop, 7 * 24 * 60 * 60)
+	_ok(is_equal_approx(Growth.fraction_done(waited, crop),
+			Growth.fraction_done(grown, crop)),
+		"a week of weeds moves it not one second further on")
+	_ok(not Farm.is_ready(waited), "and a week cannot ripen it either")
+	_ok(str(waited.get("crop_id", "")) == "corn", "the corn is still there")
 
 	var tidy: Dictionary = Growth.weed(grown)
 	_ok(str(tidy.get("care_event", "")) == "", "pulling them clears the plot")
-	var later: Dictionary = Growth.advance(tidy, crop, 400)
+	_ok(str(tidy.get("state", "")) == Farm.GROWING, "and it is growing again")
+	var later: Dictionary = Growth.advance(tidy, crop, 4000)
 	_ok(str(later.get("care_event", "")) != Growth.CARE_WEEDS,
 		"and they do not come back on the next visit")
+	_ok(Growth.fraction_done(later, crop) > Growth.fraction_done(grown, crop),
+		"and it makes up the ground it was waiting on")
+
+	# A bed waiting on a job the growth loop knows NOTHING about still stops.
+	#
+	# This is the general rule -- NEEDS_CARE means stopped, whatever it is
+	# waiting for -- and it needs its own case, because the weeds branch inside
+	# the loop happens to stop weeds on its own. Deliberately deleting the
+	# general rule left every weeds assertion above green, which is exactly how
+	# a rule that is doing nothing hides. tomato's data already lists a second
+	# care type, "trellis", that nothing raises yet; the day something does,
+	# this is what makes it behave like a job rather than a decoration.
+	var future: Dictionary = Farm.fresh_plot(2)
+	future["state"] = Farm.NEEDS_CARE
+	future["crop_id"] = "tomato"
+	future["growth_stage"] = 1
+	future["care_event"] = "trellis"
+	var ignored: Dictionary = Growth.advance(future, GameData.get_crop("tomato"),
+		30 * 24 * 60 * 60)
+	_ok(int(ignored.get("growth_stage", 9)) == 1,
+		"a bed waiting on ANY job stops, not just on the one kind the loop knows")
+	_ok(not Farm.is_ready(ignored), "and a month cannot ripen it either")
+
+	# A crop whose data does not ask for weeds never grows any.
+	var berry: Dictionary = GameData.get_crop("strawberry")
+	var clean: Dictionary = Farm.fresh_plot(1)
+	clean["state"] = Farm.SEEDED
+	clean["crop_id"] = "strawberry"
+	clean = Growth.advance(clean, berry, 6000)
+	_ok(str(clean.get("care_event", "")) != Growth.CARE_WEEDS,
+		"a crop that does not ask for weeding never grows weeds")
+
+# =====================================================================
+# The state machine.
+# =====================================================================
+
+## Every combination that used to be possible and meaningless, offered to the
+## loader one at a time.
+##
+## The old shape was three booleans, which is eight combinations, of which six
+## were nonsense -- ripe with nothing planted, weeds on bare grass, a carrot
+## growing in earth that was never turned. Nothing rejected any of them, and a
+## save carrying one would have drawn a patch of earth that no tap could move.
+##
+## Every case here has to be REPAIRED and not rejected. A hand-edited file or a
+## crop retired between two versions must cost one patch of earth, never the
+## whole save.
+func _a_plot_says_what_it_is_doing_in_one_word() -> void:
+	SaveManager.data = SaveManager._default_data()
+
+	var nonsense := {"plots": [
+		# ripe, with nothing planted
+		{"plot_id": "plot_1", "state": Farm.READY, "crop_id": ""},
+		# a carrot growing in ground that says it is bare
+		{"plot_id": "plot_2", "state": Farm.EMPTY, "crop_id": "carrot"},
+		# a state no version of this game has ever written
+		{"plot_id": "plot_3", "state": "SUPERGROWN", "crop_id": "corn"},
+		# a crop the catalogue has never heard of
+		{"plot_id": "plot_4", "state": Farm.GROWING, "crop_id": "dragonfruit"},
+	]}
+	var plots: Array = Farm.normalise_farm(nonsense)["plots"]
+
+	_ok(str(plots[0]["state"]) == Farm.TILLED,
+		"ripe with nothing planted becomes turned earth, not a free harvest")
+	_ok(str(plots[1]["state"]) in Farm.PLANTED_STATES,
+		"a crop in ground that claims to be bare keeps the crop")
+	_ok(str(plots[2]["state"]) in Farm.STATES,
+		"a state nothing answers to is replaced by one that means something")
+	_ok(str(plots[3]["crop_id"]) == "" and str(plots[3]["state"]) == Farm.TILLED,
+		"a retired crop leaves turned earth behind, not a plant that cannot grow")
+
+	# Numbers outside what they mean.
+	var silly := {"plots": [{"plot_id": "plot_1", "state": Farm.GROWING,
+		"crop_id": "carrot", "growth_stage": 99, "growth_progress": 4.5,
+		"water_level": -3.0, "planted_at": -500, "plant_cycle_id": -7}]}
+	var fixed: Dictionary = Farm.normalise_farm(silly)["plots"][0]
+	_ok(int(fixed["growth_stage"]) <= Farm.STAGES, "a stage past the end is clamped")
+	_ok(float(fixed["growth_progress"]) <= 1.0, "progress past 1.0 is clamped")
+	_ok(float(fixed["water_level"]) >= 0.0, "water below empty is clamped")
+	_ok(int(fixed["planted_at"]) >= 0, "a stamp from before the epoch is cleared")
+	_ok(int(fixed["plant_cycle_id"]) >= 0, "a negative planting cycle is cleared")
+
+	# And the whole save still opens, which is the point of repairing rather
+	# than rejecting.
+	_ok(SaveManager.total_stars() >= 0, "the save survives a garden full of nonsense")
+
+
+## A save written before `state` existed still knows what each plot was doing.
+##
+## This is the migration, and it is the one that matters: every tablet with the
+## garden already on it holds plots described by `tilled` and
+## `ready_to_harvest` and nothing else. If the derivation is wrong, a child
+## comes back to four patches of grass and a barn full of crops he cannot
+## explain.
+func _a_save_from_before_the_state_machine_still_knows_what_it_was_doing() -> void:
+	var old := {"plots": [
+		{"plot_id": "plot_1", "tilled": false, "crop_id": ""},
+		{"plot_id": "plot_2", "tilled": true, "crop_id": ""},
+		{"plot_id": "plot_3", "tilled": true, "crop_id": "carrot",
+			"growth_stage": 2, "growth_progress": 0.4},
+		{"plot_id": "plot_4", "tilled": true, "crop_id": "corn",
+			"growth_stage": 4, "ready_to_harvest": true},
+	]}
+	var plots: Array = Farm.normalise_farm(old)["plots"]
+	_ok(str(plots[0]["state"]) == Farm.EMPTY, "untouched grass is still grass")
+	_ok(str(plots[1]["state"]) == Farm.TILLED, "turned and empty is still turned")
+	_ok(str(plots[2]["state"]) == Farm.GROWING, "a half-grown carrot is still growing")
+	_ok(str(plots[3]["state"]) == Farm.READY, "a ripe cob is still ripe")
+
+	# A plot that was carrying weeds when the tablet was last closed.
+	var waiting := {"plots": [{"plot_id": "plot_1", "tilled": true,
+		"crop_id": "carrot", "growth_stage": 2, "care_event": "weeds"}]}
+	_ok(str(Farm.normalise_farm(waiting)["plots"][0]["state"]) == Farm.NEEDS_CARE,
+		"a plot that was waiting for help is still waiting for help")
+
+	# A seed that had not come up yet is a seed, not a plant.
+	var seeded := {"plots": [{"plot_id": "plot_1", "tilled": true,
+		"crop_id": "carrot", "growth_stage": 0, "growth_progress": 0.0}]}
+	_ok(str(Farm.normalise_farm(seeded)["plots"][0]["state"]) == Farm.SEEDED,
+		"a seed that has not come up yet is still a seed")
+
+
+## The planting cycle only ever goes up.
+##
+## It is half of the transaction id a harvest is paid against, so a cycle that
+## repeats is a harvest that can be paid for twice. The dangerous moment is the
+## reset at the end of a harvest, which puts every other field back to its
+## default -- this one has to survive it.
+func _a_planting_cycle_never_repeats() -> void:
+	_plant("carrot", NOON)
+	_ok(int(_plot0()["plant_cycle_id"]) > 0, "planting gives the bed a cycle number")
+	# Whether the number SURVIVES a harvest is asserted where a harvest actually
+	# happens -- garden_touch_probe. It was asserted here first, against a plot
+	# this function had built by hand, and deliberately breaking the line in
+	# garden_screen that carries it across proved that assertion was checking
+	# its own fixture and nothing else.
+
+	# The ledger is bounded, and being bounded must not let an id come back.
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["paid_harvests"] = []
+	for i in range(Farm.PAID_LEDGER_KEPT + 20):
+		Farm.remember_paid(farm, "farm_harvest_plot_1_%d" % i)
+	var paid: Array = farm["paid_harvests"]
+	_ok(paid.size() == Farm.PAID_LEDGER_KEPT, "the ledger stays bounded")
+	_ok(paid[paid.size() - 1] == "farm_harvest_plot_1_%d"
+		% (Farm.PAID_LEDGER_KEPT + 19), "...keeping the most recent")
+	_ok(not ("farm_harvest_plot_1_0" in paid),
+		"...and dropping the oldest, which no rising cycle can ever present again")

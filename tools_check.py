@@ -282,10 +282,20 @@ for f in gd:
         r'|up|defense|battle|duel|expedition|keepy|shop|outfit|house|echo'
         r'|memory|rescue|platformer|blaster|colour|garden|crop|npc)'
         r'\.[a-z0-9_]+)"', src))
+# Not every field ending in _key is a translation key. `completion_transaction_key`
+# is an idempotency id -- the string a delivery is recorded against so it cannot
+# be paid for twice -- and asking strings.json for a Chinese translation of it
+# is asking the wrong question. Named rather than pattern-matched, so a genuine
+# translation key can never be excluded by accident.
+NOT_TRANSLATION_KEYS = {"completion_transaction_key", "transaction_key", "once_key"}
+
+
 def collect_keys(node, out):
     """Any JSON field named *_key holds a translation key."""
     if isinstance(node, dict):
         for k, v in node.items():
+            if k in NOT_TRANSLATION_KEYS:
+                continue
             if k.endswith("_key") and isinstance(v, str) and v:
                 out.add(v)
             else:
@@ -562,12 +572,36 @@ if os.path.exists("data/crops.json"):
                     errors.append(f"crops.json: crop '{cid}' stage {i} takes "
                                   f"{seconds!r}. A stage of zero is a stage the "
                                   f"child never sees")
-        if int(crop.get("yield", 0)) <= 0:
+        if int(crop.get("harvest_amount", 0)) <= 0:
             errors.append(f"crops.json: crop '{cid}' yields nothing. Eight hours "
                           f"of waiting has to put something in the basket")
-        if int(crop.get("thirst_seconds", 0)) <= 0:
-            errors.append(f"crops.json: crop '{cid}' has no thirst_seconds, so "
-                          f"its water level would fall instantly or never")
+        # A crop raises ONE job per planting, named in care_event_types. Only
+        # the thirst crops need a thirst clock; for a weeds crop a zero is the
+        # way the data says "this one never runs dry", and demanding a number
+        # there would be demanding a second job it is not supposed to have.
+        cares = crop.get("care_event_types", [])
+        if not isinstance(cares, list) or not cares:
+            errors.append(f"crops.json: crop '{cid}' names no care_event_types, "
+                          f"so nothing ever asks the child to look after it")
+        elif "thirsty" in cares and int(crop.get("thirst_seconds", 0)) <= 0:
+            errors.append(f"crops.json: crop '{cid}' gets thirsty but has no "
+                          f"thirst_seconds, so its water would fall instantly "
+                          f"or never")
+        elif "thirsty" not in cares and int(crop.get("thirst_seconds", 0)) > 0:
+            errors.append(f"crops.json: crop '{cid}' has a thirst clock but "
+                          f"does not list thirst as its job -- it would stop "
+                          f"for water with nothing on screen asking for it")
+        assets = crop.get("growth_assets", [])
+        if not isinstance(assets, list) or len(assets) != FARM_STAGES:
+            errors.append(f"crops.json: crop '{cid}' needs {FARM_STAGES} "
+                          f"growth_assets, one per stage the child sees")
+        total = sum(stages) if isinstance(stages, list) and all(
+            isinstance(x, int) for x in stages) else -1
+        if total >= 0 and int(crop.get("growth_seconds", 0)) != total:
+            errors.append(f"crops.json: crop '{cid}' says growth_seconds "
+                          f"{crop.get('growth_seconds')} but its stages add up "
+                          f"to {total} -- two numbers for one fact, and the "
+                          f"screen believes the stages")
         if str(crop.get("name_key", "")) == "":
             errors.append(f"crops.json: crop '{cid}' has no name_key")
         icon = str(crop.get("icon", ""))
@@ -603,7 +637,7 @@ if os.path.exists("data/garden_orders.json"):
                           f"deliveries are recorded by id, so two orders "
                           f"sharing one would pay for each other")
         seen_orders.add(oid)
-        wants = order.get("wants", {})
+        wants = order.get("requirements", {})
         if not isinstance(wants, dict) or not wants:
             errors.append(f"garden_orders.json: order '{oid}' asks for nothing")
         else:
@@ -615,13 +649,20 @@ if os.path.exists("data/garden_orders.json"):
                 if not isinstance(how_many, int) or how_many <= 0:
                     errors.append(f"garden_orders.json: order '{oid}' asks for "
                                   f"{how_many!r} of '{crop_id}'")
-        if int(order.get("reward_coins", 0)) <= 0:
+        rewards = order.get("rewards", {})
+        if not isinstance(rewards, dict):
+            rewards = {}
+        if str(order.get("completion_transaction_key", "")) == "":
+            errors.append(f"garden_orders.json: order '{oid}' has no "
+                          f"completion_transaction_key -- the id a delivery is "
+                          f"recorded against")
+        if int(rewards.get("coins", 0)) <= 0:
             errors.append(f"garden_orders.json: order '{oid}' pays nothing. "
                           f"Growing three carrots for somebody has to be worth "
                           f"something or it is a chore")
         if str(order.get("name_key", "")) == "":
             errors.append(f"garden_orders.json: order '{oid}' has no name_key")
-        icon = str(order.get("npc_icon", ""))
+        icon = str(order.get("customer_icon", ""))
         if icon != "" and icon not in order_icon_names:
             errors.append(f"garden_orders.json: order '{oid}' asks for icon "
                           f"'{icon}', which IconLibrary cannot draw")

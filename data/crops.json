@@ -3,52 +3,129 @@
     "id": "carrot",
     "name_key": "crop.carrot",
     "icon": "carrot",
-    "yield": 2,
-    "thirst_seconds": 1200,
+    "seed_item_id": "seed_carrot",
+    "crop_item_id": "carrot",
+    "growth_seconds": 1800,
+    "growth_stages": 5,
     "stage_seconds": [
       300,
       420,
       480,
       600
-    ]
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "carrot",
+      "carrot"
+    ],
+    "care_event_types": [
+      "thirsty"
+    ],
+    "care_event_stage": 1,
+    "thirst_seconds": 1200,
+    "harvest_amount": 3,
+    "harvest_gesture": "pull_up",
+    "tutorial_growth_override": 6,
+    "unlock_condition": "",
+    "voice_intro": "crop_carrot_intro"
   },
   {
     "id": "corn",
     "name_key": "crop.corn",
     "icon": "corn",
-    "yield": 2,
-    "thirst_seconds": 4800,
+    "seed_item_id": "seed_corn",
+    "crop_item_id": "corn",
+    "growth_seconds": 7200,
+    "growth_stages": 5,
     "stage_seconds": [
       1200,
       1500,
       1800,
       2700
-    ]
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "corn",
+      "corn"
+    ],
+    "care_event_types": [
+      "weeds"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 0,
+    "harvest_amount": 2,
+    "harvest_gesture": "swipe_down",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "",
+    "voice_intro": "crop_corn_intro"
   },
   {
     "id": "strawberry",
     "name_key": "crop.strawberry",
     "icon": "strawberry",
-    "yield": 3,
-    "thirst_seconds": 9600,
+    "seed_item_id": "seed_strawberry",
+    "crop_item_id": "strawberry",
+    "growth_seconds": 14400,
+    "growth_stages": 5,
     "stage_seconds": [
       2400,
       3000,
       3600,
       5400
-    ]
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "strawberry",
+      "strawberry"
+    ],
+    "care_event_types": [
+      "thirsty"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 9600,
+    "harvest_amount": 4,
+    "harvest_gesture": "tap_each",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "",
+    "voice_intro": "crop_strawberry_intro"
   },
   {
     "id": "tomato",
     "name_key": "crop.tomato",
     "icon": "tomato",
-    "yield": 3,
-    "thirst_seconds": 19200,
+    "seed_item_id": "seed_tomato",
+    "crop_item_id": "tomato",
+    "growth_seconds": 28800,
+    "growth_stages": 5,
     "stage_seconds": [
       5400,
       6300,
       7200,
       9900
-    ]
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "tomato",
+      "tomato"
+    ],
+    "care_event_types": [
+      "weeds",
+      "trellis"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 0,
+    "harvest_amount": 3,
+    "harvest_gesture": "tap_each",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "",
+    "voice_intro": "crop_tomato_intro"
   }
 ]

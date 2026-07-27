@@ -20,7 +20,10 @@ const SAVE_VERSION := 1
 ## The version a save reaches once 星光菜园 has been opened in it. Unlike
 ## SAVE_VERSION -- which is written on every save and has never been read --
 ## this one is a fact about the save's CONTENT, and the garden probe checks it.
-const FARM_SAVE_VERSION := 2
+## 2  the garden arrived: farm, inventory, farm_orders
+## 3  a plot says what it is doing in one word (`state`) instead of in three
+##    booleans, and carries the planting cycle its harvest is paid against
+const FARM_SAVE_VERSION := 3
 
 ## The autoload order puts SaveManager BEFORE I18n, so the I18n singleton
 ## does not exist yet while a fresh save is being built. Reading the
@@ -1158,7 +1161,10 @@ func _merge_farm(theirs: Dictionary) -> void:
 		var farm: Dictionary = data.get("farm", {})
 		var busy := false
 		for plot in farm.get("plots", []):
-			if str(plot.get("crop_id", "")) != "" or bool(plot.get("tilled", false)):
+			# Anything other than untouched grass counts as "he has been in
+			# here". Farm.is_tilled() is the single word that used to be two
+			# booleans, read in whichever order each caller happened to pick.
+			if Farm.is_tilled(plot):
 				busy = true
 		if not busy:
 			farm["plots"] = Farm.normalise_farm(tf).get("plots", farm.get("plots", []))
@@ -1171,6 +1177,23 @@ func _merge_farm(theirs: Dictionary) -> void:
 		farm["clock_high_water"] = maxi(int(farm.get("clock_high_water", 0)),
 			int(tf.get("clock_high_water", 0)))
 		farm["opened"] = bool(farm.get("opened", false)) or bool(tf.get("opened", false))
+		# Both of these are "has this ever happened", so both are an OR: a child
+		# who has already sat through the planting lesson on one tablet must
+		# never be made to sit through it again on another.
+		farm["tutorial_completed"] = bool(farm.get("tutorial_completed", false)) \
+			or bool(tf.get("tutorial_completed", false))
+		farm["last_farm_visit_at"] = maxi(int(farm.get("last_farm_visit_at", 0)),
+			int(tf.get("last_farm_visit_at", 0)))
+		# Paid harvests are a union, for the same reason delivered orders are:
+		# a harvest paid for on either device has been paid for, and losing one
+		# means the same crop can be picked and paid for a second time.
+		var paid: Array = farm.get("paid_harvests", [])
+		for key in tf.get("paid_harvests", []):
+			if not key in paid:
+				paid.append(key)
+		while paid.size() > Farm.PAID_LEDGER_KEPT:
+			paid.pop_front()
+		farm["paid_harvests"] = paid
 
 		var barn: Dictionary = farm.get("warehouse", {})
 		for crop_id in tf.get("warehouse", {}).keys():

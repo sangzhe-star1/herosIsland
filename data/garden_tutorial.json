@@ -1,0 +1,13 @@
+{
+  "crop_id": "carrot",
+  "plot_index": 0,
+  "growth_override_seconds": 6,
+  "steps": [
+    {"id": "welcome",  "point_at": "plot",  "voice": "garden_tut_welcome", "icon": "sprout"},
+    {"id": "till",     "point_at": "plot",  "voice": "garden_tut_till",    "icon": "soil"},
+    {"id": "plant",    "point_at": "seed",  "voice": "garden_tut_plant",   "icon": "seed"},
+    {"id": "water",    "point_at": "plot",  "voice": "garden_tut_water",   "icon": "watering_can"},
+    {"id": "harvest",  "point_at": "plot",  "voice": "garden_tut_harvest", "icon": "basket"},
+    {"id": "order",    "point_at": "order", "voice": "garden_tut_order",   "icon": "teddy"}
+  ]
+}

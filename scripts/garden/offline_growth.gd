@@ -52,15 +52,40 @@ const CARE_NONE := ""
 const CARE_THIRSTY := "thirsty"
 const CARE_WEEDS := "weeds"
 
-## Weeds arrive when a crop reaches this stage, and only then.
+## Where the weeds stage comes from when a crop's data does not say.
 ##
 ## Deliberately a fixed stage rather than a chance. Random weeds would mean two
 ## children with the same garden see different work, and "why does mine have
 ## weeds and his does not" is not a question this game wants to raise -- it is
-## also the first step onto the ladder the shop is forbidden to climb. At stage
-## two every crop grows weeds once, he pulls them once, and he learns that
-## plants need looking after because it happens to him every single time.
+## also the first step onto the ladder the shop is forbidden to climb. A crop
+## grows weeds once, he pulls them once, and he learns that plants need looking
+## after because it happens to him every single time.
 const WEEDS_AT_STAGE := 2
+
+
+## WHICH CROP ASKS FOR WHAT
+##
+## `care_event_types` in crops.json. Each crop raises exactly ONE kind of job
+## per planting, which is the brief's rule and is also as much as a six-year-old
+## should have to hold at once:
+##
+##   ["water"]   the plant gets thirsty; thirst_seconds says when
+##   ["weeds"]   weeds come up at care_event_stage, and thirst_seconds is 0, so
+##               the plant never ALSO gets thirsty -- two jobs on one plot is
+##               two things to work out and one of them gets missed
+##
+## A crop with no list at all keeps the old behaviour, thirst and weeds both,
+## because a data file that forgot a field should not quietly turn a job off.
+static func wants(crop: Dictionary, kind: String) -> bool:
+	var types: Array = crop.get("care_event_types", [])
+	if types.is_empty():
+		return true
+	return kind in types
+
+
+## The stage weeds come up at for this crop.
+static func weeds_stage(crop: Dictionary) -> int:
+	return int(crop.get("care_event_stage", WEEDS_AT_STAGE))
 
 
 ## Move one plot forward by `seconds`, and hand back what it became.
@@ -75,7 +100,7 @@ static func advance(plot: Dictionary, crop: Dictionary, seconds: int) -> Diction
 		return out
 	if str(out.get("crop_id", "")) == "":
 		return out                      # bare earth has nowhere to get to
-	if bool(out.get("ready_to_harvest", false)):
+	if Farm.is_ready(out):
 		return out                      # ripe is the ceiling
 
 	var stages: Array = crop.get("stage_seconds", [])
@@ -83,6 +108,17 @@ static func advance(plot: Dictionary, crop: Dictionary, seconds: int) -> Diction
 		# A crop_id nothing in the catalogue answers to. Sit still rather than
 		# finish instantly: a retired crop should look like a plant that has
 		# stopped, not like a harvest waiting to be collected.
+		return out
+
+	# Already stopped and waiting for a hand. Nothing advances -- not the growth,
+	# not the water -- until the job is done.
+	#
+	# This is what NEEDS_CARE MEANS, and it did not use to. Weeds were once
+	# cosmetic: they asked to be pulled and growth carried straight on past
+	# them, so a plot could sit at "needs care" for a fortnight and ripen
+	# anyway, and the badge was decoration. A job that can be ignored is not a
+	# job a six-year-old will learn from.
+	if str(out.get("care_event", CARE_NONE)) != CARE_NONE:
 		return out
 
 	var thirst := float(crop.get("thirst_seconds", 0))
@@ -98,10 +134,23 @@ static func advance(plot: Dictionary, crop: Dictionary, seconds: int) -> Diction
 		water = maxf(DRY, water - float(remaining) / thirst)
 	out["water_level"] = water
 
+	var weeds_at := weeds_stage(crop)
+	var weeds_possible: bool = wants(crop, CARE_WEEDS) \
+		and not bool(out.get("care_completed", false))
+
 	var stage := int(out.get("growth_stage", 0))
 	var progress := float(out.get("growth_progress", 0.0))
 	var left := watered_seconds
+	var stopped_by_weeds := false
 	while left > 0 and stage < stages.size():
+		# Weeds come up the moment the plant reaches their stage, and the walk
+		# STOPS there. Time after that point is not banked -- a fortnight away
+		# leaves the plot exactly where the weeds found it, which is the
+		# "waiting for help" ceiling the brief asks for and the reason a year
+		# of absence cannot ripen anything by itself.
+		if weeds_possible and stage >= weeds_at:
+			stopped_by_weeds = true
+			break
 		var this_stage := int(stages[stage])
 		if this_stage <= 0:
 			stage += 1
@@ -121,18 +170,23 @@ static func advance(plot: Dictionary, crop: Dictionary, seconds: int) -> Diction
 	if out["growth_stage"] >= stages.size():
 		out["growth_stage"] = stages.size()
 		out["growth_progress"] = 0.0
-		out["ready_to_harvest"] = true
+		out["state"] = Farm.READY
 		out["care_event"] = CARE_NONE
-	elif water <= DRY:
+	elif water <= DRY and wants(crop, CARE_THIRSTY):
 		# Thirsty, and saying so. Water beats weeds when both are true: a plant
 		# that is not growing at all is the more urgent of the two.
 		out["care_event"] = CARE_THIRSTY
 		out["care_completed"] = false
-	elif int(out["growth_stage"]) >= WEEDS_AT_STAGE \
-			and not bool(out.get("care_completed", false)):
+		out["state"] = Farm.NEEDS_CARE
+	elif stopped_by_weeds:
 		out["care_event"] = CARE_WEEDS
-	elif str(out.get("care_event", "")) == CARE_THIRSTY:
-		out["care_event"] = CARE_NONE
+		out["state"] = Farm.NEEDS_CARE
+	else:
+		if str(out.get("care_event", "")) == CARE_THIRSTY:
+			out["care_event"] = CARE_NONE
+		# Something is showing above the soil now, so it has stopped being a
+		# seed in the ground and started being a plant.
+		out["state"] = Farm.GROWING
 
 	return out
 
@@ -186,7 +240,7 @@ static func settle(farm: Dictionary, now: int) -> Dictionary:
 ## How far along a plot is overall, 0.0 to 1.0. For the ring drawn around it --
 ## a six-year-old reads a ring filling up, not "stage 3 of 5".
 static func fraction_done(plot: Dictionary, crop: Dictionary) -> float:
-	if bool(plot.get("ready_to_harvest", false)):
+	if Farm.is_ready(plot):
 		return 1.0
 	var stages: Array = crop.get("stage_seconds", [])
 	if stages.is_empty():
@@ -212,6 +266,10 @@ static func water(plot: Dictionary) -> Dictionary:
 	out["water_level"] = FULL
 	if str(out.get("care_event", "")) == CARE_THIRSTY:
 		out["care_event"] = CARE_NONE
+		# Back to growing -- unless weeds were the reason it stopped, in which
+		# case there is still a job to do and the state stays where it is.
+		if str(out.get("state", "")) == Farm.NEEDS_CARE:
+			out["state"] = Farm.GROWING
 	return out
 
 
@@ -225,5 +283,7 @@ static func weed(plot: Dictionary) -> Dictionary:
 	var out: Dictionary = plot.duplicate(true)
 	if str(out.get("care_event", "")) == CARE_WEEDS:
 		out["care_event"] = CARE_NONE
+		if str(out.get("state", "")) == Farm.NEEDS_CARE:
+			out["state"] = Farm.GROWING
 	out["care_completed"] = true
 	return out

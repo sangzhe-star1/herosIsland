@@ -12,6 +12,9 @@ var last_new_badge: String = ""
 var last_coins_earned: int = 0
 var last_xp_earned: int = 0
 var last_levels_gained: int = 0
+## The source string of the last thing record() accepted. For the parent
+## centre's log and for probes -- nothing in the game reads it.
+var last_recorded_source: String = ""
 
 
 ## Pay out for something that is not a level.
@@ -34,13 +37,38 @@ func grant(source: String, coins: int, once_key: String,
 		already_paid: Array) -> int:
 	if coins <= 0:
 		return 0
-	if once_key != "" and once_key in already_paid:
+	if not record(source, once_key, already_paid):
 		return 0
-	if once_key != "":
-		already_paid.append(once_key)
 	Coins.earn(coins, source)
 	last_coins_earned = coins
 	return coins
+
+
+## "This happened, and it had not happened before." Returns true the first
+## time and false ever after.
+##
+## Added rather than folded into grant(), because grant() answers a different
+## question -- it returns 0 both for "already paid" and for "there was nothing
+## to pay", and refuses anything worth zero coins before it looks at the key at
+## all. 星光菜园's harvest is worth zero coins and still has to happen exactly
+## once: what it hands over is crops into the barn, and paying those out twice
+## is the same bug as paying 星星币 out twice.
+##
+## The old behaviour of grant() is unchanged. It now asks this function the
+## once-only question instead of asking it inline, so there is one place in the
+## island where "has this been paid for" is decided, whatever the payment is.
+##
+## `already_paid` is the CALLER's list because only the caller knows where to
+## persist it, and it is appended to BEFORE this returns -- an await on an
+## animation afterwards cannot let a second press through.
+func record(source: String, once_key: String, already_paid: Array) -> bool:
+	if once_key == "":
+		return true                       # nothing to be idempotent about
+	if once_key in already_paid:
+		return false
+	already_paid.append(once_key)
+	last_recorded_source = source
+	return true
 
 
 func grant_for_level(result: LevelResult) -> void:

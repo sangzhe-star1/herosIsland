@@ -689,7 +689,9 @@
     "npc.puppy": "Puppy",
     "garden.barn": "Barn",
     "garden.orders": "Who needs a hand",
-    "npc.robot": "Robot Friend"
+    "npc.robot": "Robot Friend",
+    "garden.keep_planting": "Keep planting",
+    "garden.go_exploring": "Go exploring"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -1381,6 +1383,8 @@
     "npc.puppy": "小狗",
     "garden.barn": "仓库",
     "garden.orders": "谁需要帮忙",
-    "npc.robot": "机器人朋友"
+    "npc.robot": "机器人朋友",
+    "garden.keep_planting": "继续种菜",
+    "garden.go_exploring": "去别处冒险"
   }
 }

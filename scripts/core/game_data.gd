@@ -24,6 +24,9 @@ var crops: Array = []
 ## Who wants what, and what it is worth. Read-only: what has been DELIVERED
 ## lives in the save, so retuning a reward can never un-pay an order.
 var garden_orders: Array = []
+## The first-planting lesson: which crop, which bed, how fast it grows for the
+## lesson only, and what the helper points at in what order.
+var garden_tutorial: Dictionary = {}
 
 var _levels_by_id: Dictionary = {}
 var _worlds_by_id: Dictionary = {}
@@ -47,6 +50,7 @@ func _ready() -> void:
 	outfit_presets = _load_json("res://data/outfit_presets.json", {})
 	crops = _load_json("res://data/crops.json", [])
 	garden_orders = _load_json("res://data/garden_orders.json", [])
+	garden_tutorial = _load_json("res://data/garden_tutorial.json", {})
 
 	for c in crops:
 		_crops_by_id[c.get("id", "")] = c
@@ -69,7 +73,8 @@ func _ready() -> void:
 			int(outfit_presets.get("sets", []).size())])
 	for pair in [["levels", levels.size()], ["worlds", worlds.size()],
 			["monsters", monsters.size()], ["shop items", shop_items.size()],
-			["crops", crops.size()], ["garden orders", garden_orders.size()]]:
+			["crops", crops.size()], ["garden orders", garden_orders.size()],
+			["garden tutorial steps", garden_tutorial.get("steps", []).size()]]:
 		if int(pair[1]) == 0:
 			push_error("GameData: %s is EMPTY -- a data file is missing or "
 				% str(pair[0]) + "the code that loads it is out of date")
