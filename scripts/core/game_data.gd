@@ -201,10 +201,28 @@ func crop_total_seconds(crop_id: String) -> int:
 
 
 ## Levels belonging to a world, in listed order.
+## The levels on a world's PATH, in order -- what the map draws.
+##
+## Levels carrying a `mode` are deliberately left out. 丰收行动 is eight levels
+## reached from a button in the garden, not eight more stones on the island's
+## path: putting them on the map would bury 阳光公园's nine hand-made levels
+## under a run of one template, which is the thing the island is built not to
+## do. They are still real levels in every other way -- same manager, same
+## stars, same rewards, same probes.
 func get_levels_for_world(world_id: String) -> Array:
 	var out: Array = []
 	for l in levels:
-		if l.get("world", "") == world_id:
+		if l.get("world", "") == world_id and str(l.get("mode", "")) == "":
+			out.append(l)
+	return out
+
+
+## Every level belonging to one mode, in order. The garden's 丰收挑战 button
+## reads this.
+func get_levels_for_mode(mode_id: String) -> Array:
+	var out: Array = []
+	for l in levels:
+		if str(l.get("mode", "")) == mode_id:
 			out.append(l)
 	return out
 

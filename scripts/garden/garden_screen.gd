@@ -158,6 +158,8 @@ func _top_bar(view: Vector2) -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_play.add_child(title)
 
+	_challenge_door(view)
+
 	# The purse, read-only. Nothing in the garden spends or earns yet -- that
 	# arrives with the orders -- but the number he is used to seeing in every
 	# other room should not vanish in this one.
@@ -819,3 +821,53 @@ func _offer_a_break() -> void:
 	var leave := UiKit.big_button(I18n.t("garden.go_exploring"), Palette.BLUE)
 	leave.pressed.connect(func(): quit_level())
 	row.add_child(leave)
+
+## The way into 丰收行动.
+##
+## A door in the garden and nowhere else. The eight harvest levels are
+## deliberately off the island's map: they are one template eight times, which
+## is right for a challenge a child CHOOSES and wrong for a stretch of the
+## path he is walked down. See GameData.get_levels_for_mode().
+##
+## The next one he has not finished, so the button is always "the one to play"
+## rather than a menu of eight. When they are all done it offers the last one
+## again -- replaying is fine, and a door that stops opening is a door that
+## looks broken.
+func _challenge_door(view: Vector2) -> void:
+	var levels: Array = GameData.get_levels_for_mode("harvest")
+	if levels.is_empty():
+		return
+	var next: Dictionary = levels[levels.size() - 1]
+	var done := 0
+	for level in levels:
+		var id := str(level.get("id", ""))
+		if int(SaveManager.get_level_progress(id).get("stars", 0)) > 0:
+			done += 1
+		else:
+			next = level
+			break
+
+	var door := UiKit.card(Color(0.98, 0.94, 0.78))
+	door.custom_minimum_size = Vector2(210, 74)
+	door.position = Vector2(view.x - 430.0, 24)
+	_play.add_child(door)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	door.add_child(row)
+	var basket: Control = UiKit.picture("basket", 44.0)
+	if basket != null:
+		row.add_child(basket)
+	# How many are done, as a number he can compare to eight. No percentage.
+	var count := UiKit.title("%d/%d" % [done, levels.size()], 26)
+	row.add_child(count)
+
+	var press := Button.new()
+	press.flat = true
+	press.focus_mode = Control.FOCUS_NONE
+	press.position = door.position
+	press.size = door.custom_minimum_size
+	press.custom_minimum_size = door.custom_minimum_size
+	var go := str(next.get("id", ""))
+	press.pressed.connect(func(): GameManager.start_level(go))
+	_play.add_child(press)

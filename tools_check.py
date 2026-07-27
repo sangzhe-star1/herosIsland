@@ -360,8 +360,21 @@ for lv in levels:
 # never required, and deliberately outside the ratio. Counting them would let
 # somebody "fix" a platformer-heavy island by adding bonus puzzles, which
 # fixes the number and not the problem.
+#
+# A MODE is the third of these, and the newest. 丰收行动 is eight levels of one
+# template on purpose: it is a challenge picked from a button in the garden,
+# not a chapter of the island, and a child who chooses "harvest challenge"
+# has ASKED for eight harvest levels. Counting them here would say the island
+# had gone monotonous when what actually happened is that a mode was added --
+# and the only way to satisfy the rule would be to scatter the eight through
+# the story path, which is the thing that would genuinely make the island
+# feel like one game.
+#
+# The distinction is load-bearing, not a way round the check: anything on the
+# ISLAND'S PATH is still counted, and a mode has to say it is one.
 numbered = [l for l in levels
-            if not l.get("room", False) and not l.get("bonus", False)]
+            if not l.get("room", False) and not l.get("bonus", False)
+            and str(l.get("mode", "")) == ""]
 if numbered:
     run = worst = 1
     worst_at = ""

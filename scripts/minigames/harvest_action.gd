@@ -58,6 +58,14 @@ var _tally_pips: Array = []
 var _picked: Dictionary = {}        # crop_id -> how many
 var _wanted: Dictionary = {}        # crop_id -> how many the order asks for
 var _allowed: Array = []            # which ripeness steps this order accepts
+## Rules that beat the ordinary basket sorting: [{tag, basket}].
+var _exceptions: Array = []
+## The orders, in the order they arrive, and which one is on the board now.
+var _orders: Array = []
+var _order_index := 0
+## What earlier orders in this level already took. Kept apart from `_picked`
+## so a checkpoint restores the finished ones without refilling the current one.
+var _delivered: Dictionary = {}
 var _unripe_taps := 0
 var _helped := false
 ## Whether the order has been filled. LevelManager keeps its OWN `_finished`
@@ -84,6 +92,7 @@ func setup_level() -> void:
 	var config: Dictionary = level_data.get("config", {})
 	_picker = Picker.for_level(str(level_data.get("id", "")))
 	_allowed = config.get("allowed_maturity", Maturity.PICKABLE)
+	_exceptions = config.get("exceptions", [])
 
 	_stage = build_world(self, 0.30)
 	_field = UiKit.play_area(self, true)
@@ -131,7 +140,63 @@ func _lay_out(config: Dictionary) -> void:
 			node.refused.connect(_on_refused)
 			_targets.append(node)
 
-	for entry in config.get("order", []):
+	# One order, or several in a row. A level with several is a level with
+	# checkpoints: each one that lands is written to disk before the next
+	# appears, so a tablet that dies in the middle of the celebration level
+	# costs the current order and never the two already delivered.
+	_orders = config.get("orders", [])
+	if _orders.is_empty():
+		_orders = [{"requirements": config.get("order", [])}]
+	_restore_checkpoint()
+	_load_order()
+
+
+## Where he had got to, if he was here before and left in the middle.
+##
+## Only ONE checkpoint is kept, and only for the level it belongs to. A child
+## does not sit half-finished in three levels at once, and a stale checkpoint
+## from another level restoring into this one would be worse than no checkpoint
+## at all.
+func _restore_checkpoint() -> void:
+	var mark: Dictionary = SaveManager.data.get("farm", {}).get(
+		"harvest_checkpoint", {})
+	if str(mark.get("level_id", "")) != str(level_data.get("id", "")):
+		return
+	_order_index = clampi(int(mark.get("order_index", 0)), 0, _orders.size() - 1)
+	var done: Dictionary = mark.get("delivered", {})
+	for crop_id in done.keys():
+		_delivered[str(crop_id)] = int(done[crop_id])
+
+
+## Write down where he is. Called the moment an order lands, never mid-order:
+## a checkpoint that saved every pick would let a child put one carrot in,
+## leave, come back and find it counted, which is a save system doing the
+## level for him.
+func _save_checkpoint() -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	farm["harvest_checkpoint"] = {
+		"level_id": str(level_data.get("id", "")),
+		"order_index": _order_index,
+		"delivered": _delivered.duplicate(),
+	}
+	SaveManager.save_game()
+
+
+## Clear it -- the level is over, one way or the other.
+func _clear_checkpoint() -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	if str(farm.get("harvest_checkpoint", {}).get("level_id", "")) \
+			== str(level_data.get("id", "")):
+		farm["harvest_checkpoint"] = {}
+		SaveManager.save_game()
+
+
+func _load_order() -> void:
+	_wanted.clear()
+	_picked.clear()
+	if _order_index >= _orders.size():
+		return
+	for entry in (_orders[_order_index] as Dictionary).get("requirements", []):
 		_wanted[str(entry.get("crop_id", ""))] = int(entry.get("count", 1))
 
 
@@ -339,6 +404,40 @@ func _move(pointer: int, at: Vector2) -> void:
 	if pointer != _pointer:
 		return
 	_track.append(at)
+	# Digging shows its work. Without this a child sweeps at a mound of earth,
+	# nothing happens for three strokes, and then the crop appears -- which
+	# reads as the game deciding rather than as him digging.
+	if _holding != null and is_instance_valid(_holding) \
+			and str(_holding.crop.get("recogniser", "")) == Gesture.SWEEP:
+		var params: Dictionary = _holding.crop.get("gesture_params", {})
+		var want: int = maxi(int(params.get("turns", 3)), 1)
+		_holding.uncover(float(_reversals(_track,
+			float(params.get("leg", 60.0)))) / float(want))
+
+
+## How many real direction changes the track has so far. Same rule the
+## recogniser uses, asked mid-gesture so the soil can come off as it happens.
+func _reversals(track: PackedVector2Array, leg: float) -> int:
+	var turns := 0
+	var heading := 0.0
+	var run := 0.0
+	for i in range(1, track.size()):
+		var dx: float = track[i].x - track[i - 1].x
+		if absf(dx) < 0.5:
+			continue
+		var way: float = signf(dx)
+		if heading == 0.0:
+			heading = way
+			run = absf(dx)
+			continue
+		if way == heading:
+			run += absf(dx)
+			continue
+		if run >= leg:
+			turns += 1
+		heading = way
+		run = absf(dx)
+	return turns
 
 
 func _end(pointer: int, at: Vector2) -> void:
@@ -354,6 +453,20 @@ func _end(pointer: int, at: Vector2) -> void:
 	if target == null or not is_instance_valid(target):
 		return
 	if not target.try_gesture(track, _allowed):
+		# A dig that stopped half way puts the earth back, so the next attempt
+		# starts from somewhere honest rather than from a mound that is
+		# mysteriously already half gone.
+		if str(target.crop.get("recogniser", "")) == Gesture.SWEEP:
+			target.uncover(0.0)
+		return
+
+	# Clutter is pushed aside where it lies. No basket, no count, no reward.
+	if _is_clutter(target):
+		target.fly_to(target.global_position + Vector2(0, 220.0))
+		_targets.erase(target)
+		AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
+		if _hints != null:
+			_hints.progress()
 		return
 
 	# Where it goes. With one basket there is nothing to decide and it flies
@@ -366,7 +479,18 @@ func _end(pointer: int, at: Vector2) -> void:
 		target.taken = false
 		target.refuse("nowhere")
 		return
-	if not basket.takes(target.crop):
+	# Exceptions first, and that ORDER is the rule (brief section six): "the ones
+	# with a star go in the gift basket" has to beat "fruit goes in the fruit
+	# basket", or a golden strawberry is correct in two places and the child is
+	# marked wrong for following the newer instruction.
+	var must: String = _exception_basket(target)
+	if must != "":
+		if basket.id != must:
+			target.taken = false
+			basket.refuse()
+			target.refuse("wrong_basket")
+			return
+	elif not basket.takes(target.crop):
 		target.taken = false
 		basket.refuse()
 		target.refuse("wrong_basket")
@@ -375,6 +499,36 @@ func _end(pointer: int, at: Vector2) -> void:
 	basket.accept()
 	target.fly_to(basket.global_position)
 	_after_a_pick(target)
+
+
+## A stone in the way, a bug on a berry. Moved aside, never "collected".
+##
+## Clutter is not scored, not counted, and not lost -- it is simply moved, the
+## way a stone in a real garden is. It is the only thing on screen that does
+## not go to a basket, because a stone in the fruit basket is a joke the game
+## does not need to explain.
+func _is_clutter(target: Node2D) -> bool:
+	return "clutter" in target.crop.get("tags", [])
+
+
+## Does this one have to go somewhere particular, whatever its kind says?
+##
+## Reads the level's `exceptions`: a tag, and the basket that tag demands. A
+## crop carrying the tag can go NOWHERE else -- that is what makes it an
+## exception rather than a second opinion.
+func _exception_basket(target: Node2D) -> String:
+	for rule in _exceptions:
+		var tag := str(rule.get("tag", ""))
+		if tag == "":
+			continue
+		# "golden" is a ripeness, not a tag on the crop -- it is the one
+		# exception a child can SEE without reading anything, so it is worth
+		# the special case.
+		var carries: bool = tag in target.crop.get("tags", []) \
+			or (tag == "golden" and target.step == Maturity.GOLDEN)
+		if carries:
+			return str(rule.get("basket", ""))
+	return ""
 
 
 ## Which basket that drop landed in, or the only one there is.
@@ -434,9 +588,24 @@ func _after_a_pick(target: Node2D) -> void:
 	score_correct()
 
 	# The three doors, decided here and read by the result screen.
-	if _order_filled() and not _order_done:
-		result.reached_goal = true
-		_finish()
+	if not _order_filled() or _order_done:
+		return
+	# The first order landing is the first star, and it is written down before
+	# anything else happens.
+	result.reached_goal = true
+	for filled in _picked.keys():
+		_delivered[filled] = int(_delivered.get(filled, 0)) \
+			+ int(_picked[filled])
+	_order_index += 1
+	_save_checkpoint()
+
+	if _order_index < _orders.size():
+		AudioManager.play_sfx("res://assets/audio/coin.ogg")
+		AudioManager.say("harvest_next_order")
+		_load_order()
+		_rebuild_tally()
+		return
+	_finish()
 
 
 func _order_filled() -> bool:
@@ -468,6 +637,7 @@ func _finish() -> void:
 	_order_done = true
 	result.reached_goal = true
 	result.clean_run = true                # every order filled
+	_clear_checkpoint()
 	result.found_hidden = _optional_met()  # the optional third
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	complete_level()

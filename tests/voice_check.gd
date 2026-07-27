@@ -20,6 +20,16 @@ func _ready() -> void:
 	await get_tree().process_frame
 	print("\n=== voice check ===")
 
+	# 0. Every line the CODE asks for has words written for it.
+	#
+	# The other checks below start from the level list and from a fixed list of
+	# shared lines, so a line spoken from inside a screen -- the garden's first
+	# planting lesson, the harvest's "not yet" -- was invisible to all of them.
+	# Five of them shipped that way: the lesson a child meets on their very
+	# first visit to the garden played in complete silence, and nothing here
+	# said so, because nothing here was reading the code.
+	_every_spoken_line_has_words()
+
 	# 1. Every level that should speak, can.
 	var missing: Array = []
 	var found := 0
@@ -169,3 +179,54 @@ func _stream_for(name: String) -> AudioStream:
 			if suffix == ".wav":
 				return AudioStreamWAV.load_from_file(path)
 	return null
+
+## Scan the scripts for AudioManager.say("...") and check each one has words.
+##
+## The words, not the recording. A line with words and no audio is a line
+## waiting to be recorded, which is a normal state for this project and prints
+## as a note. A line with NEITHER is a line nobody will ever record, because
+## nobody knows it is missing -- and it comes out as silence at the one moment
+## it was written for.
+func _every_spoken_line_has_words() -> void:
+	var asked: Array[String] = []
+	_collect_says("res://scripts", asked)
+
+	var wordless: Array[String] = []
+	var unrecorded: Array[String] = []
+	for name in asked:
+		if not _in_the_script(name):
+			wordless.append(name)
+		elif not _has_line(name):
+			unrecorded.append(name)
+
+	print("  lines spoken from code: %d" % asked.size())
+	if not unrecorded.is_empty():
+		print("  WAITING TO BE RECORDED (words are written): %s"
+			% ", ".join(unrecorded))
+	_ok(wordless.is_empty(),
+		"%d line(s) are spoken by the code with no words written anywhere: %s"
+		% [wordless.size(), ", ".join(wordless)])
+
+
+func _collect_says(dir_path: String, into: Array[String]) -> void:
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while entry != "":
+		var path := "%s/%s" % [dir_path, entry]
+		if dir.current_is_dir():
+			_collect_says(path, into)
+		elif entry.ends_with(".gd"):
+			var src := FileAccess.get_file_as_string(path)
+			# say("...") with a literal. A key built at runtime -- praise_%d and
+			# the like -- cannot be read from here and is covered by the fixed
+			# shared-line list further down.
+			var re := RegEx.create_from_string('say\\("([a-z0-9_]+)"\\)')
+			for m in re.search_all(src):
+				var name := m.get_string(1)
+				if not name in into:
+					into.append(name)
+		entry = dir.get_next()
+	dir.list_dir_end()

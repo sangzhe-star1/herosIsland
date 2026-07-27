@@ -706,7 +706,22 @@
     "level.harvest_01": "Pull up the carrots",
     "harvest.pull_them_up": "Pull the carrots up!",
     "level.harvest_02": "Are the strawberries red?",
-    "harvest.sort_them": "Fruit in one, vegetables in the other!"
+    "harvest.sort_them": "Fruit in one, vegetables in the other!",
+    "crop.stone": "Stone",
+    "crop.bug": "Little bug",
+    "level.harvest_03": "Peel the corn",
+    "level.harvest_04": "Where are the potatoes?",
+    "level.harvest_05": "Shake the orchard",
+    "level.harvest_06": "Count the peas",
+    "level.harvest_07": "A big order",
+    "level.harvest_08": "Harvest party",
+    "harvest.l3": "Pull the corn down!",
+    "harvest.l4": "Sweep the soil and find them",
+    "harvest.l5": "Shake the branch, sort the fruit",
+    "harvest.l6": "Open the pods",
+    "harvest.l7": "The starred one goes in the gift basket",
+    "harvest.l8": "Three orders, one after another",
+    "world.harvest_farm": "Harvest Farm"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -1415,6 +1430,21 @@
     "level.harvest_01": "拔出胡萝卜",
     "harvest.pull_them_up": "把胡萝卜拔出来！",
     "level.harvest_02": "草莓红了吗",
-    "harvest.sort_them": "水果放一边，蔬菜放另一边！"
+    "harvest.sort_them": "水果放一边，蔬菜放另一边！",
+    "crop.stone": "石头",
+    "crop.bug": "小虫",
+    "level.harvest_03": "玉米剥一剥",
+    "level.harvest_04": "土豆在哪里",
+    "level.harvest_05": "果园摇一摇",
+    "level.harvest_06": "豌豆数一数",
+    "level.harvest_07": "多作物订单",
+    "level.harvest_08": "丰收庆典",
+    "harvest.l3": "从上往下，把玉米拉下来！",
+    "harvest.l4": "扒开土，把土豆找出来",
+    "harvest.l5": "摇一摇树枝，再分好篮子",
+    "harvest.l6": "把豆荚打开",
+    "harvest.l7": "带星星的放礼物篮",
+    "harvest.l8": "三张订单，一张一张来",
+    "world.harvest_farm": "丰收农场"
   }
 }

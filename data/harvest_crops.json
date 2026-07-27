@@ -6,12 +6,21 @@
     "category": "root",
     "harvest_gesture": "pull_up",
     "recogniser": "drag",
-    "gesture_params": {"direction_x": 0.0, "direction_y": -1.0, "distance": 90.0, "angle": 35.0},
+    "gesture_params": {
+      "direction_x": 0.0,
+      "direction_y": -1.0,
+      "distance": 90.0,
+      "angle": 35.0
+    },
     "touch_tolerance": 78.0,
     "harvest_count": 1,
     "tool_required": "",
     "difficulty": 1,
-    "tags": ["orange", "root", "vegetable"],
+    "tags": [
+      "orange",
+      "root",
+      "vegetable"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_pull_up"
   },
@@ -22,12 +31,21 @@
     "category": "root",
     "harvest_gesture": "pull_up",
     "recogniser": "drag",
-    "gesture_params": {"direction_x": 0.0, "direction_y": -1.0, "distance": 90.0, "angle": 35.0},
+    "gesture_params": {
+      "direction_x": 0.0,
+      "direction_y": -1.0,
+      "distance": 90.0,
+      "angle": 35.0
+    },
     "touch_tolerance": 78.0,
     "harvest_count": 1,
     "tool_required": "",
     "difficulty": 1,
-    "tags": ["golden", "root", "vegetable"],
+    "tags": [
+      "golden",
+      "root",
+      "vegetable"
+    ],
     "special_rule": "golden",
     "voice_intro": "harvest_pull_up"
   },
@@ -38,14 +56,22 @@
     "category": "root",
     "harvest_gesture": "dig_search",
     "recogniser": "sweep",
-    "gesture_params": {"turns": 3.0, "leg": 60.0},
+    "gesture_params": {
+      "turns": 3.0,
+      "leg": 60.0
+    },
     "touch_tolerance": 86.0,
     "harvest_count": 1,
     "tool_required": "shovel",
     "difficulty": 2,
-    "tags": ["brown", "root", "vegetable"],
+    "tags": [
+      "brown",
+      "root",
+      "vegetable"
+    ],
     "special_rule": "",
-    "voice_intro": "harvest_dig"
+    "voice_intro": "harvest_dig",
+    "sweep_cover": "soil"
   },
   {
     "id": "tomato",
@@ -59,7 +85,11 @@
     "harvest_count": 1,
     "tool_required": "",
     "difficulty": 1,
-    "tags": ["red", "fruiting", "vegetable"],
+    "tags": [
+      "red",
+      "fruiting",
+      "vegetable"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_tap"
   },
@@ -75,7 +105,11 @@
     "harvest_count": 1,
     "tool_required": "",
     "difficulty": 1,
-    "tags": ["red", "berry", "fruit"],
+    "tags": [
+      "red",
+      "berry",
+      "fruit"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_tap"
   },
@@ -86,12 +120,21 @@
     "category": "fruiting",
     "harvest_gesture": "swipe_down",
     "recogniser": "drag",
-    "gesture_params": {"direction_x": 0.0, "direction_y": 1.0, "distance": 90.0, "angle": 35.0},
+    "gesture_params": {
+      "direction_x": 0.0,
+      "direction_y": 1.0,
+      "distance": 90.0,
+      "angle": 35.0
+    },
     "touch_tolerance": 78.0,
     "harvest_count": 1,
     "tool_required": "",
     "difficulty": 2,
-    "tags": ["yellow", "fruiting", "vegetable"],
+    "tags": [
+      "yellow",
+      "fruiting",
+      "vegetable"
+    ],
     "special_rule": "peel_first",
     "voice_intro": "harvest_swipe_down"
   },
@@ -102,12 +145,18 @@
     "category": "orchard",
     "harvest_gesture": "twist",
     "recogniser": "twist",
-    "gesture_params": {"turn": 90.0},
+    "gesture_params": {
+      "turn": 90.0
+    },
     "touch_tolerance": 82.0,
     "harvest_count": 1,
     "tool_required": "",
     "difficulty": 2,
-    "tags": ["orange", "orchard", "fruit"],
+    "tags": [
+      "orange",
+      "orchard",
+      "fruit"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_twist"
   },
@@ -118,14 +167,22 @@
     "category": "orchard",
     "harvest_gesture": "shake_tree",
     "recogniser": "sweep",
-    "gesture_params": {"turns": 3.0, "leg": 70.0},
+    "gesture_params": {
+      "turns": 3.0,
+      "leg": 70.0
+    },
     "touch_tolerance": 90.0,
     "harvest_count": 1,
     "tool_required": "",
     "difficulty": 3,
-    "tags": ["red", "orchard", "fruit"],
+    "tags": [
+      "red",
+      "orchard",
+      "fruit"
+    ],
     "special_rule": "",
-    "voice_intro": "harvest_shake"
+    "voice_intro": "harvest_shake",
+    "sweep_cover": "branch"
   },
   {
     "id": "peas",
@@ -134,12 +191,21 @@
     "category": "fruiting",
     "harvest_gesture": "open_pod",
     "recogniser": "drag",
-    "gesture_params": {"direction_x": 0.0, "direction_y": 1.0, "distance": 110.0, "angle": 30.0},
+    "gesture_params": {
+      "direction_x": 0.0,
+      "direction_y": 1.0,
+      "distance": 110.0,
+      "angle": 30.0
+    },
     "touch_tolerance": 82.0,
     "harvest_count": 3,
     "tool_required": "",
     "difficulty": 3,
-    "tags": ["green", "fruiting", "vegetable"],
+    "tags": [
+      "green",
+      "fruiting",
+      "vegetable"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_pod"
   },
@@ -150,12 +216,22 @@
     "category": "fruiting",
     "harvest_gesture": "roll_to_basket",
     "recogniser": "drag",
-    "gesture_params": {"direction_x": 1.0, "direction_y": 0.0, "distance": 160.0, "angle": 40.0},
+    "gesture_params": {
+      "direction_x": 1.0,
+      "direction_y": 0.0,
+      "distance": 160.0,
+      "angle": 40.0
+    },
     "touch_tolerance": 96.0,
     "harvest_count": 1,
     "tool_required": "wheelbarrow",
     "difficulty": 3,
-    "tags": ["orange", "fruiting", "vegetable", "heavy"],
+    "tags": [
+      "orange",
+      "fruiting",
+      "vegetable",
+      "heavy"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_roll"
   },
@@ -166,12 +242,22 @@
     "category": "berry",
     "harvest_gesture": "roll_to_basket",
     "recogniser": "drag",
-    "gesture_params": {"direction_x": 1.0, "direction_y": 0.0, "distance": 160.0, "angle": 40.0},
+    "gesture_params": {
+      "direction_x": 1.0,
+      "direction_y": 0.0,
+      "distance": 160.0,
+      "angle": 40.0
+    },
     "touch_tolerance": 96.0,
     "harvest_count": 1,
     "tool_required": "wheelbarrow",
     "difficulty": 3,
-    "tags": ["green", "berry", "fruit", "heavy"],
+    "tags": [
+      "green",
+      "berry",
+      "fruit",
+      "heavy"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_roll"
   },
@@ -182,12 +268,18 @@
     "category": "leafy",
     "harvest_gesture": "cut_stem",
     "recogniser": "line",
-    "gesture_params": {"line_half_width": 74.0},
+    "gesture_params": {
+      "line_half_width": 74.0
+    },
     "touch_tolerance": 80.0,
     "harvest_count": 1,
     "tool_required": "pruning_shears",
     "difficulty": 3,
-    "tags": ["green", "leafy", "vegetable"],
+    "tags": [
+      "green",
+      "leafy",
+      "vegetable"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_cut"
   },
@@ -198,12 +290,18 @@
     "category": "leafy",
     "harvest_gesture": "cut_stem",
     "recogniser": "line",
-    "gesture_params": {"line_half_width": 74.0},
+    "gesture_params": {
+      "line_half_width": 74.0
+    },
     "touch_tolerance": 80.0,
     "harvest_count": 1,
     "tool_required": "pruning_shears",
     "difficulty": 3,
-    "tags": ["green", "leafy", "vegetable"],
+    "tags": [
+      "green",
+      "leafy",
+      "vegetable"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_cut"
   },
@@ -214,12 +312,18 @@
     "category": "berry",
     "harvest_gesture": "cut_cluster",
     "recogniser": "line",
-    "gesture_params": {"line_half_width": 74.0},
+    "gesture_params": {
+      "line_half_width": 74.0
+    },
     "touch_tolerance": 80.0,
     "harvest_count": 1,
     "tool_required": "pruning_shears",
     "difficulty": 3,
-    "tags": ["purple", "berry", "fruit"],
+    "tags": [
+      "purple",
+      "berry",
+      "fruit"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_cut"
   },
@@ -230,13 +334,59 @@
     "category": "grain",
     "harvest_gesture": "swipe_cut",
     "recogniser": "line",
-    "gesture_params": {"line_half_width": 90.0},
+    "gesture_params": {
+      "line_half_width": 90.0
+    },
     "touch_tolerance": 84.0,
     "harvest_count": 1,
     "tool_required": "pruning_shears",
     "difficulty": 4,
-    "tags": ["yellow", "grain"],
+    "tags": [
+      "yellow",
+      "grain"
+    ],
     "special_rule": "",
     "voice_intro": "harvest_cut"
+  },
+  {
+    "id": "stone",
+    "name_key": "crop.stone",
+    "asset": "res://assets/crops/stone.png",
+    "category": "clutter",
+    "harvest_gesture": "push_aside",
+    "recogniser": "drag",
+    "gesture_params": {
+      "direction_x": 0.0,
+      "direction_y": 0.0,
+      "distance": 70.0,
+      "angle": 180.0
+    },
+    "touch_tolerance": 80.0,
+    "harvest_count": 0,
+    "tool_required": "",
+    "difficulty": 1,
+    "tags": [
+      "clutter"
+    ],
+    "special_rule": "",
+    "voice_intro": "harvest_move_stone"
+  },
+  {
+    "id": "bug",
+    "name_key": "crop.bug",
+    "asset": "res://assets/crops/bug.png",
+    "category": "clutter",
+    "harvest_gesture": "shoo",
+    "recogniser": "tap",
+    "gesture_params": {},
+    "touch_tolerance": 74.0,
+    "harvest_count": 0,
+    "tool_required": "",
+    "difficulty": 1,
+    "tags": [
+      "clutter"
+    ],
+    "special_rule": "",
+    "voice_intro": "harvest_shoo_bug"
   }
 ]

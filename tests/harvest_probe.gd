@@ -40,6 +40,9 @@ func _ready() -> void:
 	_unripe_is_not_pickable()
 	_ripeness_is_said_more_than_one_way()
 	_every_level_can_actually_be_finished()
+	_clutter_is_never_asked_for()
+	_an_exception_names_a_basket_that_exists()
+	_the_challenge_is_off_the_island_path()
 
 	for failure in _failures:
 		print("FAIL  %s" % failure)
@@ -213,12 +216,90 @@ func _every_level_can_actually_be_finished() -> void:
 			available[crop_id] = int(available.get(crop_id, 0)) \
 				+ int(entry.get("count", 1)) * each
 
-		for entry in config.get("order", []):
-			var crop_id := str(entry.get("crop_id", ""))
-			var need := int(entry.get("count", 1))
+		# Every order in the level, not just the first: the celebration level
+		# has three, and a shortfall in the third is a level that stops dead
+		# two thirds of the way through with no way to say so.
+		var asked: Dictionary = {}
+		for order in _orders_of(level):
+			for entry in order:
+				var crop_id := str(entry.get("crop_id", ""))
+				asked[crop_id] = int(asked.get(crop_id, 0)) \
+					+ int(entry.get("count", 1))
+		for crop_id in asked.keys():
+			var need: int = int(asked[crop_id])
 			_ok(int(available.get(crop_id, 0)) >= need,
-				"%s asks for %d %s and only %d can be picked -- it can never "
+				"%s asks for %d %s across its orders and only %d can be picked "
 				% [id, need, crop_id, int(available.get(crop_id, 0))]
-				+ "be finished")
-			_ok(not Crops.get_crop(crop_id).is_empty(),
+				+ "-- it can never be finished")
+			_ok(not Crops.get_crop(str(crop_id)).is_empty(),
 				"%s asks for '%s', which is not in the catalogue" % [id, crop_id])
+
+## Nothing a level puts in the way is ever something an order asks for.
+##
+## A stone in the requirements would be a level that cannot be finished by
+## doing the right thing, and clutter never goes in a basket, so the count
+## could never rise. Cheap to get wrong by copy-paste and invisible until a
+## child sits in front of it looking for a seventh potato.
+func _clutter_is_never_asked_for() -> void:
+	for level in GameData.levels:
+		if str(level.get("game_type", "")) != "harvest_action":
+			continue
+		var id := str(level.get("id", ""))
+		for order in _orders_of(level):
+			for entry in order:
+				var crop: Dictionary = Crops.get_crop(str(entry.get("crop_id", "")))
+				_ok(not ("clutter" in crop.get("tags", [])),
+					"%s asks for '%s', which is clutter -- it never reaches a "
+					% [id, str(entry.get("crop_id", ""))] + "basket, so the "
+					+ "order could never be filled")
+
+
+## An exception has to name a basket the level actually has.
+##
+## "the starred one goes in the gift basket" with no gift basket on screen is
+## a crop that can go NOWHERE: the exception refuses every basket there is, and
+## the level is unfinishable in a way no other check would see -- the counts
+## all add up, the crop is pickable, and every drop is simply rejected.
+func _an_exception_names_a_basket_that_exists() -> void:
+	for level in GameData.levels:
+		if str(level.get("game_type", "")) != "harvest_action":
+			continue
+		var config: Dictionary = level.get("config", {})
+		var have: Array = []
+		for basket in config.get("baskets", []):
+			have.append(str(basket.get("id", "")))
+		for rule in config.get("exceptions", []):
+			_ok(str(rule.get("basket", "")) in have,
+				"%s sends '%s' to basket '%s', which the level does not have"
+				% [str(level.get("id", "")), str(rule.get("tag", "")),
+					str(rule.get("basket", ""))])
+
+
+## The eight harvest levels are a MODE, not eight more stones on the island.
+##
+## Asserted rather than assumed, because the whole justification for eight
+## levels of one template rests on it. The moment one of them appears on
+## 阳光公园's path, the island really has gone monotonous and the static rule
+## that says so was right after all.
+func _the_challenge_is_off_the_island_path() -> void:
+	var in_mode: Array = GameData.get_levels_for_mode("harvest")
+	_ok(in_mode.size() >= 8, "there are eight harvest levels (%d)" % in_mode.size())
+	for world in GameData.worlds:
+		var path: Array = GameData.get_levels_for_world(str(world.get("id", "")))
+		for level in path:
+			_ok(str(level.get("game_type", "")) != "harvest_action",
+				"%s is on %s's path -- the challenge belongs behind the "
+				% [str(level.get("id", "")), str(world.get("id", ""))]
+				+ "garden's door, not in the island's story")
+
+
+## Every order in a level, whether it has one or several.
+func _orders_of(level: Dictionary) -> Array:
+	var config: Dictionary = level.get("config", {})
+	var out: Array = []
+	if config.has("orders"):
+		for order in config["orders"]:
+			out.append((order as Dictionary).get("requirements", []))
+	else:
+		out.append(config.get("order", []))
+	return out
