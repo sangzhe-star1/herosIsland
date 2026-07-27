@@ -1,0 +1,34 @@
+[
+  {
+    "id": "carrot",
+    "name_key": "crop.carrot",
+    "icon": "carrot",
+    "yield": 2,
+    "thirst_seconds": 900,
+    "stage_seconds": [300, 420, 480, 600]
+  },
+  {
+    "id": "corn",
+    "name_key": "crop.corn",
+    "icon": "leaf",
+    "yield": 2,
+    "thirst_seconds": 1800,
+    "stage_seconds": [1200, 1500, 1800, 2700]
+  },
+  {
+    "id": "strawberry",
+    "name_key": "crop.strawberry",
+    "icon": "berries",
+    "yield": 3,
+    "thirst_seconds": 2700,
+    "stage_seconds": [2400, 3000, 3600, 5400]
+  },
+  {
+    "id": "tomato",
+    "name_key": "crop.tomato",
+    "icon": "potion",
+    "yield": 3,
+    "thirst_seconds": 3600,
+    "stage_seconds": [5400, 6300, 7200, 9900]
+  }
+]

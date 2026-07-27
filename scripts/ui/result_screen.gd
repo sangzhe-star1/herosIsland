@@ -293,8 +293,8 @@ func _world_just_finished() -> bool:
 		return false
 	for entry in levels:
 		var lid := str(entry.get("id", ""))
-		if lid == "hero_studio":
-			continue          # the free-play room is never "finished"
+		if bool(entry.get("room", false)):
+			continue          # a room is never "finished"
 		if not bool(SaveManager.get_level_progress(lid).get("completed", false)):
 			return false
 	return true

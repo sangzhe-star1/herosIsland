@@ -17,11 +17,17 @@ const SAVE_BACKUP := "user://save_game.bak"
 const SAVE_TMP := "user://save_game.tmp"
 const SAVE_VERSION := 1
 
+## The version a save reaches once 星光菜园 has been opened in it. Unlike
+## SAVE_VERSION -- which is written on every save and has never been read --
+## this one is a fact about the save's CONTENT, and the garden probe checks it.
+const FARM_SAVE_VERSION := 2
+
 ## The autoload order puts SaveManager BEFORE I18n, so the I18n singleton
 ## does not exist yet while a fresh save is being built. Reading the
 ## constant off the script itself works whatever the order, and keeps one
 ## definition of "which language does this island speak".
 const I18nScript = preload("res://scripts/core/i18n.gd")
+const Farm := preload("res://scripts/garden/farm_save.gd")
 
 var data: Dictionary = {}
 
@@ -35,6 +41,8 @@ func _ready() -> void:
 func _default_data() -> Dictionary:
 	return {
 		"version": SAVE_VERSION,
+		# A save made today is already at today's shape.
+		"save_version": FARM_SAVE_VERSION,
 		"profile": {
 			"name": "",
 			"character_id": str(GameData.characters.get("default", "light_hero")),
@@ -102,6 +110,26 @@ func _default_data() -> Dictionary:
 		},
 		# date string -> seconds played, used by the Parent Center.
 		"playtime": {},
+
+		# --- 星光菜园 ---
+		#
+		# Written into every new save, not conjured on first entry: a garden
+		# that only exists once he has walked in is a garden every other piece
+		# of code has to check for. It is also why the migration below can be
+		# about OLD saves only.
+		#
+		# Everything here is two levels deep at most, because that is as far as
+		# _migrate can reach. The one thing that is deeper -- the fields inside
+		# each plot -- is repaired on the way past by Farm.normalise_plot()
+		# instead, which is a rule that keeps working as fields are added.
+		"farm": Farm.default_farm(),
+		# item_id -> count. Seeds, tools, and whatever a mission hands over.
+		# Deliberately NOT rewards.items: that one is battle potions, and three
+		# minigames read it directly.
+		"inventory": {},
+		"farm_orders": Farm.default_orders(),
+		"farm_visitors": {},
+		"farm_unlocks": {},
 	}
 
 
@@ -122,6 +150,12 @@ func load_game() -> void:
 	if FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(SAVE_BACKUP):
 		push_warning("SaveManager: no readable save found, starting fresh")
 	data = _default_data()
+	# A brand new save settles too. It used to skip this, so anything a
+	# settlement hands out -- the garden's starter seeds, for one -- arrived on
+	# the SECOND launch, and a child opening the game for the first time found
+	# four patches of earth and nothing to plant in them. The settlements are
+	# all no-ops on an empty save except the ones that are supposed to run.
+	_settle_after_load()
 	save_game()
 
 
@@ -212,10 +246,21 @@ func wear_whole(character_id: String, outfit: Dictionary) -> void:
 
 func _migrate(loaded: Dictionary) -> Dictionary:
 	var base := _default_data()
+	# BEFORE the defaults are filled in, and that order is the whole point.
+	#
+	# `save_version` is the one version field that gets READ. `version` is its
+	# predecessor: written on every save since the beginning, never once looked
+	# at -- so a save carrying version 1 and no save_version really is a version
+	# 1 save and can say so. If this ran after the fill instead, the missing key
+	# would be handed today's number and every old save on every tablet would
+	# claim to have been written this morning, which is exactly the fact a
+	# version field exists to preserve.
+	if not loaded.has("save_version"):
+		loaded["save_version"] = int(loaded.get("version", SAVE_VERSION))
 	for key in base.keys():
 		if not loaded.has(key):
 			loaded[key] = base[key]
-		elif not _same_shape(loaded[key], base[key]):
+		elif not same_shape(loaded[key], base[key]):
 			# A key of the WRONG TYPE is worse than a missing one. has(key) is
 			# true, so this used to be left alone, and the very next
 			# data["rewards"]["coins"] read took the game down during autoload --
@@ -229,27 +274,29 @@ func _migrate(loaded: Dictionary) -> Dictionary:
 			for sub in base[key].keys():
 				if not loaded[key].has(sub):
 					loaded[key][sub] = base[key][sub]
-				elif not _same_shape(loaded[key][sub], base[key][sub]):
+				elif not same_shape(loaded[key][sub], base[key][sub]):
 					push_warning("SaveManager: '%s.%s' was %s, expected %s -- reset"
 						% [key, sub, type_string(typeof(loaded[key][sub])),
 							type_string(typeof(base[key][sub]))])
 					loaded[key][sub] = base[key][sub]
-	# `save_version` is the one that gets READ. `version` is its predecessor:
-	# it has been written on every save since the beginning and never once
-	# looked at, so a save carrying version 1 and no save_version really is a
-	# version 1 save and can say so.
-	if not loaded.has("save_version"):
-		loaded["save_version"] = int(loaded.get("version", SAVE_VERSION))
 	loaded["version"] = SAVE_VERSION
+	# The garden is the one branch _migrate cannot reach the bottom of, because
+	# its plots live in an array. Repairing it on EVERY load, rather than in a
+	# one-shot migration, is what lets a plot gain a field later without anybody
+	# writing another migration for it.
+	loaded["farm"] = Farm.normalise_farm(loaded.get("farm"))
 	return loaded
 
 
 ## Two values are the same shape when they are the same kind of thing.
 ##
+## Public because the garden's plot repair needs exactly this rule and a second
+## copy of it is a second place for it to drift.
+##
 ## int and float count as one kind on purpose: JSON has a single number type,
 ## so a 0 written to disk can come back as either, and calling that damage
 ## would reset the child's XP to zero every time he opens the game.
-func _same_shape(a: Variant, b: Variant) -> bool:
+func same_shape(a: Variant, b: Variant) -> bool:
 	var ta := typeof(a)
 	var tb := typeof(b)
 	if ta == tb:
@@ -270,8 +317,44 @@ func _settle_after_load() -> void:
 	changed = _rename_old_monsters() or changed
 	changed = _move_wardrobe_in() or changed
 	changed = _split_wardrobes() or changed
+	changed = _open_the_farm() or changed
 	if changed:
 		save_game()
+
+
+## Hand a save that predates 星光菜园 its first four patches of earth.
+##
+## Four rules here, and all four are copied from mistakes this project has
+## already made:
+##
+##   1. If the crop catalogue did not load, do NOTHING. _move_wardrobe_in()
+##      learned this the hard way: a migration that runs against an empty
+##      catalogue rewrites a save using nothing as its reference.
+##   2. A one-shot flag, not a version comparison. `opened` is set at the end
+##      and checked at the start, so this cannot half-run twice.
+##   3. The garden belongs to the CHILD, not to a hero. There is one garden and
+##      it is not copied per character -- the wardrobe migration's first cut
+##      copied one outfit onto all fourteen faces and needed a second migration
+##      to undo it. There is nothing here to copy, and that is deliberate.
+##   4. Nothing is handed out. Opening the garden unlocks the starter seeds and
+##      that is all: no coins, no head start, nothing a returning player gets
+##      that a new one does not.
+func _open_the_farm() -> bool:
+	if GameData.crops.is_empty():
+		return false                    # no catalogue, no opinion about the save
+	var farm: Dictionary = data.get("farm", {})
+	if bool(farm.get("opened", false)):
+		return false
+	var starters: Array = []
+	for crop in GameData.crops:
+		var crop_id := str(crop.get("id", ""))
+		if crop_id != "":
+			starters.append(crop_id)
+	farm["unlocked_crops"] = starters
+	farm["opened"] = true
+	data["farm"] = farm
+	data["save_version"] = FARM_SAVE_VERSION
+	return true
 
 
 ## The old wardrobe moves into the new one, and nothing he owns is lost.
@@ -710,8 +793,8 @@ func album() -> Array:
 func island_completion() -> float:
 	var possible := 0
 	for level in GameData.levels:
-		if str(level.get("id", "")) == "hero_studio":
-			continue        # the free-play room has nothing to complete
+		if bool(level.get("room", false)):
+			continue        # a room has nothing to complete
 		possible += 3
 	if possible == 0:
 		return 0.0

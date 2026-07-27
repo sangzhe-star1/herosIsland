@@ -17,9 +17,14 @@ var monsters: Array = []
 var character_slots: Dictionary = {}
 var outfit_presets: Dictionary = {}
 var characters: Dictionary = {}
+## 星光菜园. What each crop is called, how long each of its five stages takes,
+## and how much comes out of the ground. Read-only: what is PLANTED lives in
+## the save, so retuning a growth time can never uproot anything.
+var crops: Array = []
 
 var _levels_by_id: Dictionary = {}
 var _worlds_by_id: Dictionary = {}
+var _crops_by_id: Dictionary = {}
 
 
 func _ready() -> void:
@@ -37,7 +42,10 @@ func _ready() -> void:
 	# one loud error at boot rather than an empty shelf three screens in.
 	character_slots = _load_json("res://data/character_slots.json", {})
 	outfit_presets = _load_json("res://data/outfit_presets.json", {})
+	crops = _load_json("res://data/crops.json", [])
 
+	for c in crops:
+		_crops_by_id[c.get("id", "")] = c
 	for w in worlds:
 		_worlds_by_id[w.get("id", "")] = w
 	for l in levels:
@@ -56,7 +64,8 @@ func _ready() -> void:
 		% [shop_items.size(), characters.size(),
 			int(outfit_presets.get("sets", []).size())])
 	for pair in [["levels", levels.size()], ["worlds", worlds.size()],
-			["monsters", monsters.size()], ["shop items", shop_items.size()]]:
+			["monsters", monsters.size()], ["shop items", shop_items.size()],
+			["crops", crops.size()]]:
 		if int(pair[1]) == 0:
 			push_error("GameData: %s is EMPTY -- a data file is missing or "
 				% str(pair[0]) + "the code that loads it is out of date")
@@ -139,6 +148,34 @@ func get_level(level_id: String) -> Dictionary:
 
 func get_world(world_id: String) -> Dictionary:
 	return _worlds_by_id.get(world_id, {})
+
+
+## A room is a place, not a level.
+##
+## The child walks in whenever he likes, there is nothing in it to finish, and
+## it must be invisible to everything that asks "is this world done" or "how
+## much of the island is left" -- otherwise a world he has beaten stays at 5/6
+## forever and the shop items behind it never open.
+##
+## This used to be four separate `if id == "hero_studio"` string comparisons in
+## four files. That was survivable with one room. 星光菜园 is the second, and
+## four two-element checks is how a rule quietly stops applying to one of them.
+func is_room(level_id: String) -> bool:
+	return bool(get_level(level_id).get("room", false))
+
+
+func get_crop(crop_id: String) -> Dictionary:
+	return _crops_by_id.get(crop_id, {})
+
+
+## How long this crop takes from seed to ripe, in seconds. Zero for a crop that
+## does not exist, so a plot holding a crop_id that has been retired since sits
+## still rather than finishing instantly.
+func crop_total_seconds(crop_id: String) -> int:
+	var total := 0
+	for seconds in get_crop(crop_id).get("stage_seconds", []):
+		total += int(seconds)
+	return total
 
 
 ## Levels belonging to a world, in listed order.

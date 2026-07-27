@@ -271,7 +271,8 @@ for f in gd:
         r'"((?:app|common|boot|home|map|world|level|badge|growth|character'
         r'|traffic|result|parent|rewards|limit|sorting|bin|item|collect'
         r'|up|defense|battle|duel|expedition|keepy|shop|outfit|house|echo'
-        r'|memory|rescue|platformer|blaster|colour)\.[a-z0-9_]+)"', src))
+        r'|memory|rescue|platformer|blaster|colour|garden|crop|npc)'
+        r'\.[a-z0-9_]+)"', src))
 def collect_keys(node, out):
     """Any JSON field named *_key holds a translation key."""
     if isinstance(node, dict):
@@ -332,13 +333,16 @@ for lv in levels:
 #   * every world offers at least four different kinds of play
 #   * side-scrolling stays a fifth of the island, never its floor
 
-STUDIO = "hero_studio"          # the free-play room; not one of the thirty
+# Rooms are places, not levels: walked into whenever he likes, with nothing in
+# them to finish. They used to be recognised by writing "hero_studio" out by
+# hand in four different files; they now say so themselves, with "room": true.
+#
 # Bonus levels are treats sitting beside the curriculum -- always unlocked,
 # never required, and deliberately outside the ratio. Counting them would let
 # somebody "fix" a platformer-heavy island by adding bonus puzzles, which
 # fixes the number and not the problem.
 numbered = [l for l in levels
-            if l.get("id") != STUDIO and not l.get("bonus", False)]
+            if not l.get("room", False) and not l.get("bonus", False)]
 if numbered:
     run = worst = 1
     worst_at = ""
@@ -515,6 +519,93 @@ for path in gd:
         errors.append(f"{path}: defines add_coins/spend_coins again. These are "
                       f"back doors around currency_manager.gd; the whole point "
                       f"of one money file is that there is only one")
+
+# --- 5q. the crops have to be growable
+#
+# A stage that takes zero seconds finishes the instant it starts, which reads
+# to a child as a crop that skipped a step -- and to the growth arithmetic as a
+# division by nothing. A crop with no yield is a plant he waters for eight
+# hours and gets an empty basket from. Neither shows up as a crash.
+FARM_STAGES = 5                 # keep in step with farm_save.gd's STAGES
+if os.path.exists("data/crops.json"):
+    crops = json.load(open("data/crops.json"))
+    crop_icon_names = set(re.findall(r'"(\w+)"',
+        re.search(r'const NAMES := \[(.*?)\n\]',
+                  open("scripts/ui/icon_library.gd").read(), re.S).group(1)))
+    seen_crops = set()
+    for crop in crops:
+        cid = str(crop.get("id", ""))
+        if cid == "":
+            errors.append("crops.json: a crop with no id")
+            continue
+        if cid in seen_crops:
+            errors.append(f"crops.json: duplicate crop id '{cid}'")
+        seen_crops.add(cid)
+        stages = crop.get("stage_seconds", [])
+        if not isinstance(stages, list) or len(stages) != FARM_STAGES - 1:
+            errors.append(f"crops.json: crop '{cid}' needs {FARM_STAGES - 1} "
+                          f"stage_seconds (one per change between the "
+                          f"{FARM_STAGES} stages), has "
+                          f"{len(stages) if isinstance(stages, list) else '?'}")
+        else:
+            for i, seconds in enumerate(stages):
+                if not isinstance(seconds, int) or seconds <= 0:
+                    errors.append(f"crops.json: crop '{cid}' stage {i} takes "
+                                  f"{seconds!r}. A stage of zero is a stage the "
+                                  f"child never sees")
+        if int(crop.get("yield", 0)) <= 0:
+            errors.append(f"crops.json: crop '{cid}' yields nothing. Eight hours "
+                          f"of waiting has to put something in the basket")
+        if int(crop.get("thirst_seconds", 0)) <= 0:
+            errors.append(f"crops.json: crop '{cid}' has no thirst_seconds, so "
+                          f"its water level would fall instantly or never")
+        if str(crop.get("name_key", "")) == "":
+            errors.append(f"crops.json: crop '{cid}' has no name_key")
+        icon = str(crop.get("icon", ""))
+        if icon != "" and icon not in crop_icon_names:
+            errors.append(f"crops.json: crop '{cid}' asks for icon '{icon}', "
+                          f"which IconLibrary cannot draw -- it would render as "
+                          f"nothing at all")
+    if not crops:
+        errors.append("crops.json: no crops. The garden would open on four "
+                      "patches of earth and an empty seed rack")
+
+# --- 5p. a room says it is a room, and nobody names one by hand
+#
+# "Is this world finished" and "how much of the island is left" both have to
+# skip the free-play rooms, or a world he has beaten sits at 5/6 forever and
+# the shop items behind it never open. That skip lived as four separate
+# `id == "hero_studio"` comparisons in four files, which was fine while there
+# was one room and is exactly how a rule stops applying to the second one.
+rooms = [l for l in levels if l.get("room", False)]
+for room in rooms:
+    rid = room.get("id", "?")
+    reward = room.get("reward", {})
+    if int(reward.get("coins", 0)) != 0 or str(reward.get("badge", "")) != "":
+        errors.append(f"levels.json: room '{rid}' hands out a reward. A room is "
+                      f"somewhere he goes, not something he finishes -- paying "
+                      f"for walking in makes it a level with no way to fail")
+    if room.get("requires") is not None and room.get("bonus", False):
+        errors.append(f"levels.json: room '{rid}' is marked both room and bonus. "
+                      f"Pick one; they are excluded from different counts")
+
+for path in gd:
+    if path.startswith("tests"):
+        continue
+    # Comments and docstrings may name a room -- explaining why the rule exists
+    # is not the same as depending on the name. Only real code counts.
+    for n, raw in enumerate(open(path).read().splitlines(), start=1):
+        if raw.lstrip().startswith("#"):
+            continue
+        for room in rooms:
+            rid = room.get("id", "")
+            if rid and f'"{rid}"' in raw:
+                errors.append(f"{path}:{n}: names the room '{rid}' in code. Ask "
+                              f"the level whether it is a room -- "
+                              f"level.get(\"room\") or GameData.is_room(id) -- so "
+                              f"the second room gets the same treatment as the "
+                              f"first without anyone having to remember four "
+                              f"places")
 
 # --- 5o. there is one clock, and everything reads it through GameClock
 #

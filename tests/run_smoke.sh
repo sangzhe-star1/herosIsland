@@ -420,6 +420,21 @@ fi
 no_script_errors "$ALBUM_OUT" "Album Probe"
 rm -f "$ALBUM_OUT"
 
+# 星光菜园's save. Runs late and before the save probe: it wipes the save file
+# to walk the real first-launch path, and it puts everything back when it is
+# done, but anything expecting to inherit a played-in game should come first.
+echo
+echo "Running garden probe..."
+GARDEN_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/GardenProbe.tscn 2>&1 | tee "$GARDEN_OUT"
+if ! grep -q "GARDEN PROBE PASSED" "$GARDEN_OUT"; then
+  rm -f "$GARDEN_OUT"
+  echo "Garden probe failed."
+  exit 1
+fi
+no_script_errors "$GARDEN_OUT" "Garden Probe"
+rm -f "$GARDEN_OUT"
+
 # The clock. Everything here is unwatchable by playing: an app in a bag, a
 # tablet whose date has been dragged backwards, a thing that grows overnight.
 # It also carries the regression for the three-hours-in-a-bag bug, where time

@@ -124,8 +124,8 @@ static func _world_done(world_id: String) -> bool:
 		return false
 	for level in GameData.get_levels_for_world(world_id):
 		var lid := str(level.get("id", ""))
-		if lid == "hero_studio":
-			continue
+		if bool(level.get("room", false)):
+			continue          # a room is never "finished"
 		if not bool(SaveManager.get_level_progress(lid).get("completed", false)):
 			return false
 	return true

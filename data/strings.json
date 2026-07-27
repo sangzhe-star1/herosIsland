@@ -685,7 +685,11 @@
     "cat.who": "Heroes",
     "house.be_him": "Be them",
     "house.who_hint": "Tap to become them",
-    "house.being": "This is you"
+    "house.being": "This is you",
+    "crop.carrot": "Carrot",
+    "crop.corn": "Corn",
+    "crop.strawberry": "Strawberry",
+    "crop.tomato": "Tomato"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -1373,6 +1377,10 @@
     "cat.who": "形象",
     "house.be_him": "变成他",
     "house.who_hint": "点一下换成他",
-    "house.being": "就是他"
+    "house.being": "就是他",
+    "crop.carrot": "胡萝卜",
+    "crop.corn": "玉米",
+    "crop.strawberry": "草莓",
+    "crop.tomato": "番茄"
   }
 }

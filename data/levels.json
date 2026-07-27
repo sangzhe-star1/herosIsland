@@ -974,6 +974,7 @@
     "world": "sunny_park",
     "name_key": "level.hero_studio",
     "game_type": "creative_play",
+    "room": true,
     "difficulty": 1,
     "duration_seconds": 0,
     "target": {},
