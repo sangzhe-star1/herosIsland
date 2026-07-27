@@ -11,6 +11,8 @@ extends Node
 ## Everything below goes through _glass().
 
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const Coins := preload("res://scripts/shop/currency_manager.gd")
 
 const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
 const NOON := 1_699_963_200
@@ -55,6 +57,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _dragging_a_seed_lands_in_the_bed_he_aimed_at()
 	await _one_bed_takes_one_crop()
 	await _tapping_a_ripe_bed_fills_the_barn()
+	await _handing_an_order_over_pays_once()
 	await _there_is_a_way_out()
 
 	_close()
@@ -259,3 +262,103 @@ func _find_back_button(node: Node) -> Button:
 		if found != null:
 			return found
 	return null
+
+
+## Acceptance #11 and #12, through the button he actually presses.
+##
+## The logic is checked headlessly in garden_probe; what this adds is the part
+## that only exists on screen: the card is pressable when the barn can cover
+## it, pressing it once pays, and pressing it again does nothing -- because a
+## six-year-old presses things twice.
+func _handing_an_order_over_pays_once() -> void:
+	var order: Dictionary = GameData.garden_orders[0]
+	var wants: Dictionary = order.get("wants", {})
+	var price := int(order.get("reward_coins", 0))
+
+	# Fill the barn with exactly what the bear asked for.
+	SaveManager.data["farm"]["warehouse"] = {}
+	for crop_id in wants.keys():
+		Barn.put(str(crop_id), int(wants[crop_id]))
+	SaveManager.data["farm_orders"]["delivered"] = []
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var card := _order_card(str(order.get("id", "")))
+	_ok(card != null, "the order he can fill has a card he can press")
+	if card == null:
+		return
+	_ok(not card.disabled, "and it is pressable")
+
+	var before := Coins.balance()
+	card.emit_signal("pressed")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	_ok(Coins.balance() == before + price,
+		"handing the basket over pays exactly what the card promised")
+	_ok(str(order.get("id", ""))
+			in SaveManager.data["farm_orders"]["delivered"],
+		"and the delivery is written down")
+	for crop_id in wants.keys():
+		_ok(Barn.count(str(crop_id)) == 0,
+			"the barn handed over the %s" % str(crop_id))
+
+	# Press the card again, if it is still there at all.
+	var again := _order_card(str(order.get("id", "")))
+	if again != null:
+		_ok(again.disabled, "a delivered order cannot be pressed again")
+		again.emit_signal("pressed")
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+	# And if it somehow IS delivered again -- a stray signal, a future screen
+	# that forgets to disable the card -- it must not quietly take the crops.
+	# Refill the barn and call the delivery straight, past the button.
+	for crop_id in wants.keys():
+		Barn.put(str(crop_id), int(wants[crop_id]))
+	_garden.call("_deliver", order)
+	await get_tree().process_frame
+	for crop_id in wants.keys():
+		_ok(Barn.count(str(crop_id)) == int(wants[crop_id]),
+			"a second delivery does not take the %s and give nothing back"
+				% str(crop_id))
+	for crop_id in wants.keys():
+		Barn.take(str(crop_id), int(wants[crop_id]))
+	_ok(Coins.balance() == before + price,
+		"and pressing it again pays nothing at all")
+
+	# And it survives the game being closed. In memory the delivered list is a
+	# reference, so the in-memory dedup works whether or not anything is
+	# written -- which means deleting the save_game() from the delivery left
+	# every check above still passing. This is the one that notices.
+	SaveManager.load_game()
+	_ok(str(order.get("id", ""))
+			in SaveManager.data["farm_orders"].get("delivered", []),
+		"the delivery is on disk, not just in memory")
+	_ok(Coins.balance() == before + price,
+		"...and so are the 星星币 it paid")
+
+
+## The card for one order, found by where the board puts it.
+func _order_card(order_id: String) -> Button:
+	var index := -1
+	for i in range(GameData.garden_orders.size()):
+		if str(GameData.garden_orders[i].get("id", "")) == order_id:
+			index = i
+			break
+	if index < 0:
+		return null
+	var cards: Array = []
+	_collect_order_cards(_garden, cards)
+	return cards[index] if index < cards.size() else null
+
+
+func _collect_order_cards(node: Node, out: Array) -> void:
+	for child in node.get_children():
+		if child is Button and (child as Button).size.x > 340.0 \
+				and (child as Button).size.y > 80.0:
+			out.append(child)
+		_collect_order_cards(child, out)

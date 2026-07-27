@@ -21,6 +21,9 @@ var characters: Dictionary = {}
 ## and how much comes out of the ground. Read-only: what is PLANTED lives in
 ## the save, so retuning a growth time can never uproot anything.
 var crops: Array = []
+## Who wants what, and what it is worth. Read-only: what has been DELIVERED
+## lives in the save, so retuning a reward can never un-pay an order.
+var garden_orders: Array = []
 
 var _levels_by_id: Dictionary = {}
 var _worlds_by_id: Dictionary = {}
@@ -43,6 +46,7 @@ func _ready() -> void:
 	character_slots = _load_json("res://data/character_slots.json", {})
 	outfit_presets = _load_json("res://data/outfit_presets.json", {})
 	crops = _load_json("res://data/crops.json", [])
+	garden_orders = _load_json("res://data/garden_orders.json", [])
 
 	for c in crops:
 		_crops_by_id[c.get("id", "")] = c
@@ -65,7 +69,7 @@ func _ready() -> void:
 			int(outfit_presets.get("sets", []).size())])
 	for pair in [["levels", levels.size()], ["worlds", worlds.size()],
 			["monsters", monsters.size()], ["shop items", shop_items.size()],
-			["crops", crops.size()]]:
+			["crops", crops.size()], ["garden orders", garden_orders.size()]]:
 		if int(pair[1]) == 0:
 			push_error("GameData: %s is EMPTY -- a data file is missing or "
 				% str(pair[0]) + "the code that loads it is out of date")
@@ -162,6 +166,13 @@ func get_world(world_id: String) -> Dictionary:
 ## four two-element checks is how a rule quietly stops applying to one of them.
 func is_room(level_id: String) -> bool:
 	return bool(get_level(level_id).get("room", false))
+
+
+func get_order(order_id: String) -> Dictionary:
+	for order in garden_orders:
+		if str(order.get("id", "")) == order_id:
+			return order
+	return {}
 
 
 func get_crop(crop_id: String) -> Dictionary:

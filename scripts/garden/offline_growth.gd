@@ -50,6 +50,17 @@ const FULL := 1.0
 ## What a plot is waiting for, when it is waiting.
 const CARE_NONE := ""
 const CARE_THIRSTY := "thirsty"
+const CARE_WEEDS := "weeds"
+
+## Weeds arrive when a crop reaches this stage, and only then.
+##
+## Deliberately a fixed stage rather than a chance. Random weeds would mean two
+## children with the same garden see different work, and "why does mine have
+## weeds and his does not" is not a question this game wants to raise -- it is
+## also the first step onto the ladder the shop is forbidden to climb. At stage
+## two every crop grows weeds once, he pulls them once, and he learns that
+## plants need looking after because it happens to him every single time.
+const WEEDS_AT_STAGE := 2
 
 
 ## Move one plot forward by `seconds`, and hand back what it became.
@@ -113,9 +124,13 @@ static func advance(plot: Dictionary, crop: Dictionary, seconds: int) -> Diction
 		out["ready_to_harvest"] = true
 		out["care_event"] = CARE_NONE
 	elif water <= DRY:
-		# Thirsty, and saying so. This is the worst a plot can be.
+		# Thirsty, and saying so. Water beats weeds when both are true: a plant
+		# that is not growing at all is the more urgent of the two.
 		out["care_event"] = CARE_THIRSTY
 		out["care_completed"] = false
+	elif int(out["growth_stage"]) >= WEEDS_AT_STAGE \
+			and not bool(out.get("care_completed", false)):
+		out["care_event"] = CARE_WEEDS
 	elif str(out.get("care_event", "")) == CARE_THIRSTY:
 		out["care_event"] = CARE_NONE
 
@@ -197,5 +212,18 @@ static func water(plot: Dictionary) -> Dictionary:
 	out["water_level"] = FULL
 	if str(out.get("care_event", "")) == CARE_THIRSTY:
 		out["care_event"] = CARE_NONE
-		out["care_completed"] = true
+	return out
+
+
+## Pull the weeds. Growth was never stopped by them -- weeds are a job, not a
+## punishment -- so this changes nothing except that the plot stops asking.
+##
+## care_completed latches, so weeds come once per planting and not once per
+## visit. A child who has already tidied this bed should not find it untidy
+## again every time he walks past.
+static func weed(plot: Dictionary) -> Dictionary:
+	var out: Dictionary = plot.duplicate(true)
+	if str(out.get("care_event", "")) == CARE_WEEDS:
+		out["care_event"] = CARE_NONE
+	out["care_completed"] = true
 	return out

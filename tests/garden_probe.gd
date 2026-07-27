@@ -15,6 +15,8 @@ extends Node
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const Coins := preload("res://scripts/shop/currency_manager.gd")
 
 var _failures: Array[String] = []
 
@@ -41,6 +43,12 @@ func _ready() -> void:
 	_a_crop_never_dies()
 	_a_ripe_plot_is_frozen()
 	_the_four_plots_do_not_share_a_clock()
+	# --- stage four: the barn, the orders, and the money ---
+	_the_barn_never_goes_negative()
+	_an_order_is_all_or_nothing()
+	_an_order_pays_once()
+	_the_garden_cannot_touch_his_score()
+	_weeds_come_once_and_never_hurt_anything()
 
 	# Put the save back the way it was found, and say so out loud: a probe that
 	# leaves the disk holding its own fixtures is how the shop probe once failed
@@ -497,3 +505,149 @@ func _the_four_plots_do_not_share_a_clock() -> void:
 	_ok(str(SaveManager.data["farm"]["plots"][1]["crop_id"]) == "corn",
 		"clearing one plot leaves the others alone")
 	GameClock.clear_test_now()
+
+
+# =====================================================================
+# Stage four: the barn, the orders, and the one number a child can spend.
+# =====================================================================
+
+func _fresh_save() -> void:
+	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
+	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
+	SaveManager.load_game()
+
+
+## A negative carrot is not something a six-year-old can be told about.
+func _the_barn_never_goes_negative() -> void:
+	_fresh_save()
+	Barn.put("carrot", 3)
+	_ok(Barn.count("carrot") == 3, "three carrots go into the barn")
+
+	_ok(not Barn.take("carrot", 4), "taking more than there is fails")
+	_ok(Barn.count("carrot") == 3, "...and takes nothing on the way out")
+
+	_ok(Barn.take("carrot", 3), "taking exactly what is there works")
+	_ok(Barn.count("carrot") == 0, "and empties the shelf")
+	_ok(Barn.contents().is_empty(),
+		"an empty shelf shows nothing at all, not a zero")
+
+
+## An order one carrot short takes nothing. Emptying the barn of everything it
+## CAN cover and then refusing is the worst of both.
+func _an_order_is_all_or_nothing() -> void:
+	_fresh_save()
+	Barn.put("strawberry", 2)
+	Barn.put("carrot", 0)
+	var basket := {"strawberry": 2, "carrot": 1}
+	_ok(not Barn.can_pay(basket), "an order he cannot fill says so")
+	_ok(not Barn.pay(basket), "...and paying it fails")
+	_ok(Barn.count("strawberry") == 2,
+		"and the strawberries he DID have are still there")
+
+	Barn.put("carrot", 1)
+	_ok(Barn.pay(basket), "with the last carrot it goes through")
+	_ok(Barn.count("strawberry") == 0 and Barn.count("carrot") == 0,
+		"and the whole basket leaves the barn at once")
+
+
+## Acceptance #11 and #12. The one with money behind it.
+func _an_order_pays_once() -> void:
+	_fresh_save()
+	var order: Dictionary = GameData.garden_orders[0]
+	var price := int(order.get("reward_coins", 0))
+	var order_id := str(order.get("id", ""))
+	var before := Coins.balance()
+	var delivered: Array = SaveManager.data["farm_orders"]["delivered"]
+
+	var paid := RewardManager.grant("garden:order:%s" % order_id, price,
+		order_id, delivered)
+	_ok(paid == price, "delivering an order pays exactly what it promised")
+	_ok(Coins.balance() == before + price,
+		"and the 星星币 go up by exactly that much")
+	_ok(order_id in delivered, "and the delivery is written down")
+
+	# Again. And again. However many times the button is pressed.
+	for again in range(3):
+		_ok(RewardManager.grant("garden:order:%s" % order_id, price,
+			order_id, delivered) == 0,
+			"pressing a delivered order again pays nothing")
+	_ok(Coins.balance() == before + price,
+		"...and the balance has not moved")
+	_ok(delivered.count(order_id) == 1,
+		"and it is written down once, not four times")
+
+	# Surviving a restart is the point of writing it down at all.
+	SaveManager.save_game()
+	SaveManager.load_game()
+	var after_restart: Array = SaveManager.data["farm_orders"]["delivered"]
+	_ok(order_id in after_restart, "the delivery survives closing the game")
+	_ok(RewardManager.grant("garden:order:%s" % order_id, price,
+		order_id, after_restart) == 0,
+		"and it still will not pay a second time tomorrow")
+
+
+## Acceptance #13. Gardening is not an achievement, and must not look like one.
+##
+## The fingerprint is borrowed from unlock_probe: the four numbers that decide
+## what is unlocked. A whole planting-to-payment cycle must not move any of the
+## first three.
+func _the_garden_cannot_touch_his_score() -> void:
+	_fresh_save()
+	SaveManager.record_level_result("sunny_park_01", 3, 1.0, true)
+	SaveManager.record_level_result("sunny_park_02", 2, 0.8)
+	var stars_before := SaveManager.total_stars()
+	var completed_before: int = SaveManager.data["levels"].size()
+	var badges_before: int = SaveManager.data["rewards"]["badges"].size()
+	var coins_before := Coins.balance()
+
+	# Plant, grow, pick, deliver -- the whole loop.
+	GameClock.set_test_now(NOON, 0)
+	SaveManager.data["farm"]["last_seen_at"] = NOON
+	var plots: Array = SaveManager.data["farm"]["plots"]
+	plots[0]["tilled"] = true
+	plots[0]["crop_id"] = "carrot"
+	plots[0]["planted_at"] = NOON
+	GameClock.set_test_now(NOON + 8 * 60 * 60, 0)
+	SaveManager.settle_farm()
+	Barn.put("carrot", 3)
+	var order: Dictionary = GameData.garden_orders[0]
+	Barn.pay(order.get("wants", {}))
+	RewardManager.grant("garden:order", int(order.get("reward_coins", 0)),
+		str(order.get("id", "")), SaveManager.data["farm_orders"]["delivered"])
+
+	_ok(SaveManager.total_stars() == stars_before,
+		"a whole gardening loop does not change one 关卡星章")
+	_ok(SaveManager.data["levels"].size() == completed_before,
+		"...and does not invent a level")
+	_ok(SaveManager.data["rewards"]["badges"].size() == badges_before,
+		"...and does not hand out a badge")
+	_ok(Coins.balance() > coins_before,
+		"the only number it moves is the one he can spend")
+	GameClock.clear_test_now()
+
+
+## Weeds are a job, not a punishment -- and the same job only once.
+func _weeds_come_once_and_never_hurt_anything() -> void:
+	var crop: Dictionary = GameData.get_crop("carrot")
+	var plot: Dictionary = Farm.fresh_plot(0)
+	plot["tilled"] = true
+	plot["crop_id"] = "carrot"
+
+	# Far enough in to reach the stage weeds arrive at.
+	var grown: Dictionary = Growth.advance(plot, crop, 800)
+	_ok(int(grown.get("growth_stage", 0)) >= Growth.WEEDS_AT_STAGE,
+		"the carrot reaches the stage weeds come at")
+	_ok(str(grown.get("care_event", "")) == Growth.CARE_WEEDS,
+		"and weeds arrive -- every time, for every child, not by chance")
+
+	# Weeds do not stop it growing. They are something to do, not a tax.
+	var kept_going: Dictionary = Growth.advance(grown, crop, 300)
+	_ok(Growth.fraction_done(kept_going, crop)
+			> Growth.fraction_done(grown, crop),
+		"a weedy plot keeps growing while it waits to be tidied")
+
+	var tidy: Dictionary = Growth.weed(grown)
+	_ok(str(tidy.get("care_event", "")) == "", "pulling them clears the plot")
+	var later: Dictionary = Growth.advance(tidy, crop, 400)
+	_ok(str(later.get("care_event", "")) != Growth.CARE_WEEDS,
+		"and they do not come back on the next visit")

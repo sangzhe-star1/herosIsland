@@ -691,7 +691,12 @@
     "crop.strawberry": "Strawberry",
     "crop.tomato": "Tomato",
     "level.star_garden": "Starlight Garden",
-    "garden.title": "Starlight Garden"
+    "garden.title": "Starlight Garden",
+    "npc.bear": "Little Bear",
+    "npc.puppy": "Puppy",
+    "garden.barn": "Barn",
+    "garden.orders": "Who needs a hand",
+    "npc.robot": "Robot Friend"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -1385,6 +1390,11 @@
     "crop.strawberry": "草莓",
     "crop.tomato": "番茄",
     "level.star_garden": "星光菜园",
-    "garden.title": "星光菜园"
+    "garden.title": "星光菜园",
+    "npc.bear": "小熊",
+    "npc.puppy": "小狗",
+    "garden.barn": "仓库",
+    "garden.orders": "谁需要帮忙",
+    "npc.robot": "机器人朋友"
   }
 }

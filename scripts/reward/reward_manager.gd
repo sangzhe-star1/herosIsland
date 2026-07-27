@@ -14,6 +14,35 @@ var last_xp_earned: int = 0
 var last_levels_gained: int = 0
 
 
+## Pay out for something that is not a level.
+##
+## 星光菜园's orders are the first of these: he grows three carrots, a bear asks
+## for three carrots, and handing them over is worth 星星币. That is a reward,
+## and rewards belong in one file -- the alternative is the garden calling
+## Coins.earn() directly, which is exactly how a second economy starts.
+##
+## `once_key` is the whole of the "an order pays once" rule. The caller passes
+## the list it keeps of what it has already been paid for, this refuses to pay
+## twice for the same key, and it is the CALLER's list because only the caller
+## knows where to persist it. Anything paid here is recorded before this
+## returns, so an await on the animation afterwards cannot let a second press
+## through.
+##
+## Returns the coins actually paid: 0 means "already paid for" or "nothing to
+## pay", and both are things the caller should be able to see.
+func grant(source: String, coins: int, once_key: String,
+		already_paid: Array) -> int:
+	if coins <= 0:
+		return 0
+	if once_key != "" and once_key in already_paid:
+		return 0
+	if once_key != "":
+		already_paid.append(once_key)
+	Coins.earn(coins, source)
+	last_coins_earned = coins
+	return coins
+
+
 func grant_for_level(result: LevelResult) -> void:
 	last_new_badge = ""
 	last_coins_earned = 0

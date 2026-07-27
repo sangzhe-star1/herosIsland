@@ -1,0 +1,33 @@
+[
+  {
+    "id": "bear_carrots",
+    "npc": "bear",
+    "npc_icon": "teddy",
+    "name_key": "npc.bear",
+    "wants": {
+      "carrot": 3
+    },
+    "reward_coins": 12
+  },
+  {
+    "id": "puppy_corn",
+    "npc": "puppy",
+    "npc_icon": "paw",
+    "name_key": "npc.puppy",
+    "wants": {
+      "corn": 2
+    },
+    "reward_coins": 14
+  },
+  {
+    "id": "robot_berries",
+    "npc": "robot",
+    "npc_icon": "robot",
+    "name_key": "npc.robot",
+    "wants": {
+      "strawberry": 2,
+      "carrot": 1
+    },
+    "reward_coins": 18
+  }
+]

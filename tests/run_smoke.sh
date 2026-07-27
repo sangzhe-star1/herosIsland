@@ -450,7 +450,7 @@ fi
 echo
 echo "Running garden probe..."
 GARDEN_OUT=$(mktemp)
-"$GODOT" --headless --path . res://tests/GardenProbe.tscn 2>&1 | tee "$GARDEN_OUT"
+timeout 240 "$GODOT" --headless --path . res://tests/GardenProbe.tscn 2>&1 | tee "$GARDEN_OUT"
 if ! grep -q "GARDEN PROBE PASSED" "$GARDEN_OUT"; then
   rm -f "$GARDEN_OUT"
   echo "Garden probe failed."
@@ -466,7 +466,7 @@ rm -f "$GARDEN_OUT"
 echo
 echo "Running clock probe..."
 CLOCK_OUT=$(mktemp)
-"$GODOT" --headless --path . res://tests/ClockProbe.tscn 2>&1 | tee "$CLOCK_OUT"
+timeout 240 "$GODOT" --headless --path . res://tests/ClockProbe.tscn 2>&1 | tee "$CLOCK_OUT"
 if ! grep -q "CLOCK PROBE PASSED" "$CLOCK_OUT"; then
   rm -f "$CLOCK_OUT"
   echo "Clock probe failed."
@@ -482,7 +482,7 @@ rm -f "$CLOCK_OUT"
 echo
 echo "Running next probe..."
 NEXT_OUT=$(mktemp)
-"$GODOT" --headless --path . res://tests/NextProbe.tscn 2>&1 | tee "$NEXT_OUT"
+timeout 240 "$GODOT" --headless --path . res://tests/NextProbe.tscn 2>&1 | tee "$NEXT_OUT"
 if ! grep -q "NEXT PROBE PASSED" "$NEXT_OUT"; then
   rm -f "$NEXT_OUT"
   echo "Next probe failed."

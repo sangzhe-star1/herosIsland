@@ -123,6 +123,15 @@ def untyped_source(rhs):
         return "a bare .get() call"
     if re.match(r'^[A-Za-z_][\w.]*\[[^\]]+\]$', rhs):
         return "a bare dictionary/array lookup"
+    # ...and a method called ON one of those. `data["levels"].size()` is an int
+    # to a reader and a Variant to the parser, because the thing it was called
+    # on had no type. This one got through and hung the whole suite: a parse
+    # error in a probe means the probe never runs, never prints, and never
+    # quits -- so the run sat there until it was killed by hand.
+    if re.match(r'^[A-Za-z_][\w.]*\[[^\]]+\]\.\w+\(.*\)$', rhs):
+        return "a method called on an untyped lookup"
+    if re.match(r'^[A-Za-z_][\w.]*\.get\(.*\)\.\w+\(.*\)$', rhs):
+        return "a method called on a bare .get()"
     return None
 
 for f in gd:
@@ -569,6 +578,53 @@ if os.path.exists("data/crops.json"):
     if not crops:
         errors.append("crops.json: no crops. The garden would open on four "
                       "patches of earth and an empty seed rack")
+
+# --- 5r. every order has to be fillable, and worth filling
+#
+# The same rule as the album's "every card can be earned": an order asking for
+# a crop that does not exist is a request he can never satisfy, sitting on the
+# board forever. It is not an error at runtime -- the button simply never
+# lights -- which is why it has to be one here.
+if os.path.exists("data/garden_orders.json"):
+    orders = json.load(open("data/garden_orders.json"))
+    crop_ids = {str(c.get("id", "")) for c in json.load(open("data/crops.json"))} \
+        if os.path.exists("data/crops.json") else set()
+    order_icon_names = set(re.findall(r'"(\w+)"',
+        re.search(r'const NAMES := \[(.*?)\n\]',
+                  open("scripts/ui/icon_library.gd").read(), re.S).group(1)))
+    seen_orders = set()
+    for order in orders:
+        oid = str(order.get("id", ""))
+        if oid == "":
+            errors.append("garden_orders.json: an order with no id")
+            continue
+        if oid in seen_orders:
+            errors.append(f"garden_orders.json: duplicate order id '{oid}' -- "
+                          f"deliveries are recorded by id, so two orders "
+                          f"sharing one would pay for each other")
+        seen_orders.add(oid)
+        wants = order.get("wants", {})
+        if not isinstance(wants, dict) or not wants:
+            errors.append(f"garden_orders.json: order '{oid}' asks for nothing")
+        else:
+            for crop_id, how_many in wants.items():
+                if crop_id not in crop_ids:
+                    errors.append(f"garden_orders.json: order '{oid}' asks for "
+                                  f"'{crop_id}', which is not a crop -- he could "
+                                  f"never fill it")
+                if not isinstance(how_many, int) or how_many <= 0:
+                    errors.append(f"garden_orders.json: order '{oid}' asks for "
+                                  f"{how_many!r} of '{crop_id}'")
+        if int(order.get("reward_coins", 0)) <= 0:
+            errors.append(f"garden_orders.json: order '{oid}' pays nothing. "
+                          f"Growing three carrots for somebody has to be worth "
+                          f"something or it is a chore")
+        if str(order.get("name_key", "")) == "":
+            errors.append(f"garden_orders.json: order '{oid}' has no name_key")
+        icon = str(order.get("npc_icon", ""))
+        if icon != "" and icon not in order_icon_names:
+            errors.append(f"garden_orders.json: order '{oid}' asks for icon "
+                          f"'{icon}', which IconLibrary cannot draw")
 
 # --- 5p. a room says it is a room, and nobody names one by hand
 #

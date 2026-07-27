@@ -29,6 +29,7 @@ extends LevelManager
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
 ## How far apart two beds have to be, derived from the snap radius rather than
 ## chosen by eye.
@@ -89,7 +90,11 @@ func _rebuild() -> void:
 	_play = UiKit.play_area(self, true)
 	_top_bar(view)
 	_plot_beds(view)
+	_order_board(view)
+	# The barn is drawn AFTER the rack, because the rack lays down the shelf
+	# panel and anything added before it ends up underneath.
 	_seed_rack(view)
+	_barn(view)
 
 
 func _queue_rebuild() -> void:
@@ -196,6 +201,8 @@ func _one_bed(plot: Dictionary, index: int, at: Vector2) -> void:
 		badge = "basket"
 	elif thirsty:
 		badge = "watering_can"
+	elif str(plot.get("care_event", "")) == Growth.CARE_WEEDS:
+		badge = "weed"
 	elif crop_id == "":
 		badge = ""
 	if badge != "":
@@ -298,6 +305,9 @@ func _tap_plot(index: int) -> void:
 	elif str(plot.get("care_event", "")) == Growth.CARE_THIRSTY:
 		plot = Growth.water(plot)
 		AudioManager.play_sfx("res://assets/audio/water.ogg")
+	elif str(plot.get("care_event", "")) == Growth.CARE_WEEDS:
+		plot = Growth.weed(plot)
+		AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
 	elif crop_id == "":
 		# Turned, empty, and tapped: he is trying to plant by tapping. Point at
 		# the rack rather than doing nothing, which is the same as being broken.
@@ -320,9 +330,7 @@ func _tap_plot(index: int) -> void:
 func _harvest(plot: Dictionary) -> void:
 	var crop: Dictionary = GameData.get_crop(str(plot.get("crop_id", "")))
 	var picked := maxi(int(crop.get("yield", 1)), 1)
-	var barn: Dictionary = _farm().get("warehouse", {})
-	barn[str(plot.get("crop_id", ""))] = int(barn.get(str(plot.get("crop_id", "")), 0)) + picked
-	SaveManager.data["farm"]["warehouse"] = barn
+	Barn.put(str(plot.get("crop_id", "")), picked)
 
 	# The plot goes back to turned earth, ready for the next seed. Harvest is a
 	# CONSUMPTION: the crop is gone, which is what stops one planting ever
@@ -388,3 +396,157 @@ func _bed_centre(index: int) -> Vector2:
 	# goes when there are orders to put on it.
 	var origin := Vector2(view.x * 0.33 - gap * 0.5, middle - BED_GAP * 0.5)
 	return origin + Vector2(float(index % 2) * gap, float(index / 2) * BED_GAP)
+
+
+# --- the barn and the order board ---------------------------------------
+
+## What is in the barn, along the bottom of the play area.
+##
+## Small and always visible rather than behind a button: the whole point of
+## growing something is watching the pile get bigger, and a pile behind a door
+## is a pile he has to remember to go and look at.
+func _barn(view: Vector2) -> void:
+	# Inside the shelf, to the right of the seeds. The first cut put it just
+	# above the shelf and it landed on top of the bottom row of beds -- there
+	# is no room between them at 16:9, and "your seeds | your barn" belongs
+	# together anyway: both are things he HAS.
+	var contents := Barn.contents()
+	var at := Vector2(view.x * 0.52, view.y - SHELF + 58.0)
+
+	var label := UiKit.title(I18n.t("garden.barn"), 24)
+	label.position = at - Vector2(0, 40)
+	label.size = Vector2(220, 30)
+	_play.add_child(label)
+
+	var basket := UiKit.picture("basket", 48.0)
+	if basket != null:
+		basket.position = at
+		_play.add_child(basket)
+
+	if contents.is_empty():
+		return
+	var x := at.x + 64.0
+	for pair in contents:
+		var crop: Dictionary = GameData.get_crop(str(pair[0]))
+		var art := UiKit.picture(str(crop.get("icon", "seed")), 42.0)
+		if art != null:
+			art.position = Vector2(x, at.y + 4.0)
+			_play.add_child(art)
+		var many := UiKit.title("x%d" % int(pair[1]), 24)
+		many.position = Vector2(x + 38.0, at.y + 12.0)
+		many.size = Vector2(56, 28)
+		_play.add_child(many)
+		x += 100.0
+
+
+## Who needs a hand today. Three cards, each one a picture of somebody, what
+## they want, and what they will give for it.
+func _order_board(view: Vector2) -> void:
+	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
+	var at := Vector2(view.x * 0.66, TOP_BAR + 24.0)
+
+	var heading := UiKit.title_on_art(I18n.t("garden.orders"), 30)
+	heading.position = at
+	heading.size = Vector2(400, 40)
+	_play.add_child(heading)
+
+	var y := at.y + 54.0
+	for order in GameData.garden_orders:
+		var order_id := str(order.get("id", ""))
+		var done: bool = order_id in delivered
+		var wants: Dictionary = order.get("wants", {})
+		var can: bool = Barn.can_pay(wants)
+
+		var card := Button.new()
+		card.flat = false
+		card.focus_mode = Control.FOCUS_NONE
+		card.position = Vector2(at.x, y)
+		card.custom_minimum_size = Vector2(378, 96)
+		card.size = Vector2(378, 96)
+		var tint := Color(0.90, 0.92, 0.88) if done \
+			else (Color(1.0, 0.99, 0.94) if can else Color(0.98, 0.97, 0.92))
+		for state in ["normal", "hover", "pressed", "focus"]:
+			card.add_theme_stylebox_override(state, UiKit.panel_style(tint, 22))
+		card.disabled = done or not can
+		_play.add_child(card)
+		if not done and can:
+			card.pressed.connect(func(): _deliver(order))
+			UiKit.breathe(card, 0.02, 1.4)
+
+		var who := UiKit.picture(str(order.get("npc_icon", "heart")), 54.0)
+		if who != null:
+			who.position = Vector2(at.x + 16.0, y + 20.0)
+			who.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_play.add_child(who)
+
+		# What they want, as pictures and numbers. No sentence to read.
+		var x := at.x + 86.0
+		for crop_id in wants.keys():
+			var crop: Dictionary = GameData.get_crop(str(crop_id))
+			var art := UiKit.picture(str(crop.get("icon", "seed")), 40.0)
+			if art != null:
+				art.position = Vector2(x, y + 26.0)
+				art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				_play.add_child(art)
+			var need := int(wants[crop_id])
+			var have := Barn.count(str(crop_id))
+			var tally := UiKit.title("%d/%d" % [mini(have, need), need], 22)
+			tally.position = Vector2(x + 4.0, y + 62.0)
+			tally.size = Vector2(60, 26)
+			tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_play.add_child(tally)
+			x += 74.0
+
+		# The price, or a tick if it is already done.
+		if done:
+			var tick := UiKit.picture("check", 44.0)
+			if tick != null:
+				tick.position = Vector2(at.x + 310.0, y + 26.0)
+				tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				_play.add_child(tick)
+		else:
+			var coin := UiKit.picture("star_coin", 34.0)
+			if coin != null:
+				coin.position = Vector2(at.x + 286.0, y + 24.0)
+				coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				_play.add_child(coin)
+			var price := UiKit.title(str(int(order.get("reward_coins", 0))), 26)
+			price.position = Vector2(at.x + 286.0, y + 58.0)
+			price.size = Vector2(60, 30)
+			price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_play.add_child(price)
+		y += 110.0
+
+
+## Hand the basket over.
+##
+## The order of these four lines is the whole of "an order pays once". The
+## barn is emptied and the delivery recorded and the save written BEFORE any
+## animation, because an await here with the recording after it is exactly how
+## a second press pays twice -- and a six-year-old presses things twice.
+func _deliver(order: Dictionary) -> void:
+	var order_id := str(order.get("id", ""))
+	var orders: Dictionary = SaveManager.data.get("farm_orders", {})
+	var delivered: Array = orders.get("delivered", [])
+
+	# Asked BEFORE the barn is touched, and that order matters. The first cut
+	# emptied the barn first and only then asked whether this order had already
+	# been paid for -- so an order delivered twice would have taken three more
+	# carrots and given nothing back. The card is disabled once delivered, so
+	# it was unreachable, but "unreachable" is a property of today's screen and
+	# not of the rule.
+	if order_id in delivered:
+		return
+	var wants: Dictionary = order.get("wants", {})
+	if not Barn.pay(wants):
+		return
+	var paid := RewardManager.grant("garden:order:%s" % order_id,
+		int(order.get("reward_coins", 0)), order_id, delivered)
+	orders["delivered"] = delivered
+	SaveManager.data["farm_orders"] = orders
+	SaveManager.save_game()
+
+	if paid > 0:
+		AudioManager.play_sfx("res://assets/audio/coin.ogg")
+		AudioManager.say("praise_2")
+	_queue_rebuild()
