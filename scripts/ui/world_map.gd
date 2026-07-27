@@ -453,7 +453,7 @@ func _build_marker(level: Dictionary, world_index: int) -> Control:
 		"memory_rhythm": "music",            # watch the order, play it back
 		"roleplay_rescue": "heart",          # go and help somebody
 		"creative_play": "crayon",
-		"garden": "sprout",           # no rules, make something
+		"garden": "sprout", "harvest_action": "basket",           # no rules, make something
 		"monster_duel": "lightning",         # a fight
 		"platform_adventure": "flag",        # run and jump to the goal
 		# the bonus rooms

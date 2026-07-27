@@ -485,6 +485,22 @@ fi
 no_script_errors "$GARDEN_OUT" "Garden Probe"
 rm -f "$GARDEN_OUT"
 
+# 丰收行动's gestures, as arithmetic. Every tolerance is a number -- how far off
+# vertical a pull may be, how far a finger has to travel, how many reversals
+# make a dig -- and a tolerance nobody asserts drifts until a six-year-old
+# cannot pull a carrot up and nobody knows why.
+echo
+echo "Running harvest probe..."
+HARVEST_OUT=$(mktemp)
+timeout 240 "$GODOT" --headless --path . res://tests/HarvestProbe.tscn 2>&1 | tee "$HARVEST_OUT"
+if ! grep -q "HARVEST PROBE PASSED" "$HARVEST_OUT"; then
+  rm -f "$HARVEST_OUT"
+  echo "Harvest probe failed."
+  exit 1
+fi
+no_script_errors "$HARVEST_OUT" "Harvest Probe"
+rm -f "$HARVEST_OUT"
+
 # The clock. Everything here is unwatchable by playing: an app in a bag, a
 # tablet whose date has been dragged backwards, a thing that grows overnight.
 # It also carries the regression for the three-hours-in-a-bag bug, where time

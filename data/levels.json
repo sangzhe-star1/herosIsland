@@ -1002,6 +1002,108 @@
     "config": {}
   },
   {
+    "id": "harvest_01",
+    "world": "sunny_park",
+    "name_key": "level.harvest_01",
+    "game_type": "harvest_action",
+    "difficulty": 1,
+    "duration_seconds": 240,
+    "target": {},
+    "reward": {
+      "coins": 14,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "harvest.pull_them_up",
+      "teaches": "pull_up",
+      "teach_voice": "harvest_pull_up",
+      "allowed_maturity": [
+        "ready",
+        "golden"
+      ],
+      "targets": [
+        {
+          "crop_id": "carrot",
+          "maturity": "ready",
+          "count": 5
+        }
+      ],
+      "order": [
+        {
+          "crop_id": "carrot",
+          "count": 5
+        }
+      ]
+    }
+  },
+  {
+    "id": "harvest_02",
+    "world": "sunny_park",
+    "name_key": "level.harvest_02",
+    "game_type": "harvest_action",
+    "difficulty": 2,
+    "duration_seconds": 240,
+    "target": {},
+    "reward": {
+      "coins": 16,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "harvest.sort_them",
+      "teaches": "sort_two",
+      "teach_voice": "harvest_two_baskets",
+      "allowed_maturity": [
+        "ready",
+        "golden"
+      ],
+      "targets": [
+        {
+          "crop_id": "strawberry",
+          "maturity": "ready",
+          "count": 4
+        },
+        {
+          "crop_id": "strawberry",
+          "maturity": "unripe",
+          "count": 3
+        },
+        {
+          "crop_id": "tomato",
+          "maturity": "ready",
+          "count": 3
+        }
+      ],
+      "order": [
+        {
+          "crop_id": "strawberry",
+          "count": 4
+        },
+        {
+          "crop_id": "tomato",
+          "count": 3
+        }
+      ],
+      "baskets": [
+        {
+          "id": "fruit",
+          "icon": "basket",
+          "accepts_tags": [
+            "fruit"
+          ],
+          "sample": "res://assets/crops/strawberry.png"
+        },
+        {
+          "id": "veg",
+          "icon": "basket",
+          "accepts_tags": [
+            "vegetable"
+          ],
+          "sample": "res://assets/crops/tomato.png"
+        }
+      ]
+    }
+  },
+  {
     "id": "bonus_keepy",
     "world": "sunny_park",
     "name_key": "level.bonus_keepy",

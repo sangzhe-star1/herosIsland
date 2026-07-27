@@ -691,7 +691,22 @@
     "garden.orders": "Who needs a hand",
     "npc.robot": "Robot Friend",
     "garden.keep_planting": "Keep planting",
-    "garden.go_exploring": "Go exploring"
+    "garden.go_exploring": "Go exploring",
+    "crop.apple": "Apple",
+    "crop.broccoli": "Broccoli",
+    "crop.golden_carrot": "Golden carrot",
+    "crop.grape": "Grapes",
+    "crop.lettuce": "Lettuce",
+    "crop.orange": "Orange",
+    "crop.peas": "Peas",
+    "crop.potato": "Potato",
+    "crop.pumpkin": "Pumpkin",
+    "crop.watermelon": "Watermelon",
+    "crop.wheat": "Wheat",
+    "level.harvest_01": "Pull up the carrots",
+    "harvest.pull_them_up": "Pull the carrots up!",
+    "level.harvest_02": "Are the strawberries red?",
+    "harvest.sort_them": "Fruit in one, vegetables in the other!"
   },
   "zh": {
     "app.title": "小英雄成长岛",
@@ -1385,6 +1400,21 @@
     "garden.orders": "谁需要帮忙",
     "npc.robot": "机器人朋友",
     "garden.keep_planting": "继续种菜",
-    "garden.go_exploring": "去别处冒险"
+    "garden.go_exploring": "去别处冒险",
+    "crop.apple": "苹果",
+    "crop.broccoli": "西兰花",
+    "crop.golden_carrot": "黄金胡萝卜",
+    "crop.grape": "葡萄",
+    "crop.lettuce": "生菜",
+    "crop.orange": "橙子",
+    "crop.peas": "豌豆",
+    "crop.potato": "土豆",
+    "crop.pumpkin": "南瓜",
+    "crop.watermelon": "西瓜",
+    "crop.wheat": "小麦",
+    "level.harvest_01": "拔出胡萝卜",
+    "harvest.pull_them_up": "把胡萝卜拔出来！",
+    "level.harvest_02": "草莓红了吗",
+    "harvest.sort_them": "水果放一边，蔬菜放另一边！"
   }
 }

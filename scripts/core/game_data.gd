@@ -27,6 +27,10 @@ var garden_orders: Array = []
 ## The first-planting lesson: which crop, which bed, how fast it grows for the
 ## lesson only, and what the helper points at in what order.
 var garden_tutorial: Dictionary = {}
+## 丰收行动 的作物目录。和 crops.json 分开：菜园种的是四种会长大的东西，
+## these are the fifteen a harvest level can put on the ground, and they
+## carry a gesture rather than a growth curve.
+var harvest_crops: Array = []
 
 var _levels_by_id: Dictionary = {}
 var _worlds_by_id: Dictionary = {}
@@ -51,6 +55,7 @@ func _ready() -> void:
 	crops = _load_json("res://data/crops.json", [])
 	garden_orders = _load_json("res://data/garden_orders.json", [])
 	garden_tutorial = _load_json("res://data/garden_tutorial.json", {})
+	harvest_crops = _load_json("res://data/harvest_crops.json", [])
 
 	for c in crops:
 		_crops_by_id[c.get("id", "")] = c
@@ -74,7 +79,8 @@ func _ready() -> void:
 	for pair in [["levels", levels.size()], ["worlds", worlds.size()],
 			["monsters", monsters.size()], ["shop items", shop_items.size()],
 			["crops", crops.size()], ["garden orders", garden_orders.size()],
-			["garden tutorial steps", garden_tutorial.get("steps", []).size()]]:
+			["garden tutorial steps", garden_tutorial.get("steps", []).size()],
+			["harvest crops", harvest_crops.size()]]:
 		if int(pair[1]) == 0:
 			push_error("GameData: %s is EMPTY -- a data file is missing or "
 				% str(pair[0]) + "the code that loads it is out of date")
@@ -224,6 +230,8 @@ func get_minigame_scene(game_type: String) -> String:
 		# The nine templates of the multi-play island. One core idea each, so
 		# no two levels in a row ask a child for the same thing.
 		"observation_search": "res://scenes/minigames/observation_search/ObservationSearch.tscn",
+		# 丰收行动: a level, not a room in the farm -- see harvest_action.gd for why.
+		"harvest_action": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
 		"matching_sorting": "res://scenes/minigames/matching_sorting/MatchingSorting.tscn",
 		"build_repair": "res://scenes/minigames/build_repair/BuildRepair.tscn",
 		"puzzle_mechanism": "res://scenes/minigames/puzzle_mechanism/PuzzleMechanism.tscn",
