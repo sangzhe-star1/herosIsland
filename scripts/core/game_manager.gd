@@ -31,6 +31,10 @@ func _notification(what: int) -> void:
 		# Start a fresh session instead of flushing: the time spent in the bag
 		# belongs to nobody.
 		_session_start_ms = GameClock.ticks_ms()
+		# The garden, on the other hand, was growing the whole time it was in
+		# the bag -- that is the point of it. Settle it now so what he sees
+		# when the screen comes back is already up to date.
+		SaveManager.settle_farm()
 
 
 ## Bank the elapsed time so the Parent Center is accurate even if the app is

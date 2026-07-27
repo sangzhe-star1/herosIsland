@@ -28,6 +28,7 @@ const FARM_SAVE_VERSION := 2
 ## definition of "which language does this island speak".
 const I18nScript = preload("res://scripts/core/i18n.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
+const Growth := preload("res://scripts/garden/offline_growth.gd")
 
 var data: Dictionary = {}
 
@@ -146,6 +147,9 @@ func load_game() -> void:
 	if parsed is Dictionary:
 		data = _migrate(parsed)
 		_settle_after_load()
+		# Whatever grew while the game was shut. Not part of the settlements
+		# above -- those run once in a save's life, this runs every launch.
+		settle_farm()
 		return
 	if FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(SAVE_BACKUP):
 		push_warning("SaveManager: no readable save found, starting fresh")
@@ -320,6 +324,27 @@ func _settle_after_load() -> void:
 	changed = _open_the_farm() or changed
 	if changed:
 		save_game()
+
+
+## Bring the garden up to now, and write only if that changed anything.
+##
+## Called on load and when the app comes back from the background -- and, once
+## there is a garden screen, on the way into it. It does not need to be called
+## while a level is being played: growth is worked out from timestamps, so a
+## carrot planted before a level is already further along when the level ends,
+## whether or not anybody asked.
+##
+## Writes are guarded because this runs on every launch and every resume, and
+## save_game() is a full rewrite of the file.
+func settle_farm() -> bool:
+	if not data.has("farm"):
+		return false
+	var before := JSON.stringify(data["farm"])
+	data["farm"] = Growth.settle(data["farm"], GameClock.now_unix())
+	if JSON.stringify(data["farm"]) == before:
+		return false
+	save_game()
+	return true
 
 
 ## Hand a save that predates 星光菜园 its first four patches of earth.
