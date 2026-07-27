@@ -18,11 +18,19 @@ const Field := preload("res://scripts/shared/drag_field.gd")
 const Hints := preload("res://scripts/shared/hint_director.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 
 ## Where the thing waiting to be sorted sits, and where the bins go. One item
 ## at a time in the middle, bins along the bottom: the shortest possible drag
 ## for the shortest possible arm.
+## Where the thing to sort appears, against the design size. Everything reads
+## it through _stage_at, which is the same point on the real screen.
 const STAGE := Vector2(640, 300)
+
+var _stage_at := STAGE
+## Where the bins stand, against the 1280x720 the art was drawn at. Put on the
+## real screen through Fit.at() -- the world's ground plane moves down on a
+## tablet and bins left at a hard 560 hang in the air above it.
 const BIN_Y := 560.0
 
 var _field: Field
@@ -56,6 +64,7 @@ func setup_level() -> void:
 	_field = Field.new()
 	add_child(_field)
 	_field.dropped.connect(_on_dropped)
+	_stage_at = Fit.at(_field, STAGE)
 
 	_build_bins(config)
 	_build_queue(config)
@@ -92,7 +101,8 @@ func _build_bins(config: Dictionary) -> void:
 			* (span / float(maxi(order.size(), 1)))
 		var node := _draw_bin(kind)
 		_field.add_child(node)
-		var slot := _field.add_slot(node, Vector2(x, BIN_Y), str(kind.get("key", "")))
+		var slot := _field.add_slot(node, Fit.at(_field, Vector2(x, BIN_Y)),
+			str(kind.get("key", "")))
 		slot["offset_y"] = -40.0
 		_bins.append({"slot": slot, "kind": kind, "node": node})
 
@@ -159,13 +169,13 @@ func _next_item() -> void:
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		node.add_child(art)
 	_field.add_child(node)
-	_current = _field.add_item(node, STAGE, str(spec.get("key", "")))
+	_current = _field.add_item(node, _stage_at, str(spec.get("key", "")))
 	_current["shiny"] = shiny
 	# It floats down into place, so the child's eye follows it to the middle.
 	if Juice.motion_enabled():
-		node.position = STAGE + Vector2(0, -120.0)
+		node.position = _stage_at + Vector2(0, -120.0)
 		var t := node.create_tween()
-		t.tween_property(node, "position", STAGE, 0.34)\
+		t.tween_property(node, "position", _stage_at, 0.34)\
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	AudioManager.play_sfx("res://assets/audio/pop.ogg")
 
@@ -236,9 +246,9 @@ func _say(key: String) -> void:
 func _play_tutorial() -> void:
 	var demo := Tutorial.new()
 	_hud.add_child(demo)
-	demo.add_step(STAGE, STAGE, 0.9)
+	demo.add_step(_stage_at, _stage_at, 0.9)
 	if not _bins.is_empty():
-		demo.add_step(STAGE, ((_bins[0]["slot"] as Dictionary)["node"] as Node2D).position,
+		demo.add_step(_stage_at, ((_bins[0]["slot"] as Dictionary)["node"] as Node2D).position,
 			1.2)
 	demo.play()
 

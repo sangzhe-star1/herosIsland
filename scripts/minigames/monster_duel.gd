@@ -25,7 +25,14 @@ extends LevelManager
 ## error on a machine whose editor has not rescanned, and that takes the whole
 ## game grey rather than one screen.
 const Album := preload("res://scripts/reward/monster_album.gd")
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 
+## Where the two of them stand, written against the 1280x720 the art was drawn
+## at. Nothing reads these directly any more -- everything goes through
+## _hero_pos and _monster_pos, which are the same two places on the screen the
+## child is actually holding. On a 4:3 tablet that screen is 1280x960 and the
+## ground line has moved down with it, so a hero left at a hard 620 stands in
+## mid-air with a hundred and fifty pixels of daylight under his boots.
 const GROUND_Y := 620.0
 const HERO_POS := Vector2(250, 620)
 const MONSTER_POS := Vector2(690, GROUND_Y)   # clear of the skill pad, bottom right
@@ -80,6 +87,11 @@ var _clock := 0.0
 var _goo_timer := 0.0
 var _roar_timer := 0.0
 
+## HERO_POS and MONSTER_POS, put on the screen this child is holding. Filled in
+## once, in _build_scene, before either of them is added to the tree.
+var _hero_pos := HERO_POS
+var _monster_pos := MONSTER_POS
+
 var _play_area: Control
 var _instruction: Label
 var _hero: SkinnedCharacter
@@ -89,6 +101,7 @@ var _hp_fill: Control          # the monster's health, drawn as a draining bar
 var _hp_face: Control
 var _monster_id := ""
 var _met_new_monster := false
+var _skill_pad: Control       # the rounded plate the three of them sit on
 var _beam_button: Control
 var _shield_button: Control
 var _ult_button: Control
@@ -159,8 +172,13 @@ func _build_scene(config: Dictionary) -> void:
 
 	build_world(_play_area, 0.0)
 
+	# The play area is in the tree now, so it can be asked how big the screen
+	# really is. Everything placed after this line is placed on THAT screen.
+	_hero_pos = Fit.at(_play_area, HERO_POS)
+	_monster_pos = Fit.at(_play_area, MONSTER_POS)
+
 	_monster = preload("res://scripts/battle/monster.gd").new()
-	_monster.position = MONSTER_POS
+	_monster.position = _monster_pos
 	_play_area.add_child(_monster)
 	# From the album, so the monster he fights and the card he collects are one
 	# drawing. Before this every duel passed only a scale, and all six bosses on
@@ -179,7 +197,7 @@ func _build_scene(config: Dictionary) -> void:
 
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
-	_hero.position = HERO_POS
+	_hero.position = _hero_pos
 	_play_area.add_child(_hero)
 	_hero.set_height(330.0)
 	_hero.entrance(340.0, 0.15)
@@ -342,9 +360,18 @@ func _update_meter() -> void:
 ## world; a tap that landed produced almost no visible reaction; and a tap that
 ## was refused because the skill was cooling produced *none at all*, so a child
 ## could not tell a dead button from a broken game. Every tap now answers.
+## The corner is measured from the corner, not from 1280x720. These four are
+## the only things on this screen that do NOT scale with it: a thumb rests
+## where the bezel is, so the pad keeps its gap to the right and bottom edges
+## whatever shape the tablet turns out to be. Left as design numbers they sat
+## in the middle of an iPad with the child's thumb under empty grass.
 func _build_skill_wheel() -> void:
-	var pad := Panel.new()
-	pad.position = Vector2(890, 552)
+	# Kept as a member so the tablet probe can check the three buttons are
+	# still ON it. Pad and buttons are placed by two separate Fit.corner
+	# calls, and two calls can drift apart.
+	_skill_pad = Panel.new()
+	var pad := _skill_pad
+	pad.position = Fit.corner(_play_area, Vector2(890, 552))
 	pad.size = Vector2(384, 168)
 	var pad_style := StyleBoxFlat.new()
 	pad_style.bg_color = Color(0.06, 0.09, 0.20, 0.42)
@@ -356,15 +383,15 @@ func _build_skill_wheel() -> void:
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(pad)
 
-	_ult_button = _skill_button("ult", Vector2(912, 596), 100, "star",
+	_ult_button = _skill_button("ult", Fit.corner(_play_area, Vector2(912, 596)), 100, "star",
 		Color(0.98, 0.78, 0.28))
 	_ult_button.gui_input.connect(_on_ult_input)
 
-	_shield_button = _skill_button("shield", Vector2(1024, 574), 108, "shield",
+	_shield_button = _skill_button("shield", Fit.corner(_play_area, Vector2(1024, 574)), 108, "shield",
 		Color(0.48, 0.74, 0.98))
 	_shield_button.gui_input.connect(_on_shield_input)
 
-	_beam_button = _skill_button("beam", Vector2(1140, 584), 124, "spark",
+	_beam_button = _skill_button("beam", Fit.corner(_play_area, Vector2(1140, 584)), 124, "spark",
 		Color(1.0, 0.86, 0.40))
 	_beam_button.gui_input.connect(_on_beam_input)
 
@@ -719,7 +746,7 @@ func activate_shield() -> bool:
 	# now" is unmistakable at a glance.
 	_shield_bubble = Control.new()
 	_shield_bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_shield_bubble.position = HERO_POS - Vector2(0, 60)
+	_shield_bubble.position = _hero_pos - Vector2(0, 60)
 	_play_area.add_child(_shield_bubble)
 	Shapes.fill(_shield_bubble, Shapes.circle_points(Vector2.ZERO, 145.0, 32),
 		Color(0.55, 0.86, 1.0, 0.22), 0.0)
@@ -798,7 +825,7 @@ func _ult_burst() -> void:
 	if ResourceLoader.exists(RING_ART):
 		ring.texture = load(RING_ART)
 	ring.size = Vector2(220, 220)
-	ring.position = HERO_POS - Vector2(110, 170)
+	ring.position = _hero_pos - Vector2(110, 170)
 	ring.pivot_offset = ring.size / 2.0
 	ring.modulate = Color(1.0, 0.85, 0.4, 0.85)
 	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -865,7 +892,7 @@ func _monster_attack_goo() -> void:
 	_play_area.add_child(goo)
 	_threats.append(goo)
 
-	var to := HERO_POS + Vector2(0, -50)
+	var to := _hero_pos + Vector2(0, -50)
 	var t := create_tween()
 	t.tween_method(_goo_step.bind(goo, from, to), 0.0, 1.0, 2.4)
 	t.tween_callback(func(): _threat_arrives(goo))
@@ -907,7 +934,7 @@ func _monster_attack_roar() -> void:
 	_play_area.add_child(ring)
 	_threats.append(ring)
 	var t := create_tween()
-	t.tween_property(ring, "position:x", HERO_POS.x - 85.0, 2.6)
+	t.tween_property(ring, "position:x", _hero_pos.x - 85.0, 2.6)
 	t.tween_callback(func(): _threat_arrives(ring))
 
 

@@ -15,6 +15,7 @@ extends LevelManager
 ## so it feels the same as the sorting levels a child played an hour ago.
 
 const Field := preload("res://scripts/shared/drag_field.gd")
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 const Hints := preload("res://scripts/shared/hint_director.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
@@ -96,7 +97,11 @@ func setup_level() -> void:
 
 func _build_machine(config: Dictionary) -> void:
 	var plan: Dictionary = BLUEPRINTS[_kind]
-	var anchor: Vector2 = plan["anchor"]
+	# The blueprint is written against 1280x720; the child may be holding
+	# 1280x960. Only the anchor moves -- the slot offsets around it are the
+	# SHAPE of the machine and must stay exactly as drawn, or a bridge built
+	# on a tablet is a different bridge.
+	var anchor: Vector2 = Fit.at(_field, plan["anchor"])
 	var places: Array = plan["slots"]
 	_wanted = places.size()
 
@@ -124,7 +129,12 @@ func _build_machine(config: Dictionary) -> void:
 		_slot_nodes.append(ghost)
 
 	# The parts, scattered along the bottom, plus decoys that fit nowhere.
-	var spread := 1080.0
+	# The row is measured off the real screen too: on a tablet it belongs on the
+	# grass in front of the machine, not floating in the middle of the field
+	# with a quarter of the screen empty underneath it.
+	var tray_y := Fit.y(_field, 660.0)
+	var middle := Fit.x(_field, 640.0)
+	var spread := Fit.x(_field, 1080.0)
 	var count: int = _wanted + 2
 	var order: Array = []
 	for i in range(_wanted):
@@ -133,13 +143,13 @@ func _build_machine(config: Dictionary) -> void:
 	order.append("junk")
 	_picker.shuffle(order)
 	for i in range(count):
-		var x: float = 640.0 + (float(i) - float(count - 1) * 0.5) * (spread / float(count))
+		var x: float = middle + (float(i) - float(count - 1) * 0.5) * (spread / float(count))
 		var node := Node2D.new()
 		_field.add_child(node)
 		var golden: bool = str(order[i]) == "part" and i == _picker.whole(0, count - 1)
 		_draw_part(node, str(plan["part"]) if str(order[i]) == "part" else "junk",
 			false, golden)
-		var item := _field.add_item(node, Vector2(x, 660.0),
+		var item := _field.add_item(node, Vector2(x, tray_y),
 			"part" if str(order[i]) == "part" else "junk")
 		item["golden"] = golden
 		_parts.append(item)

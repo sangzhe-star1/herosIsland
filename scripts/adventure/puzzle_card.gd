@@ -66,7 +66,10 @@ func open(kind: String, rng: RandomNumberGenerator, gentle: bool) -> void:
 	var card := Control.new()
 	card.custom_minimum_size = CARD_SIZE
 	card.size = CARD_SIZE
-	card.position = (Vector2(1280, 720) - CARD_SIZE) / 2.0
+	# Centred on the screen, not on the drawing. Written as 1280x720 the card
+	# sat a hundred and twenty pixels high on a tablet, with the dim panel
+	# behind it reaching the bottom of the screen and the card not.
+	card.position = (get_viewport_rect().size - CARD_SIZE) / 2.0
 	card.pivot_offset = CARD_SIZE / 2.0
 	add_child(card)
 

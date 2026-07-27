@@ -6,7 +6,7 @@
 跑法：
 
 ```
-GODOT=/path/to/godot ./tests/run_smoke.sh     # 22 个检查点，约 8~10 分钟
+GODOT=/path/to/godot ./tests/run_smoke.sh     # 23 个检查点，约 10~12 分钟
 python3 tools_check.py                        # 0 errors
 ```
 
@@ -30,7 +30,7 @@ python3 tools_check.py                        # 0 errors
 | 14 | 作物不会永久死亡 | `garden_probe.gd` | `_a_crop_never_dies()`：两周不管，断言**没有"死亡"这个状态**，最坏是"渴着，一点没少地停在原地"，浇一次水照样收得到 |
 | 15 | 触摸拖动和自动吸附正常 | `garden_touch_probe.gd` | `_dragging_a_seed_lands_in_the_bed_he_aimed_at()`：真实 `InputEventScreenTouch`／`ScreenDrag`，**故意偏离中心 40px 松手**，落进瞄准的那块地、其余三块没接到。**两种视口各跑一遍**（1280×720 与 iPad 的 1280×960，坐标按窗口像素换算） |
 | 16 | 菜园能正常返回 | `garden_touch_probe.gd` | `_there_is_a_way_out()`：返回键存在、够大（拇指）、在屏内、**接了东西**。⚠️ 见下方偏差说明 |
-| 17 | 现有 30 关完整回归通过 | `map_probe.gd` + `smoke_test.gd` | `map_probe` 把**每个世界的每一关**实例化跑 10 个物理帧并断言不死；`smoke_test` 另外加载 7 个固定屏 + 每一关；`run_smoke.sh` 全套 22 个检查点结尾 `All good.` |
+| 17 | 现有 30 关完整回归通过 | `map_probe.gd` + `smoke_test.gd` | `map_probe` 把**每个世界的每一关**实例化跑 10 个物理帧并断言不死；`smoke_test` 另外加载 7 个固定屏 + 每一关；`run_smoke.sh` 全套 23 个检查点结尾 `All good.` |
 
 ---
 

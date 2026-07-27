@@ -23,6 +23,8 @@ extends Control
 
 signal finished()
 
+const Fit := preload("res://scripts/shared/screen_fit.gd")
+
 const BEAT := 4.6                 # seconds per picture, read-aloud pace
 
 ## world id -> the one thing that world is about.
@@ -126,7 +128,10 @@ func _build() -> void:
 	add_child(title)
 
 	_stage = Control.new()
-	_stage.position = Vector2(0, 110)
+	# Centred in whatever room is left between the title and the caption, so a
+	# tablet's extra height is shared out instead of all landing in one gap. The
+	# second term is zero on a 1280x720 screen, where this stays at 110.
+	_stage.position = Vector2(0, 110.0 + (Fit.bottom(self, 520.0) - 520.0) * 0.5)
 	_stage.size = Vector2(1280, 380)
 	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_stage)
@@ -137,7 +142,11 @@ func _build() -> void:
 	UiKit.on_art(_caption)
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_caption.position = Vector2(180, 520)
+	# Caption, dots and the two buttons all sit in the lower band of the page,
+	# so they are measured from the BOTTOM of it. On a 4:3 tablet the page is
+	# 1280x960 and design numbers leave all three stranded two thirds of the way
+	# down with a third of the screen empty beneath them.
+	_caption.position = Vector2(180, Fit.bottom(self, 520))
 	_caption.size = Vector2(920, 110)
 	_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_caption)
@@ -145,7 +154,7 @@ func _build() -> void:
 	# Three dots: how much lesson is left, without a bar or a number.
 	_dots = HBoxContainer.new()
 	_dots.add_theme_constant_override("separation", 18)
-	_dots.position = Vector2(596, 646)
+	_dots.position = Vector2(596, Fit.bottom(self, 646))
 	_dots.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_dots)
 	for i in range(3):
@@ -243,7 +252,7 @@ func _finish() -> void:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 22)
-	row.position = Vector2(340, 630)
+	row.position = Vector2(340, Fit.bottom(self, 630))
 	row.size = Vector2(600, 110)
 	add_child(row)
 	var again := UiKit.big_button(I18n.t("lesson.again"), Palette.BLUE)

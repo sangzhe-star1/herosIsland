@@ -22,7 +22,14 @@ extends Node2D
 ## each other -- which is exactly what the first version of this map did.
 const PER_LEVEL := 250.0
 const REGION_MIN := 620.0
-const H := 720.0
+## The height the island was drawn against, and the height it is actually drawn
+## on. Same story as stage.gd: aspect="expand" hands a 4:3 tablet a 1280x960
+## viewport, and an island laid out against a fixed 720 leaves the nearest
+## quarter of the sea empty with every level marker bunched up above it. On a
+## 1280x720 screen the two are equal and nothing moves.
+const DESIGN_H := 720.0
+var view_h := DESIGN_H
+
 const SHORE_Y := 250.0        # where the land begins
 const PATH_W := 46.0
 
@@ -39,7 +46,7 @@ var _compact := false
 
 
 func canvas_size() -> Vector2:
-	return Vector2(_width, H)
+	return Vector2(_width, view_h)
 
 
 ## Where a level's marker sits. World map asks for this and places its button
@@ -62,6 +69,11 @@ func build(worlds: Array, levels_by_world: Dictionary, compact: bool = false) ->
 	_region_x.clear()
 	_region_w.clear()
 	_compact = compact
+	# How tall the screen really is, asked once, before a single shape is laid
+	# out. Needs this node in the tree, which is why the map adds it to the page
+	# before calling build() rather than after.
+	if is_inside_tree():
+		view_h = maxf(DESIGN_H, get_viewport_rect().size.y)
 	# Seed per island in compact mode, so every world's coastline is its own.
 	var seed_key := "growth-island"
 	if compact and worlds.size() > 0:
@@ -133,7 +145,7 @@ func _lay_out_nodes(worlds: Array, levels_by_world: Dictionary) -> void:
 				# the second row's stars fell off the bottom edge of a 720 px
 				# screen -- invisible in a single-world map and obvious the
 				# moment a world had six levels instead of eight.
-				var sy: float = (332.0 if row == 0 else 550.0) \
+				var sy: float = (332.0 if row == 0 else 550.0) * view_h / DESIGN_H \
 					+ sin(float(i) * 1.9) * 8.0
 				_positions["%s:%d" % [world_id, i]] = Vector2(sx, sy)
 			continue
@@ -145,7 +157,7 @@ func _lay_out_nodes(worlds: Array, levels_by_world: Dictionary) -> void:
 			# apart are further apart than their x values alone suggest.
 			var x: float = x0 + 40.0 + t * (width - 80.0)
 			var y: float = coast_y(x) + 205.0 + sin(float(i) * 1.15 + float(wi) * 1.7) * 105.0
-			_positions["%s:%d" % [world_id, i]] = Vector2(x, clampf(y, SHORE_Y + 150.0, H - 205.0))
+			_positions["%s:%d" % [world_id, i]] = Vector2(x, clampf(y, SHORE_Y + 150.0, view_h - 205.0))
 
 
 # --- the island ---------------------------------------------------------
@@ -157,19 +169,19 @@ func coast_y(x: float) -> float:
 	var t: float = clampf((x + 80.0) / (_width + 160.0), 0.0, 1.0)
 	var y: float = SHORE_Y + sin(t * 9.0) * 34.0 + sin(t * 21.0 + 1.3) * 15.0 + cos(t * 4.0) * 26.0
 	var taper: float = smoothstep(0.0, 0.07, t) * smoothstep(1.0, 0.93, t)
-	return lerpf(H + 200.0, y, taper)
+	return lerpf(view_h + 200.0, y, taper)
 
 
 func _draw_sea() -> void:
 	var sea := Node2D.new()
 	add_child(sea)
-	Shapes.gradient_quad(sea, Vector2(-120, -120), Vector2(_width + 240, H + 240),
+	Shapes.gradient_quad(sea, Vector2(-120, -120), Vector2(_width + 240, view_h + 240),
 		Color(0.30, 0.62, 0.82), Color(0.15, 0.40, 0.64))
 	# Slow bands of shimmer instead of drawn waves: waves at this scale read as
 	# clutter, and a still sea reads as a floor.
 	for i in range(int(_width / 90.0)):
 		var w: float = _rng.randf_range(70.0, 230.0)
-		var at := Vector2(_rng.randf_range(-100.0, _width), _rng.randf_range(-60.0, H + 60.0))
+		var at := Vector2(_rng.randf_range(-100.0, _width), _rng.randf_range(-60.0, view_h + 60.0))
 		var band: Polygon2D = Shapes.fill(sea,
 			Shapes.rounded_rect(at, Vector2(w, 6.0), 3.0, 2), Color(1, 1, 1, 0.13), 0.0)
 		if not Juice.motion_enabled():
@@ -194,8 +206,8 @@ func _draw_land(worlds: Array) -> void:
 		var x: float = -80.0 + t * (_width + 160.0)
 		coast.append(Vector2(x, coast_y(x)))
 	var bottom := PackedVector2Array(coast)
-	bottom.append(Vector2(_width + 120.0, H + 220.0))
-	bottom.append(Vector2(-120.0, H + 220.0))
+	bottom.append(Vector2(_width + 120.0, view_h + 220.0))
+	bottom.append(Vector2(-120.0, view_h + 220.0))
 
 	# Shallows, then foam, then sand, then grass. Four flat bands, each
 	# slightly inset from the last -- the cheapest possible coastline, and it
@@ -247,7 +259,7 @@ func _draw_regions(worlds: Array) -> void:
 			# marker, and a level a child cannot see is worse than a bare field.
 			var px: float = x0 + _rng.randf_range(0.0, width)
 			var at := Vector2(px, coast_y(px) + _rng.randf_range(46.0, 96.0)) if i % 2 == 0 \
-				else Vector2(px, H - _rng.randf_range(4.0, 44.0))
+				else Vector2(px, view_h - _rng.randf_range(4.0, 44.0))
 			var holder := Node2D.new()
 			holder.position = at
 			var s: float = _rng.randf_range(0.34, 0.58)

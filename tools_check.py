@@ -905,8 +905,18 @@ for path in (glob.glob("scripts/minigames/*.gd") + glob.glob("scripts/adventure/
     for i, line in enumerate(src.splitlines(), 1):
         if line.startswith(("func ", "static func ")):
             current = i
-        if "get_viewport_rect()" in line or "get_visible_rect()" in line:
+        # screen_fit.gd asks the same question in one line instead of four, so a
+        # function that routes its numbers through Fit has measured the screen
+        # exactly as much as one that calls get_viewport_rect() itself.
+        if ("get_viewport_rect()" in line or "get_visible_rect()" in line
+                or re.search(r'\bFit\.(at|x|y|bottom|right|corner)\(', line)):
             measured.add(current)
+    # A `const` at file scope has no node and CANNOT ask the screen anything.
+    # Its only possible remedy is being routed through Fit at the point of USE,
+    # which is a fact about the file rather than about the line -- so file scope
+    # is the one place where a file-wide exemption is the honest rule and not a
+    # hole. Inside a function the per-function rule above still stands.
+    routes_through_fit = "screen_fit.gd" in src
     current = -1
     for i, line in enumerate(src.splitlines(), 1):
         if line.startswith(("func ", "static func ")):
@@ -915,6 +925,14 @@ for path in (glob.glob("scripts/minigames/*.gd") + glob.glob("scripts/adventure/
             continue
         if current in measured:
             continue      # this function already asks the screen how tall it is
+        if current == -1 and routes_through_fit:
+            continue      # a design-space constant, put on the screen elsewhere
+        # A Vector2 is not always a place. Gravity, velocity and direction are
+        # rates: 620 px/s2 of gravity has nothing to do with how tall the screen
+        # is, and juice.gd's confetti has been flagged for falling ever since
+        # this rule was written.
+        if re.search(r'\.(gravity|velocity|direction|accel\w*|linear_\w+)\s*=', line):
+            continue
         if any(rx.search(line) for rx in BOTTOM):
             warnings.append(f"{os.path.basename(path)}:{i}: a y near the "
                             f"bottom of a 720-tall screen, hard-coded -- a "

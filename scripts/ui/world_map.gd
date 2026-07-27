@@ -37,9 +37,20 @@ func _ready() -> void:
 	_worlds = GameData.worlds.duplicate()
 	_worlds.sort_custom(func(a, b): return int(a.get("order", 0)) < int(b.get("order", 0)))
 
+	# The page is as tall as the screen, not as tall as the drawing.
+	#
+	# Honest note: nothing reads these two sizes today -- the islands are drawn
+	# by IslandMap, which measures the viewport itself, and the strip is
+	# scrolled by position.x alone. Deliberately breaking this line does NOT
+	# make the tablet probe go red, and that was checked rather than assumed.
+	# It is here because a Control that says it is 720 tall on a 960-tall screen
+	# is a lie sitting in wait for the first person who anchors something to the
+	# bottom of it.
+	var page_h: float = maxf(720.0, get_viewport_rect().size.y)
+
 	_strip = Control.new()
 	_strip.mouse_filter = Control.MOUSE_FILTER_PASS
-	_strip.size = Vector2(PAGE_W * _worlds.size(), 720)
+	_strip.size = Vector2(PAGE_W * _worlds.size(), page_h)
 	add_child(_strip)
 
 	for wi in range(_worlds.size()):
@@ -50,13 +61,14 @@ func _ready() -> void:
 		var page := Control.new()
 		page.mouse_filter = Control.MOUSE_FILTER_PASS
 		page.position = Vector2(PAGE_W * float(wi), 0)
-		page.size = Vector2(PAGE_W, 720)
+		page.size = Vector2(PAGE_W, page_h)
 		_strip.add_child(page)
 		_pages.append(page)
 
 		var island := IslandMap.new()
-		island.build([world], {world_id: levels}, true)
+		# Into the tree BEFORE it is built, so it can ask how tall the screen is.
 		page.add_child(island)
+		island.build([world], {world_id: levels}, true)
 
 		_add_region_banner(page, island, world, levels)
 		_add_markers(page, island, world, levels, wi)

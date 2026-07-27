@@ -442,6 +442,32 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
   fi
   no_script_errors "$GT_OUT" "Garden Touch Probe"
   rm -f "$GT_OUT"
+
+  # The whole island on a tablet. Opens six templates, the map and the lesson
+  # card twice each -- once at 1280x720 and once at the 1024x768 window that
+  # gives the game a 1280x960 viewport -- and asserts that everything the child
+  # touches sits in the same place on BOTH. This is the only check in the suite
+  # that can see the bug this project has shipped twice: a game drawn into the
+  # top three quarters of an iPad, working perfectly, with the bottom quarter
+  # empty. Needs a big virtual screen, because a 768-tall window does not fit
+  # on a 720-tall one.
+  echo
+  echo "Running tablet probe..."
+  TB_RUNNER=()
+  if [[ "$(uname)" == "Linux" ]] && [[ -z "${DISPLAY:-}" ]]; then
+    TB_RUNNER=(xvfb-run -a -s "-screen 0 1920x1200x24")
+    export LIBGL_ALWAYS_SOFTWARE=1
+  fi
+  TB_OUT=$(mktemp)
+  timeout 300 "${TB_RUNNER[@]}" "$GODOT" --path . --rendering-driver opengl3 \
+    res://tests/TabletProbe.tscn 2>&1 | tee "$TB_OUT"
+  if ! grep -q "TABLET PROBE PASSED" "$TB_OUT"; then
+    rm -f "$TB_OUT"
+    echo "Tablet probe failed."
+    exit 1
+  fi
+  no_script_errors "$TB_OUT" "Tablet Probe"
+  rm -f "$TB_OUT"
 fi
 
 # 星光菜园's save. Runs late and before the save probe: it wipes the save file

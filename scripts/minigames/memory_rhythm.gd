@@ -21,6 +21,7 @@ extends LevelManager
 ## is the two of them in one template with the sharp edges taken off.
 
 const Hints := preload("res://scripts/shared/hint_director.gd")
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
 
@@ -82,7 +83,10 @@ func setup_level() -> void:
 func _build_pads() -> void:
 	var span := 840.0
 	for i in range(4):
-		var at := Vector2(640.0 + (float(i) - 1.5) * (span / 4.0), 430.0)
+		# On the real screen, not on the 1280x720 the pads were drawn against:
+		# a tablet's ground plane sits lower and four pads left at a hard 430
+		# float above it with the near quarter of the field empty.
+		var at := Fit.at(_field, Vector2(640.0 + (float(i) - 1.5) * (span / 4.0), 430.0))
 		var node := Node2D.new()
 		node.position = at
 		_field.add_child(node)

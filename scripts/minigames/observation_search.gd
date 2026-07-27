@@ -23,6 +23,7 @@ extends LevelManager
 const Hints := preload("res://scripts/shared/hint_director.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 ## By path, not by class name. A newer class_name is invisible to any run
 ## whose editor has not rescanned, and an unknown identifier is a PARSE error
 ## in GDScript -- the whole level would fail to open rather than degrade.
@@ -83,7 +84,18 @@ func setup_level() -> void:
 # --- the scene ---------------------------------------------------------------
 
 func _scatter(config: Dictionary) -> void:
-	var places: Array = _picker.spots(SPOTS, _wanted + 4, 150.0)
+	# The hiding places, put on the screen the child is actually holding. On a
+	# 4:3 tablet that is 1280x960 and the world's ground plane has moved down
+	# with it, so raw design spots would crowd every hidden thing into the top
+	# three quarters and leave the nearest quarter of the field empty.
+	#
+	# Fitted BEFORE the picker sees them, not after, so which spots get chosen
+	# is still decided by the level's seed alone: same level, same hiding
+	# places, whatever the child is holding.
+	var fitted: Array = []
+	for spot in SPOTS:
+		fitted.append(Fit.at(_field, spot))
+	var places: Array = _picker.spots(fitted, _wanted + 4, 150.0)
 	# The things to find first, so they get the best-spread positions.
 	for i in range(_wanted):
 		var at: Vector2 = places[i]
@@ -99,7 +111,7 @@ func _scatter(config: Dictionary) -> void:
 
 	# The bonus: one small friend somewhere, worth the second star. Drawn
 	# smaller and never in the same place twice.
-	var bonus_at: Vector2 = _picker.one(SPOTS)
+	var bonus_at: Vector2 = _picker.one(fitted)
 	var bonus := _draw_thing(str(config.get("bonus", "paw")),
 		bonus_at + Vector2(0, -40.0), false)
 	bonus.scale = Vector2(0.7, 0.7)

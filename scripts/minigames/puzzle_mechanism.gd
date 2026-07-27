@@ -18,6 +18,7 @@ extends LevelManager
 ## help was needed, which is the third star.
 
 const Hints := preload("res://scripts/shared/hint_director.gd")
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
 
@@ -72,7 +73,7 @@ func setup_level() -> void:
 ## The thing being powered, on the right, dark until the puzzle is solved.
 func _build_goal() -> void:
 	_goal = Node2D.new()
-	_goal.position = Vector2(1108, ROW_Y - 40.0)
+	_goal.position = Fit.at(_field, Vector2(1108, ROW_Y - 40.0))
 	_field.add_child(_goal)
 	Shapes.ground_shadow(_goal, Vector2(0, 130.0), 150.0, 0.20)
 	Shapes.lit(_goal, Shapes.taper(Vector2(0, 130.0), Vector2(0, -60.0), 46.0, 30.0),
@@ -87,7 +88,7 @@ func _build_goal() -> void:
 	# The source, on the left: where the light comes FROM, so the row of
 	# pieces reads as a path between two things rather than as a row of toys.
 	var source := Node2D.new()
-	source.position = Vector2(150, ROW_Y - 40.0)
+	source.position = Fit.at(_field, Vector2(150, ROW_Y - 40.0))
 	_field.add_child(source)
 	Shapes.glow(source, Vector2.ZERO, 130.0, Color(0.55, 0.88, 1.0), 4, 0.45)
 	Shapes.lit(source, Shapes.circle_points(Vector2.ZERO, 42.0, 24),
@@ -98,7 +99,7 @@ func _build_pieces() -> void:
 	var span := 760.0
 	for i in range(_steps):
 		var t: float = 0.5 if _steps == 1 else float(i) / float(_steps - 1)
-		var at := Vector2(lerpf(300.0, 300.0 + span, t), ROW_Y)
+		var at := Fit.at(_field, Vector2(lerpf(300.0, 300.0 + span, t), ROW_Y))
 		var node := Node2D.new()
 		node.position = at
 		_field.add_child(node)

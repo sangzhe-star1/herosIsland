@@ -25,11 +25,32 @@ extends Node2D
 ## Determinism: the same seed key always produces the same city. A child who
 ## replays a level sees the same place, and a screenshot stays comparable.
 
-const W := 1280.0
-const H := 720.0
+## The size the world was drawn against. Every number below is a fraction of,
+## or an offset from, these two -- which is what makes the next four lines
+## possible at all.
+const DESIGN_W := 1280.0
+const DESIGN_H := 720.0
 ## Drawn wider than the viewport so the world still reaches the edges when the
 ## window is a different aspect ratio (the project stretches with "expand").
 const BLEED := 220.0
+
+## The size of the screen the child is ACTUALLY holding, filled in before a
+## single shape is drawn.
+##
+## These were `const W := 1280.0` and `const H := 720.0` for the whole life of
+## the project, and that is where the island's oldest layout bug lived. The
+## game stretches with aspect="expand", so a 4:3 tablet hands it a 1280x960
+## viewport -- 240 real pixels of extra height. With a fixed 720 the horizon
+## stayed put at y=559 and the ground plane simply ran off the bottom, so the
+## whole world was drawn into the top three quarters of an iPad and the last
+## quarter was a flat green band with nothing in it. Every actor in the game
+## stands on ground_y(), so every actor stood up there too.
+##
+## Measuring instead of assuming costs two lines and fixes it everywhere at
+## once: on a 1280x720 screen these are 1280 and 720 and NOTHING changes, which
+## is the only reason a change this wide is safe to make.
+var view_w := DESIGN_W
+var view_h := DESIGN_H
 
 var style: WorldStyle
 var _rng: RandomNumberGenerator
@@ -47,15 +68,16 @@ var _clouds: Array[Dictionary] = []      # [{node, speed, span}]
 var _swayers: Array[Dictionary] = []     # [{node, amount, rate, phase}]
 var _time := 0.0
 
-## The y of the ground line, in this stage's coordinates. Every actor in the
-## game stands here. Before this existed each template picked its own number
-## and characters floated at different heights from screen to screen.
+## The y of the ground line on the design-size screen, for the three callers
+## that need a number before there is a stage to ask. Anything holding a stage
+## should call ground_y() on it instead -- that one knows how tall the screen
+## really is.
 static func ground_line() -> float:
-	return H * WorldStyle.HORIZON
+	return DESIGN_H * WorldStyle.HORIZON
 
 
 func ground_y() -> float:
-	return H * (style.horizon if style != null else WorldStyle.HORIZON)
+	return view_h * (style.horizon if style != null else WorldStyle.HORIZON)
 
 
 ## Convenience: build a stage and put it behind everything already in `parent`.
@@ -79,8 +101,21 @@ func _ready() -> void:
 		style = WorldStyle.for_world("island")
 	if _rng == null:
 		_rng = Shapes.rng_for(style.id)
+	_measure()
 	_construct()
 	set_process(true)
+
+
+## Ask the screen how big it is, once, before anything is drawn.
+##
+## Clamped up to the design size and never down: a viewport smaller than
+## 1280x720 cannot happen with aspect="expand" (it only ever adds pixels), and
+## if one ever did, a world drawn SMALLER than the screen would leave a hole,
+## which is worse than a world drawn slightly too big.
+func _measure() -> void:
+	var view := get_viewport_rect().size
+	view_w = maxf(DESIGN_W, view.x)
+	view_h = maxf(DESIGN_H, view.y)
 
 
 # --- construction -------------------------------------------------------
@@ -128,7 +163,7 @@ func _layer(layer_name: String) -> Node2D:
 
 
 func _build_sky() -> void:
-	Shapes.gradient_quad(_sky, Vector2(-BLEED, -80.0), Vector2(W + BLEED * 2.0, H + 160.0),
+	Shapes.gradient_quad(_sky, Vector2(-BLEED, -80.0), Vector2(view_w + BLEED * 2.0, view_h + 160.0),
 		style.sky_top, style.sky_bottom)
 
 
@@ -137,7 +172,7 @@ func _build_sky() -> void:
 func _build_celestial() -> void:
 	if style.light_radius <= 0.0:
 		return
-	var at := Vector2(style.light_at.x * W, style.light_at.y * H)
+	var at := Vector2(style.light_at.x * view_w, style.light_at.y * view_h)
 	Shapes.glow(_sky, at, style.light_radius * 5.0, style.light_color, 6, style.light_glow)
 	var disc := Shapes.fill(_sky, Shapes.circle_points(at, style.light_radius, 34),
 		style.light_color, 0.0)
@@ -167,7 +202,7 @@ func _build_stars() -> void:
 		# Thin out towards the horizon, where the haze would wash them out.
 		if _rng.randf() > 1.0 - (y / horizon) * 0.75:
 			continue
-		var at := Vector2(_rng.randf_range(-BLEED, W + BLEED), y)
+		var at := Vector2(_rng.randf_range(-BLEED, view_w + BLEED), y)
 		var r: float = _rng.randf_range(1.4, 3.4)
 		var dot := Shapes.fill(_sky, Shapes.circle_points(at, r, 8),
 			Color(1.0, 0.98, 0.90, _rng.randf_range(0.4, 0.95)), 0.0)
@@ -221,22 +256,22 @@ func _hills(base: float, height: float, index: int) -> PackedVector2Array:
 	var phase: float = _rng.randf() * TAU
 	var freq: float = 0.0022 + 0.0011 * float(index)
 	var x: float = -BLEED
-	while x <= W + BLEED:
+	while x <= view_w + BLEED:
 		var y: float = base - height \
 			- sin(x * freq + phase) * height * 0.55 \
 			- sin(x * freq * 2.3 + phase * 1.7) * height * 0.22
 		pts.append(Vector2(x, y))
 		x += 26.0
-	pts.append(Vector2(W + BLEED, base + H))
-	pts.append(Vector2(-BLEED, base + H))
+	pts.append(Vector2(view_w + BLEED, base + view_h))
+	pts.append(Vector2(-BLEED, base + view_h))
 	return pts
 
 
 func _skyline(base: float, height: float, index: int) -> PackedVector2Array:
-	var pts := PackedVector2Array([Vector2(-BLEED, base + H), Vector2(-BLEED, base - height)])
+	var pts := PackedVector2Array([Vector2(-BLEED, base + view_h), Vector2(-BLEED, base - height)])
 	var x: float = -BLEED
 	var block: float = 70.0 + 28.0 * float(index)
-	while x <= W + BLEED:
+	while x <= view_w + BLEED:
 		var w: float = block * _rng.randf_range(0.62, 1.5)
 		var h: float = height * _rng.randf_range(0.45, 1.7)
 		# Rooftop worlds are low and domestic; city worlds tower.
@@ -263,15 +298,15 @@ func _skyline(base: float, height: float, index: int) -> PackedVector2Array:
 			pts.append(Vector2(mast + 3.0, top))
 		pts.append(Vector2(x + w, top))
 		x += w + _rng.randf_range(0.0, 14.0)
-	pts.append(Vector2(W + BLEED, base + H))
+	pts.append(Vector2(view_w + BLEED, base + view_h))
 	return pts
 
 
 func _treeline(base: float, height: float, index: int) -> PackedVector2Array:
-	var pts := PackedVector2Array([Vector2(-BLEED, base + H)])
+	var pts := PackedVector2Array([Vector2(-BLEED, base + view_h)])
 	var x: float = -BLEED
 	var span: float = 44.0 + 16.0 * float(index)
-	while x <= W + BLEED:
+	while x <= view_w + BLEED:
 		var h: float = height * _rng.randf_range(0.55, 1.5)
 		var w: float = span * _rng.randf_range(0.7, 1.3)
 		# A conifer is three chevrons; drawn as a spike with two shoulders it
@@ -284,21 +319,21 @@ func _treeline(base: float, height: float, index: int) -> PackedVector2Array:
 		pts.append(Vector2(x + w * 0.72, base - h * 0.62))
 		pts.append(Vector2(x + w, base - h * 0.20))
 		x += w * _rng.randf_range(0.62, 0.92)
-	pts.append(Vector2(W + BLEED, base + H))
+	pts.append(Vector2(view_w + BLEED, base + view_h))
 	return pts
 
 
 func _crags(base: float, height: float, index: int) -> PackedVector2Array:
-	var pts := PackedVector2Array([Vector2(-BLEED, base + H)])
+	var pts := PackedVector2Array([Vector2(-BLEED, base + view_h)])
 	var x: float = -BLEED
-	while x <= W + BLEED:
+	while x <= view_w + BLEED:
 		var w: float = _rng.randf_range(90.0, 230.0)
 		var h: float = height * _rng.randf_range(0.5, 1.8)
 		pts.append(Vector2(x, base))
 		pts.append(Vector2(x + w * _rng.randf_range(0.35, 0.65), base - h))
 		x += w
-	pts.append(Vector2(W + BLEED, base))
-	pts.append(Vector2(W + BLEED, base + H))
+	pts.append(Vector2(view_w + BLEED, base))
+	pts.append(Vector2(view_w + BLEED, base + view_h))
 	return pts
 
 
@@ -306,8 +341,8 @@ func _crags(base: float, height: float, index: int) -> PackedVector2Array:
 func _sea_band(base: float, height: float, index: int) -> PackedVector2Array:
 	var y: float = base - height * 1.4
 	return PackedVector2Array([
-		Vector2(-BLEED, y), Vector2(W + BLEED, y),
-		Vector2(W + BLEED, base + H), Vector2(-BLEED, base + H),
+		Vector2(-BLEED, y), Vector2(view_w + BLEED, y),
+		Vector2(view_w + BLEED, base + view_h), Vector2(-BLEED, base + view_h),
 	])
 
 
@@ -342,7 +377,7 @@ func _light_windows(parent: Node2D, silhouette: PackedVector2Array, base: float)
 func _build_haze() -> void:
 	var base: float = ground_y()
 	var haze := Shapes.gradient_quad(self, Vector2(-BLEED, base - 200.0),
-		Vector2(W + BLEED * 2.0, 206.0),
+		Vector2(view_w + BLEED * 2.0, 206.0),
 		Color(style.haze.r, style.haze.g, style.haze.b, 0.0), style.haze)
 	haze.name = "Haze"
 
@@ -350,13 +385,13 @@ func _build_haze() -> void:
 func _build_ground() -> void:
 	var base: float = ground_y()
 	Shapes.gradient_quad(_ground, Vector2(-BLEED, base),
-		Vector2(W + BLEED * 2.0, H - base + 120.0), style.ground_top, style.ground_bottom)
+		Vector2(view_w + BLEED * 2.0, view_h - base + 120.0), style.ground_top, style.ground_bottom)
 
 	# The lip where ground meets sky, lit from above. Without it the ground is
 	# a coloured rectangle; with it, it is a surface.
 	Shapes.fill(_ground, PackedVector2Array([
-		Vector2(-BLEED, base), Vector2(W + BLEED, base),
-		Vector2(W + BLEED, base + 7.0), Vector2(-BLEED, base + 7.0),
+		Vector2(-BLEED, base), Vector2(view_w + BLEED, base),
+		Vector2(view_w + BLEED, base + 7.0), Vector2(-BLEED, base + 7.0),
 	]), style.ground_top.lightened(0.22), 0.0)
 
 	match style.ground_kind:
@@ -376,9 +411,9 @@ func _build_grass(base: float) -> void:
 	# Tufts, thinning with distance from the camera. Placed with the seeded rng
 	# so the meadow is the same meadow every time.
 	for i in range(120):
-		var y: float = base + pow(_rng.randf(), 0.7) * (H - base + 60.0)
-		var depth: float = (y - base) / maxf(H - base, 1.0)
-		var x: float = _rng.randf_range(-BLEED, W + BLEED)
+		var y: float = base + pow(_rng.randf(), 0.7) * (view_h - base + 60.0)
+		var depth: float = (y - base) / maxf(view_h - base, 1.0)
+		var x: float = _rng.randf_range(-BLEED, view_w + BLEED)
 		var h: float = 6.0 + depth * 22.0
 		var blade := Shapes.fill(_ground, PackedVector2Array([
 			Vector2(x - h * 0.28, y), Vector2(x + _rng.randf_range(-h * 0.4, h * 0.4), y - h),
@@ -386,11 +421,11 @@ func _build_grass(base: float) -> void:
 		]), style.ground_bottom.lerp(style.ground_top, 0.35 + depth * 0.4), 0.0)
 		blade.z_index = -1
 	for i in range(22):
-		var y: float = base + pow(_rng.randf(), 0.6) * (H - base + 40.0)
-		var x: float = _rng.randf_range(-BLEED, W + BLEED)
+		var y: float = base + pow(_rng.randf(), 0.6) * (view_h - base + 40.0)
+		var x: float = _rng.randf_range(-BLEED, view_w + BLEED)
 		var petal: Color = [Color(1.0, 0.86, 0.34), Color(0.98, 0.62, 0.72),
 			Color(0.86, 0.90, 1.0)][_rng.randi() % 3]
-		var r: float = 3.0 + (y - base) / (H - base) * 5.0
+		var r: float = 3.0 + (y - base) / (view_h - base) * 5.0
 		for k in range(5):
 			var a: float = TAU * float(k) / 5.0
 			Shapes.fill(_ground, Shapes.circle_points(
@@ -403,12 +438,12 @@ func _build_road(base: float) -> void:
 	# A road in perspective: narrower at the horizon, wide at the child's feet.
 	# The traffic level used to be flat grey bands with no ground at all.
 	var road_top: float = base + 8.0
-	var top_half: float = W * 0.30
-	var bottom_half: float = W * 0.86
-	var mid: float = W * 0.5
+	var top_half: float = view_w * 0.30
+	var bottom_half: float = view_w * 0.86
+	var mid: float = view_w * 0.5
 	var tarmac := Shapes.fill(_ground, PackedVector2Array([
 		Vector2(mid - top_half, road_top), Vector2(mid + top_half, road_top),
-		Vector2(mid + bottom_half, H + 60.0), Vector2(mid - bottom_half, H + 60.0),
+		Vector2(mid + bottom_half, view_h + 60.0), Vector2(mid - bottom_half, view_h + 60.0),
 	]), Color(0.34, 0.35, 0.40), 0.0)
 	tarmac.name = "Road"
 	# Kerbs, lit on top.
@@ -416,14 +451,14 @@ func _build_road(base: float) -> void:
 		Shapes.fill(_ground, PackedVector2Array([
 			Vector2(mid + side * top_half, road_top),
 			Vector2(mid + side * (top_half + 10.0), road_top),
-			Vector2(mid + side * (bottom_half + 26.0), H + 60.0),
-			Vector2(mid + side * bottom_half, H + 60.0),
+			Vector2(mid + side * (bottom_half + 26.0), view_h + 60.0),
+			Vector2(mid + side * bottom_half, view_h + 60.0),
 		]), Color(0.80, 0.79, 0.76), 0.0)
 	# Centre dashes, foreshortened.
 	var t := 0.06
 	while t < 1.0:
-		var y0: float = lerpf(road_top, H + 40.0, t * t)
-		var y1: float = lerpf(road_top, H + 40.0, minf((t + 0.06), 1.0) * (t + 0.06))
+		var y0: float = lerpf(road_top, view_h + 40.0, t * t)
+		var y1: float = lerpf(road_top, view_h + 40.0, minf((t + 0.06), 1.0) * (t + 0.06))
 		var w0: float = lerpf(3.0, 16.0, t)
 		Shapes.fill(_ground, PackedVector2Array([
 			Vector2(mid - w0, y0), Vector2(mid + w0, y0),
@@ -434,21 +469,21 @@ func _build_road(base: float) -> void:
 
 func _build_plaza(base: float) -> void:
 	# Wet city stone at dusk: slabs in perspective plus reflected window light.
-	var mid: float = W * 0.5
+	var mid: float = view_w * 0.5
 	var rows := 7
 	for i in range(rows):
 		var t0: float = pow(float(i) / float(rows), 1.8)
 		var t1: float = pow(float(i + 1) / float(rows), 1.8)
-		var y0: float = lerpf(base, H + 60.0, t0)
-		var y1: float = lerpf(base, H + 60.0, t1)
+		var y0: float = lerpf(base, view_h + 60.0, t0)
+		var y1: float = lerpf(base, view_h + 60.0, t1)
 		var shade: Color = style.ground_top.lerp(style.ground_bottom, t0)
 		Shapes.fill(_ground, PackedVector2Array([
-			Vector2(-BLEED, y0), Vector2(W + BLEED, y0),
-			Vector2(W + BLEED, y1), Vector2(-BLEED, y1),
+			Vector2(-BLEED, y0), Vector2(view_w + BLEED, y0),
+			Vector2(view_w + BLEED, y1), Vector2(-BLEED, y1),
 		]), shade.lightened(0.02 if i % 2 == 0 else 0.0), 0.0)
 	for i in range(26):
-		var x: float = _rng.randf_range(-BLEED, W + BLEED)
-		var y: float = base + pow(_rng.randf(), 1.6) * (H - base)
+		var x: float = _rng.randf_range(-BLEED, view_w + BLEED)
+		var y: float = base + pow(_rng.randf(), 1.6) * (view_h - base)
 		var length: float = _rng.randf_range(20.0, 70.0)
 		Shapes.fill(_ground, PackedVector2Array([
 			Vector2(x - 3.0, y), Vector2(x + 3.0, y),
@@ -461,8 +496,8 @@ func _build_arena(base: float) -> void:
 	# rather than in front of a wall. The ring reaches above the horizon line,
 	# which is what makes the ground read as a floor receding away from the
 	# child rather than a stripe along the bottom of the screen.
-	var centre := Vector2(W * 0.5, base + (H - base) * 0.30)
-	var radii := Vector2(W * 0.60, (H - base) * 1.5)
+	var centre := Vector2(view_w * 0.5, base + (view_h - base) * 0.30)
+	var radii := Vector2(view_w * 0.60, (view_h - base) * 1.5)
 	Shapes.glow(_ground, centre, radii.x * 1.1, Color(0.94, 0.72, 1.0), 5, 0.16)
 	Shapes.fill(_ground, Shapes.oval_points(centre, radii, 44),
 		Color(0.52, 0.42, 0.62), 0.0)
@@ -484,9 +519,9 @@ func _build_arena(base: float) -> void:
 func _build_shore(base: float) -> void:
 	# Open water for the map: slow bands of shimmer rather than drawn waves.
 	for i in range(16):
-		var y: float = base + _rng.randf_range(0.0, H - base + 60.0)
+		var y: float = base + _rng.randf_range(0.0, view_h - base + 60.0)
 		var w: float = _rng.randf_range(80.0, 300.0)
-		var x: float = _rng.randf_range(-BLEED, W + BLEED - w)
+		var x: float = _rng.randf_range(-BLEED, view_w + BLEED - w)
 		var band := Shapes.fill(_ground, Shapes.rounded_rect(Vector2(x, y), Vector2(w, 5.0), 2.5, 2),
 			Color(1, 1, 1, 0.16), 0.0)
 		var t := band.create_tween().set_loops()
@@ -512,13 +547,13 @@ func _build_props() -> void:
 		var t: float = float(i) / maxf(float(count - 1), 1.0)
 		var left: bool = i % 2 == 0
 		var lane: float = t if left else 1.0 - t
-		slots.append(lerpf(-70.0, W * 0.30, lane) if left
-			else lerpf(W * 0.70, W + 70.0, lane))
+		slots.append(lerpf(-70.0, view_w * 0.30, lane) if left
+			else lerpf(view_w * 0.70, view_w + 70.0, lane))
 	for i in range(count):
 		var kind: String = style.props[_rng.randi() % style.props.size()]
 		var x: float = slots[i] + _rng.randf_range(-46.0, 46.0)
 		var depth: float = _rng.randf_range(0.0, 1.0)
-		var y: float = base + depth * (H - base) * style.prop_band
+		var y: float = base + depth * (view_h - base) * style.prop_band
 		var scale: float = lerpf(0.55, 1.25, depth)
 		var holder := Node2D.new()
 		holder.position = Vector2(x, y)
@@ -766,7 +801,7 @@ func _build_clouds() -> void:
 		var high: bool = i < count / 2
 		var cloud := Node2D.new()
 		var y: float = _rng.randf_range(20.0, maxf(ground_y(), 200.0) * (0.34 if high else 0.62))
-		cloud.position = Vector2(_rng.randf_range(-BLEED, W + BLEED), y)
+		cloud.position = Vector2(_rng.randf_range(-BLEED, view_w + BLEED), y)
 		var s: float = _rng.randf_range(0.55, 1.35) * (0.7 if high else 1.0)
 		cloud.scale = Vector2(s, s)
 		_air.add_child(cloud)
@@ -796,9 +831,9 @@ func _build_motes() -> void:
 		return
 	var p := CPUParticles2D.new()
 	p.name = "Motes"
-	p.position = Vector2(W * 0.5, ground_y() * 0.5)
+	p.position = Vector2(view_w * 0.5, ground_y() * 0.5)
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(W * 0.62 + BLEED, maxf(ground_y(), 120.0) * 0.5)
+	p.emission_rect_extents = Vector2(view_w * 0.62 + BLEED, maxf(ground_y(), 120.0) * 0.5)
 	p.color = style.mote_color
 	p.local_coords = false
 	match style.mote_kind:
@@ -826,7 +861,7 @@ func _build_motes() -> void:
 			p.amount = 22
 			p.lifetime = 3.4
 			p.gravity = Vector2(6, -26)
-			p.position = Vector2(W * 0.5, ground_y() * 0.86)
+			p.position = Vector2(view_w * 0.5, ground_y() * 0.86)
 			p.initial_velocity_min = 8.0
 			p.initial_velocity_max = 30.0
 			p.scale_amount_min = 2.0
@@ -867,7 +902,7 @@ func _fade_ramp(color: Color) -> Gradient:
 ## grey, so quieting the scenery does not turn the screen cold.
 func _build_calm_veil() -> void:
 	var veil := Shapes.gradient_quad(self, Vector2(-BLEED, -80.0),
-		Vector2(W + BLEED * 2.0, H + 160.0),
+		Vector2(view_w + BLEED * 2.0, view_h + 160.0),
 		Color(1.0, 0.99, 0.96, style.calm * 0.46),
 		Color(1.0, 0.98, 0.94, style.calm * 0.60))
 	veil.name = "Calm"
@@ -881,7 +916,7 @@ func _build_fringe() -> void:
 		return
 	var tint: Color = style.ground_bottom.darkened(0.30)
 	for side in [-1.0, 1.0]:
-		var at := Vector2(W * 0.5 + side * W * 0.56, H + 40.0)
+		var at := Vector2(view_w * 0.5 + side * view_w * 0.56, view_h + 40.0)
 		var lump := Shapes.fill(_fringe,
 			Shapes.blob(at, Vector2(_rng.randf_range(200.0, 300.0), 150.0), _rng, 0.20, 3, 20),
 			Color(tint.r, tint.g, tint.b, 0.55), 0.0)
@@ -899,7 +934,7 @@ func _process(delta: float) -> void:
 		if not is_instance_valid(node):
 			continue
 		node.position.x += float(cloud["speed"]) * delta
-		if node.position.x > W + BLEED + 260.0:
+		if node.position.x > view_w + BLEED + 260.0:
 			node.position.x = -BLEED - 260.0
 	for sway in _swayers:
 		var node2: Node2D = sway["node"]
@@ -915,7 +950,7 @@ func _process(delta: float) -> void:
 ## things are at that distance. Levels use this instead of choosing a y, which
 ## is how everything in the game ends up standing on the same floor.
 func place(actor: Node2D, x: float, depth: float = 0.0, base_scale: float = 1.0) -> void:
-	var y: float = ground_y() + depth * (H - ground_y()) * 0.6
+	var y: float = ground_y() + depth * (view_h - ground_y()) * 0.6
 	var s: float = base_scale * lerpf(0.9, 1.15, depth)
 	actor.position = Vector2(x, y)
 	actor.scale = Vector2(s, s)
@@ -944,7 +979,7 @@ func parallax(scroll: float) -> void:
 ## It goes in with the props so it is lit and shadowed like everything else,
 ## rather than floating in front of the picture.
 func add_landmark(node: Node2D, x: float, depth: float = 0.2) -> void:
-	node.position = Vector2(x, ground_y() + depth * (H - ground_y()) * 0.4)
+	node.position = Vector2(x, ground_y() + depth * (view_h - ground_y()) * 0.4)
 	node.z_index = int(depth * 8.0)
 	_props.add_child(node)
 	Shapes.ground_shadow(_props, node.position, 150.0, 0.20)
