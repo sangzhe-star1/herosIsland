@@ -939,11 +939,29 @@ for path in glob.glob("scripts/**/*.gd", recursive=True):
 # writes 720 (or a y near it) into a drawn layout puts furniture a third of
 # the way up the child's screen -- and any "below this line" rule written as a
 # fixed y ends up slicing through the middle of the play area.
+#
+# The right edge is in this list for a subtler reason. 1280 is the viewport
+# width on BOTH shapes today, so `1280.0 - chip.size.x - 28.0` -- which is how
+# the home screen's treasure chip was pinned into its corner for months -- is
+# right by accident. It stays right until the design width changes or a screen
+# wider than 4:3 turns up, and then it is wrong everywhere at once with no
+# failing test to say so. A number that happens to be correct for a reason
+# nobody wrote down is a number waiting to be wrong, and asking the screen how
+# wide it is costs one call.
+BOTTOM_MSG = ("a y near the bottom of a 720-tall screen, hard-coded -- "
+              "a 4:3 tablet viewport is 960 tall")
+RIGHT_MSG = ("the right edge of the screen, hard-coded as 1280 -- ask the "
+             "viewport instead; a width that is only right by coincidence is "
+             "the treasure-chip bug waiting to happen again")
 BOTTOM = [
     # the y slot of a Vector2, down where the bottom of a 16:9 screen is
-    re.compile(r'Vector2\([^,()]+,\s*(?:6[2-9]\d|7[0-2]\d)(?:\.\d+)?\s*[),]'),
+    (re.compile(r'Vector2\([^,()]+,\s*(?:6[2-9]\d|7[0-2]\d)(?:\.\d+)?\s*[),]'), BOTTOM_MSG),
     # 720 used as "the height of the screen"
-    re.compile(r'(?<![\w.])720(?:\.0)?\s*[-*/]'),
+    (re.compile(r'(?<![\w.])720(?:\.0)?\s*[-*/]'), BOTTOM_MSG),
+    # 1280 used as "the width of the screen"
+    (re.compile(r'(?<![\w.])1280(?:\.0)?\s*[-*/]'), RIGHT_MSG),
+    # the x slot of a Vector2, out where the right edge of the screen is
+    (re.compile(r'Vector2\(\s*(?:11[5-9]\d|12[0-7]\d)(?:\.\d+)?\s*,'), RIGHT_MSG),
 ]
 for path in (glob.glob("scripts/minigames/*.gd") + glob.glob("scripts/adventure/*.gd")
              + glob.glob("scripts/ui/*.gd") + glob.glob("scripts/shop/*.gd")):
@@ -963,7 +981,7 @@ for path in (glob.glob("scripts/minigames/*.gd") + glob.glob("scripts/adventure/
         # function that routes its numbers through Fit has measured the screen
         # exactly as much as one that calls get_viewport_rect() itself.
         if ("get_viewport_rect()" in line or "get_visible_rect()" in line
-                or re.search(r'\bFit\.(at|x|y|bottom|right|corner)\(', line)):
+                or re.search(r'\bFit\.(at|x|y|bottom|right|corner|view)\(', line)):
             measured.add(current)
     # A `const` at file scope has no node and CANNOT ask the screen anything.
     # Its only possible remedy is being routed through Fit at the point of USE,
@@ -987,10 +1005,12 @@ for path in (glob.glob("scripts/minigames/*.gd") + glob.glob("scripts/adventure/
         # this rule was written.
         if re.search(r'\.(gravity|velocity|direction|accel\w*|linear_\w+)\s*=', line):
             continue
-        if any(rx.search(line) for rx in BOTTOM):
-            warnings.append(f"{os.path.basename(path)}:{i}: a y near the "
-                            f"bottom of a 720-tall screen, hard-coded -- a "
-                            f"4:3 tablet viewport is 960 tall")
+        # Say WHICH edge. "a y near the bottom" printed over a hard-coded 1280
+        # sends the reader looking for a height that is not there.
+        for rx, edge in BOTTOM:
+            if rx.search(line):
+                warnings.append(f"{os.path.basename(path)}:{i}: {edge}")
+                break
 
 # --- 5l. a sound that is not there makes no noise and no error
 #

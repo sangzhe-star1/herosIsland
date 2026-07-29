@@ -505,6 +505,31 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
   fi
   no_script_errors "$TB_OUT" "Tablet Probe"
   rm -f "$TB_OUT"
+
+  # The home screen, on both shapes, measured rather than looked at.
+  #
+  # The tablet probe above has never contained a shell screen -- only levels --
+  # and that hole is how the home screen shipped with its greeting clipped, its
+  # parent door cut in half and the hold hint off the bottom of the display
+  # entirely. The smoke test booted it happily the whole time: a screen whose
+  # furniture is past the edge runs perfectly, it just cannot be pressed.
+  echo
+  echo "Running home probe..."
+  HM_RUNNER=()
+  if [[ "$(uname)" == "Linux" ]] && [[ -z "${DISPLAY:-}" ]]; then
+    HM_RUNNER=(xvfb-run -a -s "-screen 0 1920x1200x24")
+    export LIBGL_ALWAYS_SOFTWARE=1
+  fi
+  HM_OUT=$(mktemp)
+  timeout 300 "${HM_RUNNER[@]}" "$GODOT" --path . --rendering-driver opengl3 \
+    res://tests/HomeProbe.tscn 2>&1 | tee "$HM_OUT"
+  if ! grep -q "HOME PROBE PASSED" "$HM_OUT"; then
+    rm -f "$HM_OUT"
+    echo "Home probe failed."
+    exit 1
+  fi
+  no_script_errors "$HM_OUT" "Home Probe"
+  rm -f "$HM_OUT"
 fi
 
 # 星光菜园's save. Runs late and before the save probe: it wipes the save file

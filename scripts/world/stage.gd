@@ -66,6 +66,8 @@ var _fringe: Node2D
 
 var _clouds: Array[Dictionary] = []      # [{node, speed, span}]
 var _swayers: Array[Dictionary] = []     # [{node, amount, rate, phase}]
+## Scenery a child may poke: [{node, kind, radius}]. See poke_at().
+var _pokeable: Array[Dictionary] = []
 var _time := 0.0
 
 ## The y of the ground line on the design-size screen, for the three callers
@@ -562,6 +564,13 @@ func _build_props() -> void:
 		_props.add_child(holder)
 		Shapes.ground_shadow(holder, Vector2.ZERO, 90.0, 0.18)
 		_draw_prop(holder, kind, depth)
+		# Props are drawn upward from their feet, so the poke circle is lifted
+		# off the ground line to sit on the thing itself rather than on the
+		# grass under it.
+		_pokeable.append({
+			"node": holder, "kind": kind, "radius": 66.0 * scale,
+			"lift": Vector2(0, -52.0 * scale),
+		})
 
 
 func _draw_prop(parent: Node2D, kind: String, depth: float) -> void:
@@ -823,6 +832,11 @@ func _build_clouds() -> void:
 				body, 0.0)
 		_clouds.append({
 			"node": cloud, "speed": _rng.randf_range(3.0, 11.0) * (0.5 if high else 1.0),
+			"span": span,
+		})
+		_pokeable.append({
+			"node": cloud, "kind": "cloud", "radius": span * 0.62 * s,
+			"lift": Vector2.ZERO,
 		})
 
 
@@ -942,6 +956,123 @@ func _process(delta: float) -> void:
 			continue
 		node2.rotation = sin(_time * float(sway["rate"]) + float(sway["phase"])) \
 			* float(sway["amount"])
+
+
+# --- the world answers back ---------------------------------------------
+#
+# A screen that only reacts where it is touched teaches a child that the rest
+# of it is a photograph -- and at six, a tap that does NOTHING is the screen
+# being broken. So the scenery answers: poke a cloud and it squashes, poke a
+# cottage and it rocks on its feet. Nothing here navigates, nothing here can be
+# got wrong, and nothing here is stored.
+#
+# The reactions are all the same mechanic -- squash, overshoot, settle -- on
+# purpose. One gesture used consistently reads as a world with rules; four
+# different bespoke animations read as four bugs.
+#
+# What may be animated is not free. `_process` above owns every cloud's
+# position.x (drift) and every swayer's rotation (wind), and a tween fighting a
+# per-frame write loses silently and looks like a stutter. Scale is the one
+# channel nothing else writes, which is why every reaction below is a scale.
+
+## Take the scenery out of a vertical strip, for a screen that stands somebody
+## there.
+##
+## Props are placed in slots that avoid the middle third, because that is where
+## the game happens -- but a shell screen's character stands in the LEFT third,
+## and the world will happily put a cottage under his boots. It looks exactly
+## like a hero balanced on a roof, and that is what the home screen looked like
+## the first time it was laid out this way.
+##
+## Removed rather than hidden: a prop nobody can see is still a poke target,
+## and poking an invisible cottage is worse than the roof.
+func clear_lane(x_min: float, x_max: float) -> void:
+	for entry in _pokeable.duplicate():
+		var node: Node2D = entry["node"]
+		if not is_instance_valid(node) or node.get_parent() != _props:
+			continue
+		if node.position.x >= x_min and node.position.x <= x_max:
+			_pokeable.erase(entry)
+			node.queue_free()
+
+
+## Everything a child may poke, in global coordinates:
+## [{"at": Vector2, "kind": String, "radius": float}].
+##
+## Exposed so a screen can check that its own furniture has not covered the
+## whole world -- a home screen whose cards sit over every reachable prop has
+## a pokeable world with nothing in it, which looks exactly like a working one.
+func poke_targets() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry in _pokeable:
+		var node: Node2D = entry["node"]
+		if not is_instance_valid(node) or not node.is_inside_tree():
+			continue
+		out.append({
+			"at": node.to_global(Vector2.ZERO) + (entry["lift"] as Vector2),
+			"kind": str(entry["kind"]),
+			"radius": float(entry["radius"]),
+		})
+	return out
+
+
+## A tap landed somewhere in the world. Returns true if something answered, so
+## the caller knows whether to make a noise about it.
+##
+## Under reduce-motion nothing answers and this returns false. That setting
+## means "calm screen", and a world that wobbles when poked is the first thing
+## it is asking for less of.
+func poke_at(point: Vector2) -> bool:
+	if not Juice.motion_enabled():
+		return false
+	var best: Dictionary = {}
+	var best_distance: float = INF
+	for entry in _pokeable:
+		var node: Node2D = entry["node"]
+		if not is_instance_valid(node) or not node.is_inside_tree():
+			continue
+		var centre: Vector2 = node.to_global(Vector2.ZERO) + (entry["lift"] as Vector2)
+		var distance: float = centre.distance_to(point)
+		# Nearest wins, not first: props overlap, and answering with whichever
+		# one happened to be built first means poking a cottage sometimes
+		# wobbles the fence behind it.
+		if distance <= float(entry["radius"]) and distance < best_distance:
+			best_distance = distance
+			best = entry
+	if best.is_empty():
+		return false
+	_poke(best)
+	return true
+
+
+func _poke(entry: Dictionary) -> void:
+	var node: Node2D = entry["node"]
+	# The rest scale is the one the prop was BUILT at -- distance sets it, and
+	# it is different for every prop. Reading it live would let a second poke
+	# during the first one's squash adopt a squashed scale as home, and the
+	# prop would shrink a little every time a child hammered on it.
+	var rest: Vector2 = node.scale
+	if node.has_meta("_poke_rest"):
+		rest = node.get_meta("_poke_rest")
+	else:
+		node.set_meta("_poke_rest", rest)
+	if node.has_meta("_poke_tween"):
+		var old: Variant = node.get_meta("_poke_tween")
+		if old is Tween and (old as Tween).is_valid():
+			(old as Tween).kill()
+	node.scale = rest
+
+	var tween: Tween = node.create_tween()
+	node.set_meta("_poke_tween", tween)
+	tween.tween_property(node, "scale", rest * Vector2(1.14, 0.82), 0.09)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(node, "scale", rest * Vector2(0.95, 1.08), 0.13)\
+		.set_trans(Tween.TRANS_SINE)
+	tween.tween_property(node, "scale", rest, 0.24)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	var at: Vector2 = node.position + (entry["lift"] as Vector2)
+	Juice.dust(self, at, 5, 0.8)
 
 
 # --- what levels ask of it ----------------------------------------------
