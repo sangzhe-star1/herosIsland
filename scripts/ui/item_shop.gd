@@ -14,14 +14,26 @@ extends Control
 ## owned-count chip. The words are captions.
 
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Buying := preload("res://scripts/shop/purchase_manager.gd")
 
 var _balance_label: Label
-var _cards: Dictionary = {}   # item_id -> {count: Label, price: int}
+var _cards: Dictionary = {}   # item_id -> {count: Label, price: int, hit: Button}
+var _buying: Buying
 
 
 func _ready() -> void:
 	theme = UiKit.theme()
 	UiKit.world_background(self, "piglet_town", "shop", 0.62)
+
+	# The same confirm-and-put-back contract the Hero House uses, because this
+	# screen once spent a coin on ONE press of the card. That was the exact
+	# shape the red line forbids ("一次点击直接扣费") -- it shipped anyway,
+	# because the wardrobe got the careful flow and this little shop was built
+	# earlier and never revisited. One contract, one file, both shops.
+	_buying = Buying.new()
+	add_child(_buying)
+	_buying.changed.connect(_refresh)
+	_buying.go_play.connect(func(): SceneManager.goto_world_map())
 
 	var root := UiKit.screen_root(self)
 	root.add_theme_constant_override("separation", 18)
@@ -117,33 +129,36 @@ func _build_card(item: Dictionary) -> PanelContainer:
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	inner.add_child(count)
 
-	# The whole card buys, on press, exactly like the Hero House cards.
+	# The whole card is the door to the confirm sheet -- pressing it opens the
+	# three numbers, never a purchase. `pressed`, not `button_down`: a press
+	# that can cost money is completed deliberately, not started accidentally.
 	var hit := Button.new()
 	hit.focus_mode = Control.FOCUS_NONE
 	hit.set_anchors_preset(Control.PRESET_FULL_RECT)
 	for st in ["normal", "hover", "pressed", "disabled"]:
 		hit.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	hit.button_down.connect(_buy.bind(item_id, price, card))
+	hit.pressed.connect(_ask.bind(item, card))
 	inner.add_child(hit)
 
 	card.pivot_offset = Vector2(150, 190)
-	_cards[item_id] = {"count": count, "price": price}
+	_cards[item_id] = {"count": count, "price": price, "hit": hit}
 	return card
 
 
-func _buy(item_id: String, price: int, card: PanelContainer) -> void:
-	if not Coins.spend(price):
-		# Not enough: the card shakes its head, the purse points at itself.
-		# No grey-out -- a child should always be able to TRY.
-		Juice.nudge(card)
-		if _balance_label != null:
-			Juice.pop(_balance_label, 0.3)
-		return
-	SaveManager.add_item(item_id)
-	Juice.pop(card, 0.10)
-	Juice.burst(self, card.get_global_rect().get_center(), 18)
-	AudioManager.play_sfx("res://assets/audio/correct.ogg")
-	_refresh()
+func _ask(item: Dictionary, card: PanelContainer) -> void:
+	var item_id := str(item.get("id", ""))
+	var price := int(item.get("cost_coins", 20))
+	Juice.pop(card, 0.06)
+	# Money moves only inside the sheet. This screen's whole part in the deal
+	# is saying how the potion is handed over -- and how it goes back on the
+	# shelf inside the five 放回去 seconds.
+	_buying.offer({
+		"name_key": str(item.get("name_key", "")),
+		"icon": str(item.get("icon", "star")),
+		"price": price,
+		"give": func(): SaveManager.add_item(item_id),
+		"take_back": func(): SaveManager.use_item(item_id),
+	})
 
 
 func _refresh() -> void:

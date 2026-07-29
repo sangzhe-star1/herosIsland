@@ -552,6 +552,41 @@ for path in gd:
                       f"back doors around currency_manager.gd; the whole point "
                       f"of one money file is that there is only one")
 
+# --- 5e2. money leaves only through a confirm flow
+#
+# The red line is "一次点击直接扣费" -- and it shipped twice anyway: the item
+# shop spent a coin on button_down, the sticker book on one tap, while the
+# wardrobe next door had the careful three-numbers-and-放回去 sheet. Both were
+# built before purchase_manager existed and never revisited, and nothing said
+# so, because rule 5e only checks WHERE the balance changes, not WHO may ask
+# it to.
+#
+# So: Coins.spend() may be called only from files whose flow has been argued
+# for by name below -- each one either shows a confirm step first or is the
+# confirm step. A screen that wants to sell something new goes through
+# purchase_manager.offer(); appearing in this list instead requires writing
+# down, here, what its confirm step is.
+SPEND_MAY = {
+    "scripts/shop/purchase_manager.gd",   # IS the confirm sheet (offer/confirm)
+    "scripts/shop/shop_manager.gd",       # called only by purchase_manager's _do_buy
+    "scripts/garden/seed_shop_manager.gd",     # seed shop panel confirms first
+    "scripts/garden/inventory_manager.gd",     # barn-side of the same panels
+    "scripts/garden/farm_expansion_manager.gd",# 开垦 asks, then pays, then can undo
+    "scripts/garden/garden_screen.gd",         # barn upgrade: 先问后扣、5秒放回
+}
+for path in gd:
+    if path.startswith("tests"):
+        continue
+    src_lines = open(path).read().split("\n")
+    for i, line in enumerate(src_lines, 1):
+        code = line.split("#", 1)[0]
+        if re.search(r'\bCoins\.spend\s*\(', code) and path not in SPEND_MAY:
+            errors.append(
+                f"{path}:{i}: calls Coins.spend() outside the confirm flows -- "
+                f"this is the shape of 一次点击直接扣费 growing back. Sell "
+                f"through purchase_manager.offer(), or argue the new flow into "
+                f"SPEND_MAY by name")
+
 # --- 5q. the crops have to be growable
 #
 # A stage that takes zero seconds finishes the instant it starts, which reads

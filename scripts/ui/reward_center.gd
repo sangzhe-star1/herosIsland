@@ -15,6 +15,11 @@ extends Control
 ## says it without a shop, a timer or a locked box.
 const Album := preload("res://scripts/reward/monster_album.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Buying := preload("res://scripts/shop/purchase_manager.gd")
+
+var _buying: Buying
+var _coins_title: Label
+var _sticker_row: HFlowContainer
 
 
 
@@ -237,6 +242,16 @@ func _ready() -> void:
 	theme = UiKit.theme()
 	UiKit.world_background(self, "piglet_town", "rewards", 0.62)
 
+	# Stickers used to be bought by ONE tap on the tile -- the exact shape the
+	# red line forbids, shipped here because the wardrobe got the careful flow
+	# and the sticker book was built earlier and never revisited. Same
+	# contract, same file, now: confirm sheet, three numbers, five seconds of
+	# 放回去.
+	_buying = Buying.new()
+	add_child(_buying)
+	_buying.changed.connect(_refresh_money)
+	_buying.go_play.connect(func(): SceneManager.goto_world_map())
+
 	var root := UiKit.screen_root(self)
 	root.add_theme_constant_override("separation", 16)
 
@@ -305,8 +320,9 @@ func _ready() -> void:
 	var coin_icon: Control = UiKit.picture("coin", 52)
 	if coin_icon != null:
 		treasure_row.add_child(coin_icon)
-	var coins: int = int(SaveManager.data["rewards"]["coins"])
-	treasure_row.add_child(UiKit.title("%s: %d" % [I18n.t("rewards.coins"), coins], 40))
+	_coins_title = UiKit.title(
+		"%s: %d" % [I18n.t("rewards.coins"), Coins.balance()], 40)
+	treasure_row.add_child(_coins_title)
 	var star_icon: Control = UiKit.picture("star", 52)
 	if star_icon != null:
 		var spacer := Control.new()
@@ -368,13 +384,11 @@ func _ready() -> void:
 	sticker_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	sticker_box.add_child(sticker_title)
 
-	var sticker_row := HFlowContainer.new()
-	sticker_row.add_theme_constant_override("h_separation", 14)
-	sticker_row.add_theme_constant_override("v_separation", 14)
-	sticker_box.add_child(sticker_row)
-
-	for sticker in GameData.rewards.get("stickers", []):
-		sticker_row.add_child(_build_sticker(sticker))
+	_sticker_row = HFlowContainer.new()
+	_sticker_row.add_theme_constant_override("h_separation", 14)
+	_sticker_row.add_theme_constant_override("v_separation", 14)
+	sticker_box.add_child(_sticker_row)
+	_fill_stickers()
 	list.add_child(sticker_card)
 
 	# --- growth card ---------------------------------------------------------
@@ -522,6 +536,24 @@ func _draw_medal(parent: Control, at: Vector2, radius: float, earned: bool) -> v
 		Shapes.glow(parent, at, radius * 2.0, Color(1.0, 0.86, 0.42), 5, 0.30)
 
 
+## The shelf, rebuilt from the save. Called once at open and again after every
+## buy or 放回去 -- the tiles are cheap, and rebuilding is how a tile bought
+## and then returned goes honestly back to dim-with-a-price instead of some
+## hand-mutated in-between.
+func _fill_stickers() -> void:
+	for child in _sticker_row.get_children():
+		child.queue_free()
+	for sticker in GameData.rewards.get("stickers", []):
+		_sticker_row.add_child(_build_sticker(sticker))
+
+
+func _refresh_money() -> void:
+	if is_instance_valid(_coins_title):
+		_coins_title.text = "%s: %d" % [I18n.t("rewards.coins"), Coins.balance()]
+	if is_instance_valid(_sticker_row):
+		_fill_stickers()
+
+
 func _build_sticker(sticker: Dictionary) -> Control:
 	var sticker_id := str(sticker.get("id", ""))
 	var cost := int(sticker.get("cost", 10))
@@ -556,32 +588,14 @@ func _build_sticker(sticker: Dictionary) -> Control:
 		price.add_child(amount)
 		price.position = Vector2(48, 112)
 		tile.add_child(price)
-		tile.pressed.connect(func(): _try_buy(sticker_id, cost, tile, icon, price))
+		# Opens the sheet; never buys. The sticker itself is handed over and
+		# taken back through the two callables, and the money never moves in
+		# this file at all.
+		tile.pressed.connect(func():
+			_buying.offer({
+				"icon": sticker_id,
+				"price": cost,
+				"give": func(): SaveManager.add_sticker(sticker_id),
+				"take_back": func(): SaveManager.remove_sticker(sticker_id),
+			}))
 	return tile
-
-
-func _try_buy(sticker_id: String, cost: int, tile: Button, icon: Control, price: Control) -> void:
-	if SaveManager.has_sticker(sticker_id):
-		return
-	if not Coins.spend(cost):
-		# Not enough yet: the price tag wiggles, nothing is lost, and the next
-		# level is the way to fix it. No error sound, no popup.
-		Juice.nudge(price)
-		return
-	SaveManager.add_sticker(sticker_id)
-	if icon != null:
-		icon.modulate = Color.WHITE
-	price.queue_free()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(1, 1, 1, 0.0)
-	style.set_corner_radius_all(22)
-	for state in ["normal", "hover", "pressed", "disabled"]:
-		tile.add_theme_stylebox_override(state, style)
-	Juice.pop(tile, 0.25)
-	Juice.burst(self, tile.get_global_rect().get_center(), 18)
-	AudioManager.play_sfx("res://assets/audio/coin.ogg")
-	# The header chip and coins card are stale now; rebuild the screen state
-	# cheaply by refreshing the scene.
-	await get_tree().create_timer(0.6).timeout
-	if is_instance_valid(self):
-		SceneManager.goto_scene("res://scenes/reward/RewardCenter.tscn")

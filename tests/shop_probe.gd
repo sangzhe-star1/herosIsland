@@ -39,6 +39,9 @@ func _ready() -> void:
 	_old_saves_get_paid_back()
 	_bonuses_pay_once()
 
+	print("  --- one tap is never a purchase ---")
+	await _one_tap_buys_nothing()
+
 	print("  --- the shop itself ---")
 	_the_catalogue_is_whole()
 	_unlocking()
@@ -54,6 +57,68 @@ func _ready() -> void:
 		print("FAIL  %s" % f)
 	print("SHOP PROBE %s\n" % ("PASSED" if _out.is_empty() else "FAILED"))
 	get_tree().quit(1 if _out.size() > 0 else 0)
+
+
+## The OTHER rule, checked through the real screen: one tap on a shop card
+## must never move money. The 道具小店 shipped for weeks spending a coin on
+## button_down -- everything else about it worked, so nothing complained --
+## and the sticker book had the same shape. Both go through the confirm sheet
+## now, and this walks the whole contract: tap opens the sheet and spends
+## nothing; the sheet's own button spends exactly the price; 放回去 returns
+## every coin and takes the goods back.
+func _one_tap_buys_nothing() -> void:
+	SaveManager.data["rewards"]["coins"] = 100
+	SaveManager.data["rewards"]["items"] = {}
+	var shop_screen: Control = load("res://scenes/shop/ItemShop.tscn").instantiate()
+	add_child(shop_screen)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var cards: Dictionary = shop_screen.get("_cards")
+	var buying: Node = shop_screen.get("_buying")
+	_ok(not cards.is_empty(), "the item shop built no cards")
+	_ok(buying != null, "the item shop has no confirm sheet at all")
+	if cards.is_empty() or buying == null:
+		shop_screen.queue_free()
+		return
+	var first_id := str(cards.keys()[0])
+	var price := int(cards[first_id]["price"])
+	var hit: Button = cards[first_id]["hit"]
+
+	hit.pressed.emit()
+	await get_tree().process_frame
+	_ok(Coins.balance() == 100,
+		"tapping a shop card moved money: 100 -> %d before any confirm"
+		% Coins.balance())
+	_ok(SaveManager.item_count(first_id) == 0,
+		"tapping a shop card already handed the item over")
+	_ok(bool(buying.call("is_open")), "the tap did not open the confirm sheet")
+
+	var yes: Button = buying.get("sheet_yes")
+	_ok(yes != null, "the confirm sheet has no yes button to press")
+	if yes != null:
+		yes.pressed.emit()
+		await get_tree().process_frame
+		_ok(Coins.balance() == 100 - price,
+			"confirming spent %d, not the price %d"
+			% [100 - Coins.balance(), price])
+		_ok(SaveManager.item_count(first_id) == 1,
+			"paid, but the item never arrived")
+
+	var undo: Button = buying.get("sheet_undo")
+	_ok(undo != null, "no 放回去 after the purchase")
+	if undo != null:
+		undo.pressed.emit()
+		await get_tree().process_frame
+		_ok(Coins.balance() == 100,
+			"放回去 returned %d of %d coins" % [Coins.balance() - (100 - price), price])
+		_ok(SaveManager.item_count(first_id) == 0,
+			"the coins came back but he kept the potion too")
+
+	print("  tap: no spend; confirm: -%d; 放回去: whole again at %d"
+		% [price, Coins.balance()])
+	shop_screen.queue_free()
+	await get_tree().process_frame
 
 
 ## THE RULE. Buying must never move 关卡星章, by any route, ever.

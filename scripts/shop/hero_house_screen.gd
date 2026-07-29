@@ -39,6 +39,7 @@ var _scroll: ScrollContainer
 var _tabs: Dictionary = {}
 var _cards: Dictionary = {}
 var _coin_label: Label
+var _back: Button             # named, so the probe can ask what it overlaps
 var _tray: Control            # the "do you like it?" strip
 var _category := "head"
 var _trying := ""             # the item being tried on, "" when nothing is
@@ -88,9 +89,9 @@ func _ready() -> void:
 # --- the room -------------------------------------------------------------
 
 func _build_header(view: Vector2) -> void:
-	var back := UiKit.back_button(func(): SceneManager.goto_home())
-	back.position = Vector2(24, 18)
-	add_child(back)
+	_back = UiKit.back_button(func(): SceneManager.goto_home())
+	_back.position = Vector2(24, 18)
+	add_child(_back)
 
 	var title := UiKit.title_on_art(I18n.t("house.title"), 44)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -137,21 +138,31 @@ func _build_header(view: Vector2) -> void:
 
 
 func _build_tabs(view: Vector2) -> void:
-	# Nine drawers down the left. They used to share the stage's height and
-	# left 8 px between them, with a 22 px icon underneath the words -- the
-	# icon and the label overlapped, which is the one thing a child who cannot
-	# read actually needs. They now take the whole column from under the title
-	# to the top of the shelf, and the picture is the big part.
-	var top: float = _stage_top + 2.0
+	# Nine drawers down the left, in TWO columns of five and four.
+	#
+	# One column was the obvious layout and it failed twice at once, and both
+	# failures were invisible in a screenshot glance. Nine drawers stacked in
+	# the band between title and shelf left each one 138x40 -- and 40 is
+	# smaller than the finger pressing it; this project's own floor for a
+	# child's target is 60. And the column started at the same height as the
+	# back button, which sits in the same corner: the top drawer (形象, the
+	# most important one) was UNDER the back button by sixteen pixels,
+	# pressable only in its lower half. Two columns halve the row count, which
+	# is what buys every drawer its sixty pixels; starting below the back
+	# button gives the corner exactly one owner.
+	var top: float = maxf(_stage_top + 2.0, _back.position.y + _back.size.y + 12.0)
+	var rows: int = int(ceil(float(CATEGORIES.size()) / 2.0))
 	var room: float = view.y - _shelf_h - 6.0 - top
-	var step: float = room / float(CATEGORIES.size())
+	var step: float = room / float(rows)
+	var chip_w := 82.0
 	for i in range(CATEGORIES.size()):
 		var slot: String = CATEGORIES[i]
 		var b := Button.new()
 		b.flat = true
 		b.focus_mode = Control.FOCUS_NONE
-		b.position = Vector2(14, top + float(i) * step)
-		b.size = Vector2(138, step - 7.0)
+		b.position = Vector2(14.0 + float(i % 2) * (chip_w + 7.0),
+			top + float(i / 2) * step)
+		b.size = Vector2(chip_w, minf(step - 7.0, 108.0))
 		b.pressed.connect(func(): _open(slot))
 		add_child(b)
 		_tabs[slot] = b
@@ -174,13 +185,15 @@ func _paint_tab(slot: String, chosen: bool) -> void:
 			Color(1.0, 0.80, 0.32, 0.55), 0.0)
 		Shapes.fill(pad, Shapes.rounded_rect(Vector2.ZERO, box, 20.0),
 			Color(1, 1, 1, 0.98), 0.0)
-	# The picture first and big; the word beside it, small, for the day he
+	# The picture on top and big; the word underneath, small, for the day he
 	# starts reading. They must not overlap: an icon with 帽子 printed across
-	# it is neither a picture nor a word.
-	var art: float = minf(box.y * 0.86, 40.0)
+	# it is neither a picture nor a word. Stacked rather than side by side,
+	# because the drawers are square-ish now -- a word beside a picture in an
+	# 82px-wide chip would squeeze both.
+	var art: float = minf(box.y * 0.52, 44.0)
 	var icon: Control = UiKit.picture(_tab_icon(slot), art)
 	if icon != null:
-		icon.position = Vector2(9, (box.y - art) * 0.5)
+		icon.position = Vector2((box.x - art) * 0.5, box.y * 0.5 - art + 4.0)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(icon)
 	var label := Label.new()
@@ -188,9 +201,9 @@ func _paint_tab(slot: String, chosen: bool) -> void:
 	label.add_theme_font_size_override("font_size", 18)
 	label.add_theme_color_override("font_color",
 		Color(0.16, 0.24, 0.38) if chosen else Color(0.44, 0.52, 0.64))
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.position = Vector2(art + 15.0, 0)
-	label.size = Vector2(box.x - art - 19.0, box.y)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = Vector2(0, box.y * 0.5 + 8.0)
+	label.size = Vector2(box.x, 24)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(label)
 	if chosen and Juice.motion_enabled():
@@ -238,11 +251,14 @@ func _tab_icon(slot: String) -> String:
 
 func _build_stage(view: Vector2) -> void:
 	_stage = Podium.new()
-	_stage.position = Vector2(160, _stage_top)
+	# 200, because the drawer rail to its left is two columns wide now
+	# (14 + 82 + 7 + 82 = 185) -- at the old 160 the rail's second column sat
+	# on the podium's edge.
+	_stage.position = Vector2(200, _stage_top)
 	# The stage is the STANDING area only. The face row underneath used to be
 	# drawn inside it, over the platform, so the hero looked like he was
 	# floating above a white strip.
-	_stage.size = Vector2(view.x - 160.0 - 226.0, _stage_h - _faces_h)
+	_stage.size = Vector2(view.x - 200.0 - 226.0, _stage_h - _faces_h)
 	add_child(_stage)
 	_stage.call("build", _who())
 	(_stage as Object).connect("slot_tapped", Callable(self, "_open"))

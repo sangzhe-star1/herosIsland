@@ -674,6 +674,29 @@ func _the_room_fits_both_screens() -> void:
 		_ok(faces.position.y + faces.size.y <= view.y - 176.0,
 			"the face row runs into the shelf")
 
+		# The nine drawers are for a six-year-old's finger, and the corner has
+		# ONE owner. Both halves of this shipped broken at once and nothing
+		# said so: nine drawers stacked in one column left each 138x40 --
+		# under the game's own 60px floor for a child's target -- and the top
+		# drawer (形象, the one that picks who he IS) started sixteen pixels
+		# under the back button, pressable only in its lower half. Every
+		# screenshot looked fine at a glance, because a 40px drawer still
+		# draws its icon and its word.
+		var back_button: Control = screen.get("_back")
+		_ok(back_button != null, "the house lost its named back button")
+		var tabs: Dictionary = screen.get("_tabs")
+		for slot in tabs:
+			var drawer: Control = tabs[slot]
+			_ok(drawer.size.x >= 60.0 and drawer.size.y >= 60.0,
+				"the '%s' drawer is %.0fx%.0f -- smaller than the finger "
+				% [slot, drawer.size.x, drawer.size.y] + "pressing it")
+			if back_button != null:
+				var drawer_box := Rect2(drawer.position, drawer.size).grow(-1.0)
+				var back_box := Rect2(back_button.position, back_button.size).grow(-1.0)
+				_ok(not drawer_box.intersects(back_box),
+					"the '%s' drawer is under the back button -- whichever "
+					% slot + "is on top eats the other's presses")
+
 		# Nothing off the bottom, nothing under the shelf.
 		var shelf: Control = screen.get("_scroll")
 		_ok(shelf.position.y + shelf.size.y <= view.y + 1.0,

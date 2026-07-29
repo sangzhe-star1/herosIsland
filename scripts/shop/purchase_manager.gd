@@ -34,6 +34,12 @@ const UNDO_SECONDS := 5.0
 
 var _layer: CanvasLayer
 
+## Handles for the probes. A sheet the tests cannot press is a sheet whose
+## contract nobody is checking, and "one tap never spends" is exactly the kind
+## of promise that has to stay checked.
+var sheet_yes: Button
+var sheet_undo: Button
+
 
 func _ready() -> void:
 	_layer = CanvasLayer.new()
@@ -100,35 +106,12 @@ func confirm(item_id: String) -> void:
 	name_label.size = Vector2(box.x, 50)
 	card.add_child(name_label)
 
-	var cols := [
-		[I18n.t("house.have"), have, Color(0.30, 0.40, 0.56)],
-		[I18n.t("house.cost"), price, Color(0.90, 0.55, 0.16)],
-		[I18n.t("house.left"), have - price, Color(0.24, 0.60, 0.36)],
-	]
-	for i in range(cols.size()):
-		var x: float = box.x * (0.22 + 0.28 * float(i))
-		Shapes.lit(pad, Shapes.star_points(Vector2(x - 34.0, 258.0), 15.0, 0.44, 5),
-			Color(1.0, 0.83, 0.30), 0.9)
-		var n := Label.new()
-		n.text = str(cols[i][1])
-		n.add_theme_font_size_override("font_size", 34)
-		n.add_theme_color_override("font_color", cols[i][2])
-		n.position = Vector2(x - 14.0, 238.0)
-		n.size = Vector2(90, 44)
-		card.add_child(n)
-		var t := Label.new()
-		t.text = str(cols[i][0])
-		t.add_theme_font_size_override("font_size", 19)
-		t.add_theme_color_override("font_color", Color(0.56, 0.62, 0.74))
-		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		t.position = Vector2(x - 70.0, 286.0)
-		t.size = Vector2(140, 26)
-		card.add_child(t)
+	_three_numbers(card, pad, box, have, price)
 
-	var yes := _star_button(str(price), Palette.GREEN, Vector2(250, 84))
-	yes.position = Vector2(box.x * 0.5 - 268.0, 322.0)
-	yes.pressed.connect(func(): _do_buy(item_id))
-	card.add_child(yes)
+	sheet_yes = _star_button(str(price), Palette.GREEN, Vector2(250, 84))
+	sheet_yes.position = Vector2(box.x * 0.5 - 268.0, 322.0)
+	sheet_yes.pressed.connect(func(): _do_buy(item_id))
+	card.add_child(sheet_yes)
 
 	var no := UiKit.big_button(I18n.t("common.back"), Palette.BLUE)
 	no.custom_minimum_size = Vector2(210, 84)
@@ -184,6 +167,159 @@ func _thumb(parent: Control, at: Vector2, box: float, entry: Dictionary) -> void
 	pic.size = Vector2(box, box)
 	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(pic)
+
+
+# --- anything else money can buy -------------------------------------------
+#
+# The wardrobe path above speaks Shop (own/wear/undo). The battle items and the
+# sticker book have their own ledgers, but the CONTRACT the child sees must be
+# the same one word for word: nothing is bought by one tap, the three numbers
+# are shown first, and 放回去 sits there for five seconds afterwards. These
+# entry points carry that contract to any goods at all -- the screen says how
+# to hand the thing over and how to take it back; the money itself never
+# leaves this file.
+#
+#   Buying.offer({
+#       "name_key": "item.heart_potion",   # optional; no line when absent
+#       "icon": "potion",                  # drawn name or res:// path
+#       "price": 20,
+#       "give": func(): SaveManager.add_item("heart_potion"),
+#       "take_back": func(): SaveManager.use_item("heart_potion"),
+#   })
+
+var _goods: Dictionary = {}
+
+
+func offer(goods: Dictionary) -> void:
+	var price := int(goods.get("price", 0))
+	var have := Coins.balance()
+	if have < price:
+		_short(price, have, "")
+		return
+	_goods = goods
+
+	var box := Vector2(720, 420)
+	var card := _panel(box)
+	var pad := Node2D.new()
+	card.add_child(pad)
+
+	var picture: Control = UiKit.picture(str(goods.get("icon", "")), 132.0)
+	if picture != null:
+		picture.position = Vector2(box.x * 0.5 - 66.0, 40.0)
+		card.add_child(picture)
+
+	if str(goods.get("name_key", "")) != "":
+		var name_label := UiKit.title(I18n.t(str(goods["name_key"])), 40)
+		name_label.add_theme_color_override("font_color", Color(0.14, 0.21, 0.34))
+		name_label.position = Vector2(0, 178)
+		name_label.size = Vector2(box.x, 50)
+		card.add_child(name_label)
+
+	_three_numbers(card, pad, box, have, price)
+
+	sheet_yes = _star_button(str(price), Palette.GREEN, Vector2(250, 84))
+	sheet_yes.position = Vector2(box.x * 0.5 - 268.0, 322.0)
+	sheet_yes.pressed.connect(_buy_offered)
+	card.add_child(sheet_yes)
+
+	var no := UiKit.big_button(I18n.t("common.back"), Palette.BLUE)
+	no.custom_minimum_size = Vector2(210, 84)
+	no.position = Vector2(box.x * 0.5 + 30.0, 322.0)
+	no.pressed.connect(close)
+	card.add_child(no)
+
+
+func _buy_offered() -> void:
+	var goods := _goods
+	var price := int(goods.get("price", 0))
+	# The one spend. Refuses and changes nothing when the balance moved between
+	# opening the sheet and pressing the button.
+	if not Coins.spend(price):
+		_short(price, Coins.balance(), "")
+		return
+	(goods.get("give", Callable()) as Callable).call()
+	changed.emit()
+	_celebrate_offered(goods)
+
+
+## The same shape as the wardrobe's celebration, one size smaller: the thing
+## itself pops in, a cheer, and a quiet 放回去 that lasts five seconds and
+## refunds in full -- the goods go back through the screen's own take_back.
+func _celebrate_offered(goods: Dictionary) -> void:
+	var box := Vector2(620, 400)
+	var card := _panel(box)
+
+	var picture: Control = UiKit.picture(str(goods.get("icon", "")), 180.0)
+	if picture != null:
+		picture.position = Vector2(box.x * 0.5 - 90.0, 44.0)
+		card.add_child(picture)
+		picture.pivot_offset = Vector2(90, 90)
+		Juice.pop(picture, 0.22)
+
+	# Not house.bought: "这是你的新礼物！" belongs to the wardrobe's gift box,
+	# and a potion he paid for is not a gift. Same reason the green button says
+	# 继续 rather than 继续搭配 -- the generic sheet may only borrow words that
+	# are true anywhere.
+	var line := UiKit.title(I18n.t("shop.bought"), 36)
+	line.add_theme_color_override("font_color", Color(0.16, 0.24, 0.38))
+	line.position = Vector2(0, 244)
+	line.size = Vector2(box.x, 48)
+	card.add_child(line)
+
+	AudioManager.play_sfx("res://assets/audio/coin.ogg")
+	if Juice.motion_enabled():
+		Juice.burst(card, Vector2(box.x * 0.5, 130.0), 24)
+
+	var keep := UiKit.big_button(I18n.t("common.continue"), Palette.GREEN)
+	keep.custom_minimum_size = Vector2(260, 82)
+	keep.position = Vector2(box.x * 0.5 - 276.0, 304.0)
+	keep.pressed.connect(close)
+	card.add_child(keep)
+
+	sheet_undo = UiKit.big_button(I18n.t("house.buy_back"), Palette.BLUE)
+	sheet_undo.custom_minimum_size = Vector2(260, 82)
+	sheet_undo.position = Vector2(box.x * 0.5 + 16.0, 304.0)
+	sheet_undo.pressed.connect(func():
+		Coins.refund(int(goods.get("price", 0)))
+		(goods.get("take_back", Callable()) as Callable).call()
+		changed.emit()
+		close())
+	card.add_child(sheet_undo)
+	await get_tree().create_timer(UNDO_SECONDS).timeout
+	if is_instance_valid(sheet_undo):
+		sheet_undo.visible = false
+		if is_instance_valid(keep):
+			keep.position.x = box.x * 0.5 - 130.0
+
+
+## The three numbers, drawn once for both sheets: what he has, what it costs,
+## what is left. The middle number is the one that leaves.
+func _three_numbers(card: Control, pad: Node2D, box: Vector2,
+		have: int, price: int) -> void:
+	var cols := [
+		[I18n.t("house.have"), have, Color(0.30, 0.40, 0.56)],
+		[I18n.t("house.cost"), price, Color(0.90, 0.55, 0.16)],
+		[I18n.t("house.left"), have - price, Color(0.24, 0.60, 0.36)],
+	]
+	for i in range(cols.size()):
+		var x: float = box.x * (0.22 + 0.28 * float(i))
+		Shapes.lit(pad, Shapes.star_points(Vector2(x - 34.0, 258.0), 15.0, 0.44, 5),
+			Color(1.0, 0.83, 0.30), 0.9)
+		var n := Label.new()
+		n.text = str(cols[i][1])
+		n.add_theme_font_size_override("font_size", 34)
+		n.add_theme_color_override("font_color", cols[i][2])
+		n.position = Vector2(x - 14.0, 238.0)
+		n.size = Vector2(90, 44)
+		card.add_child(n)
+		var t := Label.new()
+		t.text = str(cols[i][0])
+		t.add_theme_font_size_override("font_size", 19)
+		t.add_theme_color_override("font_color", Color(0.56, 0.62, 0.74))
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		t.position = Vector2(x - 70.0, 286.0)
+		t.size = Vector2(140, 26)
+		card.add_child(t)
 
 
 # --- buying ---------------------------------------------------------------
@@ -279,8 +415,13 @@ func _celebrate(item_id: String) -> void:
 ## the honest answer: stars come from levels.
 func short_of(item_id: String) -> void:
 	var entry := Shop.item(item_id)
-	var price := int(entry.get("price", 0))
-	var have := Coins.balance()
+	_short(int(entry.get("price", 0)), Coins.balance(), item_id)
+
+
+## `wish_item_id` is the wardrobe's: only clothes have a wishlist. For any
+## other goods it is empty and the middle door is simply not offered --
+## two doors, same sentence.
+func _short(price: int, have: int, wish_item_id: String) -> void:
 	var box := Vector2(840, 400)
 	var card := _panel(box)
 	var pad := Node2D.new()
@@ -320,14 +461,16 @@ func short_of(item_id: String) -> void:
 	var buttons := [
 		[I18n.t("house.go_play"), Palette.GREEN, func():
 			close(); go_play.emit()],
-		[I18n.t("house.wish"), Palette.PURPLE, func():
-			Wishes.add(item_id); close(); changed.emit()],
 		[I18n.t("house.browse"), Palette.BLUE, close],
 	]
+	if wish_item_id != "":
+		buttons.insert(1, [I18n.t("house.wish"), Palette.PURPLE, func():
+			Wishes.add(wish_item_id); close(); changed.emit()])
+	var row_w: float = 236.0 * float(buttons.size()) + 20.0 * float(buttons.size() - 1)
 	for i in range(buttons.size()):
 		var b := UiKit.big_button(str(buttons[i][0]), buttons[i][1])
 		b.custom_minimum_size = Vector2(236, 92)
-		b.position = Vector2(box.x * 0.5 - 372.0 + float(i) * 256.0, 240.0)
+		b.position = Vector2(box.x * 0.5 - row_w * 0.5 + float(i) * 256.0, 240.0)
 		b.pressed.connect(buttons[i][2])
 		card.add_child(b)
 	AudioManager.play_sfx("res://assets/audio/drag_back.ogg")

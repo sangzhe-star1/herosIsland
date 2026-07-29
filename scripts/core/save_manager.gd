@@ -947,6 +947,17 @@ func add_sticker(sticker_id: String) -> void:
 	progress_changed.emit()
 
 
+## The other half of 放回去. Exists only so a sticker bought by mistake can go
+## back within the five undo seconds; nothing else may un-give a sticker, and
+## the refund itself is the confirm sheet's job, not this file's.
+func remove_sticker(sticker_id: String) -> void:
+	if not has_sticker(sticker_id):
+		return
+	data["rewards"]["stickers"].erase(sticker_id)
+	save_game()
+	progress_changed.emit()
+
+
 func add_badge(badge_id: String) -> bool:
 	if badge_id == "" or badge_id in data["rewards"]["badges"]:
 		return false
