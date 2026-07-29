@@ -216,6 +216,45 @@ func refuse(why: String) -> void:
 	t.tween_property(self, "position", home, 0.05)
 
 
+## Off the plant and into his hand -- still here, still his, not yet put away.
+##
+## Two differences from fly_to. It stays, because a crop waiting to be sorted
+## has to remain on screen and remain the thing the next touch is about. And it
+## rises where it grew rather than travelling anywhere: the first cut parked it
+## on a free patch of ground beside the baskets, and on screen that was a
+## strawberry sitting on the soil looking exactly like the strawberries still
+## growing on the soil. Held and growing have to be told apart at a glance, and
+## "it lifted up off the plant and it is glowing" does that where "it moved
+## eighty pixels sideways" does not.
+func lift(height: float = 46.0) -> void:
+	for extra in [_halo, _affordance, _cover]:
+		if extra != null and is_instance_valid(extra):
+			extra.queue_free()
+
+	# A cream saucer under it, and light behind that.
+	#
+	# The glow alone was not enough, and the screenshot is what said so: a
+	# picked strawberry that is a little bigger and a little brighter than the
+	# strawberries beside it is a difference an adult can find by comparing.
+	# A six-year-old is not comparing. The saucer is a shape that was not there
+	# a moment ago, and "it is sitting on something now" is a thing he can see
+	# without being told to look.
+	var lamp := Node2D.new()
+	lamp.z_index = -1
+	add_child(lamp)
+	Shapes.glow(lamp, Vector2.ZERO, radius * 1.3, Color(1.0, 0.90, 0.42), 6, 0.62)
+	Shapes.fill(lamp, Shapes.circle_points(Vector2.ZERO, radius * 0.88, 30),
+		Color(1.0, 0.99, 0.93), 1.0)
+	_halo = lamp
+
+	var t := create_tween()
+	t.tween_property(self, "global_position",
+		global_position + Vector2(0.0, -height), 0.24)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(self, "scale", Vector2(1.12, 1.12), 0.24)
+	t.tween_callback(func(): Juice.idle_bob(self, 7.0, 1.5))
+
+
 ## Into the basket, and out of the game.
 func fly_to(where: Vector2) -> void:
 	for extra in [_halo, _affordance, _cover]:

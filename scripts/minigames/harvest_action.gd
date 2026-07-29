@@ -41,6 +41,20 @@ const Picker := preload("res://scripts/shared/variant_picker.gd")
 const BASKET_AT := Vector2(1140, 600)
 const BASKET_SIZE := 132.0
 
+## What a crop's reach is when harvest_crops.json does not say. Every crop in
+## the catalogue does say, so this is only ever the answer for a crop_id that
+## is not in the catalogue at all.
+const DEFAULT_REACH := 78.0
+
+## The closest two things on the bed are ever allowed to be planted.
+##
+## Not a reach and not a picture size: it is roughly twice how far a
+## six-year-old's thumb lands from where he was looking. Closer than this and
+## "I meant that one" stops being bad luck and becomes the layout's fault. See
+## _somewhere_clear, which relaxes the level's preferred spacing in steps but
+## never goes under this while any spot on the bed still clears it.
+const THUMB_APART := 92.0
+
 var _stage: Stage                   # the world, kept so the bed can sit on its ground
 var _field: Control                 # catches every touch; targets live under it
 var _hud: Control
@@ -78,6 +92,11 @@ var _order_done := false
 var _pointer := -1
 var _track := PackedVector2Array()
 var _holding: Node2D = null
+
+## What he has picked and not yet put away, in a level with more than one
+## basket. One thing at a time, on purpose: two things in hand and a tap on a
+## basket means "which one", and that is a question the screen cannot ask.
+var _in_hand: Node2D = null
 
 
 ## Picking is the whole level; there is no separate goal to reach.
@@ -120,9 +139,18 @@ func setup_level() -> void:
 ## garden learned this the same way and its beds are spaced off DragField.SNAP.
 func _lay_out(config: Dictionary) -> void:
 	var spec: Array = config.get("targets", [])
-	var placed: Array[Vector2] = []
-	var reach := _reach()
-	var apart := reach * 2.0 + 20.0
+	# How many things are going on the ground, before any of them are made:
+	# the grid is planned once for the whole level rather than searched for
+	# one crop at a time. See _plan_positions.
+	var count := 0
+	for entry in spec:
+		if not Crops.get_crop(str(entry.get("crop_id", ""))).is_empty():
+			count += int(entry.get("count", 1))
+	# Spacing against the WIDEST crop on this field, reach against each crop's
+	# own. A pumpkin and a strawberry spaced for the strawberry would have the
+	# pumpkin swallowing presses aimed at the berry next to it.
+	var spots := _plan_positions(count, _bed(), _spread(config) * 2.0 + 20.0)
+	var next := 0
 
 	for entry in spec:
 		var crop: Dictionary = Crops.get_crop(str(entry.get("crop_id", "")))
@@ -130,12 +158,13 @@ func _lay_out(config: Dictionary) -> void:
 			continue
 		var step := str(entry.get("maturity", Maturity.READY))
 		for i in range(int(entry.get("count", 1))):
-			var at := _somewhere_clear(placed, apart)
-			placed.append(at)
+			var at: Vector2 = spots[next] if next < spots.size() \
+				else _bed().position + _bed().size * 0.5
+			next += 1
 			var node: Node2D = Target.new()
 			node.position = at
 			_field.add_child(node)
-			node.build(crop, step, reach)
+			node.build(crop, step, _reach(crop))
 			node.picked.connect(_on_picked)
 			node.refused.connect(_on_refused)
 			_targets.append(node)
@@ -206,8 +235,33 @@ func _load_order() -> void:
 ## same difficulty knob the other thirty levels use -- NOT through a second
 ## table of profiles, which would leave the parent's switch in the Parent
 ## Centre setting one thing and the harvest levels reading another.
-func _reach() -> float:
-	return harder(78.0, 0.77)
+##
+## THE CROP GETS A SAY
+##
+## harvest_crops.json gives every crop a `touch_tolerance`, from 74 for a
+## strawberry to 96 for a pumpkin, and for a long time nothing read it: one
+## number, 78, for everything on the field. A pumpkin that fills half a bed was
+## exactly as hard to hit as a berry the size of a thumbnail, and the data said
+## otherwise in writing.
+##
+## `spread` is the value the field's spacing is measured against -- the biggest
+## reach on the ground -- because two targets have to be far enough apart for
+## the WIDEST of them, not the average.
+func _reach(crop: Dictionary = {}) -> float:
+	var base: float = float(crop.get("touch_tolerance", DEFAULT_REACH)) \
+		if not crop.is_empty() else DEFAULT_REACH
+	return harder(base, 0.77)
+
+
+## The widest reach any crop on this level asks for. Spacing is measured
+## against it: a pumpkin and a strawberry planted a strawberry's width apart
+## would have the pumpkin claiming presses meant for the berry.
+func _spread(config: Dictionary) -> float:
+	var widest := DEFAULT_REACH
+	for entry in config.get("targets", []):
+		var crop: Dictionary = Crops.get_crop(str(entry.get("crop_id", "")))
+		widest = maxf(widest, float(crop.get("touch_tolerance", DEFAULT_REACH)))
+	return harder(widest, 0.77)
 
 
 ## The patch of earth things grow in.
@@ -233,9 +287,23 @@ func _reach() -> float:
 ## edge of its own soil.
 const CROP_HALF := 62.0
 
+## How far down the screen the soil starts.
+##
+## Was 0.50, which leaves a 16:9 screen 176px of planting height -- two rows and
+## no room between them. 丰收庆典 puts eighteen things on that strip and the
+## grid could only get them 92px apart, exactly the floor, with the branches
+## over the apple trees poking up out of the soil into the sky.
+##
+## 0.44 is 60px more earth on a phone-shaped screen and nothing worse anywhere:
+## the horizon sits around 78% of the way down, so the field still starts below
+## the sky and runs towards the viewer, which is what a field looks like from
+## slightly above. A tablet had the room already and simply keeps it.
+const BED_TOP := 0.44
+
+
 func _bed() -> Rect2:
 	var view := get_viewport_rect().size
-	var top: float = view.y * 0.50
+	var top: float = view.y * BED_TOP
 	# Clear of the basket in the right-hand corner.
 	return Rect2(110.0 + CROP_HALF, top + CROP_HALF,
 		view.x - 360.0 - CROP_HALF * 2.0,
@@ -269,25 +337,84 @@ func _draw_bed() -> void:
 			Color(0.36, 0.25, 0.16, 0.5), 0.0)
 
 
-func _somewhere_clear(taken: Array[Vector2], apart: float) -> Vector2:
-	var box := _bed()
-	var best := box.position + box.size * 0.5
-	var best_gap := -1.0
-	for attempt in range(60):
-		var at := Vector2(
-			_picker.number(box.position.x, box.end.x),
-			_picker.number(box.position.y, box.end.y))
-		var gap := 1e9
-		for other in taken:
-			gap = minf(gap, at.distance_to(other))
-		if taken.is_empty() or gap >= apart:
-			return at
-		if gap > best_gap:
-			best_gap = gap
-			best = at
-	# Crowded. Take the roomiest spot found rather than stacking two on top of
-	# each other -- a level that cannot be finished is worse than a tight one.
-	return best
+## Where everything on this level goes: a jittered grid, worked out in one go.
+##
+## WHY A GRID AND NOT SIXTY RANDOM DARTS
+##
+## This used to throw a dart at the bed, check it was `apart` from everything
+## already down, and after sixty misses take the roomiest miss -- however bad.
+## On a crowded level that is most of them: 丰收庆典 puts eighteen things on a
+## strip 796 by 176 and darts left two of them 57px apart, which is closer than
+## a six-year-old can aim. The docstring above `_lay_out` has said "a loose
+## grid" since the day it was written; the code underneath it never was one.
+##
+## A grid packs what a bed can actually hold. Eighteen at 92px apart needs nine
+## columns by two rows, and 796 by 176 is exactly nine by two -- the same bed
+## the darts could not manage.
+##
+## THE FLOOR, AND WHY IT IS NOT TWICE THE REACH
+##
+## `wanted` is what the level would like: twice the widest crop's reach. Unlike
+## the garden's seed beds this does not have to be met -- _nearest() gives a
+## press to the CLOSEST target rather than to any target in range, so reaches
+## that overlap are still decided sensibly. What it does have to meet is
+## THUMB_APART: two middles closer than a thumb wanders turn "I meant that one"
+## from bad luck into arithmetic.
+##
+## So the spacing steps down from `wanted` until the grid fits, and stops at
+## the floor. Jitter is whatever is left over above the floor, which is what
+## keeps a field of carrots from looking like a spreadsheet.
+func _plan_positions(count: int, box: Rect2, wanted: float) -> Array:
+	var apart := wanted
+	while apart > THUMB_APART and not _grid_holds(count, box, apart):
+		apart -= 4.0
+	apart = maxf(apart, THUMB_APART)
+
+	var cols: int = maxi(1, int(floor(box.size.x / apart)) + 1)
+	var rows: int = maxi(1, int(ceil(float(count) / float(cols))))
+	var span := Vector2(float(cols - 1) * apart, float(rows - 1) * apart)
+	var origin: Vector2 = box.position + (box.size - span) * 0.5
+
+	# Shuffled, so that "the third one along is always the golden carrot" is
+	# not a thing a child can learn instead of looking.
+	var slots: Array = []
+	for i in range(cols * rows):
+		slots.append(origin + Vector2(float(i % cols) * apart,
+			float(i / cols) * apart))
+	_picker.shuffle(slots)
+
+	# Half the slack, each way, so two neighbours can lose at most the whole
+	# slack between them and still clear the floor.
+	var jitter: float = maxf(0.0, (apart - THUMB_APART) * 0.5)
+	var out: Array = []
+	for i in range(mini(count, slots.size())):
+		var at: Vector2 = slots[i]
+		if jitter > 0.0:
+			at += Vector2(_picker.number(-jitter, jitter),
+				_picker.number(-jitter, jitter))
+		# Kept inside the planting rectangle. The jitter is what stops the
+		# field looking like a spreadsheet, and on a short bed it is also what
+		# would tip the top row up onto the grass above the soil. Clamping only
+		# ever moves a crop back towards the middle, so it cannot bring two of
+		# them closer than the grid already allows.
+		at.x = clampf(at.x, box.position.x, box.end.x)
+		at.y = clampf(at.y, box.position.y, box.end.y)
+		out.append(at)
+	# More things than the bed can hold even at the floor. Stack the remainder
+	# in the middle rather than dropping them -- a level missing a carrot the
+	# order asks for cannot be finished at all -- and let the touch probe say
+	# so, because at that point the LEVEL is too full and the data is what
+	# needs changing.
+	while out.size() < count:
+		out.append(box.position + box.size * 0.5)
+	return out
+
+
+## Does a grid at this spacing have room for them all?
+func _grid_holds(count: int, box: Rect2, apart: float) -> bool:
+	var cols: int = maxi(1, int(floor(box.size.x / apart)) + 1)
+	var rows: int = maxi(1, int(floor(box.size.y / apart)) + 1)
+	return cols * rows >= count
 
 
 func _build_hud(config: Dictionary) -> void:
@@ -318,8 +445,27 @@ func _build_hud(config: Dictionary) -> void:
 ##
 ## With one, a pick flies to it on its own -- there is no decision, and asking a
 ## five-year-old to carry every carrot across the screen is work without a
-## question in it. With two or more the drop has to END on a basket, and which
-## one is the whole level.
+## question in it. With two or more he chooses, and choosing is the level.
+##
+## THE SPACING IS ARITHMETIC, NOT A GUESS
+##
+## Two things a finger can hit, sitting closer together than twice their reach,
+## can both claim the same press -- and the one that answers is whichever the
+## loop happened to meet first. This is the third time the project has met that
+## rule: the garden's beds are spaced off DragField.SNAP, the targets above are
+## spaced off _reach(), and the baskets were spaced off nothing at all.
+##
+## What it cost: three baskets 59px apart, each with a reach of 119. The second
+## and third could never be chosen -- every drop in that column answered as the
+## first -- and on screen they overlapped so far they read as one striped box
+## rather than as three places to put things. Sorting was impossible in every
+## level that asked for it, and the screenshot agreed with the arithmetic.
+##
+## So the column is measured against the SOIL, which is what a child sees as
+## the ground, rather than the narrow planting rectangle inside it -- nearly
+## twice the room -- and the reach comes from the spacing instead of from the
+## picture's size. One or two baskets stay big; three get smaller. Smaller is
+## not the failure. Indistinguishable is.
 func _build_baskets(config: Dictionary) -> void:
 	var spec: Array = config.get("baskets", [])
 	if spec.is_empty():
@@ -328,15 +474,20 @@ func _build_baskets(config: Dictionary) -> void:
 	# Beside the field and level with it, never above it. Baskets hanging in the
 	# sky was the first cut, and a basket in a cloud is not somewhere a
 	# six-year-old will think to put a strawberry.
-	var bed := _bed()
-	var span: float = minf(210.0, bed.size.y / maxf(float(spec.size()), 1.0))
-	var middle: float = bed.position.y + bed.size.y * 0.5
-	var top: float = middle - span * (float(spec.size()) - 1.0) * 0.5
+	var soil := _bed().grow(CROP_HALF + 14.0)
+	var count: float = maxf(float(spec.size()), 1.0)
+	var span: float = soil.size.y / count
+	var size: float = minf(BASKET_SIZE, span * 0.60)
+	# 0.45 and not 0.5: half the spacing would put two reaches exactly edge to
+	# edge, and a press landing on that seam belongs to nobody in particular.
+	var reach: float = minf(size * 0.9, span * 0.45)
+	var middle: float = soil.position.y + soil.size.y * 0.5
+	var top: float = middle - span * (count - 1.0) * 0.5
 	for i in range(spec.size()):
 		var node: Node2D = Basket.new()
 		node.position = Vector2(view.x - 150.0, top + span * float(i))
 		_field.add_child(node)
-		node.build(spec[i], BASKET_SIZE)
+		node.build(spec[i], size, reach)
 		_baskets.append(node)
 
 
@@ -397,7 +548,12 @@ func _begin(pointer: int, at: Vector2) -> void:
 		return                           # one gesture at a time, on purpose
 	_pointer = pointer
 	_track = PackedVector2Array([at])
-	_holding = _nearest(at)
+	# With something already in his hand this touch is about a basket, so
+	# nothing on the ground is being worked on -- otherwise a stroke that
+	# happened to start over a potato would brush the soil off it for no
+	# reason he could see.
+	_holding = null if _in_hand != null and is_instance_valid(_in_hand) \
+		else _nearest(at)
 
 
 func _move(pointer: int, at: Vector2) -> void:
@@ -450,6 +606,13 @@ func _end(pointer: int, at: Vector2) -> void:
 	_track = PackedVector2Array()
 	_holding = null
 
+	# Something already in his hand: this touch is about where it goes, not
+	# about picking anything else. See _take_in_hand for why the two are
+	# separate touches.
+	if _in_hand != null and is_instance_valid(_in_hand):
+		_put_it_away(at)
+		return
+
 	if target == null or not is_instance_valid(target):
 		return
 	if not target.try_gesture(track, _allowed):
@@ -469,36 +632,95 @@ func _end(pointer: int, at: Vector2) -> void:
 			_hints.progress()
 		return
 
-	# Where it goes. With one basket there is nothing to decide and it flies
-	# there; with several, the drop has to have LANDED on one.
-	var basket := _basket_for(track[track.size() - 1])
-	if basket == null:
-		# Let go over nothing. The crop stays where it was -- untaken, still
-		# there to try again -- because "I picked it and it vanished" is the
-		# one outcome a child cannot recover from.
-		target.taken = false
-		target.refuse("nowhere")
+	# With one basket there is nothing to decide, so it flies there and the pick
+	# is the whole move. With several, picking and putting away are two touches.
+	if _baskets.size() == 1:
+		_baskets[0].accept()
+		target.fly_to(_baskets[0].global_position)
+		_after_a_pick(target)
 		return
+	_take_in_hand(target)
+
+
+## Picked, and now in his hand, waiting to be put somewhere.
+##
+## WHY PICKING AND SORTING ARE TWO TOUCHES
+##
+## They used to be one: the gesture picked it and wherever the finger let go
+## chose the basket. Those two things cannot both be true of one stroke, and
+## every level with more than one basket was unplayable because of it --
+##
+##   * every gesture finishes where it started or nearby (a tap does not move,
+##     a pull goes up, a twist goes round, a cut goes across). None of them
+##     ends over on the baskets, so letting go meant "over nothing" and the
+##     crop was refused;
+##   * carrying on to a basket afterwards broke the gesture instead. A tap that
+##     travels is not a tap; a pull-up that turns right leaves the fan it has
+##     to stay inside. So the fix for the first failure caused the second.
+##
+## Four of the eight levels could not be finished by any motion at all, and
+## nothing said so: the logic probe checks that 34 degrees is inside the fan and
+## that every order CAN be filled from what is on the ground, neither of which
+## is a thumb. There was no touch probe. There is one now.
+##
+## Two touches also happens to be how the garden works -- one tap does one
+## thing -- and how a child describes it: pick the strawberry, put it in the
+## red basket. The sorting stays a real decision, which was the whole point of
+## having more than one basket.
+func _take_in_hand(target: Node2D) -> void:
+	_in_hand = target
+	_targets.erase(target)
+	# It rises where it grew. See HarvestTarget.lift for why it does not travel
+	# somewhere tidier: a picked strawberry parked on the soil is indis-
+	# tinguishable from a strawberry still growing on the soil.
+	target.lift()
+	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
+	# The baskets start breathing: something is waiting to go in one of them,
+	# and that is the only moment in the level when they are what to look at.
+	for basket in _baskets:
+		basket.waiting(true)
+
+
+## He tapped somewhere with a crop in his hand.
+func _put_it_away(at: Vector2) -> void:
+	var target := _in_hand
+	var basket := _basket_for(at)
+	if basket == null:
+		# Not on a basket. Not a mistake either -- he may have been reaching for
+		# another crop, or missed. Nothing is said and nothing is lost; the
+		# finger points at where it goes instead, which is the answer to the
+		# question he was actually asking.
+		_point_at_the_baskets()
+		return
+
 	# Exceptions first, and that ORDER is the rule (brief section six): "the ones
 	# with a star go in the gift basket" has to beat "fruit goes in the fruit
 	# basket", or a golden strawberry is correct in two places and the child is
 	# marked wrong for following the newer instruction.
 	var must: String = _exception_basket(target)
-	if must != "":
-		if basket.id != must:
-			target.taken = false
-			basket.refuse()
-			target.refuse("wrong_basket")
-			return
-	elif not basket.takes(target.crop):
-		target.taken = false
+	var welcome: bool = basket.id == must if must != "" else basket.takes(target.crop)
+	if not welcome:
 		basket.refuse()
 		target.refuse("wrong_basket")
 		return
 
+	_in_hand = null
+	for other in _baskets:
+		other.waiting(false)
 	basket.accept()
 	target.fly_to(basket.global_position)
 	_after_a_pick(target)
+
+
+## Point at the baskets, without saying anything. Used when he has something in
+## his hand and touched somewhere that is not a basket.
+func _point_at_the_baskets() -> void:
+	if _baskets.is_empty() or _in_hand == null or not is_instance_valid(_in_hand):
+		return
+	var hand := Tutorial.new()
+	_field.add_child(hand)
+	hand.add_step(_in_hand.global_position, _baskets[0].global_position, 1.1)
+	hand.play()
 
 
 ## A stone in the way, a bug on a berry. Moved aside, never "collected".
@@ -531,14 +753,24 @@ func _exception_basket(target: Node2D) -> String:
 	return ""
 
 
-## Which basket that drop landed in, or the only one there is.
+## Which basket that press landed on, or the only one there is.
+##
+## The NEAREST one in reach, not the first one in reach. With the column spaced
+## properly the two answers are the same, and when they are not -- a level that
+## packs four baskets in, a tablet shape nobody tried -- "nearest" degrades into
+## picking the one he was aiming at, while "first" degrades into always
+## answering with the top basket and never the others.
 func _basket_for(at: Vector2) -> Node2D:
 	if _baskets.size() == 1:
 		return _baskets[0]
+	var best: Node2D = null
+	var best_gap := 1e9
 	for basket in _baskets:
-		if basket.in_reach(at):
-			return basket
-	return null
+		var gap: float = basket.global_position.distance_to(at)
+		if gap <= basket.radius and gap < best_gap:
+			best_gap = gap
+			best = basket
+	return best
 
 
 func _nearest(at: Vector2) -> Node2D:
@@ -709,8 +941,33 @@ func _gesture_end(node: Node2D) -> Vector2:
 	return node.global_position
 
 
-## Never the last one. The hardest part of a gesture is starting it in the
-## right place, so this puts the finger there and holds it -- the move itself
-## is still his.
+## Help, step three: do the hard part, and leave the last move to him.
+##
+## The rule the whole hint system is built on, and the one line of it that this
+## template used to skip -- the body was `_show_the_move()` and nothing else,
+## so a child stuck three times got the same finger animation he had already
+## been shown at step two, twice, and then a third time. Three steps that are
+## really two.
+##
+## A sorting level splits cleanly, which is what makes the rule workable here:
+## getting the crop off the plant is the hard half, and deciding which basket
+## it belongs in is the half worth having. So the game picks it and stops with
+## it sitting in his hand.
+##
+## With one basket there is no split -- picking IS the level -- so it stays at
+## showing the move again. That is the same answer the garden gives for a plot
+## whose only remaining move is to be watered.
 func _do_the_hard_part() -> void:
+	# Already holding one: the hard part is behind him and what is left is the
+	# choice. Choosing FOR him would be doing the whole thing.
+	if _in_hand != null and is_instance_valid(_in_hand):
+		_point_at_the_baskets()
+		return
+	if _baskets.size() > 1:
+		var node := _first_target()
+		if node == null:
+			return
+		node.taken = true
+		_take_in_hand(node)
+		return
 	_show_the_move()

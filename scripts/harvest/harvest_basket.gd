@@ -25,12 +25,19 @@ var accepts: Array = []
 var radius := 120.0
 
 var _label: Control
+## The "something is waiting for you" pulse, kept so it can be stopped. A
+## looping tween nobody holds on to runs until the node dies.
+var _pulse: Tween
 
 
-func build(spec: Dictionary, size: float) -> void:
+## `reach` is how far a press may land from the middle and still mean THIS
+## basket. It is handed in rather than worked out from `size`, because what
+## makes a reach right is how far away the next basket is -- see
+## harvest_action._build_baskets, where the whole column is measured at once.
+func build(spec: Dictionary, size: float, reach: float = -1.0) -> void:
 	id = str(spec.get("id", "basket"))
 	accepts = spec.get("accepts_tags", [])
-	radius = float(spec.get("radius", size * 0.9))
+	radius = float(spec.get("radius", reach if reach > 0.0 else size * 0.9))
 
 	var art: Control = UiKit.picture(str(spec.get("icon", "basket")), size)
 	if art != null:
@@ -81,6 +88,26 @@ func accept() -> void:
 	t.tween_property(self, "scale", Vector2(1.12, 0.9), 0.09)
 	t.tween_property(self, "scale", Vector2.ONE, 0.16)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## "Something is waiting to go in one of us."
+##
+## Turned on the moment a crop is picked in a sorting level and off again as
+## soon as it is put away, so the baskets are only asking for attention at the
+## one moment they are what to do next. A thing that pulses all the time is
+## wallpaper, and a six-year-old stops seeing it within a minute.
+func waiting(on: bool) -> void:
+	if _pulse != null and _pulse.is_valid():
+		_pulse.kill()
+		_pulse = null
+	scale = Vector2.ONE
+	if not on or not Juice.motion_enabled():
+		return
+	_pulse = create_tween().set_loops()
+	_pulse.tween_property(self, "scale", Vector2(1.07, 1.07), 0.55)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse.tween_property(self, "scale", Vector2.ONE, 0.55)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 ## No -- and said with a shake, not a buzzer.

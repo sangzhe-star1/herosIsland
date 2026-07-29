@@ -14,7 +14,6 @@
     },
     "touch_tolerance": 78.0,
     "harvest_count": 1,
-    "tool_required": "",
     "difficulty": 1,
     "tags": [
       "orange",
@@ -39,7 +38,6 @@
     },
     "touch_tolerance": 78.0,
     "harvest_count": 1,
-    "tool_required": "",
     "difficulty": 1,
     "tags": [
       "golden",
@@ -62,7 +60,6 @@
     },
     "touch_tolerance": 86.0,
     "harvest_count": 1,
-    "tool_required": "shovel",
     "difficulty": 2,
     "tags": [
       "brown",
@@ -83,7 +80,6 @@
     "gesture_params": {},
     "touch_tolerance": 78.0,
     "harvest_count": 1,
-    "tool_required": "",
     "difficulty": 1,
     "tags": [
       "red",
@@ -103,7 +99,6 @@
     "gesture_params": {},
     "touch_tolerance": 78.0,
     "harvest_count": 1,
-    "tool_required": "",
     "difficulty": 1,
     "tags": [
       "red",
@@ -128,14 +123,13 @@
     },
     "touch_tolerance": 78.0,
     "harvest_count": 1,
-    "tool_required": "",
     "difficulty": 2,
     "tags": [
       "yellow",
       "fruiting",
       "vegetable"
     ],
-    "special_rule": "peel_first",
+    "special_rule": "",
     "voice_intro": "harvest_swipe_down"
   },
   {
@@ -150,7 +144,6 @@
     },
     "touch_tolerance": 82.0,
     "harvest_count": 1,
-    "tool_required": "",
     "difficulty": 2,
     "tags": [
       "orange",
@@ -173,7 +166,6 @@
     },
     "touch_tolerance": 90.0,
     "harvest_count": 1,
-    "tool_required": "",
     "difficulty": 3,
     "tags": [
       "red",
@@ -199,7 +191,6 @@
     },
     "touch_tolerance": 82.0,
     "harvest_count": 3,
-    "tool_required": "",
     "difficulty": 3,
     "tags": [
       "green",
@@ -224,7 +215,6 @@
     },
     "touch_tolerance": 96.0,
     "harvest_count": 1,
-    "tool_required": "wheelbarrow",
     "difficulty": 3,
     "tags": [
       "orange",
@@ -250,7 +240,6 @@
     },
     "touch_tolerance": 96.0,
     "harvest_count": 1,
-    "tool_required": "wheelbarrow",
     "difficulty": 3,
     "tags": [
       "green",
@@ -273,7 +262,6 @@
     },
     "touch_tolerance": 80.0,
     "harvest_count": 1,
-    "tool_required": "pruning_shears",
     "difficulty": 3,
     "tags": [
       "green",
@@ -295,7 +283,6 @@
     },
     "touch_tolerance": 80.0,
     "harvest_count": 1,
-    "tool_required": "pruning_shears",
     "difficulty": 3,
     "tags": [
       "green",
@@ -317,7 +304,6 @@
     },
     "touch_tolerance": 80.0,
     "harvest_count": 1,
-    "tool_required": "pruning_shears",
     "difficulty": 3,
     "tags": [
       "purple",
@@ -339,7 +325,6 @@
     },
     "touch_tolerance": 84.0,
     "harvest_count": 1,
-    "tool_required": "pruning_shears",
     "difficulty": 4,
     "tags": [
       "yellow",
@@ -363,7 +348,6 @@
     },
     "touch_tolerance": 80.0,
     "harvest_count": 0,
-    "tool_required": "",
     "difficulty": 1,
     "tags": [
       "clutter"
@@ -381,7 +365,6 @@
     "gesture_params": {},
     "touch_tolerance": 74.0,
     "harvest_count": 0,
-    "tool_required": "",
     "difficulty": 1,
     "tags": [
       "clutter"

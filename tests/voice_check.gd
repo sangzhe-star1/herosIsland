@@ -190,6 +190,11 @@ func _stream_for(name: String) -> AudioStream:
 func _every_spoken_line_has_words() -> void:
 	var asked: Array[String] = []
 	_collect_says("res://scripts", asked)
+	# ...and the ones named in data rather than in code. A crop says which line
+	# teaches its gesture, a level says which line opens it, the garden lesson
+	# says one per step -- none of which is a say("...") anywhere, so scanning
+	# only .gd read past four lines that had no words written at all.
+	_collect_data_voices(asked)
 
 	var wordless: Array[String] = []
 	var unrecorded: Array[String] = []
@@ -199,13 +204,51 @@ func _every_spoken_line_has_words() -> void:
 		elif not _has_line(name):
 			unrecorded.append(name)
 
-	print("  lines spoken from code: %d" % asked.size())
+	print("  lines spoken from code and data: %d" % asked.size())
 	if not unrecorded.is_empty():
 		print("  WAITING TO BE RECORDED (words are written): %s"
 			% ", ".join(unrecorded))
 	_ok(wordless.is_empty(),
-		"%d line(s) are spoken by the code with no words written anywhere: %s"
+		"%d line(s) are asked for with no words written anywhere: %s"
 		% [wordless.size(), ", ".join(wordless)])
+
+
+## The keys a data file may name a spoken line under.
+##
+## Keep this list and the one in tools_check.py together: the static check and
+## this probe are meant to see the same set, and a key added to one and not the
+## other is a line that goes unchecked without anybody noticing.
+const VOICE_KEYS := ["voice", "voice_intro", "teach_voice"]
+
+
+func _collect_data_voices(into: Array[String]) -> void:
+	var dir := DirAccess.open("res://data")
+	if dir == null:
+		return
+	dir.list_dir_begin()
+	var entry := dir.get_next()
+	while entry != "":
+		if entry.ends_with(".json"):
+			var parsed: Variant = JSON.parse_string(
+				FileAccess.get_file_as_string("res://data/%s" % entry))
+			if parsed != null:
+				_voices_in(parsed, into)
+		entry = dir.get_next()
+	dir.list_dir_end()
+
+
+func _voices_in(node: Variant, into: Array[String]) -> void:
+	if node is Dictionary:
+		for key in node.keys():
+			var value: Variant = node[key]
+			if str(key) in VOICE_KEYS and value is String and value != "":
+				if not value in into:
+					into.append(value)
+			else:
+				_voices_in(value, into)
+	elif node is Array:
+		for value in node:
+			_voices_in(value, into)
 
 
 func _collect_says(dir_path: String, into: Array[String]) -> void:

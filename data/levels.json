@@ -5,7 +5,6 @@
     "name_key": "level.sunny_park_01",
     "game_type": "observation_search",
     "difficulty": 1,
-    "duration_seconds": 300,
     "target": {},
     "reward": {
       "coins": 26,
@@ -29,7 +28,6 @@
     "name_key": "level.sunny_park_02",
     "game_type": "matching_sorting",
     "difficulty": 1,
-    "duration_seconds": 300,
     "requires": "sunny_park_01",
     "target": {},
     "reward": {
@@ -64,7 +62,6 @@
     "name_key": "level.sunny_park_03",
     "game_type": "build_repair",
     "difficulty": 1,
-    "duration_seconds": 300,
     "requires": "sunny_park_02",
     "target": {},
     "reward": {
@@ -83,7 +80,6 @@
     "name_key": "level.sunny_park_04",
     "game_type": "memory_rhythm",
     "difficulty": 1,
-    "duration_seconds": 300,
     "requires": "sunny_park_03",
     "target": {},
     "reward": {
@@ -102,7 +98,6 @@
     "name_key": "level.sunny_park_05",
     "game_type": "platform_adventure",
     "difficulty": 1,
-    "duration_seconds": 300,
     "requires": "sunny_park_04",
     "target": {},
     "reward": {
@@ -165,7 +160,6 @@
     "name_key": "level.sunny_park_06",
     "game_type": "monster_duel",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "sunny_park_05",
     "target": {
       "correct": 26
@@ -193,7 +187,6 @@
     "name_key": "level.night_city_01",
     "game_type": "observation_search",
     "difficulty": 2,
-    "duration_seconds": 300,
     "target": {},
     "reward": {
       "coins": 34,
@@ -217,7 +210,6 @@
     "name_key": "level.night_city_02",
     "game_type": "puzzle_mechanism",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "night_city_01",
     "target": {},
     "reward": {
@@ -236,7 +228,6 @@
     "name_key": "level.night_city_03",
     "game_type": "roleplay_rescue",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "night_city_02",
     "target": {},
     "reward": {
@@ -254,7 +245,6 @@
     "name_key": "level.night_city_04",
     "game_type": "platform_adventure",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "night_city_03",
     "target": {},
     "reward": {
@@ -310,7 +300,6 @@
     "name_key": "level.night_city_05",
     "game_type": "build_repair",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "night_city_04",
     "target": {},
     "reward": {
@@ -329,7 +318,6 @@
     "name_key": "level.night_city_06",
     "game_type": "monster_duel",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "night_city_05",
     "target": {
       "correct": 32
@@ -356,7 +344,6 @@
     "name_key": "level.monster_valley_01",
     "game_type": "matching_sorting",
     "difficulty": 2,
-    "duration_seconds": 300,
     "target": {},
     "reward": {
       "coins": 34,
@@ -416,7 +403,6 @@
     "name_key": "level.monster_valley_02",
     "game_type": "puzzle_mechanism",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "monster_valley_01",
     "target": {},
     "reward": {
@@ -435,7 +421,6 @@
     "name_key": "level.monster_valley_03",
     "game_type": "monster_duel",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "monster_valley_02",
     "target": {
       "correct": 28
@@ -462,7 +447,6 @@
     "name_key": "level.monster_valley_04",
     "game_type": "platform_adventure",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "monster_valley_03",
     "target": {},
     "reward": {
@@ -523,7 +507,6 @@
     "name_key": "level.monster_valley_05",
     "game_type": "roleplay_rescue",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "monster_valley_04",
     "target": {},
     "reward": {
@@ -541,7 +524,6 @@
     "name_key": "level.monster_valley_06",
     "game_type": "monster_duel",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "monster_valley_05",
     "target": {
       "correct": 40
@@ -569,7 +551,6 @@
     "name_key": "level.sky_base_01",
     "game_type": "memory_rhythm",
     "difficulty": 2,
-    "duration_seconds": 300,
     "target": {},
     "reward": {
       "coins": 34,
@@ -587,7 +568,6 @@
     "name_key": "level.sky_base_02",
     "game_type": "memory_rhythm",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "sky_base_01",
     "target": {},
     "reward": {
@@ -606,7 +586,6 @@
     "name_key": "level.sky_base_03",
     "game_type": "build_repair",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "sky_base_02",
     "target": {},
     "reward": {
@@ -625,7 +604,6 @@
     "name_key": "level.sky_base_04",
     "game_type": "puzzle_mechanism",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "sky_base_03",
     "target": {},
     "reward": {
@@ -644,7 +622,6 @@
     "name_key": "level.sky_base_05",
     "game_type": "platform_adventure",
     "difficulty": 2,
-    "duration_seconds": 300,
     "requires": "sky_base_04",
     "target": {},
     "reward": {
@@ -707,7 +684,6 @@
     "name_key": "level.sky_base_06",
     "game_type": "monster_duel",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "sky_base_05",
     "target": {
       "correct": 44
@@ -735,7 +711,6 @@
     "name_key": "level.dark_castle_01",
     "game_type": "platform_adventure",
     "difficulty": 3,
-    "duration_seconds": 300,
     "target": {},
     "reward": {
       "coins": 42,
@@ -801,7 +776,6 @@
     "name_key": "level.dark_castle_02",
     "game_type": "matching_sorting",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "dark_castle_01",
     "target": {},
     "reward": {
@@ -862,7 +836,6 @@
     "name_key": "level.dark_castle_03",
     "game_type": "puzzle_mechanism",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "dark_castle_02",
     "target": {},
     "reward": {
@@ -881,7 +854,6 @@
     "name_key": "level.dark_castle_04",
     "game_type": "platform_adventure",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "dark_castle_03",
     "target": {},
     "reward": {
@@ -928,7 +900,6 @@
     "name_key": "level.dark_castle_05",
     "game_type": "build_repair",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "dark_castle_04",
     "target": {},
     "reward": {
@@ -947,7 +918,6 @@
     "name_key": "level.dark_castle_06",
     "game_type": "monster_duel",
     "difficulty": 3,
-    "duration_seconds": 300,
     "requires": "dark_castle_05",
     "target": {
       "correct": 55
@@ -976,7 +946,6 @@
     "game_type": "creative_play",
     "room": true,
     "difficulty": 1,
-    "duration_seconds": 0,
     "target": {},
     "reward": {
       "coins": 0,
@@ -993,7 +962,6 @@
     "game_type": "garden",
     "room": true,
     "difficulty": 1,
-    "duration_seconds": 0,
     "target": {},
     "reward": {
       "coins": 0,
@@ -1007,7 +975,6 @@
     "name_key": "level.harvest_01",
     "game_type": "harvest_action",
     "difficulty": 1,
-    "duration_seconds": 240,
     "target": {},
     "reward": {
       "coins": 14,
@@ -1043,7 +1010,6 @@
     "name_key": "level.harvest_02",
     "game_type": "harvest_action",
     "difficulty": 2,
-    "duration_seconds": 240,
     "target": {},
     "reward": {
       "coins": 16,
@@ -1111,7 +1077,6 @@
     "name_key": "level.harvest_03",
     "game_type": "harvest_action",
     "difficulty": 2,
-    "duration_seconds": 240,
     "target": {},
     "reward": {
       "coins": 18,
@@ -1152,7 +1117,6 @@
     "name_key": "level.harvest_04",
     "game_type": "harvest_action",
     "difficulty": 3,
-    "duration_seconds": 240,
     "target": {},
     "reward": {
       "coins": 18,
@@ -1193,7 +1157,6 @@
     "name_key": "level.harvest_05",
     "game_type": "harvest_action",
     "difficulty": 3,
-    "duration_seconds": 240,
     "target": {},
     "reward": {
       "coins": 20,
@@ -1261,7 +1224,6 @@
     "name_key": "level.harvest_06",
     "game_type": "harvest_action",
     "difficulty": 3,
-    "duration_seconds": 240,
     "target": {},
     "reward": {
       "coins": 20,
@@ -1302,7 +1264,6 @@
     "name_key": "level.harvest_07",
     "game_type": "harvest_action",
     "difficulty": 4,
-    "duration_seconds": 240,
     "target": {},
     "reward": {
       "coins": 24,
@@ -1377,7 +1338,7 @@
         {
           "id": "gift",
           "icon": "basket",
-          "accepts_tags": [],
+          "accepts_tags": ["golden"],
           "sample": "res://assets/crops/golden_carrot.png"
         }
       ],
@@ -1396,7 +1357,6 @@
     "name_key": "level.harvest_08",
     "game_type": "harvest_action",
     "difficulty": 4,
-    "duration_seconds": 240,
     "target": {},
     "reward": {
       "coins": 30,
@@ -1510,7 +1470,7 @@
         {
           "id": "gift",
           "icon": "basket",
-          "accepts_tags": [],
+          "accepts_tags": ["golden"],
           "sample": "res://assets/crops/golden_carrot.png"
         }
       ],
@@ -1529,7 +1489,6 @@
     "name_key": "level.bonus_keepy",
     "game_type": "keepy_uppy",
     "difficulty": 2,
-    "duration_seconds": 240,
     "bonus": true,
     "target": {
       "correct": 8
@@ -1548,7 +1507,6 @@
     "name_key": "level.bonus_blaster",
     "game_type": "light_defense",
     "difficulty": 2,
-    "duration_seconds": 240,
     "bonus": true,
     "target": {
       "correct": 8
@@ -1567,7 +1525,6 @@
     "name_key": "level.bonus_echo",
     "game_type": "light_echo",
     "difficulty": 2,
-    "duration_seconds": 240,
     "bonus": true,
     "target": {
       "correct": 8
