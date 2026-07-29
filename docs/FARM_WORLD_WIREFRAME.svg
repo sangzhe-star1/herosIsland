@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2260" height="2230" viewBox="0 0 2260 2230" font-family="PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Microsoft YaHei, sans-serif">
+  <defs>
+    <style>
+      .lbl   { font-size: 30px; fill: #2c2a26; }
+      .sub   { font-size: 22px; fill: #6b6558; }
+      .tiny  { font-size: 19px; fill: #8a8377; }
+      .hdr   { font-size: 40px; fill: #2c2a26; font-weight: 700; }
+      .leg   { font-size: 24px; fill: #4a463d; }
+      .num   { font-size: 24px; fill: #d1571f; font-weight: 700; }
+      .plot  { fill: #a97b4f; stroke: #7d5733; stroke-width: 4; }
+      .fac   { fill: #fdfbf0; stroke: #c0b394; stroke-width: 4; }
+      .soon  { fill: none; stroke: #b3a98f; stroke-width: 4; stroke-dasharray: 16 12; }
+      .cam   { fill: none; stroke: #d1571f; stroke-width: 5; stroke-dasharray: 22 14; }
+      .dim   { stroke: #d1571f; stroke-width: 3; }
+    </style>
+  </defs>
+
+  <rect width="2260" height="2230" fill="#f7f4ea"/>
+
+  <!-- ============ PANEL A ============ -->
+  <text class="hdr" x="30" y="52">A · 星光农场世界俯视图（世界坐标 2200 × 1150 设计单位）</text>
+
+  <g transform="translate(30, 80)">
+    <rect x="0" y="0" width="2200" height="1150" rx="26" fill="#cfe2b4" stroke="#9cb87e" stroke-width="5"/>
+
+    <!-- 最小缩放可见框 -->
+    <rect class="cam" x="30" y="285" width="1600" height="630" rx="18"/>
+
+    <!-- 六块地 -->
+    <rect class="plot" x="360" y="345" width="220" height="150" rx="22"/>
+    <text class="lbl" x="470" y="432" text-anchor="middle" fill="#fff">1</text>
+    <rect class="plot" x="720" y="345" width="220" height="150" rx="22"/>
+    <text class="lbl" x="830" y="432" text-anchor="middle" fill="#fff">2</text>
+    <rect class="plot" x="1080" y="345" width="220" height="150" rx="22"/>
+    <text class="lbl" x="1190" y="432" text-anchor="middle" fill="#fff">3</text>
+    <rect class="plot" x="360" y="705" width="220" height="150" rx="22"/>
+    <text class="lbl" x="470" y="792" text-anchor="middle" fill="#fff">4</text>
+    <rect class="plot" x="720" y="705" width="220" height="150" rx="22"/>
+    <text class="lbl" x="830" y="792" text-anchor="middle" fill="#fff">5</text>
+    <rect class="plot" x="1080" y="705" width="220" height="150" rx="22"/>
+    <text class="lbl" x="1190" y="792" text-anchor="middle" fill="#fff">6</text>
+
+    <!-- 扩建位 -->
+    <rect class="soon" x="1440" y="345" width="220" height="150" rx="22"/>
+    <text class="sub" x="1550" y="415" text-anchor="middle">7 · 石头压着</text>
+    <rect class="soon" x="1440" y="705" width="220" height="150" rx="22"/>
+    <text class="sub" x="1550" y="775" text-anchor="middle">8 · 围栏塌着</text>
+    <text class="tiny" x="1550" y="308" text-anchor="middle">农场 Lv2 解锁</text>
+
+    <!-- 设施 -->
+    <rect class="fac" x="80" y="160" width="240" height="170" rx="24"/>
+    <text class="lbl" x="200" y="238" text-anchor="middle">种子商店</text>
+    <text class="tiny" x="200" y="275" text-anchor="middle">只收星星币</text>
+
+    <rect class="fac" x="80" y="600" width="240" height="170" rx="24"/>
+    <text class="lbl" x="200" y="678" text-anchor="middle">仓库</text>
+    <text class="tiny" x="200" y="715" text-anchor="middle">40 格 → 60 格</text>
+
+    <circle class="fac" cx="830" cy="165" r="92"/>
+    <text class="lbl" x="830" y="177" text-anchor="middle">水井</text>
+
+    <rect class="fac" x="220" y="905" width="240" height="160" rx="24"/>
+    <text class="lbl" x="340" y="975" text-anchor="middle">小狗窝</text>
+    <text class="tiny" x="340" y="1012" text-anchor="middle">访客记录牌在旁边</text>
+
+    <rect class="fac" x="690" y="990" width="280" height="130" rx="24"/>
+    <text class="lbl" x="830" y="1048" text-anchor="middle">农场入口</text>
+    <text class="tiny" x="830" y="1085" text-anchor="middle">返回 / 去小熊农场</text>
+
+    <rect class="fac" x="1830" y="290" width="240" height="170" rx="24"/>
+    <text class="lbl" x="1950" y="362" text-anchor="middle">市场出售箱</text>
+    <text class="tiny" x="1950" y="399" text-anchor="middle">拖作物进箱 → 金币</text>
+
+    <rect class="fac" x="1830" y="660" width="240" height="170" rx="24"/>
+    <text class="lbl" x="1950" y="732" text-anchor="middle">订单板</text>
+    <text class="tiny" x="1950" y="769" text-anchor="middle">奖励高于直接出售</text>
+
+    <rect class="soon" x="1830" y="60" width="240" height="150" rx="24"/>
+    <text class="sub" x="1950" y="128" text-anchor="middle">果树区</text>
+    <text class="tiny" x="1950" y="161" text-anchor="middle">Lv3</text>
+
+    <rect class="soon" x="1830" y="940" width="240" height="150" rx="24"/>
+    <text class="sub" x="1950" y="1008" text-anchor="middle">加工区 / 温室</text>
+    <text class="tiny" x="1950" y="1041" text-anchor="middle">Lv4 / Lv5</text>
+
+    <rect class="soon" x="1440" y="945" width="220" height="130" rx="24"/>
+    <text class="sub" x="1550" y="1005" text-anchor="middle">装饰区</text>
+    <text class="tiny" x="1550" y="1038" text-anchor="middle">小狗围巾摆这儿</text>
+
+    <!-- 间距标注 -->
+    <line class="dim" x1="470" y1="560" x2="830" y2="560"/>
+    <line class="dim" x1="470" y1="548" x2="470" y2="572"/>
+    <line class="dim" x1="830" y1="548" x2="830" y2="572"/>
+    <text class="num" x="650" y="600" text-anchor="middle">360</text>
+
+    <line class="dim" x1="1350" y1="420" x2="1350" y2="780"/>
+    <line class="dim" x1="1338" y1="420" x2="1362" y2="420"/>
+    <line class="dim" x1="1338" y1="780" x2="1362" y2="780"/>
+    <text class="num" x="1350" y="612" text-anchor="middle">360</text>
+  </g>
+
+  <!-- 图例 -->
+  <g transform="translate(30, 1268)">
+    <rect class="cam" x="4" y="-22" width="64" height="30" rx="8"/>
+    <text class="leg" x="88" y="2">最小缩放 0.8 时屏幕看得见的范围（1600 × 630 世界单位）——— 六块地必须整块在框内，孩子永远不会把地拖丢</text>
+    <text class="leg" x="4" y="44">地块中心间距 360 是算出来的：≥ (DragField.SNAP × 2 + 26) ÷ MIN_ZOOM = 262 ÷ 0.8 = 327.5，余量 32.5</text>
+    <text class="leg" x="4" y="86">旧存档的 plot_1 ~ plot_4 原样落在 1 · 2 · 3 · 4；5 · 6 是新地，一律 EMPTY，绝不覆盖旧状态</text>
+  </g>
+
+  <!-- ============ PANEL B ============ -->
+  <text class="hdr" x="30" y="1430">B · 屏幕分层（1280 × 720 设计像素；顶栏和工具栏不随世界移动）</text>
+
+  <g transform="translate(30, 1460)">
+    <rect x="0" y="0" width="1280" height="720" rx="20" fill="#ffffff" stroke="#c0b394" stroke-width="5"/>
+
+    <rect x="0" y="0" width="1280" height="84" fill="#fdfbf0" stroke="#c0b394" stroke-width="3"/>
+    <text class="lbl" x="40" y="54">← 返回</text>
+    <text class="lbl" x="360" y="54">星光农场</text>
+    <text class="lbl" x="720" y="54">农场 Lv1 ▮▮▯▯</text>
+    <text class="lbl" x="1080" y="54">🪙 298</text>
+
+    <rect x="0" y="84" width="1280" height="504" fill="#e8f0da" stroke="#9cb87e" stroke-width="3"/>
+    <text class="lbl" x="600" y="290" text-anchor="middle">世界窗口 · 可平移 · 缩放 0.8 / 1.0 / 1.25</text>
+    <text class="tiny" x="600" y="336" text-anchor="middle">从土地或设施上按下拖动 = 连续作业笔刷（画面不动）</text>
+    <text class="tiny" x="600" y="368" text-anchor="middle">从草地上按下拖动 = 平移画面　·　双击草地 = 回默认视角</text>
+    <rect x="1150" y="120" width="80" height="80" rx="18" class="fac"/>
+    <text class="lbl" x="1190" y="174" text-anchor="middle">＋</text>
+    <rect x="1150" y="216" width="80" height="80" rx="18" class="fac"/>
+    <text class="lbl" x="1190" y="270" text-anchor="middle">−</text>
+
+    <rect x="0" y="588" width="1280" height="132" fill="#fdfbf0" stroke="#c0b394" stroke-width="3"/>
+    <rect x="30"  y="610" width="104" height="88" rx="20" class="fac" stroke="#d1571f" stroke-width="7"/>
+    <text class="sub" x="82"  y="662" text-anchor="middle">手</text>
+    <rect x="160" y="610" width="104" height="88" rx="20" class="fac"/>
+    <text class="sub" x="212" y="662" text-anchor="middle">锄头</text>
+    <rect x="290" y="610" width="104" height="88" rx="20" class="fac"/>
+    <text class="sub" x="342" y="662" text-anchor="middle">种子</text>
+    <rect x="420" y="610" width="104" height="88" rx="20" class="fac"/>
+    <text class="sub" x="472" y="662" text-anchor="middle">水壶</text>
+    <rect x="550" y="610" width="104" height="88" rx="20" class="fac"/>
+    <text class="sub" x="602" y="662" text-anchor="middle">手套</text>
+    <rect x="680" y="610" width="104" height="88" rx="20" class="fac"/>
+    <text class="sub" x="732" y="662" text-anchor="middle">小扇</text>
+    <rect x="810" y="610" width="104" height="88" rx="20" class="fac"/>
+    <text class="sub" x="862" y="662" text-anchor="middle">篮子</text>
+    <text class="tiny" x="945" y="648">灰掉 = 全场没这个活可干</text>
+    <text class="tiny" x="945" y="682">「手」永远亮着：点哪块地都做它该做的事</text>
+  </g>
+</svg>
