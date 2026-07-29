@@ -22,7 +22,29 @@ extends RefCounted
 ## on the way past, and adding a field in the future costs one line here and
 ## no migration at all.
 
-const PLOT_COUNT := 4
+## How many patches of earth a garden has to start with.
+##
+## Four became six when the garden turned into a farm, and this ONE number is
+## the whole of that migration. That is not luck: normalise_farm() below grows
+## the plot list to maxi(plot_count, PLOT_COUNT), so a save written when it was
+## four comes back with its four beds byte for byte and two fresh ones after
+## them. Later expansions raise the SAVE's own plot_count instead, and the same
+## maxi() is why that number can never shrink and take a planted bed with it.
+const PLOT_COUNT := 6
+
+## How many crops the barn holds before the rest goes into the basket by the
+## door. A number, not a feeling: the six starting beds yield at most 4 each,
+## so a barn that is emptied once per full sweep never fills, and a child who
+## never delivers anything meets the basket after about two sweeps. Raised to
+## a bigger number by the first upgrade, which is earned and is never bought
+## with anything but coins he grew himself. The upgrade itself arrives with the
+## market and the seed shop (docs/FARM_WORLD_PLAN.md, 阶段 3); this is only the
+## ceiling it starts at, and the field on the farm that remembers it.
+const WAREHOUSE_START := 40
+## What the one upgrade raises it to. Bought once with coins and the three
+## planks the three friends left; garden_screen owns the price, this owns the
+## roof.
+const WAREHOUSE_UPGRADED := 60
 
 ## Five stages, from seed to ripe. The child watches a shape change four times;
 ## fewer and nothing seems to happen, more and the middle ones look identical.
@@ -76,6 +98,21 @@ const PLOT := {
 	"water_level": 1.0,         # 0.0 .. 1.0; at 0 growth waits, it never dies
 	"care_event": "",           # "" | "thirsty" | "weeds"
 	"care_completed": false,
+	# Seconds this ONE planting takes from seed to ripe, instead of the crop's
+	# own growth_seconds. 0 means "use the crop's time", which is every plot in
+	# the game except one: the carrot planted during the first lesson, which
+	# has to finish while the child is still standing in front of it.
+	#
+	# It lives on the plot and not in crops.json deliberately. Speeding the
+	# crop up would leave every later carrot fast too, for ever -- a lesson is
+	# not allowed to change the game it is teaching. The harvest clears it,
+	# because a picked bed is reset from fresh_plot().
+	"growth_override_seconds": 0,
+	# A better-than-usual crop, shown with a soft glow and worth more. Nothing
+	# SETS it yet -- what earns it is being decided with the market -- but a
+	# field on a plot costs nothing to add later and costs a whole state to add
+	# wrongly, and normalise_plot() below hands it to every old save for free.
+	"golden": false,
 }
 
 
@@ -109,9 +146,30 @@ static func default_farm() -> Dictionary:
 		plots.append(fresh_plot(i))
 	return {
 		"farm_level": 1,
+		# The farm's own experience, and the ONLY source of farm_level: the
+		# level is computed from this number every time it is asked
+		# (farm_level_manager.gd), and the field above is a copy kept for the
+		# merge, which takes the higher of two tablets' worth of each. It has
+		# nothing to do with the child's own profile xp, on purpose -- the
+		# farm growing up and the child growing up are different stories.
+		"farm_xp": 0,
 		"plot_count": PLOT_COUNT,
 		"plots": plots,
 		"warehouse": {},              # crop_id -> how many are in the barn
+		# How many the barn holds. On the farm and not in a constant because it
+		# is upgraded, and an upgrade that is not on disk is an upgrade he loses
+		# every time he closes the lid.
+		"warehouse_cap": WAREHOUSE_START,
+		# What did not fit, sitting in a basket by the barn door. crop_id -> how
+		# many. NOT a second warehouse: nothing is spent from here and nothing is
+		# delivered from here -- it empties itself back into the barn the moment
+		# there is room (see InventoryManager.tip_basket_in).
+		#
+		# It exists so that "the barn is full" is never an answer to "what
+		# happened to the carrots I just picked". A six-year-old who watches four
+		# strawberries vanish has been robbed by the game, and he will not read
+		# the message explaining it.
+		"harvest_basket": {},
 		"unlocked_crops": [],         # filled by the migration from crops.json
 		"unlocked_recipes": [],
 		"decorations": [],
@@ -125,6 +183,10 @@ static func default_farm() -> Dictionary:
 		"opened": false,              # the one-shot migration flag
 		# The first-planting lesson, run once and never again.
 		"tutorial_completed": false,
+		# The one other thing that is ever taught: the market box, pointed at
+		# once, the first time the barn gets close to full. Same shape as the
+		# lesson flag -- "has this ever happened", never a schedule.
+		"market_taught": false,
 		# When he last stood in the garden. Distinct from last_seen_at, which is
 		# where GROWTH has been settled to: growth is settled by anything that
 		# loads the save, including a level, and "when did he last actually
@@ -133,6 +195,25 @@ static func default_farm() -> Dictionary:
 		# Harvest transaction ids already paid for. Bounded on purpose -- see
 		# remember_paid() for why a bound cannot let a harvest be paid twice.
 		"paid_harvests": [],
+		# The market's receipts. The counter only rises, so every sale in the
+		# history of a save has its own id -- the same shape as plant_cycle_id,
+		# because it is solving the same problem: a second press of the same
+		# button must present an id that has already been seen.
+		"sale_receipt_id": 0,
+		"paid_sales": [],
+		# The neighbours, as the child's save knows them. Three facts per bear
+		# and not one more: which share-cycle he picked in, whether he still
+		# owes the watering he promised, and when the bear last dropped by his
+		# farm. Everything else about the bear's farm is COMPUTED from the
+		# clock -- storing a state that can be computed is storing a thing
+		# that can disagree.
+		"npc": default_npc(),
+		# What the visitors did, newest first, at most VISIT_LOG_KEPT entries.
+		# Every entry is something GIVEN -- nothing in this list can be a
+		# loss, and farm_visit_texts.json is checked for loss-words before it
+		# ever ships.
+		"visit_log": [],
+		"visit_log_unread": false,
 	}
 
 
@@ -158,6 +239,60 @@ static func remember_paid(farm: Dictionary, key: String) -> void:
 	while paid.size() > PAID_LEDGER_KEPT:
 		paid.pop_front()
 	farm["paid_harvests"] = paid
+
+
+## Record a sale, trimming the oldest away. Bounded for the same reason
+## paid_harvests is: the receipt counter never repeats, so an id that falls
+## off the end can never be presented again, and the ledger only has to cover
+## the window between paying and the save landing.
+static func remember_paid_sale(farm: Dictionary, key: String) -> void:
+	var paid: Array = farm.get("paid_sales", [])
+	if not paid is Array:
+		paid = []
+	if key in paid:
+		return
+	paid.append(key)
+	while paid.size() > PAID_LEDGER_KEPT:
+		paid.pop_front()
+	farm["paid_sales"] = paid
+
+
+## How many visitor entries are kept. Ten is a story, forty is a chore.
+const VISIT_LOG_KEPT := 10
+
+
+static func default_npc() -> Dictionary:
+	return {"bear": {"last_share_cycle": -1, "help_owed": false,
+		"last_visit_at": 0}}
+
+
+## The npc block sits three levels deep, which is one past what _migrate can
+## reach -- the same hole normalise_plot() exists for, patched the same way:
+## every read passes through here and missing keys get their defaults.
+static func normalise_npc(raw: Variant) -> Dictionary:
+	var out := default_npc()
+	if not raw is Dictionary:
+		return out
+	for npc_id in out.keys():
+		var given: Variant = raw.get(npc_id)
+		if not given is Dictionary:
+			continue
+		for key in out[npc_id].keys():
+			if given.has(key) and SaveManager.same_shape(given[key], out[npc_id][key]):
+				out[npc_id][key] = given[key]
+	return out
+
+
+## Put a visitor's entry at the top and trim the tale to length.
+static func remember_visit(farm: Dictionary, entry: Dictionary) -> void:
+	var log: Array = farm.get("visit_log", [])
+	if not log is Array:
+		log = []
+	log.push_front(entry)
+	while log.size() > VISIT_LOG_KEPT:
+		log.pop_back()
+	farm["visit_log"] = log
+	farm["visit_log_unread"] = true
 
 
 static func default_orders() -> Dictionary:
@@ -261,10 +396,11 @@ static func _repair(plot: Dictionary) -> Dictionary:
 	plot["planted_at"] = maxi(int(plot.get("planted_at", 0)), 0)
 	plot["last_updated_at"] = maxi(int(plot.get("last_updated_at", 0)), 0)
 
-	# Nothing is waiting for care on bare earth.
+	# Nothing is waiting for care on bare earth, and bare earth is not golden.
 	if not state in PLANTED_STATES:
 		plot["care_event"] = ""
 		plot["care_completed"] = false
+		plot["golden"] = false
 	return plot
 
 
@@ -285,6 +421,7 @@ static func normalise_farm(raw: Variant) -> Dictionary:
 		if given.has(key) and SaveManager.same_shape(given[key], farm[key]):
 			farm[key] = given[key]
 
+	farm["npc"] = normalise_npc(farm.get("npc"))
 	var wanted: int = maxi(int(farm["plot_count"]), PLOT_COUNT)
 	farm["plot_count"] = wanted
 	var incoming: Array = given.get("plots", []) if given.get("plots") is Array else []

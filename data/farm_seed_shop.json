@@ -1,0 +1,29 @@
+{
+  "_comment": "星光农场种子商店。price 是一次性解锁价（0 = 一开始就有）。只用星星币。",
+  "seeds": [
+    {
+      "crop_id": "carrot",
+      "price": 0
+    },
+    {
+      "crop_id": "corn",
+      "price": 0
+    },
+    {
+      "crop_id": "strawberry",
+      "price": 0
+    },
+    {
+      "crop_id": "tomato",
+      "price": 0
+    },
+    {
+      "crop_id": "lettuce",
+      "price": 25
+    },
+    {
+      "crop_id": "potato",
+      "price": 40
+    }
+  ]
+}

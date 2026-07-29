@@ -1,4 +1,4 @@
-import json, os, re, sys, glob, hashlib
+import json, math, os, re, sys, glob, hashlib
 
 root = "."
 errors, warnings = [], []
@@ -1015,18 +1015,199 @@ for sound, where in sorted(audio_asked):
 # ...and the same for spoken lines. AudioManager.say() returns whether it
 # actually spoke, so a missing line is survivable -- but it should be in the
 # script for somebody to record, not lost.
+#
+# A LINE CAN BE NAMED IN DATA AND NOT ONLY IN CODE
+#
+# This used to read `scripts/**/*.gd` and stop there, and for a year that was
+# the whole truth. Then 丰收行动 started naming a crop's teaching line in
+# harvest_crops.json ("voice_intro"), levels.json started naming a level's in
+# "teach_voice", and the garden's first lesson put one line per step in
+# garden_tutorial.json ("voice") -- and none of those strings appears in a .gd
+# file anywhere, so this rule read the entire project and found nothing to say.
+#
+# Four lines had no words written for them at all. Nobody would have found out
+# from here, and the way it would have surfaced is a child tapping a pumpkin
+# and hearing silence -- which is the failure this whole rule exists to stop.
 voice_dir = "assets/audio/voice/level"
 script_doc = ""
 if os.path.exists("docs/VOICE_SCRIPT.md"):
     script_doc = open("docs/VOICE_SCRIPT.md").read()
+
+# The keys a data file is allowed to name a spoken line under. Adding a fifth
+# one means adding it here in the same commit, or it goes unchecked in silence.
+VOICE_KEYS = ("voice", "voice_intro", "teach_voice")
+
+spoken = {}          # line id -> the file that asks for it, for the message
+
+
+def _spoken_in_data(node, where):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in VOICE_KEYS and isinstance(value, str) and value:
+                spoken.setdefault(value, where)
+            else:
+                _spoken_in_data(value, where)
+    elif isinstance(node, list):
+        for value in node:
+            _spoken_in_data(value, where)
+
+
 for path in gd:
     for m in re.finditer(r'AudioManager\.say\(\s*"([a-z0-9_]+)"', open(path).read()):
-        line_id = m.group(1)
-        have = any(os.path.exists(os.path.join(voice_dir, line_id + ext))
-                   for ext in (".ogg", ".wav"))
-        if not have and line_id not in script_doc:
-            warnings.append(f"{os.path.basename(path)}: says '{line_id}', which "
-                            f"is neither recorded nor in docs/VOICE_SCRIPT.md")
+        spoken.setdefault(m.group(1), os.path.basename(path))
+for path in sorted(glob.glob("data/*.json")):
+    try:
+        _spoken_in_data(json.load(open(path)), os.path.basename(path))
+    except (ValueError, OSError):
+        continue     # unreadable json is rule 3's to complain about, not this
+for line_id, where in sorted(spoken.items()):
+    have = any(os.path.exists(os.path.join(voice_dir, line_id + ext))
+               for ext in (".ogg", ".wav"))
+    if not have and line_id not in script_doc:
+        warnings.append(f"{where}: says '{line_id}', which "
+                        f"is neither recorded nor in docs/VOICE_SCRIPT.md")
+
+# --- 5t. every field in a data file is read by something
+#
+# THE SHAPE OF FAILURE THIS PROJECT KEEPS MEETING
+#
+# A field is added to a data file, the code to read it is left for later, and
+# later never comes. Nothing breaks. The file goes on saying the game does
+# something, anybody reading it believes the file, and the game has never done
+# it. Found in one sitting: `touch_tolerance` gave every crop its own reach and
+# the code used one number for all of them; `tool_required` put a wheelbarrow
+# and a pair of shears on seven crops with no tool anywhere in the game;
+# `peel_first` was the whole of the corn level's "two step" design; a tomato
+# asked for a `trellis` job that growth cannot produce; `duration_seconds` gave
+# all forty-three levels a four-minute limit that nothing counted; seeds had
+# `seed_item_id` for an inventory that never takes them away.
+#
+# So: a key in data/ has to be read from a .gd file somewhere, or be named here
+# with the reason it is not. "Named here with a reason" is the whole point --
+# the list below is short, every line says why, and adding to it is a decision
+# somebody makes rather than something that happens by forgetting.
+NOT_READ_ON_PURPOSE = {
+    # Authoring vocabulary. gesture.gd sorts nineteen named gestures into five
+    # recognisers; the crop file says the word a designer thinks in, and rule
+    # 5u below checks the two agree.
+    "harvest_gesture",
+    # Pictures and shapes, checked by rules 5b and 5c rather than read at run
+    # time: growth_assets must be one per stage, growth_seconds must equal the
+    # stages added up, growth_stages must match how many there are.
+    "growth_assets", "growth_seconds", "growth_stages",
+    # Transaction ids, read by RewardManager through a key built at run time
+    # rather than by name.
+    "completion_transaction_key",
+    # Who the order is from. The picture and the name key are what the child
+    # sees; this is how a human tells two orders apart while editing the file.
+    "customer_id",
+    # Content ids and display names for the outfit and monster catalogues,
+    # matched by id at run time rather than read as fields.
+    "name_zh", "role",
+    # Ids of things, not fields of things.
+    "id", "crop_id", "level_id", "world_id", "monster_id",
+}
+
+data_fields = {}          # field name -> the files that use it
+
+
+def _fields_in(node, where):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if re.match(r"^[a-z][a-z0-9_]*$", str(key)):
+                data_fields.setdefault(str(key), set()).add(where)
+            _fields_in(value, where)
+    elif isinstance(node, list):
+        for value in node:
+            _fields_in(value, where)
+
+
+# Only the files that describe how the game BEHAVES. The catalogues that are
+# really id-keyed content -- outfits, characters, monsters, badges -- would
+# report every id in them as a field, which is noise rather than a finding.
+BEHAVIOUR_DATA = ["crops.json", "harvest_crops.json", "garden_orders.json",
+                  "garden_tutorial.json", "levels.json"]
+for name in BEHAVIOUR_DATA:
+    path = os.path.join("data", name)
+    if not os.path.exists(path):
+        continue
+    try:
+        _fields_in(json.load(open(path)), name)
+    except (ValueError, OSError):
+        continue
+gd_text_all = "".join(open(p).read() for p in gd)
+for field in sorted(data_fields):
+    if field in NOT_READ_ON_PURPOSE:
+        continue
+    if f'"{field}"' in gd_text_all:
+        continue
+    where = ", ".join(sorted(data_fields[field]))
+    errors.append(f"{where}: nothing reads '{field}' -- the file says the game "
+                  f"does something it does not do. Wire it up, delete it, or "
+                  f"name it in NOT_READ_ON_PURPOSE with the reason")
+
+# --- 5u. the gesture a crop names and the recogniser it names agree
+#
+# harvest_crops.json carries both: `harvest_gesture` is the word a designer
+# thinks in (pull_up, shake_tree, open_pod) and `recogniser` is which of the
+# five the code actually runs. gesture.gd's header maps them in a comment and
+# nothing checked it, so a crop could say "shake the tree" and be wired to a
+# tap -- the teaching finger would draw a shake and the shake would refuse.
+GESTURE_RECOGNISER = {
+    "tap_collect": "tap",
+    "pull_up": "drag", "swipe_down": "drag", "open_pod": "drag",
+    "roll_to_basket": "drag",
+    "twist": "twist",
+    "cut_stem": "line", "cut_cluster": "line", "swipe_cut": "line",
+    "dig_search": "sweep", "shake_tree": "sweep",
+    # The two that are not crops. A stone is shoved out of the way in any
+    # direction (a drag with a 180-degree fan) and a bug is shooed off with a
+    # tap. They are in the crop file because they stand on the field like
+    # everything else, and they belong in this table for the same reason.
+    "push_aside": "drag", "shoo": "tap",
+}
+if os.path.exists("data/harvest_crops.json"):
+    for crop in json.load(open("data/harvest_crops.json")):
+        gesture = str(crop.get("harvest_gesture", ""))
+        recogniser = str(crop.get("recogniser", ""))
+        if gesture == "":
+            continue
+        want = GESTURE_RECOGNISER.get(gesture)
+        if want is None:
+            errors.append(f"harvest_crops.json: '{crop.get('id', '?')}' names "
+                          f"gesture '{gesture}', which is not one of the "
+                          f"nineteen gesture.gd sorts into five recognisers")
+        elif want != recogniser:
+            errors.append(f"harvest_crops.json: '{crop.get('id', '?')}' says "
+                          f"gesture '{gesture}' but recogniser '{recogniser}' "
+                          f"-- '{gesture}' is a '{want}'. The finger would "
+                          f"draw one move and the game would want another")
+
+# --- 5s. no basket in a sorting level quietly takes everything
+#
+# HarvestBasket.takes() reads an empty `accepts_tags` as "no rule, take
+# anything", which is exactly right for the one-basket levels where there is
+# nothing to decide. In a level with two or three baskets it is a wildcard, and
+# a wildcard is invisible: the other baskets are strict, this one silently
+# accepts whatever is dropped in it, and nothing on screen says which is which.
+#
+# It shipped that way. The gift basket in 多作物订单 and 丰收庆典 was written
+# with no tags, so "the ones with a star go in the gift basket" was enforced in
+# one direction only -- a golden carrot could go nowhere else, and every tomato
+# in the level could go in there too and be told it was right. A child who
+# tipped the whole field into the gift basket would have been correct every
+# single time, which is not a sorting game, it is a bucket.
+for level in levels:
+    baskets = level.get("config", {}).get("baskets", [])
+    if len(baskets) < 2:
+        continue
+    for basket in baskets:
+        if not basket.get("accepts_tags", []):
+            errors.append(
+                f"levels.json: '{level.get('id', '?')}' basket "
+                f"'{basket.get('id', '?')}' has no accepts_tags, so it takes "
+                f"anything -- in a level with {len(baskets)} baskets that is a "
+                f"wildcard nothing on screen tells him about")
 
 # --- 5i. every card in the 怪兽图鉴 can actually be earned
 #
@@ -1264,6 +1445,432 @@ for iid, entry in sorted(who_items.items()):
     if not free and entry["price"] <= 0:
         errors.append(f"shop_items.json: '{iid}' costs nothing but is not "
                       f"unlocked, so nothing can ever hand it over")
+
+# --- 5s. the farm's layout has to be legal before anything is launched
+#
+# Where every bed and building stands is data/farm_world_layout.json, and the
+# rules about those positions are scripts/garden/farm_layout.gd. This runs the
+# same arithmetic on the same file, so a bad nudge is caught by a two-second
+# python run rather than by a probe that needs a window, a GPU and four minutes
+# -- or by a six-year-old whose carrot landed in the wrong bed.
+#
+# THE RULE THAT GOT HARDER WHEN THE FARM STARTED MOVING
+#
+# DragField.SNAP is measured on the GLASS: a released seed clicks into any slot
+# within that many screen pixels. The world can now be zoomed out, so a fixed
+# world distance buys FEWER screen pixels the further out he is -- and a layout
+# that is safe at full zoom starts letting seeds land in the wrong bed the
+# moment he presses the minus button. The gap therefore has to clear the screen
+# rule at the SMALLEST zoom, which is what dividing by it does.
+def _gd_const(path, name, cast=float):
+    """Read `const NAME := <number>` from a .gd file, skipping comment lines."""
+    if not os.path.exists(path):
+        return None
+    for raw in open(path, encoding="utf-8"):
+        # Comments are skipped, and that is not tidiness: the comment that
+        # explains a rule contains the rule's own words, and this project has
+        # twice deleted a line of code while a comment kept the check green.
+        if raw.lstrip().startswith("#"):
+            continue
+        hit = re.match(r"\s*const\s+%s\s*:=\s*([0-9.]+)" % name, raw)
+        if hit:
+            return cast(hit.group(1))
+    return None
+
+
+LAYOUT_FILE = "data/farm_world_layout.json"
+snap = _gd_const("scripts/shared/drag_field.gd", "SNAP")
+plot_count = _gd_const("scripts/garden/farm_save.gd", "PLOT_COUNT", int)
+thumb_apart = _gd_const("scripts/garden/farm_layout.gd", "THUMB_APART")
+if snap is None or plot_count is None or thumb_apart is None:
+    errors.append("tools_check 5s cannot find DragField.SNAP, Farm.PLOT_COUNT "
+                  "or Layout.THUMB_APART any more -- one of them has been "
+                  "renamed, and this check has been measuring nothing")
+elif os.path.exists(LAYOUT_FILE):
+    L = json.load(open(LAYOUT_FILE, encoding="utf-8"))
+    world = L.get("world", {})
+    world_w, world_h = float(world.get("width", 0)), float(world.get("height", 0))
+    steps = [float(z) for z in L.get("zoom_steps", [])]
+    plots = L.get("plots", {})
+    box = [float(v) for v in plots.get("box", [0, 0])]
+    across = int(plots.get("across", 0))
+    gap = [float(v) for v in plots.get("gap", [0, 0])]
+    first = [float(v) for v in plots.get("first", [0, 0])]
+    exp = L.get("expansion", {})
+    exp_first = [float(v) for v in exp.get("first", [0, 0])]
+    exp_gap = [float(v) for v in exp.get("gap", [0, 0])]
+    exp_count = int(exp.get("count", 0))
+    facilities = L.get("facilities", [])
+
+    if not steps or across < 1 or world_w <= 0 or world_h <= 0:
+        errors.append(f"{LAYOUT_FILE}: world/zoom_steps/plots.across is missing "
+                      f"or zero -- the farm would open on nothing")
+    else:
+        min_zoom = min(steps)
+
+        def plot_at(i):
+            grid = across * 2
+            if i < grid:
+                return (first[0] + (i % across) * gap[0],
+                        first[1] + (i // across) * gap[1])
+            n = i - grid
+            return (exp_first[0] + exp_gap[0] * n, exp_first[1] + exp_gap[1] * n)
+
+        places = across * 2 + exp_count
+        needed = (snap * 2.0 + 26.0) / min_zoom
+        if gap[0] < needed or gap[1] < needed:
+            errors.append(
+                f"{LAYOUT_FILE}: beds are {gap[0]:.0f}x{gap[1]:.0f} apart and "
+                f"need {needed:.0f} -- at the smallest zoom ({min_zoom}) that is "
+                f"{min(gap) * min_zoom:.0f}px on the glass and DragField snaps a "
+                f"dropped seed within {snap:.0f}px, so a seed aimed at one bed "
+                f"could land in its neighbour")
+
+        if plot_count > places:
+            errors.append(
+                f"{LAYOUT_FILE}: has room for {places} beds and farm_save.gd "
+                f"starts the farm with {plot_count}")
+
+        # Every bed the farm can ever have, inside the world.
+        for i in range(places):
+            x, y = plot_at(i)
+            if (x - box[0] / 2 < 0 or y - box[1] / 2 < 0
+                    or x + box[0] / 2 > world_w or y + box[1] / 2 > world_h):
+                errors.append(
+                    f"{LAYOUT_FILE}: bed {i + 1} at ({x:.0f},{y:.0f}) is partly "
+                    f"outside the {world_w:.0f}x{world_h:.0f} world -- it could "
+                    f"be dragged to and never found")
+
+        # Two things a thumb can press, too close together on the glass. Fifth
+        # time this project has had to check this; first time the answer
+        # depends on a zoom level.
+        pressable = [(f"bed {i + 1}", plot_at(i)) for i in range(places)]
+        for f in facilities:
+            at = [float(v) for v in f.get("at", [0, 0])]
+            pressable.append((str(f.get("id", "?")), (at[0], at[1])))
+        for a in range(len(pressable)):
+            for b in range(a + 1, len(pressable)):
+                (na, pa), (nb, pb) = pressable[a], pressable[b]
+                apart = math.dist(pa, pb) * min_zoom
+                if apart < thumb_apart:
+                    errors.append(
+                        f"{LAYOUT_FILE}: {na} and {nb} are {apart:.0f}px apart "
+                        f"on the glass at the smallest zoom; a thumb needs "
+                        f"{thumb_apart:.0f}")
+
+        # Every facility inside the world too, and every icon drawable.
+        for f in facilities:
+            at = [float(v) for v in f.get("at", [0, 0])]
+            size = [float(v) for v in f.get("size", [0, 0])]
+            fid = str(f.get("id", "?"))
+            if (at[0] - size[0] / 2 < 0 or at[1] - size[1] / 2 < 0
+                    or at[0] + size[0] / 2 > world_w
+                    or at[1] + size[1] / 2 > world_h):
+                errors.append(f"{LAYOUT_FILE}: '{fid}' is partly outside the world")
+            icon = str(f.get("icon", ""))
+            if icon.startswith("res://"):
+                if not os.path.exists(icon.replace("res://", "")):
+                    errors.append(f"{LAYOUT_FILE}: '{fid}' asks for art {icon}, "
+                                  f"which is not on disk")
+            elif icon != "" and icon not in crop_icon_names:
+                errors.append(f"{LAYOUT_FILE}: '{fid}' asks for icon '{icon}', "
+                              f"which IconLibrary cannot draw -- the building "
+                              f"would stand there with nothing on it")
+
+        # And the promise the whole opening view rests on: at the smallest
+        # zoom, every bed the child owns fits in the window at once. Measured
+        # at 1280x720, the shortest shape the island is ever handed.
+        top_bar = _gd_const("scripts/garden/garden_screen.gd", "TOP_BAR")
+        shelf = _gd_const("scripts/garden/garden_screen.gd", "SHELF")
+        if top_bar is None or shelf is None:
+            errors.append("tools_check 5s cannot find TOP_BAR / SHELF in "
+                          "garden_screen.gd -- it cannot tell how tall the "
+                          "farm's window is and has stopped checking")
+        else:
+            xs = [plot_at(i)[0] for i in range(plot_count)]
+            ys = [plot_at(i)[1] for i in range(plot_count)]
+            block_w = max(xs) - min(xs) + box[0]
+            block_h = max(ys) - min(ys) + box[1]
+            win_w, win_h = 1280.0, 720.0 - top_bar - shelf
+            if block_w * min_zoom > win_w or block_h * min_zoom > win_h:
+                errors.append(
+                    f"{LAYOUT_FILE}: at the smallest zoom ({min_zoom}) the "
+                    f"{plot_count} beds need "
+                    f"{block_w * min_zoom:.0f}x{block_h * min_zoom:.0f}px and the "
+                    f"farm's window at 1280x720 is {win_w:.0f}x{win_h:.0f} -- a "
+                    f"child would open the farm unable to see all of his beds")
+else:
+    errors.append(f"{LAYOUT_FILE} is missing -- the farm has nowhere to stand")
+
+# --- 5t. a harvest may not go into the barn without asking whether it fits
+#
+# Barn.put() answers "how many actually went in", and since the barn grew a
+# ceiling that answer can be smaller than what was picked. A caller that
+# ignores it drops the difference on the floor -- silently, and in front of a
+# child who watched the strawberries come out of the ground.
+# Barn.store_harvest() is the only call that promises stored + spilled == all
+# of it, so the screen has to use that one.
+FARM_SCREEN = "scripts/garden/garden_screen.gd"
+if os.path.exists(FARM_SCREEN):
+    for n, raw in enumerate(open(FARM_SCREEN, encoding="utf-8"), 1):
+        if raw.lstrip().startswith("#"):
+            continue
+        if re.search(r"\bBarn\.put\(", raw) \
+                and '"inventory"' not in raw and "Barn.BASKET" not in raw:
+            # Only the WAREHOUSE has a ceiling. Seeds, tools and planks go to
+            # "inventory", which is uncapped on purpose, and put() there can
+            # never eat anything -- so those calls pass. What may not happen
+            # is a harvest walking into the barn through the door that
+            # truncates.
+            errors.append(
+                f"{FARM_SCREEN}:{n}: puts something into the BARN with "
+                f"Barn.put(). put() answers how many FIT, and a full barn "
+                f"would eat the rest without a word -- use Barn.store_harvest(), "
+                f"which spills what does not fit into the basket by the door")
+
+# --- 5u. the farm's tool rack has to be drawable and speakable
+#
+# A tool button whose icon IconLibrary cannot draw renders as an empty
+# rectangle -- a button a child cannot find. A tool whose voice id has no line
+# in the voice script is a tool that will never be recorded, because the
+# script IS the recording list. Both are invisible at runtime: the button
+# still presses, the say() still silently no-ops. So they are errors here.
+TOOL_FILE = "scripts/garden/farm_tool_controller.gd"
+if os.path.exists(TOOL_FILE):
+    tool_rows = []
+    for raw in open(TOOL_FILE, encoding="utf-8"):
+        if raw.lstrip().startswith("#"):
+            continue
+        hit = re.match(r'\s*\{"id":\s*"(\w+)",\s*"icon":\s*"([\w./:]+)",'
+                       r'\s*"voice":\s*"(\w*)"\}', raw)
+        if hit:
+            tool_rows.append(hit.groups())
+    if len(tool_rows) != 7:
+        errors.append(f"{TOOL_FILE}: found {len(tool_rows)} tools in TOOLS and "
+                      f"expected 7 -- either the rack changed on purpose (then "
+                      f"update this rule) or the table's shape drifted and this "
+                      f"check has been reading nothing")
+    else:
+        if tool_rows[0][0] != "hand":
+            errors.append(f"{TOOL_FILE}: the first tool is '{tool_rows[0][0]}', "
+                          f"not the hand -- the hand IS the old game and it "
+                          f"comes first")
+        voice_script = open("docs/VOICE_SCRIPT.md", encoding="utf-8").read() \
+            if os.path.exists("docs/VOICE_SCRIPT.md") else ""
+        for tid, icon, voice in tool_rows:
+            if icon.startswith("res://"):
+                if not os.path.exists(icon.replace("res://", "")):
+                    errors.append(f"{TOOL_FILE}: tool '{tid}' asks for art "
+                                  f"{icon}, which is not on disk")
+            elif icon not in crop_icon_names:
+                errors.append(f"{TOOL_FILE}: tool '{tid}' asks for icon "
+                              f"'{icon}', which IconLibrary cannot draw -- the "
+                              f"button would be an empty rectangle")
+            if voice != "" and f"`{voice}.wav`" not in voice_script:
+                errors.append(f"{TOOL_FILE}: tool '{tid}' says '{voice}' and "
+                              f"docs/VOICE_SCRIPT.md has no such line -- it "
+                              f"will never be recorded, because the script IS "
+                              f"the recording list")
+
+# --- 5v. one planting, one job
+#
+# Each crop raises exactly ONE kind of care per planting. Two jobs on one plot
+# is two things for a six-year-old to work out and one of them gets missed --
+# and an EMPTY list quietly turns the old both-jobs fallback on, which nobody
+# has chosen on purpose since the field existed. Growth.field_job() also takes
+# the FIRST ground job it finds, so a second one would be silently ignored:
+# exactly the kind of half-alive data this file exists to refuse.
+if os.path.exists("data/crops.json"):
+    for crop in json.load(open("data/crops.json")):
+        cid = str(crop.get("id", "?"))
+        types = crop.get("care_event_types", None)
+        if not isinstance(types, list) or len(types) != 1:
+            errors.append(f"crops.json: crop '{cid}' has care_event_types "
+                          f"{types!r} -- exactly one job per planting, chosen "
+                          f"on purpose")
+        elif types[0] not in ("thirsty", "weeds", "bug"):
+            errors.append(f"crops.json: crop '{cid}' asks for care "
+                          f"'{types[0]}', which nothing can raise or clear")
+
+# --- 5w. the farm's economy has to add up before it ships
+#
+# Three books have to agree: the crop catalogue, the shop's shelf, and the
+# market's till. A crop on the shelf that the catalogue never heard of is a
+# row a child can buy nothing from; a crop with no market price sells for
+# zero without a word; and an order that pays LESS than the market would for
+# the same basket makes the order board a trick -- the one thing the design
+# promises is that helping a friend always beats the box.
+if os.path.exists("data/farm_seed_shop.json") and os.path.exists("data/crops.json"):
+    _crops = {str(c.get("id", "")): c for c in json.load(open("data/crops.json"))}
+    _shelf = json.load(open("data/farm_seed_shop.json")).get("seeds", [])
+    _prices = json.load(open("data/farm_market_prices.json")).get("prices", {}) \
+        if os.path.exists("data/farm_market_prices.json") else {}
+
+    shelf_ids = set()
+    for row in _shelf:
+        cid = str(row.get("crop_id", ""))
+        shelf_ids.add(cid)
+        if cid not in _crops:
+            errors.append(f"farm_seed_shop.json: sells '{cid}', which "
+                          f"crops.json has never heard of")
+            continue
+        price = row.get("price", None)
+        if not isinstance(price, (int, float)) or price < 0:
+            errors.append(f"farm_seed_shop.json: '{cid}' has price {price!r}")
+        starter = str(_crops[cid].get("unlock_condition", "")) == ""
+        if starter and price != 0:
+            errors.append(f"farm_seed_shop.json: '{cid}' is a starter crop "
+                          f"(unlock_condition empty) priced at {price} -- the "
+                          f"four starters were decided free and stay free")
+        if not starter and price <= 0:
+            errors.append(f"farm_seed_shop.json: '{cid}' is shop-locked but "
+                          f"free -- nothing would ever unlock it on purpose")
+    for cid, crop in _crops.items():
+        if cid not in shelf_ids:
+            errors.append(f"farm_seed_shop.json: crop '{cid}' is not on the "
+                          f"shelf at all -- the shop is the one place all "
+                          f"crops are seen side by side")
+        if int(_prices.get(cid, 0)) <= 0:
+            errors.append(f"farm_market_prices.json: crop '{cid}' has no "
+                          f"market price -- it would sell for nothing, "
+                          f"silently")
+
+    # The law: every order pays MORE than the market would for the same
+    # basket. Computed, not promised -- a reward or a price retuned in a
+    # hurry is exactly when this breaks.
+    if os.path.exists("data/garden_orders.json"):
+        for order in json.load(open("data/garden_orders.json")):
+            oid = str(order.get("id", "?"))
+            market_worth = sum(int(_prices.get(str(k), 0)) * int(v)
+                               for k, v in order.get("requirements", {}).items())
+            reward = int(order.get("rewards", {}).get("coins", 0))
+            if reward <= market_worth:
+                errors.append(
+                    f"garden_orders.json: '{oid}' pays {reward} but the market "
+                    f"pays {market_worth} for the same crops -- helping a "
+                    f"friend must always beat the box, or the order board is "
+                    f"a trick")
+
+# --- 5x. a visitor may only ever bring good news
+#
+# The visitor log is the one place the game NARRATES what somebody else did to
+# the child's farm while he was away. The whole QQ-farm genre earns its "偷菜"
+# reputation in exactly this spot, so the spec's red line gets a machine check:
+# every string a visit template can put on the board -- and every bear line the
+# voice script can speak -- must be free of taking, losing, stealing, revenge
+# and blame, in both languages. A theme retune or a hastily added visitor
+# NPC is exactly when a "小熊拿走了..." would slip in.
+if os.path.exists("data/farm_visit_texts.json") and os.path.exists("data/strings.json"):
+    _bad_words = ["偷", "抢", "拿走", "损失", "被拿", "被摘", "报复", "惩罚",
+                  "小偷", "坏", "哭", "生气", "打你",
+                  "stole", "stolen", "steal", "took your", "taken from you",
+                  "lost your", "revenge", "punish", "angry", "cry"]
+    _texts = json.load(open("data/farm_visit_texts.json"))
+    _strings = json.load(open("data/strings.json"))
+    _visit_keys = set()
+    for _who, _block in _texts.items():
+        if not isinstance(_block, dict):
+            continue
+        for _line in _block.get("lines", []) + _block.get("visited_lines", []):
+            _key = str(_line.get("key", ""))
+            _visit_keys.add(_key)
+            for lang in ("en", "zh"):
+                if _key not in _strings.get(lang, {}):
+                    errors.append(f"farm_visit_texts.json: '{_who}' names "
+                                  f"'{_key}', which strings.json has no "
+                                  f"{lang} line for")
+            _icon = str(_line.get("icon", ""))
+            _icon_names = set(re.findall(r'"(\w+)"',
+                re.search(r'const NAMES := \[(.*?)\n\]',
+                          open("scripts/ui/icon_library.gd").read(),
+                          re.S).group(1)))
+            if _icon and _icon not in _icon_names:
+                errors.append(f"farm_visit_texts.json: '{_who}' asks for icon "
+                              f"'{_icon}', which icon_library cannot draw")
+    # The bear's own spoken/board lines ride the same rule: everything under
+    # garden.visit_* and garden.bear_* is a visitor talking.
+    for lang in ("en", "zh"):
+        for _key, _line in _strings.get(lang, {}).items():
+            if not (_key in _visit_keys or _key.startswith("garden.visit")
+                    or _key.startswith("garden.bear")):
+                continue
+            _lower = str(_line).lower()
+            for _word in _bad_words:
+                if _word in _lower:
+                    errors.append(
+                        f"strings.json: {lang} '{_key}' contains '{_word}' -- "
+                        f"a visitor may only ever bring good news; taking, "
+                        f"losing and blame are the genre habit this farm "
+                        f"exists to refuse")
+
+# --- 5y. the farm's ladder has to be climbable before it ships
+#
+# Levels, thresholds and the two beds under stones are all hand-typed json,
+# and every failure mode is silent at runtime: a threshold out of order makes
+# level_of() lurch backwards, a slot index with no ground under it draws
+# stones in the void, a facility asking for level 7 of a 5-rung ladder is a
+# building that never gets built. Checked here, where a retune in a hurry
+# gets caught before a child meets it.
+if os.path.exists("data/farm_levels.json"):
+    _lv = json.load(open("data/farm_levels.json"))
+    _rows = _lv.get("levels", [])
+    if not _rows:
+        errors.append("farm_levels.json: no levels -- the farm could never grow")
+    _numbers = [int(r.get("level", 0)) for r in _rows]
+    _steps = [int(r.get("xp", -1)) for r in _rows]
+    if sorted(_numbers) != list(range(1, len(_rows) + 1)):
+        errors.append(f"farm_levels.json: level numbers {_numbers} are not "
+                      f"1..{len(_rows)} -- a rung is missing or doubled")
+    _by_level = sorted(zip(_numbers, _steps))
+    _xp_in_order = [x for _, x in _by_level]
+    if _xp_in_order != sorted(set(_xp_in_order)):
+        errors.append(f"farm_levels.json: thresholds {_xp_in_order} do not "
+                      f"strictly rise with the level -- level_of() would "
+                      f"lurch backwards")
+    if _by_level and _by_level[0][1] != 0:
+        errors.append("farm_levels.json: level 1 must start at xp 0 -- a "
+                      "farm that opens below its own ladder has no rung to "
+                      "stand on")
+    for _kind in ("harvest", "order", "help"):
+        if int(_lv.get("xp", {}).get(_kind, 0)) <= 0:
+            errors.append(f"farm_levels.json: xp source '{_kind}' pays "
+                          f"nothing -- a kindness that earns zero teaches "
+                          f"that it was worthless")
+    _top = max(_numbers) if _numbers else 1
+
+    if os.path.exists("data/farm_expansions.json") \
+            and os.path.exists("data/farm_world_layout.json"):
+        _ex = json.load(open("data/farm_expansions.json")).get("slots", [])
+        _lay = json.load(open("data/farm_world_layout.json"))
+        _grid = int(_lay.get("plots", {}).get("across", 3)) * 2
+        _places = _grid + int(_lay.get("expansion", {}).get("count", 0))
+        _want = _grid
+        for _slot in sorted(_ex, key=lambda r: int(r.get("index", -1))):
+            _idx = int(_slot.get("index", -1))
+            if _idx != _want:
+                errors.append(f"farm_expansions.json: slot indexes must run "
+                              f"{_grid}..{_places - 1} without holes; found "
+                              f"{_idx} where {_want} belongs -- plot_count "
+                              f"is one rising number and cannot skip")
+            _want += 1
+            if _idx >= _places:
+                errors.append(f"farm_expansions.json: slot {_idx} has no "
+                              f"ground under it -- the layout only marks "
+                              f"out {_places} places")
+            if int(_slot.get("coins", 0)) <= 0:
+                errors.append(f"farm_expansions.json: slot {_idx} is free -- "
+                              f"clearing land is the thing coins are FOR")
+            if not 1 <= int(_slot.get("level", 0)) <= _top:
+                errors.append(f"farm_expansions.json: slot {_idx} asks for "
+                              f"level {_slot.get('level')} of a {_top}-rung "
+                              f"ladder")
+        for _f in _lay.get("facilities", []):
+            _need = int(_f.get("level", 0))
+            if _need and not 1 <= _need <= _top:
+                errors.append(f"farm_world_layout.json: facility "
+                              f"'{_f.get('id')}' waits for level {_need}, "
+                              f"which a {_top}-rung ladder never reaches -- "
+                              f"a building that can never be built")
 
 print("=" * 60)
 print(f"scripts: {len(gd)}   scenes: {len(tscn)}   levels: {len(levels)}")

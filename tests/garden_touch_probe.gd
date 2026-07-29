@@ -13,17 +13,35 @@ extends Node
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const Layout := preload("res://scripts/garden/farm_layout.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 
 const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
 const NOON := 1_699_963_200
 
+## The fewest questions this probe may have asked by the time it decides.
+##
+## An empty failure list means "nothing came back wrong", not "I asked". Almost
+## every check below starts by finding something on a screen it has just built
+## -- a bed, a seed tile, a back button -- and a find that comes back empty
+## skips its questions in silence and prints PASSED. That is not a hypothetical
+## here: this probe locates the back button by its label and the seed tiles by
+## a copy of the rack's arithmetic, so a change to either would have quietly
+## removed a whole section rather than turning it red.
+##
+## Counted across BOTH screen shapes, because a probe that silently ran only one
+## of them is the same failure wearing a different hat.
+const CHECKS_EXPECTED := 184
+
 var _failures: Array[String] = []
 var _garden: Node = null
 var _shape := ""
+## How many questions actually got asked. See CHECKS_EXPECTED.
+var _asked := 0
 
 
 func _ok(condition: bool, description: String) -> void:
+	_asked += 1
 	if not condition:
 		_failures.append("[%s] %s" % [_shape, description])
 
@@ -34,8 +52,17 @@ func _ready() -> void:
 		_shape = "%dx%d" % [shape.x, shape.y]
 		await _run_on_a(shape)
 
+	if _asked < CHECKS_EXPECTED:
+		_failures.append(
+			"this probe only asked %d questions across %d screen shapes and "
+			% [_asked, SHAPES.size()]
+			+ "expected at least %d -- something it looks for on the screen "
+			% CHECKS_EXPECTED
+			+ "is no longer there, so a section was skipped in silence")
+
 	for failure in _failures:
 		print("FAIL  %s" % failure)
+	print("asked %d questions" % _asked)
 	print("GARDEN TOUCH PROBE %s\n"
 		% ("PASSED" if _failures.is_empty() else "FAILED"))
 	get_tree().quit(1 if _failures.size() > 0 else 0)
@@ -96,6 +123,17 @@ func _bed(index: int) -> Vector2:
 	return _garden.call("_bed_centre", index)
 
 
+## How big one bed is ON THE GLASS -- the farm's own number, scaled by however
+## far out the camera is. Written down a second time here it would be a copy
+## that agrees rather than a check that measures.
+func _bed_box() -> Vector2:
+	return Layout.plot_box() * _camera().zoom
+
+
+func _camera():
+	return _garden.get("_world").camera
+
+
 func _glass(at: Vector2) -> Vector2:
 	var view: Vector2 = get_viewport().get_visible_rect().size
 	var win: Vector2 = Vector2(get_window().size)
@@ -147,18 +185,29 @@ func _finger(from: Vector2, to: Vector2) -> void:
 ## Nothing he has to reach for is off the glass, and the beds are far enough
 ## apart that a seed cannot click into the wrong one.
 func _the_beds_are_on_the_screen_he_is_holding(view: Vector2) -> void:
-	for i in range(4):
+	# Every bed there is, asked from the save rather than from a number written
+	# down here. Four became six; a probe holding its own copy of that count
+	# would have gone on checking the first four and reported nothing at all
+	# about the two new ones.
+	var beds: int = _plots().size()
+	_ok(beds == Farm.PLOT_COUNT,
+		"the garden draws all %d beds" % Farm.PLOT_COUNT)
+	for i in range(beds):
 		var at := _bed(i)
-		_ok(at.x > 60.0 and at.x < view.x - 60.0,
+		# Half a bed, so the check is about the whole thing being reachable
+		# rather than about its centre being on the glass. A bed whose left
+		# edge is under the bezel is a bed he cannot press the left half of.
+		var half := _bed_box() * 0.5
+		_ok(at.x - half.x > 60.0 and at.x + half.x < view.x - 60.0,
 			"bed %d is on the screen horizontally" % i)
-		_ok(at.y > 96.0 and at.y < view.y - 168.0,
+		_ok(at.y - half.y > 96.0 and at.y + half.y < view.y - 168.0,
 			"bed %d sits between the top bar and the seed rack" % i)
 
 	# The rule that makes a mis-drop impossible: DragField clicks a released
 	# piece into any slot within 118px, so two beds closer than 236px apart
 	# would let a seed aimed at one land in the other.
-	for a in range(4):
-		for b in range(a + 1, 4):
+	for a in range(beds):
+		for b in range(a + 1, beds):
 			_ok(_bed(a).distance_to(_bed(b)) > 236.0,
 				"beds %d and %d are further apart than the snap radius" % [a, b])
 	await get_tree().process_frame
@@ -336,9 +385,10 @@ func _there_is_a_way_out() -> void:
 
 
 func _seed_tile(index: int) -> Vector2:
-	var view: Vector2 = get_viewport().get_visible_rect().size
-	# Mirrors _seed_rack's layout: first tile at x = 90, then tile + 26 apart.
-	return Vector2(90.0 + float(index) * 130.0, view.y - 84.0)
+	# Asked of the screen, which used to be a hand-kept copy of the rack's
+	# arithmetic -- the copy survived one shelf redesign only because
+	# DragField's grab radius forgave the 42px it was off by.
+	return _garden.call("_rack_tile_centre", index)
 
 
 func _find_back_button(node: Node) -> Button:
@@ -368,9 +418,7 @@ func _handing_an_order_over_pays_once() -> void:
 		Barn.put(str(crop_id), int(wants[crop_id]))
 	SaveManager.data["farm_orders"]["delivered"] = []
 	SaveManager.save_game()
-	_garden.call("_rebuild")
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await _open_the_board()
 
 	var card := _order_card(str(order.get("id", "")))
 	_ok(card != null, "the order he can fill has a card he can press")
@@ -386,6 +434,8 @@ func _handing_an_order_over_pays_once() -> void:
 
 	_ok(Coins.balance() == before + price,
 		"handing the basket over pays exactly what the card promised")
+	_ok(Barn.count("plank", "inventory") == 1,
+		"and the friend leaves exactly one plank as thanks")
 	_ok(str(order.get("id", ""))
 			in SaveManager.data["farm_orders"]["delivered"],
 		"and the delivery is written down")
@@ -416,6 +466,8 @@ func _handing_an_order_over_pays_once() -> void:
 		Barn.take(str(crop_id), int(wants[crop_id]))
 	_ok(Coins.balance() == before + price,
 		"and pressing it again pays nothing at all")
+	_ok(Barn.count("plank", "inventory") == 1,
+		"and no second plank arrives however it is pressed")
 
 	# And it survives the game being closed. In memory the delivered list is a
 	# reference, so the in-memory dedup works whether or not anything is
@@ -427,6 +479,33 @@ func _handing_an_order_over_pays_once() -> void:
 		"the delivery is on disk, not just in memory")
 	_ok(Coins.balance() == before + price,
 		"...and so are the 星星币 it paid")
+	_ok(Barn.count("plank", "inventory") == 1,
+		"...and the one plank")
+
+
+## Walk up to the order board and press it, the way he does.
+##
+## The board is a building on the farm now, not a panel nailed to the right
+## third of the screen -- that third is farm. So a card cannot be pressed until
+## the board has been opened, and the probe opens it the same way a thumb does:
+## by pressing the building. Setting the flag directly would test the panel and
+## skip the only new thing there is to get wrong.
+func _open_the_board() -> void:
+	var world = _garden.get("_world")
+	# From the opening view the board is off the glass -- the farm is bigger
+	# than the window now, which is the whole point of it. Walk over first,
+	# exactly the way a thumb does, then press the building where it is drawn.
+	# (This used to "work" without walking, and that was the bug: a press
+	# outside the window was being claimed and answered anyway.)
+	var at: Vector2 = world.facility_screen_position("orders")
+	if not world.camera.inside(at):
+		world.look_at_facility("orders")
+		await get_tree().process_frame
+		at = world.facility_screen_position("orders")
+	await _tap(at)
+	_ok(bool(_garden.get("_orders_open")),
+		"pressing the order board opens it")
+	await get_tree().process_frame
 
 
 ## The card for one order, found by where the board puts it.
@@ -450,7 +529,17 @@ func _collect_order_cards(node: Node, out: Array) -> void:
 			out.append(child)
 		_collect_order_cards(child, out)
 
-## The first planting is taught once, and then never again.
+## The first planting is taught once, all six steps of it, and then never again.
+##
+## Two halves, and both have gone wrong here.
+##
+## "All six steps" is the half that was missing. garden_tutorial.json described
+## six -- greet, turn, plant, water, pick, hand over -- and the screen read one
+## field out of that file and played a four-second finger animation instead. The
+## four lines after the greeting had no way to play at all, so `garden_tut_water`
+## was written down, recorded by a parent, and unreachable. This walks the whole
+## lesson with a thumb and asks, at each step, whether the game said the thing
+## that step is for.
 ##
 ## "Never again" is the half that matters. A lesson that replays every visit is
 ## a lesson a child learns to tap through, and after that the game has no way
@@ -464,23 +553,91 @@ func _the_lesson_happens_once_in_a_childhood() -> void:
 	_open()
 	for i in range(4):
 		await get_tree().process_frame
-	_ok(is_instance_valid(_garden.get("_lesson")),
+	_ok(bool(_garden.get("_lesson_running")),
 		"a child opening the garden for the first time gets the lesson")
+	_ok(str(_garden.get("_lesson_said")) == "welcome",
+		"and it opens by greeting him, not by giving him a job")
 
-	# Let it run out. The director frees itself at the end, so everything after
-	# this asks is_instance_valid rather than == null -- a freed object is not
-	# null, and a probe that compared against null would have passed whether the
-	# lesson ran again or not.
-	await get_tree().create_timer(9.0).timeout
+	# Step two: bare earth. Wait out the beat between the greeting and the
+	# first instruction, then check it asked for the thing the garden needs.
+	await get_tree().create_timer(2.4).timeout
+	_ok(str(_garden.get("_lesson_said")) == "till",
+		"pointing at bare earth, it asks him to turn it over")
+
+	# He turns it over. The next thing the garden wants is a seed.
+	await _tap(_bed(0))
+	_ok(str(_plots()[0].get("state", "")) == Farm.TILLED,
+		"the bed he was pointed at is the bed that got turned")
+	_ok(str(_garden.get("_lesson_said")) == "plant",
+		"and the lesson moves on by itself, to the seed rack")
+
+	# He plants. THE CARROT IS THE FAST ONE, and only this one.
+	await _finger(_seed_tile(0), _bed(0))
+	_ok(str(_plots()[0].get("crop_id", "")) == "carrot",
+		"the seed he dragged went into the bed")
+	_ok(int(_plots()[0].get("growth_override_seconds", 0)) > 0,
+		"the lesson's carrot runs on its own clock so he sees it finish")
+	_ok(int(GameData.get_crop("carrot").get("stage_seconds", [0])[0]) == 300,
+		"the lesson leaves the real carrot exactly as long as it always was")
+	_ok(int(_plots()[1].get("growth_override_seconds", 0)) == 0,
+		"and no other bed was sped up with it")
+
+	# Nothing is said while it is simply growing: there is nothing he can do.
+	_ok(str(_garden.get("_lesson_said")) == "plant",
+		"a growing plant is not a job, so the lesson stays quiet through it")
+
+	# Four seconds in, the six-second carrot is thirsty -- thirst_seconds is two
+	# thirds of the way through every crop, and scaling has to keep that true or
+	# the lesson reaches "give it a drink" with nothing to drink.
+	await _let_the_garden_catch_up(4)
+	_ok(str(_plots()[0].get("care_event", "")) == Growth.CARE_THIRSTY,
+		"the lesson's carrot gets thirsty, exactly once, like every other crop")
+	_ok(str(_garden.get("_lesson_said")) == "water",
+		"and the lesson asks for water at the moment there is water to give")
+
+	# He waters it, and the rest of the growing happens while he watches.
+	await _tap(_bed(0))
+	await _let_the_garden_catch_up(4)
+	_ok(str(_plots()[0].get("state", "")) == Farm.READY,
+		"watered, it finishes growing while he is standing there")
+	_ok(str(_garden.get("_lesson_said")) == "harvest",
+		"and he is asked to pick it")
+
+	# He picks it. Three carrots, which is what the bear is waiting for -- the
+	# tutorial crop and the first order were written to fit each other.
+	await _tap(_bed(0))
+	_ok(Barn.count("carrot") >= 3, "picking it fills the barn")
+	_ok(str(_garden.get("_lesson_said")) == "order",
+		"and the last step points at the person who wants them")
+	_ok(bool(_garden.get("_lesson_running")),
+		"the lesson is not over until he has handed something over")
+
+	# He hands it over. That, and only that, ends the lesson.
+	#
+	# But first he has to walk up to the board, because the board is a building
+	# on the farm now. That is the step the lesson's finger points at while the
+	# board is shut -- and pressing it is what makes the finger move on to the
+	# card. A probe that reached past this by setting the flag would skip the
+	# only part of the last lesson step that is new.
+	await _open_the_board()
+	var card := _order_card("bear_carrots")
+	_ok(card != null and not card.disabled,
+		"the order the lesson pointed at is one he can actually press")
+	if card != null:
+		card.emit_signal("pressed")
+		for i in range(4):
+			await get_tree().process_frame
 	_ok(bool(SaveManager.data["farm"].get("tutorial_completed", false)),
-		"and finishing it is written down")
+		"handing the first basket over is what finishes the lesson")
+	_ok(not bool(_garden.get("_lesson_running")),
+		"and the lesson stops running the moment it is finished")
 
 	# Second visit: nothing.
 	_close()
 	_open()
 	for i in range(4):
 		await get_tree().process_frame
-	_ok(not is_instance_valid(_garden.get("_lesson")),
+	_ok(not bool(_garden.get("_lesson_running")),
 		"the second visit does not teach it again")
 
 	# Nor after closing the game and coming back.
@@ -490,12 +647,21 @@ func _the_lesson_happens_once_in_a_childhood() -> void:
 	_open()
 	for i in range(4):
 		await get_tree().process_frame
-	_ok(not is_instance_valid(_garden.get("_lesson")),
+	_ok(not bool(_garden.get("_lesson_running")),
 		"nor tomorrow, nor on any day after that")
 
-	# The lesson uses a shortened carrot, and crops.json is NOT edited to do it.
-	_ok(int(GameData.get_crop("carrot").get("stage_seconds", [0])[0]) == 300,
-		"the lesson leaves the real carrot exactly as long as it always was")
+
+## Move the clock on and let the lesson's own tick notice.
+##
+## The garden re-settles twice a second while the lesson runs, so the test clock
+## jumps and then real frames have to pass for the tick to pick it up. Waiting
+## on wall-clock time here is deliberate: the thing being checked is that the
+## garden updates itself with nobody touching it.
+func _let_the_garden_catch_up(seconds: int) -> void:
+	GameClock.advance_test(seconds)
+	await get_tree().create_timer(0.9).timeout
+	for i in range(4):
+		await get_tree().process_frame
 
 
 ## The break is offered after something good, with a way to carry on.

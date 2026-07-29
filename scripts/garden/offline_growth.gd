@@ -51,6 +51,12 @@ const FULL := 1.0
 const CARE_NONE := ""
 const CARE_THIRSTY := "thirsty"
 const CARE_WEEDS := "weeds"
+## A caterpillar on the leaf. Nothing PRODUCES this yet -- the farm's third job
+## arrives with the tool bar it is shooed away with -- but the bed knows how to
+## draw it and a tap knows how to clear it, and the probe drives both. A state
+## the screen cannot show is a state that ships broken the day something starts
+## setting it, which is how this project has shipped several.
+const CARE_BUG := "bug"
 
 ## Where the weeds stage comes from when a crop's data does not say.
 ##
@@ -86,6 +92,63 @@ static func wants(crop: Dictionary, kind: String) -> bool:
 ## The stage weeds come up at for this crop.
 static func weeds_stage(crop: Dictionary) -> int:
 	return int(crop.get("care_event_stage", WEEDS_AT_STAGE))
+
+
+## Which job comes up out of the GROUND for this crop -- weeds or a bug -- or
+## "" for a crop whose only job is thirst.
+##
+## One word for both, because they are the same mechanism wearing different
+## pictures: something appears at care_event_stage, growth stops there until a
+## hand clears it, and it never comes back this planting. Thirst is the one
+## that is different (it has a clock, not a stage), which is why it is not in
+## here. First match wins; a crop listing two ground jobs is a data mistake,
+## and tools_check refuses it before it can ship.
+static func field_job(crop: Dictionary) -> String:
+	var types: Array = crop.get("care_event_types", [])
+	if CARE_WEEDS in types:
+		return CARE_WEEDS
+	if CARE_BUG in types:
+		return CARE_BUG
+	return ""
+
+
+## The crop as THIS plot experiences it.
+##
+## One planting in the whole game runs on its own clock: the carrot a child
+## puts in during the first lesson, which has to go from seed to ripe while he
+## is still crouched over the bed. Every other plot uses the crop's real times.
+##
+## The whole crop is SCALED rather than its total swapped, and that matters.
+## thirst_seconds sits two thirds of the way through every crop by design, so
+## that each one needs watering exactly once; a six-second carrot has to get
+## thirsty at four seconds or the lesson arrives at "give it a drink" with
+## nothing to drink. Scaling keeps that relationship instead of restating it
+## here, where it would quietly drift away from crops.json.
+##
+## Returns the crop untouched when there is no override, so every lookup can be
+## wrapped in it without asking first.
+static func crop_for(plot: Dictionary, crop: Dictionary) -> Dictionary:
+	var override := int(plot.get("growth_override_seconds", 0))
+	if override <= 0 or crop.is_empty():
+		return crop
+	var stages: Array = crop.get("stage_seconds", [])
+	var total := 0.0
+	for seconds in stages:
+		total += float(seconds)
+	if total <= 0.0:
+		return crop
+	var scale := float(override) / total
+	var out: Dictionary = crop.duplicate(true)
+	var scaled: Array = []
+	for seconds in stages:
+		# Never below one second. advance() skips a zero-length stage instantly,
+		# which would drop a growth stage out of the lesson altogether and take
+		# the picture of it with it -- the sprout he is supposed to watch.
+		scaled.append(maxi(1, int(round(float(seconds) * scale))))
+	out["stage_seconds"] = scaled
+	var thirst := float(crop.get("thirst_seconds", 0))
+	out["thirst_seconds"] = maxi(1, int(round(thirst * scale))) if thirst > 0.0 else 0
+	return out
 
 
 ## Move one plot forward by `seconds`, and hand back what it became.
@@ -134,22 +197,28 @@ static func advance(plot: Dictionary, crop: Dictionary, seconds: int) -> Diction
 		water = maxf(DRY, water - float(remaining) / thirst)
 	out["water_level"] = water
 
-	var weeds_at := weeds_stage(crop)
-	var weeds_possible: bool = wants(crop, CARE_WEEDS) \
+	var job_at := weeds_stage(crop)
+	var job := field_job(crop)
+	# The empty-list fallback: a data file that forgot the field keeps the old
+	# behaviour, weeds and thirst both, because forgetting a field should not
+	# quietly turn a job off.
+	if job == "" and wants(crop, CARE_WEEDS):
+		job = CARE_WEEDS
+	var job_possible: bool = job != "" \
 		and not bool(out.get("care_completed", false))
 
 	var stage := int(out.get("growth_stage", 0))
 	var progress := float(out.get("growth_progress", 0.0))
 	var left := watered_seconds
-	var stopped_by_weeds := false
+	var stopped_by_job := false
 	while left > 0 and stage < stages.size():
-		# Weeds come up the moment the plant reaches their stage, and the walk
-		# STOPS there. Time after that point is not banked -- a fortnight away
-		# leaves the plot exactly where the weeds found it, which is the
-		# "waiting for help" ceiling the brief asks for and the reason a year
-		# of absence cannot ripen anything by itself.
-		if weeds_possible and stage >= weeds_at:
-			stopped_by_weeds = true
+		# The ground job -- weeds or the caterpillar -- comes up the moment the
+		# plant reaches its stage, and the walk STOPS there. Time after that
+		# point is not banked: a fortnight away leaves the plot exactly where
+		# the job found it, which is the "waiting for help" ceiling the brief
+		# asks for and the reason a year of absence cannot ripen anything.
+		if job_possible and stage >= job_at:
+			stopped_by_job = true
 			break
 		var this_stage := int(stages[stage])
 		if this_stage <= 0:
@@ -178,8 +247,8 @@ static func advance(plot: Dictionary, crop: Dictionary, seconds: int) -> Diction
 		out["care_event"] = CARE_THIRSTY
 		out["care_completed"] = false
 		out["state"] = Farm.NEEDS_CARE
-	elif stopped_by_weeds:
-		out["care_event"] = CARE_WEEDS
+	elif stopped_by_job:
+		out["care_event"] = job
 		out["state"] = Farm.NEEDS_CARE
 	else:
 		if str(out.get("care_event", "")) == CARE_THIRSTY:
@@ -227,7 +296,8 @@ static func settle(farm: Dictionary, now: int) -> Dictionary:
 	var plots: Array = out.get("plots", [])
 	for i in range(plots.size()):
 		var plot: Dictionary = Farm.normalise_plot(plots[i], i)
-		var crop: Dictionary = GameData.get_crop(str(plot.get("crop_id", "")))
+		var crop: Dictionary = crop_for(plot,
+			GameData.get_crop(str(plot.get("crop_id", ""))))
 		plot = advance(plot, crop, elapsed)
 		plot["last_updated_at"] = now
 		plots[i] = plot
@@ -270,6 +340,21 @@ static func water(plot: Dictionary) -> Dictionary:
 		# case there is still a job to do and the state stays where it is.
 		if str(out.get("state", "")) == Farm.NEEDS_CARE:
 			out["state"] = Farm.GROWING
+	return out
+
+
+## Shoo the caterpillar off. Exactly weed()'s twin, and deliberately a separate
+## function rather than a shared one with a parameter: the two jobs are told
+## apart by the child from what he SEES, and the day one of them stops growth
+## and the other does not, a shared function is where that difference would have
+## to be smuggled in as a flag.
+static func shoo(plot: Dictionary) -> Dictionary:
+	var out: Dictionary = plot.duplicate(true)
+	if str(out.get("care_event", "")) == CARE_BUG:
+		out["care_event"] = CARE_NONE
+		if str(out.get("state", "")) == Farm.NEEDS_CARE:
+			out["state"] = Farm.GROWING
+	out["care_completed"] = true
 	return out
 
 

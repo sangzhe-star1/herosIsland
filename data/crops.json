@@ -3,8 +3,6 @@
     "id": "carrot",
     "name_key": "crop.carrot",
     "icon": "carrot",
-    "seed_item_id": "seed_carrot",
-    "crop_item_id": "carrot",
     "growth_seconds": 1800,
     "growth_stages": 5,
     "stage_seconds": [
@@ -28,15 +26,12 @@
     "harvest_amount": 3,
     "harvest_gesture": "pull_up",
     "tutorial_growth_override": 6,
-    "unlock_condition": "",
-    "voice_intro": "crop_carrot_intro"
+    "unlock_condition": ""
   },
   {
     "id": "corn",
     "name_key": "crop.corn",
     "icon": "corn",
-    "seed_item_id": "seed_corn",
-    "crop_item_id": "corn",
     "growth_seconds": 7200,
     "growth_stages": 5,
     "stage_seconds": [
@@ -60,15 +55,12 @@
     "harvest_amount": 2,
     "harvest_gesture": "swipe_down",
     "tutorial_growth_override": 0,
-    "unlock_condition": "",
-    "voice_intro": "crop_corn_intro"
+    "unlock_condition": ""
   },
   {
     "id": "strawberry",
     "name_key": "crop.strawberry",
     "icon": "strawberry",
-    "seed_item_id": "seed_strawberry",
-    "crop_item_id": "strawberry",
     "growth_seconds": 14400,
     "growth_stages": 5,
     "stage_seconds": [
@@ -92,15 +84,12 @@
     "harvest_amount": 4,
     "harvest_gesture": "tap_each",
     "tutorial_growth_override": 0,
-    "unlock_condition": "",
-    "voice_intro": "crop_strawberry_intro"
+    "unlock_condition": ""
   },
   {
     "id": "tomato",
     "name_key": "crop.tomato",
     "icon": "tomato",
-    "seed_item_id": "seed_tomato",
-    "crop_item_id": "tomato",
     "growth_seconds": 28800,
     "growth_stages": 5,
     "stage_seconds": [
@@ -117,15 +106,71 @@
       "tomato"
     ],
     "care_event_types": [
-      "weeds",
-      "trellis"
+      "bug"
     ],
     "care_event_stage": 2,
     "thirst_seconds": 0,
     "harvest_amount": 3,
     "harvest_gesture": "tap_each",
     "tutorial_growth_override": 0,
-    "unlock_condition": "",
-    "voice_intro": "crop_tomato_intro"
+    "unlock_condition": ""
+  },
+  {
+    "id": "potato",
+    "name_key": "crop.potato",
+    "icon": "potato",
+    "growth_seconds": 10800,
+    "growth_stages": 5,
+    "stage_seconds": [
+      1800,
+      2250,
+      2700,
+      4050
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "potato",
+      "potato"
+    ],
+    "care_event_types": [
+      "weeds"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 0,
+    "harvest_amount": 5,
+    "harvest_gesture": "dig_search",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
+  },
+  {
+    "id": "lettuce",
+    "name_key": "crop.lettuce",
+    "icon": "lettuce",
+    "growth_seconds": 3600,
+    "growth_stages": 5,
+    "stage_seconds": [
+      600,
+      750,
+      900,
+      1350
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "lettuce",
+      "lettuce"
+    ],
+    "care_event_types": [
+      "thirsty"
+    ],
+    "care_event_stage": 1,
+    "thirst_seconds": 2400,
+    "harvest_amount": 3,
+    "harvest_gesture": "cut_stem",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
   }
 ]

@@ -1,0 +1,11 @@
+{
+  "_comment": "市场出售箱的单价。必须低于订单的隐含价——tools_check 会算给你看。",
+  "prices": {
+    "carrot": 2,
+    "corn": 6,
+    "strawberry": 6,
+    "tomato": 10,
+    "potato": 5,
+    "lettuce": 4
+  }
+}

@@ -1,0 +1,186 @@
+{
+ "world": {
+  "width": 2200,
+  "height": 1150
+ },
+ "zoom_steps": [
+  0.8,
+  1.0,
+  1.25
+ ],
+ "plots": {
+  "box": [
+   220,
+   150
+  ],
+  "across": 3,
+  "gap": [
+   360,
+   360
+  ],
+  "first": [
+   470,
+   420
+  ]
+ },
+ "expansion": {
+  "first": [
+   1550,
+   420
+  ],
+  "gap": [
+   0,
+   360
+  ],
+  "count": 2
+ },
+ "facilities": [
+  {
+   "id": "seed_shop",
+   "at": [
+    200,
+    250
+   ],
+   "size": [
+    240,
+    170
+   ],
+   "icon": "seed"
+  },
+  {
+   "id": "well",
+   "at": [
+    830,
+    165
+   ],
+   "size": [
+    190,
+    190
+   ],
+   "icon": "watering_can"
+  },
+  {
+   "id": "warehouse",
+   "at": [
+    200,
+    700
+   ],
+   "size": [
+    240,
+    170
+   ],
+   "icon": "basket"
+  },
+  {
+   "id": "kennel",
+   "at": [
+    340,
+    990
+   ],
+   "size": [
+    240,
+    160
+   ],
+   "icon": "paw"
+  },
+  {
+   "id": "gate",
+   "at": [
+    830,
+    1055
+   ],
+   "size": [
+    280,
+    130
+   ],
+   "icon": "flag"
+  },
+  {
+   "id": "market",
+   "at": [
+    1950,
+    375
+   ],
+   "size": [
+    240,
+    170
+   ],
+   "icon": "star_coin"
+  },
+  {
+   "id": "orders",
+   "at": [
+    1950,
+    745
+   ],
+   "size": [
+    240,
+    170
+   ],
+   "icon": "heart"
+  },
+  {
+   "id": "decor",
+   "at": [
+    1550,
+    1010
+   ],
+   "size": [
+    220,
+    130
+   ],
+   "icon": "spark",
+   "level": 4
+  },
+  {
+   "id": "orchard",
+   "at": [
+    1950,
+    135
+   ],
+   "size": [
+    240,
+    150
+   ],
+   "icon": "leaf",
+   "level": 3
+  },
+  {
+   "id": "workshop",
+   "at": [
+    1950,
+    1015
+   ],
+   "size": [
+    240,
+    150
+   ],
+   "icon": "gear",
+   "level": 5
+  },
+  {
+   "id": "bear_door",
+   "at": [
+    1030,
+    1050
+   ],
+   "size": [
+    130,
+    110
+   ],
+   "icon": "teddy"
+  },
+  {
+   "id": "visit_board",
+   "at": [
+    540,
+    1000
+   ],
+   "size": [
+    130,
+    120
+   ],
+   "icon": "heart"
+  }
+ ]
+}

@@ -44,6 +44,15 @@ func _ready() -> void:
 	house.pressed.connect(func(): SceneManager.goto_scene("res://scenes/shop/HeroHouseScreen.tscn"))
 	grid.add_child(house)
 
+	# The farm's front door, beside the world-map room that also leads there.
+	# Two entrances to one garden is not a duplicate: the map entrance tells
+	# the story ("your room on the island"), this one answers the child who
+	# opened the game TO water his carrots and should not have to walk the
+	# island to do it.
+	var garden := UiKit.icon_button(I18n.t("home.garden"), "carrot", Palette.RED)
+	garden.pressed.connect(_on_garden)
+	grid.add_child(garden)
+
 	# Press-and-hold, then an arithmetic gate on the next screen.
 	# The button itself counts down, so an adult can see the hold is working
 	# while a child who taps once still gets nowhere.
@@ -233,6 +242,17 @@ func _reset_hold() -> void:
 	_hold_bar.modulate.a = 0.0
 	if _parent_button != null:
 		_parent_button.text = I18n.t("home.parent")
+
+
+## The garden room, found by what it IS rather than by its name: the one
+## room whose game is the garden. Nobody here spells the id, so a renamed or
+## second room keeps this button honest without anyone remembering it exists.
+func _on_garden() -> void:
+	for level in GameData.levels:
+		if bool(level.get("room", false)) \
+				and str(level.get("game_type", "")) == "garden":
+			GameManager.start_level(str(level.get("id", "")))
+			return
 
 
 func _on_play() -> void:

@@ -1,0 +1,37 @@
+{
+  "_comment": "NPC 农场。状态由时间算出来，不随机；小熊没有仓库、没有产量账本。",
+  "farms": [
+    {
+      "id": "bear",
+      "icon": "teddy",
+      "name_key": "npc.bear",
+      "share_crop": "strawberry",
+      "beds": [
+        {
+          "crop": "carrot",
+          "phase": 0.2
+        },
+        {
+          "crop": "strawberry",
+          "phase": 0.55
+        },
+        {
+          "crop": "corn",
+          "phase": 0.4
+        },
+        {
+          "crop": "carrot",
+          "thirsty": true
+        },
+        {
+          "crop": "strawberry",
+          "share": true
+        },
+        {
+          "crop": "strawberry",
+          "phase": 0.8
+        }
+      ]
+    }
+  ]
+}

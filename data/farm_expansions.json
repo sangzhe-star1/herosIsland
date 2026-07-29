@@ -1,0 +1,11 @@
+{
+  "_comment": "扩地。按顺序买，一次一块：index 是 plots 数组里的下标（6 = 第七块地）。门槛两道：农场等级 + 星星币。动画参数给世界节点读——石头滑开、土地展开，全部确定性，没有随机。",
+  "slots": [
+    { "index": 6, "level": 2, "coins": 40 },
+    { "index": 7, "level": 4, "coins": 80 }
+  ],
+  "animation": {
+    "stones": 3,
+    "unfold_seconds": 0.9
+  }
+}

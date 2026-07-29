@@ -76,6 +76,12 @@ const NAMES := [
 	# and the things they act on.
 	"soil", "seed", "sprout", "watering_can", "weed", "basket",
 	"corn", "strawberry", "tomato",
+	# The farm's tool rack. A shovel to turn the earth and a fan to shoo the
+	# caterpillar; the other tools reuse pictures that already exist.
+	"shovel", "fan",
+	# The seed shop's two newcomers, and the plank a thankful friend leaves
+	# behind -- three of which buy the barn its bigger roof.
+	"potato", "lettuce", "plank",
 ]
 
 
@@ -1097,6 +1103,77 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 				])
 				_poly(p, wing, Color(0.97, 0.97, 1.0))
 				_circle(p, c + Vector2(side4 * s * 0.24, -s * 0.10), s * 0.05, Color(1.0, 0.90, 0.55))
+		"potato":
+			# A knobbly brown oval with dimple-eyes. The knobbles are the
+			# difference between a potato and a pebble.
+			_poly(p, Shapes.oval_points(c + Vector2(0, s * 0.02),
+				Vector2(s * 0.34, s * 0.26)), Color(0.78, 0.58, 0.36))
+			_poly(p, Shapes.oval_points(c + Vector2(-s * 0.20, -s * 0.14),
+				Vector2(s * 0.13, s * 0.10)), Color(0.78, 0.58, 0.36))
+			_poly(p, Shapes.oval_points(c + Vector2(s * 0.22, s * 0.12),
+				Vector2(s * 0.11, s * 0.09)), Color(0.78, 0.58, 0.36))
+			_poly(p, Shapes.oval_points(c + Vector2(-s * 0.02, -s * 0.04),
+				Vector2(s * 0.26, s * 0.17)), Color(0.85, 0.67, 0.44))
+			for dot in [Vector2(-s * 0.12, s * 0.05), Vector2(s * 0.08, -s * 0.08),
+					Vector2(s * 0.16, s * 0.10)]:
+				_circle(p, c + dot, s * 0.035, Color(0.62, 0.44, 0.26))
+		"lettuce":
+			# A ball of leaves: dark outer wrap, lighter heart, one leaf waving.
+			_poly(p, Shapes.circle_points(c + Vector2(0, s * 0.04), s * 0.30),
+				Color(0.38, 0.62, 0.30))
+			for k in range(3):
+				var lean := float(k - 1) * s * 0.20
+				_poly(p, Shapes.oval_points(
+					c + Vector2(lean, -s * 0.10 + absf(lean) * 0.3),
+					Vector2(s * 0.15, s * 0.20)), Color(0.46, 0.72, 0.36))
+			_poly(p, Shapes.circle_points(c + Vector2(0, s * 0.06), s * 0.17),
+				Color(0.62, 0.84, 0.48))
+		"plank":
+			# One board, grain lines, two nail holes: a thing to build with.
+			_round_rect(p, c + Vector2(-s * 0.38, -s * 0.14),
+				Vector2(s * 0.76, s * 0.28), Color(0.76, 0.56, 0.34), s * 0.05)
+			for k in range(2):
+				var wave := PackedVector2Array()
+				for j in range(7):
+					var x: float = -s * 0.30 + s * 0.60 * (float(j) / 6.0)
+					wave.append(c + Vector2(x,
+						-s * 0.04 + s * 0.08 * float(k) + sin(x * 0.3) * s * 0.015))
+				_poly(p, Shapes.ribbon(wave, s * 0.018), Color(0.62, 0.44, 0.26))
+			_circle(p, c + Vector2(-s * 0.30, 0), s * 0.03, Color(0.50, 0.36, 0.22))
+			_circle(p, c + Vector2(s * 0.30, 0), s * 0.03, Color(0.50, 0.36, 0.22))
+		"shovel":
+			# Handle leaning right, blade biting into a little mound of earth --
+			# the mound is what says "for digging" rather than "for hitting".
+			_poly(p, Shapes.oval_points(c + Vector2(0, s * 0.30),
+				Vector2(s * 0.30, s * 0.10)), Color(0.62, 0.46, 0.30))
+			_poly(p, Shapes.ribbon(PackedVector2Array([
+				c + Vector2(s * 0.26, -s * 0.36),
+				c + Vector2(-s * 0.02, -s * 0.02)]), s * 0.07),
+				Color(0.72, 0.52, 0.30))
+			_round_rect(p, c + Vector2(s * 0.16, -s * 0.44),
+				Vector2(s * 0.20, s * 0.10), Color(0.72, 0.52, 0.30), s * 0.04)
+			_poly(p, PackedVector2Array([
+				c + Vector2(-s * 0.24, s * 0.02),
+				c + Vector2(0.0, -s * 0.10),
+				c + Vector2(s * 0.10, s * 0.04),
+				c + Vector2(-s * 0.06, s * 0.30)]),
+				Color(0.72, 0.76, 0.80))
+		"fan":
+			# A round paper fan on a short handle, with two whoosh lines where
+			# the air goes -- the lines are what make it a fan and not a lollipop.
+			_round_rect(p, c + Vector2(-s * 0.045, s * 0.10),
+				Vector2(s * 0.09, s * 0.30), Color(0.72, 0.52, 0.30), s * 0.03)
+			_lit_circle(p, c + Vector2(0, -s * 0.10), s * 0.26,
+				Color(0.99, 0.83, 0.42))
+			_circle(p, c + Vector2(0, -s * 0.10), s * 0.10,
+				Color(0.98, 0.93, 0.72))
+			for k in range(2):
+				var arc := PackedVector2Array()
+				for j in range(9):
+					var a: float = -PI * 0.42 + PI * 0.5 * (float(j) / 8.0)
+					arc.append(c + Vector2(s * (0.36 + 0.12 * float(k)), -s * 0.10)
+						+ Vector2(cos(a), sin(a)) * s * 0.10)
+				_poly(p, Shapes.ribbon(arc, s * 0.035), Color(0.70, 0.80, 0.92))
 		"soil":
 			# A mound of turned earth, not a box: a rounded top with two
 			# furrows curving over it. The first cut was a rectangle with

@@ -17,11 +17,34 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
+const Level := preload("res://scripts/garden/farm_level_manager.gd")
+const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
+
+## The fewest questions this probe is allowed to have asked by the time it
+## prints its verdict.
+##
+## WHY A COUNT, WHEN THERE IS ALREADY A LIST OF FAILURES
+##
+## An empty failure list means "nothing I asked came back wrong". That is NOT
+## the same as "I asked". Half of this file reads "find a plot in this state,
+## then question it" -- change a layout, retire a crop, and the find comes back
+## empty, the questions are never asked, and the probe prints PASSED having
+## tested nothing. It is the exact accident this project keeps having;
+## harvest_touch_probe.gd already carries this guard and the two garden probes
+## did not.
+##
+## A floor, set a little under what the probe actually asks, so that adding a
+## check never means editing this number. It only moves when a section is added.
+const CHECKS_EXPECTED := 357
 
 var _failures: Array[String] = []
+## How many questions actually got asked. See CHECKS_EXPECTED.
+var _asked := 0
 
 
 func _ok(condition: bool, description: String) -> void:
+	_asked += 1
 	if not condition:
 		_failures.append(description)
 
@@ -38,6 +61,7 @@ func _ready() -> void:
 	_a_plot_says_what_it_is_doing_in_one_word()
 	_a_save_from_before_the_state_machine_still_knows_what_it_was_doing()
 	_a_planting_cycle_never_repeats()
+	_an_old_save_keeps_the_beds_it_already_had()
 	# --- stage two: growing ---
 	_a_carrot_goes_through_five_stages()
 	_it_grows_while_he_is_playing_a_level()
@@ -48,10 +72,22 @@ func _ready() -> void:
 	_the_four_plots_do_not_share_a_clock()
 	# --- stage four: the barn, the orders, and the money ---
 	_the_barn_never_goes_negative()
+	_a_full_barn_never_loses_anything()
 	_an_order_is_all_or_nothing()
 	_an_order_pays_once()
 	_the_garden_cannot_touch_his_score()
 	_weeds_come_once_and_never_hurt_anything()
+	_the_caterpillar_is_weeds_wearing_a_different_face()
+	# --- stage 3 (阶段 3 of the farm): the shop, the market, the roof ---
+	_the_shop_sells_a_crop_exactly_once()
+	_the_market_pays_once_and_only_for_what_is_there()
+	# --- 阶段 4: the bear, the shared strawberry, and the visitor board ---
+	_the_bears_farm_is_arithmetic_and_kindness()
+	_the_bear_drops_by_but_never_in_front_of_him()
+	_two_tablets_agree_about_the_bear()
+	# --- 阶段 5: the ladder and the land ---
+	_the_farm_grows_up_by_arithmetic()
+	_the_seventh_bed_is_bought_once()
 
 	# Put the save back the way it was found, and say so out loud: a probe that
 	# leaves the disk holding its own fixtures is how the shop probe once failed
@@ -59,8 +95,18 @@ func _ready() -> void:
 	SaveManager.data = real_save
 	SaveManager.save_game()
 
+	# Did it actually ask anything? A silent skip is the one failure a list of
+	# failures cannot report.
+	if _asked < CHECKS_EXPECTED:
+		_failures.append(
+			"this probe only asked %d questions and expected at least %d -- "
+			% [_asked, CHECKS_EXPECTED]
+			+ "something it looks for is no longer there, so a whole section "
+			+ "was skipped in silence")
+
 	for failure in _failures:
 		print("FAIL  %s" % failure)
+	print("asked %d questions" % _asked)
 	print("GARDEN PROBE %s\n" % ("PASSED" if _failures.is_empty() else "FAILED"))
 	get_tree().quit(1 if _failures.size() > 0 else 0)
 
@@ -76,8 +122,18 @@ func _a_new_child_finds_four_empty_plots() -> void:
 	var farm: Dictionary = SaveManager.data.get("farm", {})
 	var plots: Array = farm.get("plots", [])
 
-	_ok(plots.size() == 4, "a new save has four patches of earth")
-	_ok(int(farm.get("plot_count", 0)) == 4, "...and says so in plot_count")
+	# Farm.PLOT_COUNT and not a literal: this number went from four to six the
+	# day the garden became a farm, and a probe that carries its own copy of it
+	# is a probe that has to be edited every time -- which is a probe that gets
+	# edited to agree rather than to check.
+	_ok(plots.size() == Farm.PLOT_COUNT,
+		"a new save has %d patches of earth" % Farm.PLOT_COUNT)
+	_ok(int(farm.get("plot_count", 0)) == Farm.PLOT_COUNT,
+		"...and says so in plot_count")
+	_ok(int(farm.get("warehouse_cap", 0)) == Farm.WAREHOUSE_START,
+		"...and a barn that holds %d things" % Farm.WAREHOUSE_START)
+	_ok((farm.get("harvest_basket", null) as Dictionary).is_empty(),
+		"...and an empty basket by its door")
 
 	var ids: Dictionary = {}
 	for plot in plots:
@@ -87,13 +143,25 @@ func _a_new_child_finds_four_empty_plots() -> void:
 		_ok(int(plot.get("planted_at", -1)) == 0, "nothing has been planted yet")
 		_ok(not Farm.is_ready(plot),
 			"nothing is ready on the first morning")
-	_ok(ids.size() == 4, "the four plots have four different ids, not one repeated")
+	_ok(ids.size() == Farm.PLOT_COUNT,
+		"the %d plots have %d different ids, not one repeated"
+		% [Farm.PLOT_COUNT, Farm.PLOT_COUNT])
 
 	# Seeds on the first launch, not the second. The settlements used to be
 	# skipped entirely for a brand-new save, which would have opened the garden
 	# with an empty seed rack until the child closed the game and came back.
-	_ok(farm.get("unlocked_crops", []).size() == GameData.crops.size(),
-		"a new child can plant every starter crop on the first launch")
+	#
+	# STARTERS, not the whole catalogue: the shop's crops arrive by being
+	# bought, and a first launch that handed them out would quietly empty the
+	# shop's shelf for every new child.
+	_ok(farm.get("unlocked_crops", []).size() == _starter_count(),
+		"a new child can plant every STARTER crop on the first launch")
+	for crop in GameData.crops:
+		var crop_id := str(crop.get("id", ""))
+		var starter := str(crop.get("unlock_condition", "")) == ""
+		_ok((crop_id in farm.get("unlocked_crops", [])) == starter,
+			"'%s' is %s from the first morning" % [crop_id,
+				"free" if starter else "the shop's to sell"])
 	_ok(int(SaveManager.data.get("save_version", 0))
 			== SaveManager.FARM_SAVE_VERSION,
 		"a save made today is already at today's version")
@@ -143,16 +211,132 @@ func _an_old_save_grows_a_garden() -> void:
 
 	# And a garden has appeared.
 	var farm: Dictionary = SaveManager.data.get("farm", {})
-	_ok(farm.get("plots", []).size() == 4, "an old save gains four patches of earth")
+	_ok(farm.get("plots", []).size() == Farm.PLOT_COUNT,
+		"an old save gains %d patches of earth" % Farm.PLOT_COUNT)
 	_ok(bool(farm.get("opened", false)), "the garden is marked open")
-	_ok(farm.get("unlocked_crops", []).size() == GameData.crops.size(),
-		"and the starter seeds arrive with it")
+	_ok(farm.get("unlocked_crops", []).size() == _starter_count(),
+		"and the starter seeds arrive with it -- the starters, not the shop's")
 	_ok(SaveManager.data.has("inventory"), "the inventory key is there")
 	_ok(SaveManager.data.get("farm_orders", {}).has("delivered"),
 		"and so is the delivered-orders list that stops an order paying twice")
 	_ok(int(SaveManager.data.get("save_version", 0))
 			== SaveManager.FARM_SAVE_VERSION,
 		"the save has been carried to the version with a garden in it")
+
+
+## Four beds become six, and the four that were already there do not move.
+##
+## THE ONE THING THIS WHOLE STAGE IS FOR
+##
+## Raising Farm.PLOT_COUNT grows the plot list on the way past. The question
+## that matters is not whether two new beds appear -- it is whether the four on
+## disk survive the trip with everything that was growing in them: which crop,
+## how far along, how thirsty, and above all which planting cycle, because a
+## cycle that resets lets the next harvest reuse a transaction id that has
+## already been paid and pay the child nothing at all for it.
+##
+## So this compares them FIELD BY FIELD against what went in, rather than
+## counting them. A count would have passed even if every bed came back as
+## fresh grass.
+func _an_old_save_keeps_the_beds_it_already_had() -> void:
+	var old := SaveManager._default_data()
+	# A garden the way it looked before this stage: four beds, in four different
+	# states, with real numbers in them.
+	var four: Array = []
+	for i in range(4):
+		four.append(Farm.fresh_plot(i))
+	four[0]["state"] = Farm.GROWING
+	four[0]["crop_id"] = "carrot"
+	four[0]["plant_cycle_id"] = 9
+	four[0]["planted_at"] = 1_700_000_000
+	four[0]["last_updated_at"] = 1_700_000_000
+	four[0]["growth_stage"] = 2
+	four[0]["growth_progress"] = 0.4
+	four[0]["water_level"] = 0.75
+	four[1]["state"] = Farm.NEEDS_CARE
+	four[1]["crop_id"] = "corn"
+	four[1]["plant_cycle_id"] = 3
+	four[1]["planted_at"] = 1_700_000_000
+	four[1]["last_updated_at"] = 1_700_000_000
+	four[1]["growth_stage"] = 2
+	four[1]["care_event"] = Growth.CARE_WEEDS
+	four[2]["state"] = Farm.READY
+	four[2]["crop_id"] = "strawberry"
+	four[2]["plant_cycle_id"] = 41
+	four[2]["planted_at"] = 1_700_000_000
+	four[2]["last_updated_at"] = 1_700_000_000
+	four[2]["growth_stage"] = 4
+	four[3]["state"] = Farm.TILLED
+	old["farm"]["plots"] = four
+	old["farm"]["plot_count"] = 4
+	old["farm"]["opened"] = true
+	old["farm"]["warehouse"] = {"carrot": 6}
+	old["farm"]["last_seen_at"] = 1_700_000_000
+	old["save_version"] = 3
+	old["farm"].erase("warehouse_cap")       # keys that did not exist yet
+	old["farm"].erase("harvest_basket")
+
+	var wanted: Array = JSON.parse_string(JSON.stringify(four))
+
+	# The clock stays where the save was written, so that settling cannot move
+	# anything and every difference below is the migration's doing.
+	GameClock.set_test_now(1_700_000_000, 0)
+	SaveManager.data = SaveManager._migrate(
+		JSON.parse_string(JSON.stringify(old)))
+	SaveManager._settle_after_load()
+	GameClock.clear_test_now()
+
+	var plots: Array = SaveManager.data["farm"]["plots"]
+	_ok(plots.size() == Farm.PLOT_COUNT,
+		"a four-bed save comes back with %d beds" % Farm.PLOT_COUNT)
+	_ok(int(SaveManager.data["farm"]["plot_count"]) == Farm.PLOT_COUNT,
+		"...and plot_count says so too")
+
+	# The four that were there, field by field.
+	for i in range(4):
+		var was: Dictionary = wanted[i]
+		var now: Dictionary = plots[i]
+		# Words compared as words, numbers as numbers. JSON has one number
+		# type, so an int written to disk comes back a float, and comparing the
+		# two as strings makes "9" and "9.0" a difference -- which would report
+		# a migration failure that never happened. Every reader in the game
+		# already goes through int()/float(); so does this.
+		for key in ["plot_id", "state", "crop_id", "care_event"]:
+			_ok(str(now.get(key, "")) == str(was.get(key, "")),
+				"bed %d kept its %s across the migration (%s -> %s)"
+				% [i + 1, key, str(was.get(key, "")), str(now.get(key, ""))])
+		for key in ["plant_cycle_id", "planted_at", "growth_stage"]:
+			_ok(int(now.get(key, -1)) == int(was.get(key, -2)),
+				"bed %d kept its %s across the migration (%d -> %d)"
+				% [i + 1, key, int(was.get(key, -2)), int(now.get(key, -1))])
+		_ok(abs(float(now.get("growth_progress", -1.0))
+				- float(was.get("growth_progress", 0.0))) < 0.001,
+			"bed %d kept how far along it was" % (i + 1))
+		_ok(abs(float(now.get("water_level", -1.0))
+				- float(was.get("water_level", 0.0))) < 0.001,
+			"bed %d kept how thirsty it was" % (i + 1))
+
+	# The new ones are new. Not a copy of anything, not carrying a cycle id that
+	# some other bed has already been paid against.
+	for i in range(4, Farm.PLOT_COUNT):
+		var fresh: Dictionary = plots[i]
+		_ok(str(fresh.get("state", "")) == Farm.EMPTY,
+			"bed %d is untouched grass" % (i + 1))
+		_ok(str(fresh.get("crop_id", "")) == "",
+			"bed %d has nothing planted in it" % (i + 1))
+		_ok(int(fresh.get("plant_cycle_id", -1)) == 0,
+			"bed %d starts its own planting count at zero" % (i + 1))
+		_ok(str(fresh.get("plot_id", "")) == "plot_%d" % (i + 1),
+			"bed %d has its own id" % (i + 1))
+
+	_ok(int(SaveManager.data["farm"].get("warehouse_cap", 0))
+			== Farm.WAREHOUSE_START,
+		"a save from before the barn had a ceiling is given one")
+	_ok(int(SaveManager.data["farm"]["warehouse"].get("carrot", 0)) == 6,
+		"and what was already in the barn is still in it")
+	_ok(int(SaveManager.data.get("save_version", 0))
+			== SaveManager.FARM_SAVE_VERSION,
+		"the save is stamped with the version that has six beds in it")
 
 
 ## Migrations are re-run every launch. One that is not idempotent pays out
@@ -175,7 +359,7 @@ func _opening_the_garden_twice_changes_nothing() -> void:
 
 	_ok(JSON.stringify(SaveManager.data["farm"]) == before,
 		"settling twice more leaves the garden exactly as it was")
-	_ok(SaveManager.data["farm"]["plots"].size() == 4,
+	_ok(SaveManager.data["farm"]["plots"].size() == Farm.PLOT_COUNT,
 		"the plots are not appended to on every launch")
 	_ok(int(SaveManager.data["farm"]["warehouse"].get("carrot", 0)) == 6,
 		"the barn does not double")
@@ -201,7 +385,8 @@ func _a_damaged_garden_is_repaired_not_believed() -> void:
 	}
 	var farm: Dictionary = Farm.normalise_farm(wrecked)
 
-	_ok(farm["plots"].size() == 4, "a short plot list is grown back to four")
+	_ok(farm["plots"].size() == Farm.PLOT_COUNT,
+		"a short plot list is grown back to %d" % Farm.PLOT_COUNT)
 	_ok(str(farm["plots"][0]["crop_id"]) == "carrot",
 		"a plot missing fields keeps the one thing it did say")
 	_ok(farm["plots"][0].has("water_level"),
@@ -549,6 +734,14 @@ func _the_four_plots_do_not_share_a_clock() -> void:
 # Stage four: the barn, the orders, and the one number a child can spend.
 # =====================================================================
 
+func _starter_count() -> int:
+	var starters := 0
+	for crop in GameData.crops:
+		if str(crop.get("unlock_condition", "")) == "":
+			starters += 1
+	return starters
+
+
 func _fresh_save() -> void:
 	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
@@ -568,6 +761,67 @@ func _the_barn_never_goes_negative() -> void:
 	_ok(Barn.count("carrot") == 0, "and empties the shelf")
 	_ok(Barn.contents().is_empty(),
 		"an empty shelf shows nothing at all, not a zero")
+
+
+## A full barn never eats a harvest.
+##
+## The barn has a ceiling now, and a ceiling is the first thing in this garden
+## that can say no. What it must never say is "and the four strawberries you
+## just picked are gone" -- a six-year-old watching that happen has been robbed
+## by the game, and there is no message that fixes it because he cannot read.
+##
+## So everything over the line goes into a basket by the door, and the arithmetic
+## that has to hold is the simplest one there is: nothing in plus nothing out
+## equals nothing lost.
+func _a_full_barn_never_loses_anything() -> void:
+	_fresh_save()
+	var ceiling := Barn.cap()
+	_ok(ceiling == Farm.WAREHOUSE_START,
+		"a new barn holds %d things" % Farm.WAREHOUSE_START)
+
+	# Fill it to two short of the top.
+	Barn.put("carrot", ceiling - 2)
+	_ok(Barn.total() == ceiling - 2, "the barn fills up")
+	_ok(Barn.room_left() == 2, "...and knows it has room for two more")
+
+	# Pick five strawberries into a barn with room for two.
+	var landed: Dictionary = Barn.store_harvest("strawberry", 5)
+	_ok(int(landed["stored"]) == 2, "two of the five fit in the barn")
+	_ok(int(landed["spilled"]) == 3, "and the other three go in the basket")
+	_ok(int(landed["stored"]) + int(landed["spilled"]) == 5,
+		"nothing at all is lost between the plant and the barn")
+	_ok(Barn.count("strawberry", Barn.WAREHOUSE) == 2,
+		"the barn holds the two it took")
+	_ok(Barn.count("strawberry", Barn.BASKET) == 3,
+		"the basket holds the three it could not")
+	_ok(Barn.is_full(), "and the barn is now full")
+
+	# Picking again with no room at all still loses nothing.
+	var again: Dictionary = Barn.store_harvest("tomato", 3)
+	_ok(int(again["stored"]) == 0, "a full barn takes none of the next harvest")
+	_ok(int(again["spilled"]) == 3, "...and all three wait in the basket")
+	_ok(Barn.count("tomato", Barn.BASKET) == 3, "the basket keeps them")
+
+	# Room appears. The basket empties itself -- no button, no errand.
+	_ok(Barn.pay({"carrot": 10}), "an order takes ten carrots out of the barn")
+	_ok(Barn.count("strawberry", Barn.BASKET) == 0
+			and Barn.count("tomato", Barn.BASKET) == 0,
+		"and the basket tips itself back in the moment there is room")
+	_ok(Barn.count("strawberry") == 5, "all five strawberries are in the barn")
+	_ok(Barn.count("tomato") == 3, "and all three tomatoes")
+	# What went in, minus what the order took: 38 carrots, less the 10 it paid,
+	# plus every one of the 5 strawberries and 3 tomatoes that were picked.
+	# Written as the sum rather than as a number, so that it is checking the
+	# arithmetic and not agreeing with it.
+	_ok(Barn.total() == (ceiling - 2) - 10 + 5 + 3,
+		"with nothing invented and nothing lost")
+	_ok(Barn.count("carrot") == ceiling - 12, "and the carrots it paid with gone")
+
+	# The seed pouch has no ceiling at all: a child who cannot buy a seed
+	# because his pouch is full has hit a wall with nothing on screen to clear.
+	Barn.put("seed_carrot", 500, "inventory")
+	_ok(Barn.count("seed_carrot", "inventory") == 500,
+		"seeds and tools are not capped")
 
 
 ## An order one carrot short takes nothing. Emptying the barn of everything it
@@ -728,6 +982,147 @@ func _weeds_come_once_and_never_hurt_anything() -> void:
 	_ok(str(clean.get("care_event", "")) != Growth.CARE_WEEDS,
 		"a crop that does not ask for weeding never grows weeds")
 
+## The tomato grows a caterpillar where the corn grows weeds -- the same
+## mechanism wearing a different picture, and this proves the mechanism rather
+## than the picture: it arrives at its stage every time, it STOPS the plant,
+## shooing clears it once and for good, and crops that did not ask for it
+## never get it.
+func _the_caterpillar_is_weeds_wearing_a_different_face() -> void:
+	var crop: Dictionary = GameData.get_crop("tomato")
+	_ok(Growth.field_job(crop) == Growth.CARE_BUG,
+		"the tomato's ground job is the caterpillar")
+
+	var plot: Dictionary = Farm.fresh_plot(0)
+	plot["state"] = Farm.SEEDED
+	plot["crop_id"] = "tomato"
+	# Far enough in to reach the stage the bug arrives at (5400 + 6300 and on).
+	var grown: Dictionary = Growth.advance(plot, crop, 13000)
+	_ok(int(grown.get("growth_stage", 0)) >= Growth.weeds_stage(crop),
+		"the tomato reaches the stage the caterpillar comes at")
+	_ok(str(grown.get("care_event", "")) == Growth.CARE_BUG,
+		"and the caterpillar arrives -- every time, not by chance")
+	_ok(str(grown.get("state", "")) == Farm.NEEDS_CARE,
+		"and the bed says so in one word")
+
+	var waited: Dictionary = Growth.advance(grown, crop, 7 * 24 * 60 * 60)
+	_ok(is_equal_approx(Growth.fraction_done(waited, crop),
+			Growth.fraction_done(grown, crop)),
+		"a week of caterpillar moves the tomato not one second on")
+	_ok(not Farm.is_ready(waited), "and cannot ripen it")
+
+	var shooed: Dictionary = Growth.shoo(grown)
+	_ok(str(shooed.get("care_event", "")) == "", "one shoo clears it")
+	_ok(str(shooed.get("state", "")) == Farm.GROWING, "and growth resumes")
+	_ok(bool(shooed.get("care_completed", false)),
+		"and the visit is written down")
+	var later: Dictionary = Growth.advance(shooed, crop, 8000)
+	_ok(str(later.get("care_event", "")) != Growth.CARE_BUG,
+		"so it does not come back this planting")
+
+	# Thirst crops never grow one, and the weeds crop grows WEEDS, not this.
+	var berry: Dictionary = Farm.fresh_plot(1)
+	berry["state"] = Farm.SEEDED
+	berry["crop_id"] = "strawberry"
+	berry = Growth.advance(berry, GameData.get_crop("strawberry"), 8000)
+	_ok(str(berry.get("care_event", "")) != Growth.CARE_BUG,
+		"a crop that did not ask for a caterpillar never grows one")
+	var corn_plot: Dictionary = Farm.fresh_plot(2)
+	corn_plot["state"] = Farm.SEEDED
+	corn_plot["crop_id"] = "corn"
+	corn_plot = Growth.advance(corn_plot, GameData.get_crop("corn"), 3000)
+	_ok(str(corn_plot.get("care_event", "")) == Growth.CARE_WEEDS,
+		"and the corn still grows weeds, not caterpillars")
+
+
+const SeedShop := preload("res://scripts/garden/seed_shop_manager.gd")
+const Market := preload("res://scripts/garden/farm_market_manager.gd")
+
+
+## The shop's whole contract, without a screen in the way: a crop is bought
+## once, kept forever, refused politely, and returnable whole.
+func _the_shop_sells_a_crop_exactly_once() -> void:
+	_fresh_save()
+	SaveManager.data["rewards"]["coins"] = 100
+
+	_ok(SeedShop.state_of("carrot") == "owned",
+		"a starter crop is already his, so the shop says so")
+	_ok(SeedShop.state_of("potato") == "buyable",
+		"the potato is on the shelf and he can afford it")
+	_ok(SeedShop.state_of("dragonfruit") == "unknown",
+		"a crop from nowhere is 'unknown', not a crash")
+
+	_ok(SeedShop.buy("potato") == "", "forty coins buy the potato")
+	_ok(Coins.balance() == 60, "...exactly forty of them")
+	_ok(SeedShop.owns("potato"), "and it is his now")
+
+	# Every way of paying twice, refused by the same word.
+	_ok(SeedShop.buy("potato") == "owned", "buying it again is 'owned'")
+	_ok(Coins.balance() == 60, "...and costs nothing")
+	SaveManager.load_game()
+	_ok(SeedShop.buy("potato") == "owned",
+		"...even after closing the game and coming back")
+	_ok(Coins.balance() == 60, "...which still costs nothing")
+
+	# The regret window gives everything back.
+	SeedShop.undo("potato")
+	_ok(not SeedShop.owns("potato"), "putting it back takes it off the rack")
+	_ok(Coins.balance() == 100, "...and returns the whole price")
+	SeedShop.undo("potato")
+	_ok(Coins.balance() == 100,
+		"a second undo returns nothing -- there is nothing to return")
+
+	# Too poor is a state, not an error.
+	SaveManager.data["rewards"]["coins"] = 3
+	_ok(SeedShop.state_of("lettuce") == "poor", "three coins is 'poor'")
+	_ok(SeedShop.buy("lettuce") == "poor", "and buying is refused the same way")
+	_ok(int(SaveManager.data["rewards"]["coins"]) == 3,
+		"with not one coin taken")
+	_ok(not SeedShop.owns("lettuce"), "and no lettuce handed over")
+
+
+## The market's whole contract: the quote is the payment, the payment happens
+## once, and a basket the barn cannot cover moves nothing at all.
+func _the_market_pays_once_and_only_for_what_is_there() -> void:
+	_fresh_save()
+	SaveManager.data["rewards"]["coins"] = 0
+	Barn.put("carrot", 5)
+	Barn.put("tomato", 2)
+
+	var expected := 5 * GameData.market_price("carrot") \
+		+ 2 * GameData.market_price("tomato")
+	_ok(Market.quote({"carrot": 5, "tomato": 2}) == expected,
+		"the quote is the price list times the pile, nothing else")
+
+	var paid := Market.sell({"carrot": 5, "tomato": 2})
+	_ok(paid == expected, "selling pays exactly the quote")
+	_ok(Coins.balance() == expected, "...into the purse")
+	_ok(Barn.count("carrot") == 0 and Barn.count("tomato") == 0,
+		"...and the crops leave the barn")
+	_ok("farm_sale_1" in SaveManager.data["farm"]["paid_sales"],
+		"and the receipt is on the ledger")
+
+	# The same basket again: the crops are gone, so nothing moves.
+	_ok(Market.sell({"carrot": 5, "tomato": 2}) == 0,
+		"selling the same basket twice pays nothing the second time")
+	_ok(Coins.balance() == expected, "...and the purse does not move")
+
+	# A basket one carrot short takes NOTHING -- not even the carrots it has.
+	Barn.put("carrot", 2)
+	_ok(Market.sell({"carrot": 3}) == 0,
+		"a basket the barn cannot cover pays nothing")
+	_ok(Barn.count("carrot") == 2, "...and takes nothing either")
+
+	# Junk sells for nothing and takes nothing.
+	_ok(Market.sell({}) == 0, "an empty basket pays nothing")
+	_ok(Market.sell({"dragonfruit": 9}) == 0,
+		"a crop the till has no price for pays nothing")
+
+	# And the receipts survived all of it exactly once each.
+	SaveManager.load_game()
+	_ok(int(SaveManager.data["rewards"]["coins"]) == expected,
+		"what was written to disk is the one real sale")
+
+
 # =====================================================================
 # The state machine.
 # =====================================================================
@@ -844,3 +1239,278 @@ func _a_planting_cycle_never_repeats() -> void:
 		% (Farm.PAID_LEDGER_KEPT + 19), "...keeping the most recent")
 	_ok(not ("farm_harvest_plot_1_0" in paid),
 		"...and dropping the oldest, which no rising cycle can ever present again")
+
+
+# --- 阶段 4: the bear ------------------------------------------------------
+
+## The bear's farm is a pure function of the clock, and the four promises
+## around his shared strawberry all hold: one per cycle, help before the next,
+## the friendship star exactly once, and nothing of his ever lost -- provable
+## here because ASKING what his farm looks like writes nothing at all.
+func _the_bears_farm_is_arithmetic_and_kindness() -> void:
+	_fresh_save()
+	var period := NpcFarm.share_period()
+	_ok(period >= 600, "the share cycle is minutes at the least, never seconds")
+	_ok(period == GameData.crop_total_seconds("strawberry"),
+		"the shared strawberry regrows on the strawberry's own real time")
+
+	var now := period * 5 + 123
+	var before := JSON.stringify(SaveManager.data["farm"])
+	var beds: Array = NpcFarm.bear_beds(now)
+	_ok(JSON.stringify(NpcFarm.bear_beds(now)) == JSON.stringify(beds),
+		"the same clock always shows the same farm")
+	_ok(JSON.stringify(SaveManager.data["farm"]) == before,
+		"looking at the bear's farm writes nothing to the save")
+	_ok(beds.size() == 6, "the bear keeps six beds")
+
+	var shares := 0
+	var thirsty := 0
+	for plot in beds:
+		if bool(plot.get("share", false)):
+			shares += 1
+		elif bool(plot.get("help_target", false)):
+			thirsty += 1
+			_ok(str(plot.get("care_event", "")) == Growth.CARE_THIRSTY,
+				"the bed he needs help with is really thirsty")
+		else:
+			_ok(str(plot.get("care_event", "")) == "",
+				"the bear's own beds never nag the visitor")
+	_ok(shares == 1, "exactly one bed is shared")
+	_ok(thirsty == 1, "exactly one bed asks for the kindness back")
+
+	# The pick, the promise, and the star.
+	_ok(NpcFarm.can_pick(now), "a new friend may take the starred one")
+	for plot in beds:
+		if bool(plot.get("share", false)):
+			_ok(Farm.is_ready(plot), "...and it is drawn ripe, wearing the star")
+	NpcFarm.record_pick(now)
+	_ok(not NpcFarm.can_pick(now), "one per visit: the star is down")
+	_ok(not NpcFarm.can_pick(now + period),
+		"...and the NEXT one waits until the watering promised for this one")
+	_ok(NpcFarm.friendship() == 0, "picking alone earns no star")
+	_ok(NpcFarm.record_help(), "the watering clears the promise")
+	_ok(NpcFarm.friendship() == 1, "...and grows the friendship by one")
+	_ok(not NpcFarm.record_help(), "a second watering finds nothing owed")
+	_ok(NpcFarm.friendship() == 1, "...and pays no second star")
+	_ok(not NpcFarm.can_pick(now), "this cycle stays picked forever")
+	_ok(NpcFarm.can_pick(now + period), "the next cycle grows a new one")
+
+	# After the pick the shared bed is growing again, not a hole: nothing on
+	# the bear's farm is ever consumed, the strawberry he gave was EXTRA.
+	var after: Array = NpcFarm.bear_beds(now)
+	for i in range(after.size()):
+		var plot: Dictionary = after[i]
+		if bool(plot.get("share", false)):
+			_ok(str(plot.get("state", "")) == Farm.GROWING,
+				"the shared bed is growing the next one, not standing empty")
+		elif not bool(plot.get("help_target", false)):
+			_ok(JSON.stringify(plot) == JSON.stringify(beds[i]),
+				"the bear's own bed %d is untouched by the pick" % i)
+
+
+## The bear returns the visits -- by the same arithmetic, never in front of
+## the child, never more than his own rhythm allows, and only ever bringing
+## good news: watered beds, one star, one line for the board.
+func _the_bear_drops_by_but_never_in_front_of_him() -> void:
+	_fresh_save()
+	var period := NpcFarm.visit_period()
+	var now := period * 9
+	_ok(NpcFarm.maybe_visit(now).is_empty(),
+		"a bear he has not befriended does not let himself in")
+
+	NpcFarm.record_pick(now)
+	NpcFarm.record_help()
+	_ok(NpcFarm.maybe_visit(now).is_empty(),
+		"the first visit is not instant -- he walks home first")
+	_ok(int(NpcFarm.bear_state().get("last_visit_at", 0)) == now,
+		"...but his clock has started")
+	_ok(NpcFarm.maybe_visit(now).is_empty(), "asking twice changes nothing")
+
+	# Leave one bed thirsty for him to find.
+	var farm: Dictionary = SaveManager.data["farm"]
+	var plots: Array = farm["plots"]
+	var bed: Dictionary = plots[0]
+	bed["state"] = Farm.NEEDS_CARE
+	bed["care_event"] = Growth.CARE_THIRSTY
+	bed["crop_id"] = "carrot"
+	plots[0] = bed
+	farm["plots"] = plots
+
+	var later := now + period
+	var entry: Dictionary = NpcFarm.maybe_visit(later)
+	_ok(not entry.is_empty(), "after one of his own rhythms, he comes")
+	_ok(int(entry.get("watered", 0)) == 1, "he found the one thirsty bed")
+	_ok(str((farm["plots"][0] as Dictionary).get("care_event", "")) == "",
+		"...and the watering was real, not a story")
+	_ok(NpcFarm.friendship() == 2, "he leaves exactly one friendship star")
+	_ok((farm.get("visit_log", []) as Array).size() == 1,
+		"one visit writes one line on the board")
+	_ok(bool(farm.get("visit_log_unread", false)),
+		"...and the board knows it is news")
+	_ok(NpcFarm.maybe_visit(later).is_empty(),
+		"the same rhythm cannot be collected twice")
+	_ok(NpcFarm.friendship() == 2, "...and pays no second star")
+
+	# The board remembers ten visits and no more, newest first.
+	for i in range(Farm.VISIT_LOG_KEPT + 5):
+		Farm.remember_visit(farm, {"who": "bear", "watered": 0, "star": 1,
+			"at": later + 100 + i})
+	var log: Array = farm["visit_log"]
+	_ok(log.size() == Farm.VISIT_LOG_KEPT, "the board stays bounded")
+	_ok(int((log[0] as Dictionary).get("at", 0))
+		== later + 100 + Farm.VISIT_LOG_KEPT + 4,
+		"...keeping the newest at the top")
+
+
+## Two tablets, one bear. The merge must never un-make a promise, un-pick a
+## cycle, or lose a visit either tablet saw.
+func _two_tablets_agree_about_the_bear() -> void:
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	var npc: Dictionary = Farm.normalise_npc(null)
+	npc["bear"]["last_share_cycle"] = 3
+	npc["bear"]["help_owed"] = true
+	npc["bear"]["last_visit_at"] = 1000
+	farm["npc"] = npc
+	farm["npc_friendship"] = {"bear": 1}
+	farm["visit_log"] = [{"who": "bear", "watered": 1, "star": 1, "at": 1000}]
+	farm["visit_log_unread"] = false
+
+	var theirs := {"farm": {
+		"npc": {"bear": {"last_share_cycle": 5, "help_owed": false,
+			"last_visit_at": 900}},
+		"npc_friendship": {"bear": 4},
+		"visit_log": [
+			{"who": "bear", "watered": 1, "star": 1, "at": 1000},
+			{"who": "bear", "watered": 0, "star": 1, "at": 2000},
+		],
+		"visit_log_unread": true,
+	}}
+	SaveManager._merge_farm(theirs)
+
+	var merged: Dictionary = Farm.normalise_npc(
+		SaveManager.data["farm"].get("npc")).get("bear", {})
+	_ok(int(merged.get("last_share_cycle", -1)) == 5,
+		"a cycle picked on either tablet stays picked -- high water")
+	_ok(bool(merged.get("help_owed", false)),
+		"a promise made on either tablet was made -- OR")
+	_ok(int(merged.get("last_visit_at", 0)) == 1000,
+		"the visit clock keeps the later stamp")
+	_ok(int(SaveManager.data["farm"]["npc_friendship"].get("bear", 0)) == 4,
+		"friendship takes the higher count, never the sum")
+	var log: Array = SaveManager.data["farm"]["visit_log"]
+	_ok(log.size() == 2, "the same visit on both tablets lands once")
+	_ok(int((log[0] as Dictionary).get("at", 0)) == 2000,
+		"...and the union reads newest first")
+	_ok(bool(SaveManager.data["farm"]["visit_log_unread"]),
+		"news on either tablet is still news")
+
+
+# --- 阶段 5: the ladder and the land ---------------------------------------
+
+## The farm's level is arithmetic on one rising number, and the number rises
+## only through award() -- whose callers all stand inside once-only gates, so
+## the ladder inherits every idempotence the money already has.
+func _the_farm_grows_up_by_arithmetic() -> void:
+	_fresh_save()
+	_ok(Level.xp() == 0 and Level.level() == 1,
+		"a new farm stands on the first rung with nothing climbed")
+	_ok(Level.next_at() > 0, "...and can see the next rung from there")
+	_ok(Level.level_of(Level.next_at()) == 2,
+		"the next threshold is exactly where level 2 begins")
+	_ok(Level.level_of(Level.next_at() - 1) == 1,
+		"...and one xp short of it is still level 1")
+
+	var top := 1
+	var top_xp := 0
+	for row in GameData.farm_level_table():
+		top = maxi(top, int(row.get("level", 1)))
+		top_xp = maxi(top_xp, int(row.get("xp", 0)))
+	_ok(Level.level_of(top_xp) == top and Level.level_of(top_xp * 10) == top,
+		"the ladder has a top and xp beyond it changes nothing")
+
+	var pair: Array = Level.award("harvest")
+	_ok(int(pair[0]) == 1 and Level.xp() == GameData.farm_xp_for("harvest"),
+		"one harvest pays exactly its listed xp")
+	_ok(int(SaveManager.data["farm"]["farm_level"]) == Level.level(),
+		"the stored level is a copy of the computed one, never its own fact")
+	_ok(Level.award("no_such_kind") == [Level.level(), Level.level()]
+		and Level.xp() == GameData.farm_xp_for("harvest"),
+		"an unknown kind pays nothing rather than something")
+
+	# Climb to the top rung and make sure the save carries it whole.
+	while Level.level() < top:
+		Level.award("order")
+	var climbed := Level.xp()
+	_ok(int(SaveManager.data["farm"]["farm_level"]) == top,
+		"the stored copy climbed with the truth, rung for rung")
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_ok(Level.xp() == climbed and Level.level() == top,
+		"a reopened save stands exactly where it climbed to")
+	_ok(Level.progress() == 1.0,
+		"the top of the ladder reads as a FULL bar, never an empty one")
+
+	# Two tablets: the xp is a high-water mark, never a sum.
+	_fresh_save()
+	SaveManager.data["farm"]["farm_xp"] = 30
+	SaveManager.data["farm"]["farm_level"] = Level.level_of(30)
+	SaveManager._merge_farm({"farm": {"farm_xp": 50, "farm_level": 2}})
+	_ok(Level.xp() == 50,
+		"a merge takes the higher climb, and 30+50 never becomes 80")
+
+
+## The land under stones (test #10 of the twenty-two): bought in order, all
+## or nothing, exactly once, and still there after the lid closes.
+func _the_seventh_bed_is_bought_once() -> void:
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	_ok(Expand.state_of(6) == "level",
+		"the seventh bed waits for the farm to grow first")
+	_ok(Expand.buy(6) == "level" and int(farm["plot_count"]) == Farm.PLOT_COUNT,
+		"...and buying it early does nothing at all")
+
+	farm["farm_xp"] = 999
+	farm["farm_level"] = Level.level_of(999)
+	SaveManager.data["rewards"]["coins"] = 10
+	_ok(Expand.state_of(6) == "poor", "grown but broke: the stones say poor")
+	var held := Coins.balance()
+	_ok(Expand.buy(6) == "poor" and Coins.balance() == held
+		and int(farm["plot_count"]) == Farm.PLOT_COUNT,
+		"...and a poor buy takes no coins and no land moves")
+
+	SaveManager.data["rewards"]["coins"] = 200
+	_ok(Expand.state_of(7) == "level",
+		"the EIGHTH bed is not for sale while the seventh stands in stones")
+	_ok(Expand.buy(6) == "", "the seventh bed clears")
+	_ok(int(farm["plot_count"]) == 7 and (farm["plots"] as Array).size() == 7,
+		"...and the count and the ground agree")
+	_ok(str((farm["plots"][6] as Dictionary).get("state", "")) == Farm.EMPTY,
+		"...and the new earth arrives as untouched grass")
+	_ok(Coins.balance() == 200 - Expand.cost_of(6), "...at exactly its price")
+	_ok(Expand.buy(6) == "owned" and Coins.balance() == 200 - Expand.cost_of(6),
+		"buying it again finds it owned and charges nothing")
+
+	# The regret window's arithmetic: back off while untouched, refused after.
+	Expand.undo(6)
+	_ok(int(farm["plot_count"]) == 6 and Coins.balance() == 200,
+		"within the window, whole price back and the stones return")
+	_ok(Expand.buy(6) == "", "bought again for keeps")
+	var plots: Array = farm["plots"]
+	var bed: Dictionary = plots[6]
+	bed["state"] = Farm.TILLED
+	plots[6] = bed
+	farm["plots"] = plots
+	var before := Coins.balance()
+	Expand.undo(6)
+	_ok(int(farm["plot_count"]) == 7 and Coins.balance() == before,
+		"turned earth is HIS earth: the undo quietly refuses to take it")
+
+	# Reopened, the bed is still his (the whole of test #10).
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_ok(int(SaveManager.data["farm"]["plot_count"]) == 7
+		and (SaveManager.data["farm"]["plots"] as Array).size() == 7,
+		"the lid closes and opens and the seventh bed is still there")
+	_ok(Expand.state_of(7) == "poor" or Expand.state_of(7) == "ready",
+		"...and the eighth is next in line now")

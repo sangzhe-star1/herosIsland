@@ -31,6 +31,34 @@ var garden_tutorial: Dictionary = {}
 ## these are the fifteen a harvest level can put on the ground, and they
 ## carry a gesture rather than a growth curve.
 var harvest_crops: Array = []
+## Where everything in 星光农场 stands, in world coordinates. Read-only, and
+## deliberately NOT in the save: a bed's position is a fact about the farm's
+## design, not about the child's game, so moving the well in a future version
+## must not require a migration. What is GROWING in a bed lives in the save and
+## is matched to this by index -- see scripts/garden/farm_layout.gd.
+var farm_layout: Dictionary = {}
+## The seed shop's shelf: which crops are sold and for how much. Read-only;
+## what he OWNS is farm.unlocked_crops in the save, so retuning a price can
+## never take a crop away.
+var farm_seed_shop: Dictionary = {}
+## What the market box pays per crop. Read-only for the same reason: a price
+## change must never reach into anyone's barn.
+var farm_market_prices: Dictionary = {}
+## The neighbours: who they are and what their farms look like. Their STATE is
+## computed from the clock, never stored -- see npc_farm_manager.gd.
+var npc_farms: Dictionary = {}
+## Which lines a visitor's log entry is told with. The words themselves live
+## in strings.json; this file only says which icon goes with which line.
+var farm_visit_texts: Dictionary = {}
+## The dog's numbers: speed, height, how far from a bed it sits.
+var farm_dog: Dictionary = {}
+## The farm's five levels: where each threshold sits and what each of the
+## three xp sources pays. Read-only; the child's own farm_xp is in the save.
+var farm_levels: Dictionary = {}
+## The two beds that can be cleared, what each costs, and the animation
+## numbers for the clearing. Read-only for the usual reason: retuning a cost
+## must never take a bought bed away.
+var farm_expansions: Dictionary = {}
 
 var _levels_by_id: Dictionary = {}
 var _worlds_by_id: Dictionary = {}
@@ -56,6 +84,14 @@ func _ready() -> void:
 	garden_orders = _load_json("res://data/garden_orders.json", [])
 	garden_tutorial = _load_json("res://data/garden_tutorial.json", {})
 	harvest_crops = _load_json("res://data/harvest_crops.json", [])
+	farm_layout = _load_json("res://data/farm_world_layout.json", {})
+	farm_seed_shop = _load_json("res://data/farm_seed_shop.json", {})
+	farm_market_prices = _load_json("res://data/farm_market_prices.json", {})
+	npc_farms = _load_json("res://data/npc_farms.json", {})
+	farm_visit_texts = _load_json("res://data/farm_visit_texts.json", {})
+	farm_dog = _load_json("res://data/farm_dog.json", {})
+	farm_levels = _load_json("res://data/farm_levels.json", {})
+	farm_expansions = _load_json("res://data/farm_expansions.json", {})
 
 	for c in crops:
 		_crops_by_id[c.get("id", "")] = c
@@ -80,7 +116,19 @@ func _ready() -> void:
 			["monsters", monsters.size()], ["shop items", shop_items.size()],
 			["crops", crops.size()], ["garden orders", garden_orders.size()],
 			["garden tutorial steps", garden_tutorial.get("steps", []).size()],
-			["harvest crops", harvest_crops.size()]]:
+			["harvest crops", harvest_crops.size()],
+			# Counted by its facilities, because an empty dictionary and a
+			# dictionary with a "world" key and nothing standing in it are the
+			# same disaster: a farm that opens on bare ground.
+			["farm layout facilities", farm_layout.get("facilities", []).size()],
+			["seed shop shelf", farm_seed_shop.get("seeds", []).size()],
+			["market prices", farm_market_prices.get("prices", {}).size()],
+			["npc farms", npc_farms.get("farms", []).size()],
+			["visit text lines",
+				farm_visit_texts.get("bear", {}).get("lines", []).size()],
+			["farm dog numbers", farm_dog.size()],
+			["farm levels", farm_levels.get("levels", []).size()],
+			["farm expansions", farm_expansions.get("slots", []).size()]]:
 		if int(pair[1]) == 0:
 			push_error("GameData: %s is EMPTY -- a data file is missing or "
 				% str(pair[0]) + "the code that loads it is out of date")
@@ -183,6 +231,52 @@ func get_order(order_id: String) -> Dictionary:
 	for order in garden_orders:
 		if str(order.get("id", "")) == order_id:
 			return order
+	return {}
+
+
+## What the market pays for one of these. Zero for a crop it has never heard
+## of -- a retired crop sells for nothing rather than crashing the till.
+func market_price(crop_id: String) -> int:
+	return maxi(0, int(farm_market_prices.get("prices", {}).get(crop_id, 0)))
+
+
+## The shop's row for this crop, or {} if it is not on the shelf.
+func seed_listing(crop_id: String) -> Dictionary:
+	for row in farm_seed_shop.get("seeds", []):
+		if str(row.get("crop_id", "")) == crop_id:
+			return row
+	return {}
+
+
+## One neighbour's farm, by id, or {}.
+func get_npc_farm(npc_id: String) -> Dictionary:
+	for farm in npc_farms.get("farms", []):
+		if str(farm.get("id", "")) == npc_id:
+			return farm
+	return {}
+
+
+## The level table, sorted by threshold so "which level is this much xp"
+## is a walk from the top. Sorted here once per ask rather than trusted:
+## a hand-edited json with two rows swapped must not invert the ladder.
+func farm_level_table() -> Array:
+	var rows: Array = farm_levels.get("levels", [])
+	var out := rows.duplicate()
+	out.sort_custom(func(a, b): return int(a.get("xp", 0)) < int(b.get("xp", 0)))
+	return out
+
+
+## What one event of this kind pays toward the farm's level. Zero for a kind
+## nobody has heard of, so a typo earns nothing rather than something.
+func farm_xp_for(kind: String) -> int:
+	return maxi(0, int(farm_levels.get("xp", {}).get(kind, 0)))
+
+
+## The expansion slot for bed `index`, or {} if that bed is not for sale.
+func farm_expansion_slot(index: int) -> Dictionary:
+	for slot in farm_expansions.get("slots", []):
+		if int(slot.get("index", -1)) == index:
+			return slot
 	return {}
 
 

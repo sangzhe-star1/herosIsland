@@ -443,6 +443,43 @@ if [[ "$(uname)" != "Linux" ]] || [[ -n "${DISPLAY:-}" ]] || command -v xvfb-run
   no_script_errors "$GT_OUT" "Garden Touch Probe"
   rm -f "$GT_OUT"
 
+  # 星光农场 as a place: panning, zooming, the go-home double tap, buttons that
+  # stand over the ground without punching holes in it, and a seed that still
+  # lands in the bed he aimed at AFTER the farm has been dragged sideways.
+  # Everything the spatial farm added is a drag, and 丰收行动 already proved
+  # that three layers of checks stay green while a drag is broken unless one
+  # of them pushes a real InputEventScreenDrag. This is that layer.
+  echo
+  echo "Running farm world probe..."
+  FW_OUT=$(mktemp)
+  timeout 400 "${GT_RUNNER[@]}" "$GODOT" --path . --rendering-driver opengl3 \
+    res://tests/FarmWorldProbe.tscn 2>&1 | tee "$FW_OUT"
+  if ! grep -q "FARM WORLD PROBE PASSED" "$FW_OUT"; then
+    rm -f "$FW_OUT"
+    echo "Farm world probe failed."
+    exit 1
+  fi
+  no_script_errors "$FW_OUT" "Farm World Probe"
+  rm -f "$FW_OUT"
+
+  # 丰收行动 with thumbs. harvest_probe checks the arithmetic of the gestures;
+  # this one asks whether doing the move on a real screen picks anything up. It
+  # was written the day the answer turned out to be NO for four of the eight
+  # levels -- every one that sorts into more than one basket -- and for none of
+  # the reasons a number could have told us.
+  echo
+  echo "Running harvest touch probe..."
+  HT_OUT=$(mktemp)
+  timeout 300 "${GT_RUNNER[@]}" "$GODOT" --path . --rendering-driver opengl3 \
+    res://tests/HarvestTouchProbe.tscn 2>&1 | tee "$HT_OUT"
+  if ! grep -q "HARVEST TOUCH PROBE PASSED" "$HT_OUT"; then
+    rm -f "$HT_OUT"
+    echo "Harvest touch probe failed."
+    exit 1
+  fi
+  no_script_errors "$HT_OUT" "Harvest Touch Probe"
+  rm -f "$HT_OUT"
+
   # The whole island on a tablet. Opens six templates, the map and the lesson
   # card twice each -- once at 1280x720 and once at the 1024x768 window that
   # gives the game a 1280x960 viewport -- and asserts that everything the child

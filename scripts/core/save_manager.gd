@@ -23,7 +23,10 @@ const SAVE_VERSION := 1
 ## 2  the garden arrived: farm, inventory, farm_orders
 ## 3  a plot says what it is doing in one word (`state`) instead of in three
 ##    booleans, and carries the planting cycle its harvest is paid against
-const FARM_SAVE_VERSION := 3
+## 4  the garden became a farm: six beds instead of four, and the barn has a
+##    ceiling with a basket underneath it so that a full barn never eats a
+##    harvest
+const FARM_SAVE_VERSION := 4
 
 ## The autoload order puts SaveManager BEFORE I18n, so the I18n singleton
 ## does not exist yet while a fresh save is being built. Reading the
@@ -32,6 +35,7 @@ const FARM_SAVE_VERSION := 3
 const I18nScript = preload("res://scripts/core/i18n.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
 var data: Dictionary = {}
 
@@ -325,8 +329,39 @@ func _settle_after_load() -> void:
 	changed = _move_wardrobe_in() or changed
 	changed = _split_wardrobes() or changed
 	changed = _open_the_farm() or changed
+	changed = _grow_the_garden_into_a_farm() or changed
 	if changed:
 		save_game()
+
+
+## Four beds become six, and the barn gets a ceiling.
+##
+## THERE IS ALMOST NOTHING HERE, AND THAT IS THE POINT
+##
+## The beds are not grown here. Farm.normalise_farm() runs on every single load
+## and already stretches the plot list to maxi(plot_count, Farm.PLOT_COUNT), so
+## raising that constant from four to six is the entire migration -- the four
+## beds on disk come back untouched and two fresh ones follow them. The same is
+## true of warehouse_cap and harvest_basket: they are new keys one level inside
+## `farm`, which is exactly as deep as _migrate() reaches, so an old save is
+## handed the defaults on the way in without anybody writing a line for it.
+##
+## What is left is the one thing neither of those can do: say so on disk. The
+## version stamp is a fact about the save's CONTENT, it is what the probe reads,
+## and it has to survive the app being closed -- a settlement that only happens
+## in memory is re-applied every launch forever (see _settle_after_load).
+func _grow_the_garden_into_a_farm() -> bool:
+	if int(data.get("save_version", 0)) >= FARM_SAVE_VERSION:
+		return false
+	var farm: Dictionary = data.get("farm", {})
+	# Belt and braces on top of normalise_farm(). If this ever disagrees with
+	# the number of plots actually on disk, the plots win: a count that claims
+	# fewer beds than exist is the one way this could drop a planted one.
+	farm["plot_count"] = maxi(int(farm.get("plot_count", 0)),
+		maxi(Farm.PLOT_COUNT, (farm.get("plots", []) as Array).size()))
+	data["farm"] = farm
+	data["save_version"] = FARM_SAVE_VERSION
+	return true
 
 
 ## Bring the garden up to now, and write only if that changed anything.
@@ -344,6 +379,10 @@ func settle_farm() -> bool:
 		return false
 	var before := JSON.stringify(data["farm"])
 	data["farm"] = Growth.settle(data["farm"], GameClock.now_unix())
+	# Anything waiting in the basket goes back in if the barn has room for it.
+	# Here rather than on a button because "there is room now" is a fact about
+	# the barn, not an errand for a six-year-old to remember.
+	Barn.tip_basket_in()
 	if JSON.stringify(data["farm"]) == before:
 		return false
 	save_game()
@@ -376,7 +415,11 @@ func _open_the_farm() -> bool:
 	var starters: Array = []
 	for crop in GameData.crops:
 		var crop_id := str(crop.get("id", ""))
-		if crop_id != "":
+		# Only the crops that come free. The shop's crops arrive by being
+		# BOUGHT -- handing them out here would quietly empty the shop's shelf,
+		# and rule 4 of this function is that opening the garden hands out
+		# nothing a new child would not also get.
+		if crop_id != "" and str(crop.get("unlock_condition", "")) == "":
 			starters.append(crop_id)
 	farm["unlocked_crops"] = starters
 	farm["opened"] = true
@@ -1172,6 +1215,11 @@ func _merge_farm(theirs: Dictionary) -> void:
 
 		farm["farm_level"] = maxi(int(farm.get("farm_level", 1)),
 			int(tf.get("farm_level", 1)))
+		# The farm's xp is a running total of things that HAPPENED, so it is a
+		# high-water mark like the level it feeds -- never a sum, or two
+		# tablets would add up to a farm neither of them grew.
+		farm["farm_xp"] = maxi(int(farm.get("farm_xp", 0)),
+			int(tf.get("farm_xp", 0)))
 		farm["plot_count"] = maxi(int(farm.get("plot_count", 4)),
 			int(tf.get("plot_count", 4)))
 		farm["clock_high_water"] = maxi(int(farm.get("clock_high_water", 0)),
@@ -1182,6 +1230,8 @@ func _merge_farm(theirs: Dictionary) -> void:
 		# never be made to sit through it again on another.
 		farm["tutorial_completed"] = bool(farm.get("tutorial_completed", false)) \
 			or bool(tf.get("tutorial_completed", false))
+		farm["market_taught"] = bool(farm.get("market_taught", false)) \
+			or bool(tf.get("market_taught", false))
 		farm["last_farm_visit_at"] = maxi(int(farm.get("last_farm_visit_at", 0)),
 			int(tf.get("last_farm_visit_at", 0)))
 		# Paid harvests are a union, for the same reason delivered orders are:
@@ -1195,11 +1245,72 @@ func _merge_farm(theirs: Dictionary) -> void:
 			paid.pop_front()
 		farm["paid_harvests"] = paid
 
-		var barn: Dictionary = farm.get("warehouse", {})
-		for crop_id in tf.get("warehouse", {}).keys():
-			barn[crop_id] = maxi(int(barn.get(crop_id, 0)),
-				int(tf["warehouse"][crop_id]))
-		farm["warehouse"] = barn
+		# The barn's ceiling is an upgrade, and an upgrade earned on either
+		# tablet has been earned. Taking the lower of the two would shrink a
+		# barn that is already fuller than the number it was shrunk to, and
+		# put() would then refuse everything for ever.
+		farm["warehouse_cap"] = maxi(
+			int(farm.get("warehouse_cap", Farm.WAREHOUSE_START)),
+			int(tf.get("warehouse_cap", Farm.WAREHOUSE_START)))
+
+		# The market's receipt counter only ever rises, and its ledger is a
+		# union -- the same shape as paid_harvests, for the same reason: a sale
+		# paid on either tablet has been paid.
+		farm["sale_receipt_id"] = maxi(int(farm.get("sale_receipt_id", 0)),
+			int(tf.get("sale_receipt_id", 0)))
+		var sales: Array = farm.get("paid_sales", [])
+		for key in tf.get("paid_sales", []):
+			if not key in sales:
+				sales.append(key)
+		while sales.size() > Farm.PAID_LEDGER_KEPT:
+			sales.pop_front()
+		farm["paid_sales"] = sales
+
+		# The bear's three facts. The cycle and the visit stamp are high-water
+		# marks; the owed watering is an OR, because a promise made on either
+		# tablet was made.
+		var npc_block: Dictionary = Farm.normalise_npc(farm.get("npc"))
+		var theirs_npc: Dictionary = Farm.normalise_npc(tf.get("npc"))
+		for npc_id in npc_block.keys():
+			npc_block[npc_id]["last_share_cycle"] = maxi(
+				int(npc_block[npc_id]["last_share_cycle"]),
+				int(theirs_npc[npc_id]["last_share_cycle"]))
+			npc_block[npc_id]["last_visit_at"] = maxi(
+				int(npc_block[npc_id]["last_visit_at"]),
+				int(theirs_npc[npc_id]["last_visit_at"]))
+			npc_block[npc_id]["help_owed"] = bool(npc_block[npc_id]["help_owed"]) \
+				or bool(theirs_npc[npc_id]["help_owed"])
+		farm["npc"] = npc_block
+
+		# Visitor entries are a union by (who, when), newest first, trimmed to
+		# the same length one tablet keeps. An entry seen on either tablet
+		# happened.
+		var seen: Dictionary = {}
+		var tales: Array = []
+		for entry in farm.get("visit_log", []) + tf.get("visit_log", []):
+			if not entry is Dictionary:
+				continue
+			var stamp := "%s@%d" % [str(entry.get("who", "")),
+				int(entry.get("at", 0))]
+			if seen.has(stamp):
+				continue
+			seen[stamp] = true
+			tales.append(entry)
+		tales.sort_custom(func(a, b):
+			return int(a.get("at", 0)) > int(b.get("at", 0)))
+		while tales.size() > Farm.VISIT_LOG_KEPT:
+			tales.pop_back()
+		farm["visit_log"] = tales
+		farm["visit_log_unread"] = bool(farm.get("visit_log_unread", false)) \
+			or bool(tf.get("visit_log_unread", false))
+
+		# The barn and the basket outside it, both counted the same way.
+		for store_key in ["warehouse", "harvest_basket"]:
+			var pile: Dictionary = farm.get(store_key, {})
+			for crop_id in tf.get(store_key, {}).keys():
+				pile[crop_id] = maxi(int(pile.get(crop_id, 0)),
+					int(tf[store_key][crop_id]))
+			farm[store_key] = pile
 
 		for list_key in ["unlocked_crops", "unlocked_recipes", "decorations",
 				"completed_missions"]:
@@ -1232,6 +1343,31 @@ func _merge_farm(theirs: Dictionary) -> void:
 			delivered.append(order_id)
 	orders["delivered"] = delivered
 	data["farm_orders"] = orders
+
+	# farm_visitors and farm_unlocks were built in _default_data() and then
+	# merged by nothing at all -- so importing a backup would have wiped both
+	# the moment anything started writing to them. Nothing does yet, which is
+	# exactly why it was invisible and exactly why it is fixed now rather than
+	# on the day the visitor log ships.
+	#
+	# Both are "has this ever happened" ledgers keyed by id, so the merge is a
+	# union that keeps the higher of any two numbers. Never a replacement: a
+	# visitor who came on the other tablet still came.
+	for ledger_key in ["farm_visitors", "farm_unlocks"]:
+		var mine: Dictionary = data.get(ledger_key, {})
+		if not mine is Dictionary:
+			mine = {}
+		var theirs_ledger: Variant = theirs.get(ledger_key, {})
+		if theirs_ledger is Dictionary:
+			for id in (theirs_ledger as Dictionary).keys():
+				var a: Variant = mine.get(id, null)
+				var b: Variant = theirs_ledger[id]
+				if a == null:
+					mine[id] = b
+				elif same_shape(a, b) and (typeof(a) == TYPE_INT
+						or typeof(a) == TYPE_FLOAT):
+					mine[id] = maxi(int(a), int(b))
+		data[ledger_key] = mine
 
 
 # --- playtime, for the Parent Center ---

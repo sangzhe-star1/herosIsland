@@ -1,0 +1,15 @@
+{
+  "_comment": "农场等级。xp 只从三种事来，三种全部躲在既有的一次性闸后面（收成的 plant_cycle 账本、订单的 delivered 名单、帮小熊的 help_owed 标志），所以 xp 不可能被重复刷。等级由 farm_xp 算出来；farm_level 字段只是抄写，方便合并取大值。",
+  "xp": {
+    "harvest": 2,
+    "order": 10,
+    "help": 5
+  },
+  "levels": [
+    { "level": 1, "xp": 0 },
+    { "level": 2, "xp": 20 },
+    { "level": 3, "xp": 60 },
+    { "level": 4, "xp": 120 },
+    { "level": 5, "xp": 200 }
+  ]
+}
