@@ -54,9 +54,14 @@ const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
 ## The rule itself did not go away, it got harder: SNAP is measured on the
 ## GLASS and the farm can be zoomed out, so the same world distance buys fewer
 ## screen pixels at 0.8 than at 1.0. See Layout.world_gap_needed().
-const SEED_TILE := Vector2(104, 84)
+const SEED_TILE := Vector2(96, 72)
 const TOP_BAR := 96.0
 const SHELF := 168.0
+## The shelf's spacing rhythm: one gap, used between rows, between tiles,
+## and between the shelf's edge and its first tile. One number is a rhythm;
+## three numbers are three accidents that used to live here -- the rack's
+## rings touched the tool row, and both rows read as one squashed pile.
+const SHELF_GAP := 12.0
 
 ## The order board, written down once instead of in four places.
 ##
@@ -383,8 +388,8 @@ func _top_bar(view: Vector2) -> void:
 	# six-year-old reads. By the back button: the right side of the bar is
 	# already three cards deep (challenge door, purse).
 	var badge := UiKit.card(Color(0.99, 0.96, 0.86))
-	badge.position = Vector2(140.0, 24)
-	badge.custom_minimum_size = Vector2(108, 56)
+	badge.position = Vector2(142.0, 24)
+	badge.custom_minimum_size = Vector2(104, 56)
 	var badge_row := HBoxContainer.new()
 	badge_row.add_theme_constant_override("separation", 8)
 	var level_star := UiKit.picture("star", 32.0)
@@ -396,14 +401,14 @@ func _top_bar(view: Vector2) -> void:
 	_play.add_child(badge)
 	var rail := ColorRect.new()
 	rail.color = Color(0.88, 0.84, 0.72)
-	rail.position = Vector2(148.0, 74.0)
-	rail.size = Vector2(92, 6)
+	rail.position = Vector2(152.0, 86.0)
+	rail.size = Vector2(84, 5)
 	rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play.add_child(rail)
 	var fill := ColorRect.new()
 	fill.color = Color(1.0, 0.78, 0.22)
 	fill.position = rail.position
-	fill.size = Vector2(92.0 * Level.progress(), 6)
+	fill.size = Vector2(84.0 * Level.progress(), 5)
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play.add_child(fill)
 
@@ -411,14 +416,14 @@ func _top_bar(view: Vector2) -> void:
 	# arrives with the orders -- but the number he is used to seeing in every
 	# other room should not vanish in this one.
 	var purse := UiKit.card(Color(1.0, 0.98, 0.90))
-	purse.position = Vector2(view.x - 208.0, 24)
-	purse.custom_minimum_size = Vector2(182, 56)
+	purse.position = Vector2(view.x - 26.0 - 150.0, 24)
+	purse.custom_minimum_size = Vector2(150, 56)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	var coin := UiKit.picture("star_coin", 34.0)
+	row.add_theme_constant_override("separation", 8)
+	var coin := UiKit.picture("star_coin", 32.0)
 	if coin != null:
 		row.add_child(coin)
-	var amount := UiKit.title(str(Coins.balance()), 30)
+	var amount := UiKit.title(str(Coins.balance()), 28)
 	row.add_child(amount)
 	purse.add_child(row)
 	_play.add_child(purse)
@@ -442,8 +447,13 @@ func _seed_drop_targets() -> void:
 	_field.dropped.connect(_on_seed_dropped)
 	# While a seed is in the air the farm holds still. One finger cannot drag a
 	# carrot and the ground at once, and a pan mid-drag would slide the bed out
-	# from under the thing he is aiming at.
-	_field.picked_up.connect(func(_item): _world.locked = true)
+	# from under the thing he is aiming at. And if he picked it up from the
+	# whole-farm overview, the farm leans IN first: every spacing promise the
+	# drop relies on is written against the planting zooms, so no seed is ever
+	# in the air further out than min_zoom.
+	_field.picked_up.connect(func(_item):
+		_world.ensure_planting_zoom()
+		_world.locked = true)
 	_field.dropped.connect(func(_i, _s, _c): _world.locked = false)
 
 	var plots := _plots()
@@ -544,45 +554,69 @@ func _close_panels() -> void:
 	_queue_rebuild()
 
 
-## Two big buttons for how close in the farm is drawn.
+## One capsule for how close in the farm is drawn: plus above, minus below,
+## a hairline between.
 ##
 ## Pinching works too, but these are the way it is MEANT to be done: two
 ## fingers on a tablet is a gesture a six-year-old performs by accident more
-## often than on purpose, and a control he cannot find is a control he does not
-## have. Greyed rather than hidden at the ends of the range, so the pair does
-## not move about.
+## often than on purpose, and a control he cannot find is a control he does
+## not have. Greyed rather than hidden at the ends of the range, so the pair
+## does not move about.
+##
+## Bottom-right, just above the shelf, on purpose twice over: it is the
+## corner a tablet-holding thumb already rests near, and it is the one edge
+## of the farm with nothing under it -- the first cut floated two separate
+## squares at the top-right, where they sat on the purse's shoulder and over
+## the expansion stones, and every screenshot read as three things fighting
+## for one corner.
 func _view_buttons(view: Vector2) -> void:
-	var at := Vector2(view.x - 96.0, TOP_BAR + 26.0)
+	var tile := 64.0
+	var pad := 20.0
+	var origin := Vector2(view.x - tile - pad,
+		view.y - SHELF - tile * 2.0 - 1.0 - pad)
+
+	var shell := Panel.new()
+	shell.add_theme_stylebox_override("panel",
+		UiKit.panel_style(Color(1.0, 0.99, 0.94), 22))
+	shell.position = origin
+	shell.custom_minimum_size = Vector2(tile, tile * 2.0 + 1.0)
+	shell.size = Vector2(tile, tile * 2.0 + 1.0)
+	shell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play.add_child(shell)
+	# The capsule sits over the farm, and Node._input runs before the GUI:
+	# without this, every press on + would also be a tap on the ground
+	# beneath it, and two presses would be the go-home double tap.
+	_world.add_blocker(shell)
+
+	var hairline := ColorRect.new()
+	hairline.color = Color(0.30, 0.27, 0.22, 0.14)
+	hairline.position = origin + Vector2(12, tile)
+	hairline.size = Vector2(tile - 24.0, 1)
+	hairline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play.add_child(hairline)
+
 	for step: int in [1, -1]:
 		var button := Button.new()
-		button.flat = false
+		button.flat = true
 		button.focus_mode = Control.FOCUS_NONE
-		button.text = "+" if step > 0 else "-"
-		button.add_theme_font_size_override("font_size", 40)
-		button.position = at
-		button.custom_minimum_size = Vector2(72, 72)
-		button.size = Vector2(72, 72)
+		button.text = "+" if step > 0 else "−"
+		button.add_theme_font_size_override("font_size", 38)
 		var live := _world != null and _world.can_zoom(step)
-		for look in ["normal", "hover", "pressed", "focus", "disabled"]:
-			button.add_theme_stylebox_override(look, UiKit.panel_style(
-				Color(1.0, 0.99, 0.94) if live else Color(0.90, 0.89, 0.84), 22))
-		button.disabled = not live
-		# A disabled Button is drawn at reduced opacity by the theme, and over a
-		# farm that means the ground shows through and the button turns green.
-		# It has to stay a button he can see and decide not to press.
-		button.modulate = Color(1, 1, 1, 1.0 if live else 0.92)
+		button.add_theme_color_override("font_color",
+			Color(0.24, 0.21, 0.16) if live else Color(0.72, 0.70, 0.65))
 		button.add_theme_color_override("font_disabled_color",
-			Color(0.62, 0.60, 0.55))
+			Color(0.72, 0.70, 0.65))
+		button.position = origin if step > 0 else origin + Vector2(0, tile + 1.0)
+		button.custom_minimum_size = Vector2(tile, tile)
+		button.size = Vector2(tile, tile)
+		button.disabled = not live
 		var direction: int = step
 		button.pressed.connect(func():
 			_world.zoom_by(direction)
 			_queue_rebuild())
 		_play.add_child(button)
-		# The button sits over the farm, and Node._input runs before the GUI:
-		# without this, every press on + would also be a tap on the ground
-		# beneath it, and two presses would be the go-home double tap.
 		_world.add_blocker(button)
-		at.y += 84.0
+		_panel_buttons["zoom_in" if step > 0 else "zoom_out"] = button
 
 
 ## Where the first seed tile sits, and how far apart the tiles are.
@@ -592,8 +626,8 @@ func _view_buttons(view: Vector2) -> void:
 ## the shelf -- view.x * 0.5 -- which is the empty gap between the last seed and
 ## the barn: the lesson said "pick a seed and drag it into the earth" while a
 ## spotlight sat on nothing at all.
-const RACK_X := 90.0
-const RACK_STEP := SEED_TILE.x + 26.0
+const RACK_X := 24.0 + 48.0
+const RACK_STEP := SEED_TILE.x + SHELF_GAP
 
 
 func _seed_rack(view: Vector2) -> void:
@@ -608,8 +642,10 @@ func _seed_rack(view: Vector2) -> void:
 	_play.add_child(shelf)
 	_shelf = shelf
 
-	# The shelf holds two rows now: the tool rack above, the seeds and the barn
-	# below. 168px splits into two 84s, and a seed tile is 84 tall exactly.
+	# The shelf holds two rows: the tool rack above, the seeds and the barn
+	# below, one SHELF_GAP between everything -- rows, tiles, edges. The first
+	# cut let the rows touch and the chosen seed's ring reach into the tool
+	# row, and the whole shelf read as one squashed pile.
 	var unlocked: Array = _farm().get("unlocked_crops", [])
 	var chosen := _tools.crop_to_plant(unlocked)
 	for i in range(unlocked.size()):
@@ -622,16 +658,18 @@ func _seed_rack(view: Vector2) -> void:
 		tile.position = at
 		_play.add_child(tile)
 		Shapes.fill(tile, Shapes.rounded_rect(
-			-SEED_TILE * 0.5, SEED_TILE, 18.0), Color(0.96, 0.92, 0.82), 1.0)
+			-SEED_TILE * 0.5, SEED_TILE, 16.0), Color(0.97, 0.93, 0.83), 1.0)
 		# The chosen seed wears a ring while the seed brush is armed, so "which
 		# one will the brush plant" is answered by looking, not by remembering.
+		# The ring grows INTO the gap and no further: half the rhythm, so two
+		# ringed neighbours could not touch even if two rings could exist.
 		if _tools.selected == "seed" and crop_id == chosen:
 			Shapes.fill(tile, Shapes.rounded_rect(
-				-SEED_TILE * 0.5 - Vector2(5, 5), SEED_TILE + Vector2(10, 10),
-				22.0), Color(0.95, 0.62, 0.18, 0.55), 1.0)
-		var art := UiKit.picture(str(crop.get("icon", "seed")), 58.0)
+				-SEED_TILE * 0.5 - Vector2(4, 4), SEED_TILE + Vector2(8, 8),
+				19.0), Color(0.95, 0.62, 0.18, 0.55), 1.0)
+		var art := UiKit.picture(str(crop.get("icon", "seed")), 52.0)
 		if art != null:
-			art.position = at - Vector2(29.0, 34.0)
+			art.position = at - Vector2(26.0, 30.0)
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_play.add_child(art)
 		_field.add_item(tile, at, crop_id)
@@ -923,8 +961,8 @@ func _tool_bar(view: Vector2) -> void:
 	# ran out of work while the screen was away, it is the hand again now.
 	_auto_return()
 
-	var x := 36.0
-	var y := view.y - SHELF + 8.0
+	var x := 24.0
+	var y := view.y - SHELF + 10.0
 	for tool in Tools.TOOLS:
 		var tool_id := str(tool.get("id", ""))
 		var live: bool = tool_id == Tools.HAND \
@@ -935,26 +973,26 @@ func _tool_bar(view: Vector2) -> void:
 		button.flat = false
 		button.focus_mode = Control.FOCUS_NONE
 		button.position = Vector2(x, y)
-		button.custom_minimum_size = Vector2(96, 76)
-		button.size = Vector2(96, 76)
-		button.pivot_offset = Vector2(48, 38)
-		var fill := Color(1.0, 0.99, 0.94) if live else Color(0.91, 0.90, 0.86)
-		var style := UiKit.panel_style(fill, 20)
+		button.custom_minimum_size = Vector2(92, 68)
+		button.size = Vector2(92, 68)
+		button.pivot_offset = Vector2(46, 34)
+		var fill := Color(1.0, 0.99, 0.94) if live else Color(0.93, 0.92, 0.88)
+		var style := UiKit.panel_style(fill, 18)
 		if held:
 			# The held tool GLOWS -- a thick warm ring, not a subtle tint. Six
 			# is an age where "which one is on" has to be answerable from the
 			# far side of a room.
 			style.border_color = Color(0.95, 0.58, 0.16)
-			style.set_border_width_all(5)
+			style.set_border_width_all(4)
 		for look in ["normal", "hover", "pressed", "focus", "disabled"]:
 			button.add_theme_stylebox_override(look, style)
 		button.disabled = not live
 		button.modulate = Color(1, 1, 1, 1.0 if live else 0.92)
-		var art := UiKit.picture(str(tool.get("icon", "star")), 50.0)
+		var art := UiKit.picture(str(tool.get("icon", "star")), 46.0)
 		if art != null:
 			art.position = Vector2(23, 11)
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			art.modulate.a = 1.0 if live else 0.45
+			art.modulate.a = 1.0 if live else 0.40
 			button.add_child(art)
 		# Pressing SHRINKS it under the finger -- the cheap half of feeling
 		# mechanical -- and release springs it back.
@@ -971,8 +1009,8 @@ func _tool_bar(view: Vector2) -> void:
 		_play.add_child(button)
 		_tool_buttons[tool_id] = button
 		if tool_id == "basket":
-			_basket_button_at = button.position + Vector2(48, 38)
-		x += 118.0
+			_basket_button_at = button.position + Vector2(46, 34)
+		x += 92.0 + SHELF_GAP
 
 
 func _select_tool(tool_id: String) -> void:
@@ -1145,22 +1183,33 @@ func _barn(view: Vector2) -> void:
 	# how many of each -- lives one tap away behind the barn's own door, which
 	# is where a pile that size belongs. "40" stays here because it is the
 	# number he needs to have seen BEFORE the day he fills it.
-	var at := Vector2(view.x * 0.65, view.y - SHELF * 0.25)
+	# A real card, pinned to the shelf's right edge with the same margin the
+	# rack starts with -- the first cut floated a bare label at 65% of the
+	# width, which read as text that had fallen off something.
+	var box := Vector2(168, SEED_TILE.y)
+	var at := Vector2(view.x - 24.0 - box.x, view.y - SHELF * 0.25 - box.y * 0.5)
+	var card := Panel.new()
+	card.add_theme_stylebox_override("panel",
+		UiKit.panel_style(Color(0.97, 0.93, 0.83), 16))
+	card.position = at
+	card.custom_minimum_size = box
+	card.size = box
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play.add_child(card)
 
-	var label := UiKit.title(I18n.t("garden.barn"), 22)
-	label.position = Vector2(at.x, at.y - 36.0)
-	label.size = Vector2(64, 26)
-	_play.add_child(label)
-
-	var room := UiKit.title("%d/%d" % [Barn.total(), Barn.cap()], 20)
-	room.position = Vector2(at.x + 66.0, at.y - 34.0)
-	room.size = Vector2(96, 24)
-	_play.add_child(room)
-
-	var basket := UiKit.picture("basket", 38.0)
+	var basket := UiKit.picture("basket", 40.0)
 	if basket != null:
-		basket.position = Vector2(at.x + 10.0, at.y - 6.0)
+		basket.position = at + Vector2(14.0, box.y * 0.5 - 20.0)
+		basket.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_play.add_child(basket)
+	var label := UiKit.title(I18n.t("garden.barn"), 17, Color(0.55, 0.51, 0.44))
+	label.position = at + Vector2(66.0, 11.0)
+	label.size = Vector2(90, 20)
+	_play.add_child(label)
+	var room := UiKit.title("%d/%d" % [Barn.total(), Barn.cap()], 24)
+	room.position = at + Vector2(66.0, 32.0)
+	room.size = Vector2(96, 28)
+	_play.add_child(room)
 
 	_spilled_basket(view)
 
@@ -1176,10 +1225,12 @@ func _spilled_basket(view: Vector2) -> void:
 	var spilled := Barn.contents(Barn.BASKET)
 	if spilled.is_empty():
 		return
-	# The far right of the barn's row. On the shelf and not over the farm: the
+	# Just left of the barn's card, on the shelf and not over the farm: the
 	# farm scrolls, and a strawberry that stays put while the ground slides
-	# past is not a strawberry, it is a bug.
-	var at := Vector2(view.x - 292.0, view.y - SHELF * 0.25)
+	# past is not a strawberry, it is a bug. Measured from the card so a
+	# taller pile grows LEFT into the shelf's spare middle, never under it.
+	var at := Vector2(view.x - 24.0 - 168.0 - 24.0
+		- 38.0 - float(spilled.size()) * 66.0, view.y - SHELF * 0.25)
 	var pile := UiKit.picture("basket", 30.0)
 	if pile != null:
 		pile.modulate = Color(1.0, 0.94, 0.78)
@@ -2452,19 +2503,22 @@ func _challenge_door(view: Vector2) -> void:
 			next = level
 			break
 
+	# One chip family on this bar: 56 tall, 12 apart, 26 from the edge. The
+	# first cut gave this card its own height and its own x, and at some
+	# window shapes it leaned on the purse's shoulder.
 	var door := UiKit.card(Color(0.98, 0.94, 0.78))
-	door.custom_minimum_size = Vector2(210, 74)
-	door.position = Vector2(view.x - 430.0, 24)
+	door.custom_minimum_size = Vector2(186, 56)
+	door.position = Vector2(view.x - 26.0 - 150.0 - 12.0 - 186.0, 24)
 	_play.add_child(door)
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	door.add_child(row)
-	var basket: Control = UiKit.picture("basket", 44.0)
+	var basket: Control = UiKit.picture("basket", 38.0)
 	if basket != null:
 		row.add_child(basket)
 	# How many are done, as a number he can compare to eight. No percentage.
-	var count := UiKit.title("%d/%d" % [done, levels.size()], 26)
+	var count := UiKit.title("%d/%d" % [done, levels.size()], 24)
 	row.add_child(count)
 
 	var press := Button.new()

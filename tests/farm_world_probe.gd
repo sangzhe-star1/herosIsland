@@ -40,7 +40,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 623
+const CHECKS_EXPECTED := 671
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -93,6 +93,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _a_tap_is_not_a_drag()
 	await _he_cannot_drag_the_farm_away(view)
 	await _every_zoom_keeps_the_beds_far_enough_apart()
+	await _the_overview_shows_the_whole_farm()
 	await _two_taps_on_the_grass_bring_him_home()
 	await _pressing_a_building_looks_at_it()
 	await _the_furniture_is_not_a_hole_in_the_farm(view)
@@ -465,19 +466,88 @@ func _every_zoom_keeps_the_beds_far_enough_apart() -> void:
 					"at zoom %s, beds %d and %d are %.0fpx apart on the glass"
 						% [str(zoom), a, b, apart])
 
-	# And the buttons walk the whole range, both ways, without falling off.
+	# And the buttons walk the whole range -- overview included -- both ways,
+	# without falling off either end.
+	var all: Array = _camera().all_steps()
 	_world().go_home()
 	var seen: Array = []
 	for _up in range(6):
 		seen.append(_camera().zoom)
 		_world().zoom_by(1)
-	_ok(is_equal_approx(_camera().zoom, float(steps[steps.size() - 1])),
+	_ok(is_equal_approx(_camera().zoom, float(all[all.size() - 1])),
 		"pressing + repeatedly stops at the closest zoom")
 	for _down in range(6):
 		_world().zoom_by(-1)
-	_ok(is_equal_approx(_camera().zoom, float(steps[0])),
+	_ok(is_equal_approx(_camera().zoom, float(all[0])),
 		"pressing - repeatedly stops at the furthest zoom")
 	_ok(not _world().can_zoom(-1), "and says so, so the button can grey out")
+	_world().go_home()
+	await get_tree().process_frame
+
+
+## The last press of minus shows the WHOLE farm -- and out there the rules
+## change shape without changing meaning: beds stay a thumb apart for taps,
+## and picking up a seed steps the camera back to a planting zoom before the
+## drag exists, so the seed-spacing promises are never measured out here.
+func _the_overview_shows_the_whole_farm() -> void:
+	var all: Array = _camera().all_steps()
+	_ok(float(all[0]) < Layout.min_zoom() - 0.004,
+		"there is an overview step below the planting zooms")
+	for _down in range(6):
+		_world().zoom_by(-1)
+	await get_tree().process_frame
+	var world := Layout.world_size()
+	for corner in [Vector2.ZERO, Vector2(world.x, 0), Vector2(0, world.y),
+			world]:
+		_ok(_camera().window.grow(2.0).has_point(
+				_camera().world_to_screen(corner)),
+			"the whole farm fits: corner %s is on the glass" % str(corner))
+	var span: Vector2 = _camera().world_to_screen(world) \
+		- _camera().world_to_screen(Vector2.ZERO)
+	_ok(span.x <= _camera().window.size.x + 2.0
+			and span.y <= _camera().window.size.y + 2.0,
+		"...the drawn farm is no larger than the window it sits in")
+	for a in range(_plots().size()):
+		for b in range(a + 1, _plots().size()):
+			var apart: float = _world().bed_screen_position(a) \
+				.distance_to(_world().bed_screen_position(b))
+			_ok(apart >= Layout.THUMB_APART,
+				"at the overview, beds %d and %d still clear a thumb" % [a, b])
+
+	# Pick a seed up from out here: the farm leans in BEFORE the drag is
+	# anything, so no seed is ever in the air below min_zoom.
+	_set_bed(1, {"state": Farm.TILLED})
+	await _redraw()
+	for _down in range(6):
+		_world().zoom_by(-1)
+	await get_tree().process_frame
+	_ok(_camera().zoom < Layout.min_zoom(),
+		"still at the overview after the redraw walked it back")
+	var tile: Vector2 = _garden.call("_rack_tile_centre", 0)
+	var down := InputEventScreenTouch.new()
+	down.index = 0
+	down.pressed = true
+	down.position = _glass(tile)
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+	var move := InputEventScreenDrag.new()
+	move.index = 0
+	move.position = _glass(tile + Vector2(0, -60))
+	move.relative = _glass(tile + Vector2(0, -60)) - _glass(tile)
+	Input.parse_input_event(move)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(_camera().zoom >= Layout.min_zoom() - 0.001,
+		"a seed leaving the rack steps the farm in to a planting zoom")
+	# Let go over nothing: the seed floats home, nothing is planted.
+	var up := InputEventScreenTouch.new()
+	up.index = 0
+	up.pressed = false
+	up.position = _glass(tile + Vector2(0, -60))
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+	_ok(str((_plots()[1] as Dictionary).get("state", "")) == Farm.TILLED,
+		"...and a drop over nothing planted nothing")
 	_world().go_home()
 	await get_tree().process_frame
 
@@ -553,7 +623,8 @@ func _the_furniture_is_not_a_hole_in_the_farm(view: Vector2) -> void:
 	# that happens is the farm mishearing it. Two quick presses: the bed must
 	# not be touched, and the pair must not read as the go-home double tap.
 	var wc: Vector2 = _camera().window.get_center()
-	var plus := Vector2(view.x - 60.0, 96.0 + 62.0)
+	var plus: Vector2 = ((_garden.get("_panel_buttons"))["zoom_in"] as Button) \
+		.position + Vector2(32, 32)
 	_camera().zoom = float(Layout.zoom_steps().back())
 	_camera().centre = Layout.clamp_centre(
 		Layout.plot_at(2) - (plus - wc) / _camera().zoom,

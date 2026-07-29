@@ -87,6 +87,13 @@ func _ready() -> void:
 			scene.call("_tap_building", "visit_board")
 			await get_tree().process_frame
 
+	# SHOT_ZOOM=out presses minus until it stops: the whole-farm overview.
+	if OS.get_environment("SHOT_ZOOM") == "out" and what != "bear" \
+			and what != "home":
+		for i in range(6):
+			(scene.get("_world") as Node).call("zoom_by", -1)
+		scene.call("_queue_rebuild")
+
 	# Long enough for the dog to have RUN from his kennel to the ripe bed and
 	# sat down beside it -- a farm standing at attention is not this farm.
 	await get_tree().create_timer(3.4).timeout

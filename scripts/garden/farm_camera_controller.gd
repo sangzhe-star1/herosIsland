@@ -42,16 +42,36 @@ var window := Rect2(0, 0, 1280, 456)
 
 var _home_centre := Vector2.ZERO
 var _home_zoom := 1.0
+## The extra step BELOW the data's steps: far enough out that the whole world
+## is on the glass at once. Computed from this window, not written in data --
+## a taller window earns a closer overview. It is deliberately NOT in
+## zoom_steps(): the seed-drag spacing rules key off the smallest PLANTING
+## zoom (Layout.min_zoom()), and the overview is not a planting zoom -- a
+## seed picked up out here steps the camera in first (see the world's
+## ensure_planting_zoom), so no drag is ever measured at this distance.
+var overview := 0.0
 
 
 ## Point it at the beds, as close in as it can get with all of them visible.
 func look_at_the_beds(view: Vector2, top_bar: float, shelf: float,
 		count: int) -> void:
 	window = Layout.window_rect(view, top_bar, shelf)
+	var world := Layout.world_size()
+	overview = minf(window.size.x / maxf(world.x, 1.0),
+		window.size.y / maxf(world.y, 1.0))
 	_home_zoom = Layout.default_zoom(window.size, count)
 	_home_centre = Layout.clamp_centre(Layout.default_centre(count),
 		window.size, _home_zoom)
 	go_home()
+
+
+## Every zoom the buttons can reach: the whole-farm overview first (when the
+## window earns one below the data's own floor), then the data's steps.
+func all_steps() -> Array:
+	var steps := Layout.zoom_steps()
+	if overview > 0.0 and overview < float(steps[0]) - 0.005:
+		return [overview] + steps
+	return steps
 
 
 ## Back to the opening view. The way out of being lost, and the reason a double
@@ -94,7 +114,7 @@ func pan(by: Vector2) -> void:
 ## the child was looking at off to one side, and he has to find it again. The
 ## + and - buttons pass the middle of the window and get the plain behaviour.
 func step_zoom(direction: int, anchor: Vector2) -> bool:
-	var steps := Layout.zoom_steps()
+	var steps := all_steps()
 	var here := 0
 	for i in range(steps.size()):
 		if is_equal_approx(float(steps[i]), zoom):
@@ -111,7 +131,7 @@ func step_zoom(direction: int, anchor: Vector2) -> bool:
 
 
 func can_zoom(direction: int) -> bool:
-	var steps := Layout.zoom_steps()
+	var steps := all_steps()
 	if direction < 0:
 		return zoom > float(steps[0]) + 0.001
 	return zoom < float(steps[steps.size() - 1]) - 0.001

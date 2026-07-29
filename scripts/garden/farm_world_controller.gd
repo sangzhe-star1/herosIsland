@@ -215,6 +215,20 @@ func look_at_world(at: Vector2) -> void:
 	_settle()
 
 
+## In from the overview to the nearest zoom seeds may be planted at. Called
+## the moment a seed leaves the rack: every spacing promise the drag relies
+## on (Layout.world_gap_needed and friends) is written against min_zoom, so
+## a drag is simply never measured further out than that. The child reads it
+## as the farm leaning in to receive the seed.
+func ensure_planting_zoom() -> void:
+	if camera.zoom >= Layout.min_zoom() - 0.001:
+		return
+	camera.zoom = Layout.min_zoom()
+	camera.centre = Layout.clamp_centre(camera.centre, camera.window.size,
+		camera.zoom)
+	_settle()
+
+
 func go_home() -> void:
 	camera.go_home()
 	_settle()
