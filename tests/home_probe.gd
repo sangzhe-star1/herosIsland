@@ -552,8 +552,25 @@ func _the_parent_door_is_not_a_one_tap_door(home: Control) -> void:
 	var button: Button = pill
 	var press: float = minf(0.35, required * 0.4)
 	var at: Vector2 = button.position + button.size * 0.5
+
+	# Before any finger arrives, the corner says the door's NAME and nothing
+	# else. "Hold for three seconds" standing there all day is an instruction
+	# as furniture -- it earned its removal, and this line keeps it removed.
+	var hint: Variant = home.get("_parent_hint")
+	if hint is Label:
+		_ok(str((hint as Label).text) == I18n.t("home.parent"),
+			"at rest the corner should say only '%s', it says '%s'"
+			% [I18n.t("home.parent"), str((hint as Label).text)])
+
 	_touch(at, true)
 	await get_tree().create_timer(press).timeout
+
+	# While the hold runs, the second line is the countdown -- the adult can
+	# see it is working without anything else on the screen moving.
+	if hint is Label:
+		var mid := str((hint as Label).text)
+		_ok(mid.contains("\n") and mid.get_slice("\n", 1).is_valid_int(),
+			"while holding, the corner should count down; it says '%s'" % mid)
 
 	_ok(bool(home.get("_holding")), "pressing the parent door did not start the hold")
 	var fill: Variant = home.get("_parent_fill")
@@ -579,6 +596,17 @@ func _the_parent_door_is_not_a_one_tap_door(home: Control) -> void:
 		_ok((fill as Control).size.x <= 0.5,
 			"the parent door stayed part-filled after the finger left, so the "
 			+ "next press starts from wherever the last one stopped")
+
+	# A tap too short to open the door is the one moment an adult wonders why
+	# nothing happened -- the answer flashes up right then, and only then.
+	if hint is Label:
+		_ok(str((hint as Label).text).contains(I18n.t("parent.hold_hint")),
+			"after a too-short press the corner should explain the hold; "
+			+ "it says '%s'" % str((hint as Label).text))
+		await get_tree().create_timer(2.5).timeout
+		_ok(str((hint as Label).text) == I18n.t("home.parent"),
+			"the explanation should fall quiet again; it stuck at '%s'"
+			% str((hint as Label).text))
 
 
 # --- 10. reduce-motion means calm ---------------------------------------

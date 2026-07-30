@@ -71,6 +71,9 @@ const TYPE_HINT := UiKit.TYPE_CAPTION
 
 var _hold_time := 0.0
 var _holding := false
+## Rises once per too-short tap; the flash timer only clears the hint it
+## itself put up. See _cancel_hold.
+var _hint_flash := 0
 
 var _stage: Stage
 var _greeting: Label
@@ -730,8 +733,13 @@ func _build_parent_door() -> void:
 	# -- and the gear is the half of this an adult recognises from across the
 	# room. Aimed at the adult, but over painted daylight a soft ink vanishes,
 	# so it is white with a shadow like every other word on the artwork.
-	_parent_hint = UiKit.title_on_art(
-		"%s\n%s" % [I18n.t("home.parent"), I18n.t("parent.hold_hint")], TYPE_HINT)
+	#
+	# Only the NAME stands here all day. The "hold for three seconds" line is
+	# an instruction, and an instruction on permanent display is furniture --
+	# it appears at the two moments it answers a question: while the hold is
+	# running (as the countdown) and for a breath after a tap too short to
+	# open the door (the one moment an adult wonders why nothing happened).
+	_parent_hint = UiKit.title_on_art(I18n.t("home.parent"), TYPE_HINT)
 	_parent_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_parent_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_parent_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -761,7 +769,21 @@ func _process(delta: float) -> void:
 
 
 func _cancel_hold() -> void:
+	# Let go too early? Say how the door opens, for a breath, then fall
+	# quiet again. Guarded by a token so a second attempt's message is never
+	# wiped by the first attempt's timer going off late.
+	var early := _holding and _hold_time >= 0.15 \
+		and _hold_time < PARENT_HOLD_SECONDS
 	_reset_hold()
+	if early and is_instance_valid(_parent_hint):
+		_hint_flash += 1
+		var token := _hint_flash
+		_parent_hint.text = "%s\n%s" % [I18n.t("home.parent"),
+			I18n.t("parent.hold_hint")]
+		get_tree().create_timer(2.2).timeout.connect(func():
+			if _hint_flash == token and not _holding \
+					and is_instance_valid(_parent_hint):
+				_parent_hint.text = I18n.t("home.parent"))
 
 
 func _reset_hold() -> void:
@@ -770,7 +792,7 @@ func _reset_hold() -> void:
 	if is_instance_valid(_parent_fill):
 		_parent_fill.size.x = 0.0
 	if is_instance_valid(_parent_hint):
-		_parent_hint.text = "%s\n%s" % [I18n.t("home.parent"), I18n.t("parent.hold_hint")]
+		_parent_hint.text = I18n.t("home.parent")
 
 
 # --- the treasure chip --------------------------------------------------
