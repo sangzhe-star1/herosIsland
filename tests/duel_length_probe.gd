@@ -91,9 +91,22 @@ func _fight(level_id: String) -> Array[String]:
 	# lands -- and a probe that does not shield or swat runs out of light in
 	# twenty seconds and stops the duel with the heart-potion card, measuring
 	# nothing. Real play is slower than this number, never faster.
+	# Counted off the DUEL's own clock, not off this loop's iterations.
+	#
+	# It used to be `seconds += 0.1` once per `await create_timer(0.1)`, which
+	# is the same number only while several frames fit inside each wait. Under
+	# software rendering on a loaded machine they do not: one frame at
+	# time_scale 20 is a third of a scaled second, so the duel's cooldowns
+	# advanced three times faster than this counter did and every duel got
+	# reported at a fraction of its real length. The suite went from green to
+	# "six bosses fold in five seconds" with no game code changing at all --
+	# a probe whose verdict moves with the frame rate is not measuring the game.
+	#
+	# `_clock` is the variable the cooldowns are actually compared against, so
+	# reading it measures the thing instead of a proxy for it.
 	var seconds := 0.0
 	var hits := 0
-	var step := 0.1
+	var step := 0.05
 	while not bool(game.get("_finished")) and seconds < 240.0:
 		game.set("_light_left", 5)
 		if get_tree().paused:
@@ -101,7 +114,10 @@ func _fight(level_id: String) -> Array[String]:
 		if bool(game.call("fire_beam_skill")):
 			hits += 1
 		await get_tree().create_timer(step).timeout
-		seconds += step
+		if is_instance_valid(game):
+			seconds = float(game.get("_clock"))
+		else:
+			seconds += step
 		if not is_instance_valid(game):
 			break
 

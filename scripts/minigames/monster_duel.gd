@@ -114,6 +114,35 @@ var _light_left := LIGHT_PIPS
 var _threats: Array = []          # goo and roar nodes in flight
 var _taught_swat := false         # the "tap the goo" line, shown once
 
+## --- holding the beam ---
+var _charging := false
+var _charge_started := 0.0
+var _charge_ring: Line2D
+## Charged enough to interrupt. Not 1.0: a finger lifts a frame early, and a
+## child must never lose the whole thing to that.
+const CHARGED_AT := 0.8
+
+## --- the wind-up ---
+##
+## The monster used to attack out of nowhere. The roar in particular could not
+## be answered at all -- it is drawn with mouse_filter IGNORE, and the shield
+## it needs rests 4.5 to 5.5 seconds while lasting 2.8, so across the last three
+## duels roughly half the time there was nothing in the child's hands that
+## could do anything about it.
+##
+## Now every attack is announced. The monster swells (puff_up, which was
+## written for exactly this and never called for it), a warning ring rises, and
+## for TELEGRAPH seconds there are three answers, none of which needs reading:
+##
+##   挡  press the shield -- it bounces back and scores, as it always did
+##   躲  press the dodge mark that appears on the ground -- the hero rolls
+##   打断 let go of a full charge -- the attack never happens
+const TELEGRAPH := 0.9
+var _telegraph_left := 0.0
+var _telegraph_kind := ""
+var _dodge_mark: Button
+var _dodged := false
+
 
 func setup_level() -> void:
 	# Three doors, like every other template on the island, so the result
@@ -463,6 +492,51 @@ func _set_skill_cooldown(key: String, fraction: float) -> void:
 	pie.polygon = points
 
 
+## The charge, drawn as an arc closing around the beam button.
+##
+## A separate ring rather than the cooldown wedge, because they mean opposite
+## things and sharing one shape would make "filling up" and "running out" look
+## identical. It grows clockwise from the top and turns white at CHARGED_AT --
+## the colour change is the "now it will interrupt" signal, and it is a
+## SECOND channel on top of the size, so it survives being colour-blind.
+func _tick_charge() -> void:
+	if not _charging:
+		return
+	var skill: Dictionary = _skills.get("beam", {})
+	if skill.is_empty() or not is_instance_valid(skill["button"] as Control):
+		return
+	var button: Control = skill["button"]
+	var k: float = charge_fraction()
+	if _charge_ring == null or not is_instance_valid(_charge_ring):
+		_charge_ring = Line2D.new()
+		_charge_ring.width = 11.0
+		_charge_ring.antialiased = true
+		_charge_ring.z_index = 4
+		_charge_ring.position = button.position + button.size / 2.0
+		_play_area.add_child(_charge_ring)
+	var radius: float = float(skill["radius"]) + 12.0
+	var points := PackedVector2Array()
+	var steps: int = maxi(int(30.0 * k), 2)
+	for i in range(steps + 1):
+		var a: float = -PI * 0.5 + TAU * k * float(i) / float(steps)
+		points.append(Vector2(cos(a), sin(a)) * radius)
+	_charge_ring.points = points
+	_charge_ring.default_color = Color(1.0, 0.99, 0.92) if k >= CHARGED_AT \
+		else Color(1.0, 0.86, 0.40)
+	# The hero says it too, on his own body, for the child who is looking at
+	# the fight rather than at his thumb.
+	if k >= CHARGED_AT and _hero != null and is_instance_valid(_hero):
+		_hero.set_core_color(Color(1.0, 0.99, 0.92))
+
+
+func _clear_charge_ring() -> void:
+	if _charge_ring != null and is_instance_valid(_charge_ring):
+		_charge_ring.queue_free()
+	_charge_ring = null
+	if _hero != null and is_instance_valid(_hero) and _hero.skin != null:
+		_hero.set_core_color(_hero.skin.core_color)
+
+
 ## Ready or not, said in brightness rather than only in a wedge -- brightness
 ## is the part a six-year-old reads from across the table.
 func _set_skill_ready(key: String, ready: bool) -> void:
@@ -511,6 +585,15 @@ func _flash_ring(key: String) -> void:
 
 ## A refused tap. Small, quiet and immediate: the button rocks and dims for a
 ## beat. Never a buzz or a red flash -- the rule everywhere else in the game.
+##
+## Two things were wrong with the old version. `Juice.nudge` returns without
+## doing anything when "reduce motion" is on, so on that setting a refused
+## press was a sound and nothing else -- and the sound is the part a child in a
+## noisy room does not get either. And 7 px is below what anyone sees; the
+## helper's own default is 14.
+##
+## So: the button dims for a beat whether or not motion is allowed, and the
+## hero's chest light answers too. Something on screen changes, always.
 func _refuse(key: String) -> void:
 	var skill: Dictionary = _skills.get(key, {})
 	if skill.is_empty():
@@ -518,7 +601,15 @@ func _refuse(key: String) -> void:
 	var button: Control = skill["button"]
 	if not is_instance_valid(button):
 		return
-	Juice.nudge(button, 7.0)
+	Juice.nudge(button, 14.0)
+	if _hero != null and is_instance_valid(_hero):
+		_hero.pulse_core(1)
+	var was: Color = button.modulate
+	button.modulate = Color(0.55, 0.58, 0.66, 0.9)
+	var back := get_tree().create_timer(0.16)
+	back.timeout.connect(func():
+		if is_instance_valid(button):
+			button.modulate = was)
 	AudioManager.play_sfx("res://assets/audio/try_again.ogg")
 
 
@@ -675,16 +766,28 @@ func _process(delta: float) -> void:
 
 	if not _started or _won:
 		return
+	_tick_charge()
+
+	# The wind-up runs its own clock. Nothing else is scheduled while it does:
+	# two attacks announced at once is two warnings a six-year-old has to tell
+	# apart, and he will answer neither.
+	if _telegraph_left > 0.0:
+		_telegraph_left -= delta
+		if _telegraph_left <= 0.0:
+			_fire_telegraphed()
+		return
+
 	if _goo_interval > 0.0:
 		_goo_timer -= delta
 		if _goo_timer <= 0.0:
 			_goo_timer = _goo_interval * randf_range(0.85, 1.3)
-			_monster_attack_goo()
+			_begin_telegraph("goo")
+			return
 	if _roar_interval > 0.0:
 		_roar_timer -= delta
 		if _roar_timer <= 0.0:
 			_roar_timer = _roar_interval * randf_range(0.9, 1.3)
-			_monster_attack_roar()
+			_begin_telegraph("roar")
 
 
 # --- skills -------------------------------------------------------------
@@ -693,9 +796,80 @@ func _tap(event: InputEvent) -> bool:
 	return UiKit.is_press(event)
 
 
+## Hold to charge, let go to fire.
+##
+## 把等待变成动作. The beam used to be tap-then-wait: one press, then 1.3 to 1.7
+## seconds of watching a grey wedge sweep. Over the last duel that is roughly
+## forty-four presses of one button with dead air between every pair of them,
+## and the dead air is most of the level.
+##
+## Now the wait IS the press. Holding builds a charge; letting go fires. The
+## DAMAGE is identical either way -- deliberately, because a child who taps
+## must never end up behind -- and what charging buys is reach: a full charge
+## cancels whatever the monster is winding up, brings down the goo already in
+## the air, and fills the special-move ring twice as fast.
+##
+## The cost is paid the same either way too: firing sets the remaining cooldown
+## to `beam_cooldown - held`, so a tap waits exactly as long as it always did
+## and a full hold has already served its sentence. That equality is what keeps
+## duel_length_probe honest -- fire_beam_skill(), the tap path and the thing
+## that probe presses, is the same fight it was measuring before.
 func _on_beam_input(event: InputEvent) -> void:
-	if _tap(event):
-		fire_beam_skill()
+	if UiKit.is_press(event):
+		_begin_charge()
+	elif UiKit.is_release(event):
+		_release_charge()
+
+
+func _begin_charge() -> void:
+	if not _started or _won or _charging:
+		return
+	_charging = true
+	_charge_started = _clock
+	AudioManager.play_sfx("res://assets/audio/charge.ogg")
+	_hero.set_pose(HeroArt.Pose.BEAM)
+	_hero.pulse_core(1)
+
+
+## How far along the charge is, 0 to 1. Full takes exactly one cooldown, so the
+## charge ring and the button's own wedge always tell the same story.
+func charge_fraction() -> float:
+	if not _charging:
+		return 0.0
+	return clampf((_clock - _charge_started) / maxf(_beam_cooldown, 0.05), 0.0, 1.0)
+
+
+func _release_charge() -> void:
+	if not _charging:
+		return
+	var held: float = _clock - _charge_started
+	var full: bool = charge_fraction() >= CHARGED_AT
+	_charging = false
+	_clear_charge_ring()
+	if _hero != null and is_instance_valid(_hero):
+		_hero.set_pose(HeroArt.Pose.IDLE)
+	if not fire_beam_skill(full):
+		return
+	# The hold counts AGAINST the cooldown rather than adding to it.
+	_beam_ready_at = _clock + maxf(_beam_cooldown - held, 0.2)
+
+
+## Everything a full charge reaches that a tap does not. No extra damage here
+## on purpose -- see the note on _on_beam_input.
+func _charged_extras(target: Vector2) -> void:
+	Juice.shockwave(_play_area, target, 190.0, Color(1.0, 0.94, 0.72))
+	AudioManager.play_sfx("res://assets/audio/ultimate.ogg")
+	# Whatever it was winding up, it is not doing it now.
+	if _telegraph_left > 0.0:
+		_cancel_telegraph()
+		_monster.call("flinch")
+	# And anything already in the air comes down with it.
+	for threat in _threats.duplicate():
+		if threat is Button and is_instance_valid(threat):
+			_swat_goo(threat)
+	# The special move fills twice as fast for a charged hit. A reward for
+	# holding, never a requirement.
+	_ult_charge = mini(_ult_charge + 1, _ult_needed)
 
 
 func _on_shield_input(event: InputEvent) -> void:
@@ -708,7 +882,7 @@ func _on_ult_input(event: InputEvent) -> void:
 		fire_ult()
 
 
-func fire_beam_skill() -> bool:
+func fire_beam_skill(charged: bool = false) -> bool:
 	if not _started or _won:
 		return false
 	if _clock < _beam_ready_at:
@@ -722,11 +896,13 @@ func fire_beam_skill() -> bool:
 	_hero.power_up()
 	_flash_ring("beam")
 	var target: Vector2 = _monster.position + Vector2(randf_range(-40, 40), -190.0 * _monster.scale.x + randf_range(-40, 40))
-	_draw_beam(_hero.core_position(), target)
+	_draw_beam(_hero.core_position(), target, 2.0 if charged else 1.0)
 	_impact(target)
 	_land_hit(1)
 	AudioManager.play_sfx("res://assets/audio/beam.ogg")
 	Juice.pop(_beam_button, 0.16)
+	if charged:
+		_charged_extras(target)
 	return true
 
 
@@ -858,6 +1034,94 @@ func _land_hit(amount: int, charges: bool = true) -> void:
 
 # --- the monster fights back --------------------------------------------
 
+# --- the wind-up --------------------------------------------------------
+
+## Announce it, then do it. See the note on TELEGRAPH.
+func _begin_telegraph(kind: String) -> void:
+	if _telegraph_left > 0.0 or _won or _finished:
+		return
+	_telegraph_kind = kind
+	_telegraph_left = TELEGRAPH
+	_dodged = false
+	_monster.call("puff_up")
+	AudioManager.play_sfx("res://assets/audio/warn.ogg")
+	_show_dodge_mark()
+
+
+func _cancel_telegraph() -> void:
+	_telegraph_left = 0.0
+	_telegraph_kind = ""
+	_clear_dodge_mark()
+
+
+func _fire_telegraphed() -> void:
+	var kind := _telegraph_kind
+	_telegraph_left = 0.0
+	_telegraph_kind = ""
+	_clear_dodge_mark()
+	if _won or _finished:
+		return
+	# Dodged: it happens, it just misses. The monster still gets its moment --
+	# an attack that is deleted rather than evaded reads as a bug.
+	if _dodged:
+		AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
+		return
+	if kind == "goo":
+		_monster_attack_goo()
+	elif kind == "roar":
+		_monster_attack_roar()
+
+
+## Where to jump to, drawn on the ground where his thumb already is.
+##
+## A mark rather than "anywhere on the floor": a whole tappable half-screen
+## competes with the beam button he may be holding at that exact moment, and a
+## six-year-old told to "move" moves nowhere. One circle, breathing, 120 px.
+func _show_dodge_mark() -> void:
+	_clear_dodge_mark()
+	var size := Vector2(120, 120)
+	var mark := Button.new()
+	mark.custom_minimum_size = size
+	mark.size = size
+	mark.pivot_offset = size / 2.0
+	mark.focus_mode = Control.FOCUS_NONE
+	mark.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.55, 0.86, 1.0, 0.34)
+	style.border_color = Color(0.82, 0.96, 1.0, 0.95)
+	style.set_border_width_all(6)
+	style.set_corner_radius_all(int(size.x / 2.0))
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		mark.add_theme_stylebox_override(state, style)
+	# Behind the hero and to his left -- away from the monster, which is the
+	# direction "get out of the way" means without anyone saying it.
+	mark.position = _hero_pos + Vector2(-150.0, -70.0) - size / 2.0
+	mark.pressed.connect(_dodge)
+	_play_area.add_child(mark)
+	_dodge_mark = mark
+	UiKit.breathe(mark, 0.06, 0.5)
+
+
+func _clear_dodge_mark() -> void:
+	if _dodge_mark != null and is_instance_valid(_dodge_mark):
+		_dodge_mark.queue_free()
+	_dodge_mark = null
+
+
+func _dodge() -> void:
+	if _dodged or _telegraph_left <= 0.0:
+		return
+	_dodged = true
+	_clear_dodge_mark()
+	_hero.roll(150.0, 0.45)
+	Juice.dust(_play_area, _hero_pos, 8)
+	Juice.speed_lines(_play_area, _hero_pos + Vector2(0, -90),
+		Vector2.LEFT, Color(1, 1, 1, 0.55), 3)
+	AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
+
+
+# --- the attacks themselves ---------------------------------------------
+
 func _monster_attack_goo() -> void:
 	_monster.call("puff_up")
 	if not _taught_swat:
@@ -979,15 +1243,20 @@ func _threat_arrives(threat: Control) -> void:
 
 # --- shared effects -----------------------------------------------------
 
-func _draw_beam(from: Vector2, to: Vector2) -> void:
+## `fat` is how much of a charge went into it: 1.0 for a tap, 2.0 for a full
+## hold. The beam is the only place the difference is visible mid-flight, and
+## it has to be visible -- holding a button for a second and getting back the
+## same thin line teaches that holding does nothing.
+func _draw_beam(from: Vector2, to: Vector2, fat: float = 1.0) -> void:
 	var span := to - from
 	if ResourceLoader.exists(BEAM_ART):
 		var beam := Sprite2D.new()
 		beam.texture = load(BEAM_ART)
 		beam.position = from + span / 2.0
 		beam.rotation = span.angle()
-		beam.scale = Vector2(span.length() / 1024.0, 0.34)
-		beam.modulate = Color(1.0, 0.88, 0.45)
+		beam.scale = Vector2(span.length() / 1024.0, 0.34 * fat)
+		beam.modulate = Color(1.0, 0.88, 0.45) if fat <= 1.0 \
+			else Color(1.0, 0.96, 0.72)
 		_play_area.add_child(beam)
 		var t := create_tween()
 		t.tween_property(beam, "modulate:a", 0.0, 0.22 if Juice.motion_enabled() else 0.05)
