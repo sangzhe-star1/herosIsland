@@ -82,6 +82,8 @@ const NAMES := [
 	# The seed shop's two newcomers, and the plank a thankful friend leaves
 	# behind -- three of which buy the barn its bigger roof.
 	"potato", "lettuce", "plank",
+	# 加工小屋：做好的一份菜。所有菜品共用一张脸，名字由食谱给。
+	"dish",
 ]
 
 
@@ -113,6 +115,15 @@ static func _rect(parent: Control, at: Vector2, box: Vector2, color: Color,
 static func _round_rect(parent: Control, at: Vector2, box: Vector2, color: Color,
 		radius: float = -1.0) -> void:
 	Shapes.fill(parent, Shapes.rounded_rect(at - box / 2.0, box, radius), color, 1.0)
+
+
+static func _ellipse(parent: Control, centre: Vector2, radii: Vector2,
+		color: Color) -> void:
+	var pts := PackedVector2Array()
+	for i in range(24):
+		var a := TAU * float(i) / 24.0
+		pts.append(centre + Vector2(cos(a) * radii.x, sin(a) * radii.y))
+	_poly(parent, pts, color)
 
 
 static func _poly(parent: Control, points: PackedVector2Array, color: Color) -> void:
@@ -604,6 +615,25 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 			for wy2 in range(2):
 				_round_rect(p, c + Vector2(-s * 0.045, -s * 0.04 + float(wy2) * s * 0.16),
 					Vector2(s * 0.09, s * 0.10), Color(0.94, 0.86, 0.58), s * 0.02)
+		"dish":
+			# A warm plate with food and two curls of steam: "a cooked thing",
+			# whichever recipe it was. One face for every dish on purpose --
+			# the name beside it says which -- so sixteen recipes never ask
+			# for sixteen drawings.
+			_ellipse(p, c + Vector2(0, s * 0.18), Vector2(s * 0.42, s * 0.16),
+				Color(0.93, 0.95, 0.98))
+			_ellipse(p, c + Vector2(0, s * 0.15), Vector2(s * 0.33, s * 0.11),
+				Color(0.99, 0.86, 0.54))
+			_circle(p, c + Vector2(-s * 0.10, s * 0.11), s * 0.07,
+				Color(0.88, 0.42, 0.32))
+			_circle(p, c + Vector2(0.09 * s, s * 0.10), s * 0.06,
+				Color(0.52, 0.74, 0.40))
+			for steam_i in range(2):
+				var sx := c.x + (-0.09 + 0.18 * float(steam_i)) * s
+				_round_rect(p, Vector2(sx - s * 0.025, c.y - s * 0.34
+					+ float(steam_i) * s * 0.05),
+					Vector2(s * 0.05, s * 0.26), Color(0.80, 0.86, 0.94, 0.85),
+					s * 0.025)
 		"potion":
 			# The heart potion: a round flask with a heart glowing in it.
 			var glass := Color(0.72, 0.86, 0.96)

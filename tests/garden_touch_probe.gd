@@ -31,7 +31,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 184
+const CHECKS_EXPECTED := 216
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -92,6 +92,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _there_is_a_way_out()
 	await _the_decorating_door_and_its_furniture()
 	await _the_bear_teaches_once_and_it_sticks()
+	await _the_kitchen_asks_before_ingredients_leave()
 
 	_close()
 
@@ -458,6 +459,122 @@ func _the_decorating_door_and_its_furniture() -> void:
 	_garden.call("_draw_decorations")
 	_ok(SaveManager.get_creation("base") == base_before,
 		"touching the garden's decorations moved the hero base's shelf")
+
+
+## 三期阶段 1：加工小屋。先问再扣是这面板的脾气——按「做一份」只竖起
+## 确认条，食材要等那个绿勾才离开，和仓库升级同一个规矩。这里全程用
+## 屏幕上的东西驱动：小屋是走过去按的（路由是新东西，直接拨 flag 就
+## 测不到它），面板上的片子从 _panel_buttons 的把手上按。
+func _the_kitchen_asks_before_ingredients_leave() -> void:
+	var Recipes := preload("res://scripts/garden/recipe_manager.gd")
+	# 5 级农场，会做甜汤，仓库里正好一锅的量，架上还有一份昨天做的。
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["farm_xp"] = 200
+	farm["unlocked_recipes"] = ["strawberry_soup"]
+	farm["warehouse"] = {"strawberry": 3}
+	SaveManager.data["inventory"] = {"dish_strawberry_soup": 1}
+	SaveManager.save_game()
+	_garden.call("_close_panels")
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+	# 走到小屋跟前，像拇指一样按下去。
+	var world = _garden.get("_world")
+	var at: Vector2 = world.facility_screen_position("workshop")
+	if not world.camera.inside(at):
+		world.look_at_facility("workshop")
+		await get_tree().process_frame
+		at = world.facility_screen_position("workshop")
+	await _tap(at)
+	_ok(bool(_garden.get("_kitchen_open")),
+		"at level 5 pressing the workshop opens the kitchen")
+
+	var buttons: Dictionary = _garden.get("_panel_buttons")
+	var cook: Variant = buttons.get("cook_strawberry_soup")
+	_ok(cook is Button, "the kitchen shows a cook chip for the soup he knows")
+	if cook is Button:
+		_ok((cook as Button).pressed.get_connections().size() > 0,
+			"and the chip is wired to something")
+		(cook as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+		# 按了「做一份」，什么都还不许离开——先问，是这面板的脾气。
+		_ok(Barn.count("strawberry") == 3,
+			"pressing cook must take nothing yet -- ingredients leave only "
+			+ "after the confirm")
+		_ok(str(_garden.get("_confirm_cook")) == "strawberry_soup",
+			"the confirm strip is up instead")
+
+	# 说不：条子收起来，锅是冷的，架上还是那一份。
+	buttons = _garden.get("_panel_buttons")
+	var no: Variant = buttons.get("cancel_cook")
+	_ok(no is Button, "the strip has a way to say no")
+	if no is Button:
+		(no as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+		_ok(str(_garden.get("_confirm_cook")) == "", "saying no puts the strip away")
+		_ok(Barn.count("strawberry") == 3
+				and Recipes.dish_count("strawberry_soup") == 1,
+			"and the no took nothing and cooked nothing")
+
+	# 再来一次，这次点绿勾：三颗草莓恰好离开，架上多恰好一份。
+	buttons = _garden.get("_panel_buttons")
+	var cook_again: Variant = buttons.get("cook_strawberry_soup")
+	if cook_again is Button:
+		(cook_again as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+	buttons = _garden.get("_panel_buttons")
+	var yes: Variant = buttons.get("confirm_cook")
+	_ok(yes is Button, "the strip has its green yes")
+	if yes is Button:
+		(yes as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+		_ok(Barn.count("strawberry") == 0,
+			"the confirmed cook takes exactly the recipe's ingredients")
+		_ok(Recipes.dish_count("strawberry_soup") == 2,
+			"and exactly one more dish is on the shelf")
+
+	# 送给小熊：一份出门，友谊多一颗星，谢饭条目登上访客板。
+	var stars := int((SaveManager.data["farm"].get("npc_friendship", {})
+		as Dictionary).get("bear", 0))
+	buttons = _garden.get("_panel_buttons")
+	var give: Variant = buttons.get("give_strawberry_soup")
+	_ok(give is Button, "a dish on the shelf shows the give chip")
+	if give is Button:
+		(give as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+		_ok(Recipes.dish_count("strawberry_soup") == 1,
+			"giving hands over exactly one dish")
+		_ok(int((SaveManager.data["farm"]["npc_friendship"] as Dictionary)
+				.get("bear", 0)) == stars + 1,
+			"and the friendship grows by exactly one star")
+		var log: Array = SaveManager.data["farm"].get("visit_log", [])
+		_ok(not log.is_empty()
+				and str((log[0] as Dictionary).get("kind", "")) == "thanks",
+			"and the thank-you is the newest thing on the visit board")
+
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+	# 4 级农场再按同一块地：不开门，也没有锁——只有还没长到。
+	farm = SaveManager.data["farm"]
+	farm["farm_xp"] = 120
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	at = world.facility_screen_position("workshop")
+	if not world.camera.inside(at):
+		world.look_at_facility("workshop")
+		await get_tree().process_frame
+		at = world.facility_screen_position("workshop")
+	await _tap(at)
+	_ok(not bool(_garden.get("_kitchen_open")),
+		"below level 5 the workshop stays quiet ground -- no kitchen and no lock")
+	_garden.call("_close_panels")
+	await get_tree().process_frame
 
 
 func _find_named(node: Node, wanted: String) -> Node:

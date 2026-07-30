@@ -754,7 +754,12 @@
         "recipe.harvest_platter": "Harvest Platter",
         "garden.visit_friend_3": "A third visit! The bear leaves a plank as thanks.",
         "garden.visit_friend_6": "The bear thinks of your garden often -- this time he brought star coins.",
-        "garden.visit_friend_10": "Ten visits! An old friend hauls in two planks for the barn."
+        "garden.visit_friend_10": "Ten visits! An old friend hauls in two planks for the barn.",
+        "garden.kitchen_title": "The Workshop Kitchen",
+        "garden.cook_one": "Cook one",
+        "garden.give_bear": "Give to the bear",
+        "garden.dish_thanks": "The bear ate every last bite -- his eyes lit right up!",
+        "garden.kitchen_empty": "Collect a recipe first -- the bear's recipe book is waiting in the barn."
     },
     "zh": {
         "adventure.again": "再来一次，你可以的！",
@@ -1511,6 +1516,11 @@
         "recipe.harvest_platter": "丰收大拼盘",
         "garden.visit_friend_3": "第三次来做客！小熊留下一块木板当谢礼。",
         "garden.visit_friend_6": "小熊常想着你的菜园，这次带来了星星币。",
-        "garden.visit_friend_10": "第十次啦！老朋友搬来两块木板帮你扩仓库。"
+        "garden.visit_friend_10": "第十次啦！老朋友搬来两块木板帮你扩仓库。",
+        "garden.kitchen_title": "加工小屋",
+        "garden.cook_one": "做一份",
+        "garden.give_bear": "送给小熊",
+        "garden.dish_thanks": "小熊把菜吃得干干净净，眼睛都亮了！",
+        "garden.kitchen_empty": "先去凑齐一道菜谱，小熊的菜谱本在仓库里等你。"
     }
 }

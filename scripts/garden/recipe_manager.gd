@@ -61,3 +61,70 @@ static func check_barn() -> Array:
 		farm["unlocked_recipes"] = owned
 		SaveManager.save_game()
 	return fresh
+
+
+# --- 三期：会做的菜可以下锅，做好的菜送给朋友 -----------------------------
+#
+# A dish is inventory item "dish_<recipe_id>" -- no new save structure, the
+# same {id: count} shelf the seeds live on, no cap. Cooking SPENDS the barn's
+# ingredients (through Barn.take, the one door things leave by) and giving
+# spends the dish; both are asked-first in the kitchen panel, refused-with-a-
+# headshake when short, and neither touches money.
+
+
+static func dish_id(recipe_id: String) -> String:
+	return "dish_%s" % recipe_id
+
+
+static func dish_count(recipe_id: String) -> int:
+	return Barn.count(dish_id(recipe_id), "inventory")
+
+
+## May this recipe go on the stove right now? Knowledge AND ingredients.
+static func can_cook(recipe: Dictionary) -> bool:
+	return is_unlocked(str(recipe.get("id", ""))) and barn_has_all(recipe)
+
+
+## One dish: the ingredients leave the warehouse, one dish arrives.
+##
+## All-or-nothing. The needs are checked as a whole before anything is taken,
+## so a half-cooked failure -- two strawberries gone, no soup -- cannot exist.
+## Returns false (and changes nothing) when knowledge or ingredients are
+## short, however it was called.
+static func cook(recipe_id: String) -> bool:
+	var recipe: Dictionary = {}
+	for row in all():
+		if str(row.get("id", "")) == recipe_id:
+			recipe = row
+	if recipe.is_empty() or not can_cook(recipe):
+		return false
+	for need in recipe.get("needs", []):
+		Barn.take(str(need.get("crop_id", "")), int(need.get("count", 1)))
+	Barn.put(dish_id(recipe_id), 1, "inventory")
+	SaveManager.save_game()
+	return true
+
+
+## Give one cooked dish to the bear: the dish leaves, the friendship grows by
+## one star, and the visit board gets an amber thank-you entry. kind="thanks"
+## keeps it clear of the visit templates -- the milestone rendering path
+## carries its one warm line.
+static func give_to_bear(recipe_id: String) -> bool:
+	if not Barn.take(dish_id(recipe_id), 1, "inventory"):
+		return false
+	var farm: Dictionary = SaveManager.data["farm"]
+	var friends: Dictionary = farm.get("npc_friendship", {})
+	friends["bear"] = int(friends.get("bear", 0)) + 1
+	farm["npc_friendship"] = friends
+	var name_key := ""
+	for row in all():
+		if str(row.get("id", "")) == recipe_id:
+			name_key = str(row.get("name_key", ""))
+	Farm.remember_visit(farm, {
+		"who": "bear", "kind": "thanks", "at": GameClock.now_unix(),
+		"dish_name_key": name_key,
+		"milestone_key": "garden.dish_thanks",
+		"milestone_icon": "dish",
+	})
+	SaveManager.save_game()
+	return true

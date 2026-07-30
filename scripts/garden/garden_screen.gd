@@ -122,6 +122,8 @@ var _barn_open := false
 ## Whether the visitor board is open: who has dropped by and what they left.
 var _visit_open := false
 var _recipes_open := false
+var _kitchen_open := false
+var _confirm_cook := ""
 ## Which crop's confirm card is up in the shop ("" for none).
 var _confirm_crop := ""
 ## Whether the barn's upgrade confirm card is up.
@@ -293,6 +295,8 @@ func _rebuild() -> void:
 		_visit_panel(view)
 	elif _recipes_open:
 		_recipes_panel(view)
+	elif _kitchen_open:
+		_kitchen_panel(view)
 	_expand_card(view)
 	_undo_toast(view)
 	# The barn is drawn AFTER the rack, because the rack lays down the shelf
@@ -525,6 +529,21 @@ func _tap_building(id: String) -> void:
 			_open_panel("visits")
 		"well":
 			AudioManager.play_sfx("res://assets/audio/water.ogg")
+		"workshop":
+			# 5 级前它画成圈好的地，点了轻响就够——没有锁，只有还没长到。
+			if Level.level() >= int(Layout.facility("workshop").get("level", 5)):
+				_open_panel("kitchen")
+			else:
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		"decor":
+			# 世界里的装饰区和货架上的贴纸书门是同一扇门，读同一条数据。
+			var deco_room := str(level_data.get("config", {}).get("deco_room", ""))
+			if Level.level() >= int(Layout.facility("decor").get("level", 4)) \
+					and deco_room != "" and not GameData.get_level(deco_room).is_empty():
+				AudioManager.play_sfx("res://assets/audio/door.ogg")
+				GameManager.start_level(deco_room)
+			else:
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		_:
 			AudioManager.play_sfx("res://assets/audio/pop.ogg")
 
@@ -539,7 +558,9 @@ func _open_panel(which: String) -> void:
 	_barn_open = which == "barn"
 	_visit_open = which == "visits"
 	_recipes_open = which == "recipes"
+	_kitchen_open = which == "kitchen"
 	_confirm_crop = ""
+	_confirm_cook = ""
 	_confirm_expand = -1
 	_confirm_upgrade = false
 	if which != "market":
@@ -555,6 +576,8 @@ func _close_panels() -> void:
 	_barn_open = false
 	_visit_open = false
 	_recipes_open = false
+	_kitchen_open = false
+	_confirm_cook = ""
 	_confirm_crop = ""
 	_confirm_expand = -1
 	_confirm_upgrade = false
@@ -2259,7 +2282,9 @@ func _recipe_learned_card(recipe: Dictionary) -> void:
 func _recipes_panel(view: Vector2) -> void:
 	var wide := 640.0
 	var origin := _panel_sheet(view, "garden.recipes_title", wide, 470.0)
-	var y := origin.y + 70.0
+	# 62 起步、62 一步：和加工小屋同一把尺子——第六行的底边要停在
+	# 16:9 货架的上沿（552）之上，70 的步子会让它钻进货架底下。
+	var y := origin.y + 62.0
 	for recipe in Recipes.all():
 		var known: bool = Recipes.is_unlocked(str(recipe.get("id", "")))
 		var row := Panel.new()
@@ -2290,7 +2315,178 @@ func _recipes_panel(view: Vector2) -> void:
 		dish.size = Vector2(200.0, 32.0)
 		dish.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		_play.add_child(dish)
-		y += 64.0
+		y += 62.0
+
+
+## 加工小屋：会做的菜在这里下锅，做好的菜从这里送出去。
+##
+## Only unlocked recipes appear -- the kitchen cooks knowledge, and the page
+## for wanting more is the recipe book in the barn. Each row answers three
+## questions with pictures: what goes in (ingredient icons, bright when the
+## barn has them), what comes out (the dish and how many are made), and where
+## it goes (送给小熊). Cooking asks first, like every spend in this game;
+## short ingredients get a headshake, never a greyed-out row.
+func _kitchen_panel(view: Vector2) -> void:
+	var wide := 660.0
+	var origin := _panel_sheet(view, "garden.kitchen_title", wide, 470.0)
+	var known: Array = []
+	for recipe in Recipes.all():
+		if Recipes.is_unlocked(str(recipe.get("id", ""))):
+			known.append(recipe)
+
+	if known.is_empty():
+		var face := UiKit.picture("picture_book", 84.0)
+		if face != null:
+			face.position = origin + Vector2(wide * 0.5 - 42.0, 130.0)
+			_play.add_child(face)
+		var line := UiKit.title(I18n.t("garden.kitchen_empty"), UiKit.TYPE_CAPTION,
+			Color(0.52, 0.48, 0.40))
+		line.position = origin + Vector2(50.0, 240.0)
+		line.size = Vector2(wide - 100.0, 40)
+		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_play.add_child(line)
+		return
+
+	# 行高 56、步进 62、从 62 起步：16:9 的玻璃在货架上沿（720-168=552）
+	# 就到头了，全部 6 道菜都学会时最后一行的底边得停在它上面——
+	# 112 + 62 + 5x62 + 56 = 540，留 12px。按 70 一步走，第六行就
+	# 钻到货架底下去了。
+	var y := origin.y + 62.0
+	for recipe in known:
+		var rid := str(recipe.get("id", ""))
+		var row := Panel.new()
+		row.add_theme_stylebox_override("panel",
+			UiKit.panel_style(Color(1.0, 0.99, 0.95), 16))
+		row.position = Vector2(origin.x + 24.0, y)
+		row.custom_minimum_size = Vector2(wide - 48.0, 56.0)
+		row.size = Vector2(wide - 48.0, 56.0)
+		_play.add_child(row)
+
+		var x := row.position.x + 14.0
+		var cookable := Recipes.can_cook(recipe)
+		for need in recipe.get("needs", []):
+			var art := UiKit.picture(str(GameData.get_crop(
+				str(need.get("crop_id", ""))).get("icon", "seed")), 30.0)
+			if art != null:
+				art.position = Vector2(x, y + 6.0)
+				art.modulate = Color(1, 1, 1, 1.0 if cookable else 0.4)
+				_play.add_child(art)
+			var many := UiKit.title("x%d" % int(need.get("count", 1)), 16,
+				Color(0.4, 0.38, 0.34) if cookable else Color(0.66, 0.64, 0.60))
+			many.position = Vector2(x + 26.0, y + 12.0)
+			many.size = Vector2(34.0, 20.0)
+			_play.add_child(many)
+			x += 62.0
+		var dish_label := UiKit.title(I18n.t(str(recipe.get("name_key", ""))), 16,
+			Color(0.30, 0.28, 0.24))
+		dish_label.position = Vector2(row.position.x + 14.0, y + 34.0)
+		dish_label.size = Vector2(220.0, 20.0)
+		dish_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_play.add_child(dish_label)
+
+		# 右侧三件，从左往右按故事的顺序站：架上有几份、做一份、送给小熊。
+		# 槽位是固定的——没有菜时「做一份」不往右挪：一个在重建之间跳来
+		# 跳去的按钮，比一块空着的地方更让拇指为难。
+		var owned := Recipes.dish_count(rid)
+		if owned > 0:
+			var plate := UiKit.picture("dish", 34.0)
+			if plate != null:
+				plate.position = Vector2(row.position.x + row.size.x - 318.0, y + 11.0)
+				_play.add_child(plate)
+			var have := UiKit.title("x%d" % owned, 20)
+			have.position = Vector2(row.position.x + row.size.x - 282.0, y + 17.0)
+			have.size = Vector2(44.0, 24.0)
+			_play.add_child(have)
+
+		var cook := _chip_button(I18n.t("garden.cook_one"),
+			Color(0.55, 0.74, 0.42) if cookable else Color(0.86, 0.84, 0.78),
+			Vector2(92, 46))
+		cook.position = Vector2(row.position.x + row.size.x - 236.0, y + 5.0)
+		var this_row: Panel = row
+		cook.pressed.connect(func():
+			if not Recipes.can_cook(recipe):
+				Juice.nudge(this_row)
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+				return
+			_confirm_cook = rid
+			_queue_rebuild())
+		_play.add_child(cook)
+		_panel_buttons["cook_%s" % rid] = cook
+
+		if owned > 0:
+			var give := _chip_button(I18n.t("garden.give_bear"),
+				Color(0.94, 0.72, 0.42), Vector2(120, 46))
+			give.position = Vector2(row.position.x + row.size.x - 134.0, y + 5.0)
+			give.pressed.connect(func():
+				if Recipes.give_to_bear(rid):
+					AudioManager.play_sfx("res://assets/audio/correct.ogg")
+					_queue_rebuild())
+			_play.add_child(give)
+			_panel_buttons["give_%s" % rid] = give
+		y += 62.0
+
+	# 确认条：这一步食材真的会离开
+	if _confirm_cook != "":
+		var picked: Dictionary = {}
+		for recipe in known:
+			if str(recipe.get("id", "")) == _confirm_cook:
+				picked = recipe
+		if not picked.is_empty():
+			var strip := Panel.new()
+			strip.add_theme_stylebox_override("panel",
+				UiKit.panel_style(Color(0.99, 0.95, 0.85), 16))
+			# 470-66 会让条子的下半截藏进货架底下（16:9 上货架上沿在
+			# 552）；抬到 380 整条都在玻璃上，问的时候盖住最后一两行——
+			# 问题挡在清单前面，本来就是确认条的站法。
+			strip.position = Vector2(origin.x + 24.0, origin.y + 380.0)
+			strip.custom_minimum_size = Vector2(wide - 48.0, 54.0)
+			strip.size = Vector2(wide - 48.0, 54.0)
+			_play.add_child(strip)
+			# 每一颗要离开的食材都自己站出来：三颗草莓就是三颗草莓，不是
+			# 一颗草莓带个小字。数得出来的告别，才算看清楚了再点头——和
+			# 买东西的三个数字同一个脾气。最多的食谱 6 颗（2+2+2），条子
+			# 装得下。
+			var sx := strip.position.x + 14.0
+			for need in picked.get("needs", []):
+				for i in range(int(need.get("count", 1))):
+					var art := UiKit.picture(str(GameData.get_crop(
+						str(need.get("crop_id", ""))).get("icon", "seed")), 28.0)
+					if art != null:
+						art.position = Vector2(sx, strip.position.y + 13.0)
+						_play.add_child(art)
+					sx += 34.0
+				sx += 8.0
+			var arrow := UiKit.title("→", 22, Color(0.5, 0.46, 0.4))
+			arrow.position = Vector2(sx + 2.0, strip.position.y + 14.0)
+			arrow.size = Vector2(30, 26)
+			_play.add_child(arrow)
+			var plate2 := UiKit.picture("dish", 32.0)
+			if plate2 != null:
+				plate2.position = Vector2(sx + 36.0, strip.position.y + 11.0)
+				_play.add_child(plate2)
+			var yes := _chip_button("", Color(0.55, 0.74, 0.42), Vector2(64, 42))
+			var tick := UiKit.picture("check", 30.0)
+			if tick != null:
+				tick.position = Vector2(17, 6)
+				tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				yes.add_child(tick)
+			yes.position = Vector2(strip.position.x + strip.size.x - 146.0,
+				strip.position.y + 6.0)
+			yes.pressed.connect(func():
+				if Recipes.cook(_confirm_cook):
+					AudioManager.play_sfx("res://assets/audio/correct.ogg")
+				_confirm_cook = ""
+				_queue_rebuild())
+			_play.add_child(yes)
+			_panel_buttons["confirm_cook"] = yes
+			var no := _chip_button("<", Color(0.72, 0.74, 0.78), Vector2(64, 42))
+			no.position = Vector2(strip.position.x + strip.size.x - 74.0,
+				strip.position.y + 6.0)
+			no.pressed.connect(func():
+				_confirm_cook = ""
+				_queue_rebuild())
+			_play.add_child(no)
+			_panel_buttons["cancel_cook"] = no
 
 
 func _undo_toast(view: Vector2) -> void:

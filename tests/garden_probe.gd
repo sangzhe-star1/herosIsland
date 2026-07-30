@@ -85,6 +85,7 @@ func _ready() -> void:
 	_the_bears_farm_is_arithmetic_and_kindness()
 	_the_bear_drops_by_but_never_in_front_of_him()
 	_the_regular_gets_his_milestones_once()
+	_the_kitchen_cooks_knowledge_and_feeds_a_friend()
 	_two_tablets_agree_about_the_bear()
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
@@ -1562,3 +1563,51 @@ func _the_seventh_bed_is_bought_once() -> void:
 		"the lid closes and opens and the seventh bed is still there")
 	_ok(Expand.state_of(7) == "poor" or Expand.state_of(7) == "ready",
 		"...and the eighth is next in line now")
+
+
+## 三期阶段 1：厨房只做会做的菜、食材整取整付、送出去换一颗友谊星。
+func _the_kitchen_cooks_knowledge_and_feeds_a_friend() -> void:
+	_fresh_save()
+	var Recipes := preload("res://scripts/garden/recipe_manager.gd")
+
+	# 没学会：有食材也不做
+	Barn.put("strawberry", 3)
+	SaveManager.data["farm"]["unlocked_recipes"] = []
+	_ok(not Recipes.cook("strawberry_soup"),
+		"the kitchen cooked a recipe the child has not learned")
+	_ok(Barn.count("strawberry") == 3,
+		"a refused cook still took ingredients")
+
+	# 学会但食材不够：拒绝且分文不动
+	SaveManager.data["farm"]["unlocked_recipes"] = ["strawberry_soup"]
+	Barn.take("strawberry", 2)
+	_ok(not Recipes.cook("strawberry_soup"),
+		"one strawberry made a three-strawberry soup")
+	_ok(Barn.count("strawberry") == 1, "the failed cook nibbled an ingredient")
+
+	# 做一份：食材恰好离开，菜恰好出现
+	Barn.put("strawberry", 2)
+	_ok(Recipes.cook("strawberry_soup"), "a learned, stocked recipe refused to cook")
+	_ok(Barn.count("strawberry") == 0, "cooking left ingredients behind")
+	_ok(Recipes.dish_count("strawberry_soup") == 1, "the dish never arrived")
+
+	# 送给小熊：菜离开、友谊 +1、谢饭条目在
+	var stars_before := NpcFarm.friendship()
+	var log_before: int = (SaveManager.data["farm"].get("visit_log", []) as Array).size()
+	_ok(Recipes.give_to_bear("strawberry_soup"), "giving the dish failed")
+	_ok(Recipes.dish_count("strawberry_soup") == 0, "the given dish stayed home")
+	_ok(NpcFarm.friendship() == stars_before + 1,
+		"a gift of food should grow the friendship by exactly one")
+	var log: Array = SaveManager.data["farm"].get("visit_log", [])
+	_ok(log.size() == log_before + 1 \
+			and str((log[0] as Dictionary).get("kind", "")) == "thanks",
+		"the thank-you never reached the visit board")
+
+	# 空盘子送不出去；存档往返后一切还在
+	_ok(not Recipes.give_to_bear("strawberry_soup"),
+		"an empty plate was given anyway")
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_ok(str(((SaveManager.data["farm"].get("visit_log", []) as Array)[0]
+		as Dictionary).get("kind", "")) == "thanks",
+		"the thank-you vanished across a save round-trip")

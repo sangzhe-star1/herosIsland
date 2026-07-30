@@ -1,7 +1,8 @@
 extends Node
 ## Renders the 阶段4 farm to a PNG, for the eyes that probes do not have.
 ## Development harness:
-##   SHOT_WHAT=garden|bear|board|home SHOT_WIN=1280x720 SHOT_PATH=/tmp/x.png \
+##   SHOT_WHAT=garden|bear|board|home|kitchen|thanks SHOT_WIN=1280x720 \
+##     SHOT_PATH=/tmp/x.png \
 ##     xvfb-run -a godot --path . --rendering-driver opengl3 \
 ##     res://tests/FarmShot.tscn
 ##
@@ -9,6 +10,9 @@ extends Node
 ##         pointing at a ripe bed, one thirsty, one caterpillar.
 ## bear:   the bear's farm with the share star up.
 ## board:  the visitor board open over the farm, its one entry readable.
+## kitchen: the workshop kitchen at level 5 -- one soup ready to cook, one
+##         stew short of tomatoes, one cooked dish waiting on the shelf.
+## thanks: the visit board with a thank-you entry over an ordinary visit.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
@@ -81,11 +85,37 @@ func _ready() -> void:
 			"planted_at": NOON - 3600})
 		plots[4] = _bed(4, {"state": Farm.TILLED})
 		farm["plots"] = plots
+		if what == "kitchen":
+			# 五级农场，两道会做的菜：汤下得了锅（草莓正好），炖菜还缺
+			# 番茄，架上还有一份昨天的汤——面板的三种状态一屏看全。
+			farm["farm_xp"] = 200
+			farm["unlocked_recipes"] = ["strawberry_soup", "tomato_stew"]
+			farm["warehouse"] = {"strawberry": 3, "tomato": 1}
+			var pack: Dictionary = SaveManager.data.get("inventory", {})
+			pack["dish_strawberry_soup"] = 1
+			SaveManager.data["inventory"] = pack
+		if what == "thanks":
+			farm["visit_log"] = [
+				{"who": "bear", "kind": "thanks", "at": NOON - 300,
+					"dish_name_key": "recipe.strawberry_soup",
+					"milestone_key": "garden.dish_thanks",
+					"milestone_icon": "dish"},
+				{"who": "bear", "watered": 2, "star": 1, "at": NOON - 900},
+			]
 		scene.call("_rebuild")
 		await get_tree().process_frame
-		if what == "board":
+		if what == "board" or what == "thanks":
 			scene.call("_tap_building", "visit_board")
 			await get_tree().process_frame
+		elif what == "kitchen":
+			scene.call("_tap_building", "workshop")
+			await get_tree().process_frame
+			# SHOT_ASK=1: the moment between pressing 做一份 and saying yes --
+			# the confirm strip up, nothing taken yet.
+			if OS.get_environment("SHOT_ASK") == "1":
+				scene.set("_confirm_cook", "strawberry_soup")
+				scene.call("_queue_rebuild")
+				await get_tree().process_frame
 
 	# SHOT_ZOOM=out presses minus until it stops: the whole-farm overview.
 	if OS.get_environment("SHOT_ZOOM") == "out" and what != "bear" \
