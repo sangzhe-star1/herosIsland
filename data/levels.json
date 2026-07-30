@@ -969,7 +969,46 @@
       "badge": ""
     },
     "config": {
-      "exit_room": "hero_studio"
+      "exit_room": "hero_studio",
+      "deco_room": "garden_deco"
+    }
+  },
+  {
+    "id": "garden_deco",
+    "world": "sunny_park",
+    "mode": "deco",
+    "name_key": "level.garden_deco",
+    "game_type": "creative_play",
+    "room": true,
+    "difficulty": 1,
+    "target": {},
+    "reward": {
+      "coins": 0,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "creative.instruction",
+      "canvas_id": "garden",
+      "backdrop": "meadow",
+      "stickers": [
+        "sprout",
+        "leaf",
+        "basket",
+        "watering_can",
+        "plank",
+        "strawberry",
+        "corn",
+        "flag",
+        "tomato",
+        "potato",
+        "lettuce",
+        "balloon",
+        "star",
+        "heart",
+        "lamp",
+        "cloud"
+      ],
+      "exit_room": "star_garden"
     }
   },
   {

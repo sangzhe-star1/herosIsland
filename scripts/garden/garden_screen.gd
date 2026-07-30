@@ -189,26 +189,6 @@ var _beds_looked_like := ""
 
 
 ## A room, not a level: nothing here completes and nothing here is scored.
-## Overrides LevelManager. Every other level quits to the world map; the
-## garden walks next door instead -- 验收单第 16 条的原文是"菜园能正常返回
-## 英雄基地"，首期为了和其余关卡一致先回了地图并记为偏差，2026-07-29
-## Zane 拍板按原文来。去哪个房间是菜园这关自己的数据（levels.json 里
-## star_garden.config.exit_room），代码不点任何房间的名。没配或配错时
-## 走基类的路回世界地图——孩子永远出得去。
-func quit_level() -> void:
-	if _finished:
-		return
-	var exit_room := str(GameData.get_level(str(GameManager.current_level_id))\
-		.get("config", {}).get("exit_room", ""))
-	if exit_room == "" or GameData.get_level(exit_room).is_empty():
-		super.quit_level()
-		return
-	_finished = true
-	result.quit_early = true
-	result.duration_seconds = _elapsed
-	GameManager.start_level(exit_room)
-
-
 func auto_complete_on_target() -> bool:
 	return false
 
@@ -292,6 +272,7 @@ func _rebuild() -> void:
 		_world.stroke_ended.connect(_on_stroke_ended)
 	else:
 		_world.refresh(_plots())
+	_draw_decorations()
 
 	_play = UiKit.play_area(self, true)
 	_top_bar(view)
@@ -315,6 +296,7 @@ func _rebuild() -> void:
 	_seed_rack(view)
 	_tool_bar(view)
 	_barn(view)
+	_deco_door(view)
 	_view_buttons(view)
 	# The world needs to know whether a press on a bed is a tap or a stroke,
 	# and it must never disagree with the toolbar about it.
@@ -1193,6 +1175,86 @@ func _end_combo() -> void:
 ## Small and always visible rather than behind a button: the whole point of
 ## growing something is watching the pile get bigger, and a pile behind a door
 ## is a pile he has to remember to go and look at.
+## The door to the decorating room, beside the barn: a sticker book on a
+## chip. Which room it opens is the garden's own DATA (config.deco_room) --
+## the room-naming rule keeps the id out of code, and a save from before the
+## room existed simply shows no door. 二期阶段 1 的入口。
+func _deco_door(view: Vector2) -> void:
+	var room_id := str(level_data.get("config", {}).get("deco_room", ""))
+	if room_id == "" or GameData.get_level(room_id).is_empty():
+		return
+	var box := Vector2(64, SEED_TILE.y)
+	var at := Vector2(view.x - 24.0 - 168.0 - 12.0 - box.x,
+		view.y - SHELF * 0.25 - box.y * 0.5)
+	var b := Button.new()
+	b.name = "DecoDoor"
+	b.focus_mode = Control.FOCUS_NONE
+	b.position = at
+	b.custom_minimum_size = box
+	b.size = box
+	b.add_theme_stylebox_override("normal", UiKit.panel_style(Color(0.97, 0.93, 0.83), 16))
+	b.add_theme_stylebox_override("hover", UiKit.panel_style(Color(0.99, 0.96, 0.88), 16))
+	b.add_theme_stylebox_override("pressed", UiKit.panel_style(Color(0.93, 0.88, 0.76), 16))
+	var art: Control = UiKit.picture("sticker_book", 44.0)
+	if art != null:
+		art.position = Vector2((box.x - 44.0) * 0.5, (box.y - 44.0) * 0.5)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(art)
+	b.pressed.connect(func():
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		GameManager.start_level(room_id))
+	_play.add_child(b)
+
+
+## What he arranged in the decorating room, standing in the farm itself.
+##
+## Drawn from the SAME creation the 装饰间 saves (its canvas_id, read from
+## data), mapped from the room's design space onto the whole farm world, and
+## deliberately mute: no input, no buttons, z below the beds. A decoration
+## that can swallow a tap meant for a plot is furniture blocking the door --
+## the home screen's clear_lane taught that lesson already.
+func _draw_decorations() -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var old: Node = _world.get_node_or_null("Decorations")
+	if old != null:
+		old.name = "DecorationsGone"
+		old.queue_free()
+	var room_id := str(level_data.get("config", {}).get("deco_room", ""))
+	if room_id == "":
+		return
+	var room: Dictionary = GameData.get_level(room_id)
+	if room.is_empty():
+		return
+	var key := str(room.get("config", {}).get("canvas_id", room_id))
+	var placed: Array = SaveManager.get_creation(key)
+	if placed.is_empty():
+		return
+	var layer := Node2D.new()
+	layer.name = "Decorations"
+	_world.add_child(layer)
+	# Between the ground and everything that stands on it. FarmWorld layers
+	# by CHILD ORDER, not z_index -- a z of -1 rendered the furniture under
+	# the grass itself, which the first screenshot said plainly by showing
+	# nothing at all. Ground is child 0; slot 1 is "on the grass, behind the
+	# beds and the buildings", which is where furniture belongs.
+	_world.move_child(layer, 1)
+	var world: Vector2 = Layout.world_size()
+	for entry in placed:
+		var size := clampf(float(entry.get("size", 84.0)), 40.0, 160.0)
+		var art: Control = UiKit.picture(str(entry.get("icon", "star")), size)
+		if art == null:
+			continue
+		# The room's canvas is its design screen; the farm is a 2200x1150
+		# world. Fractions carry the arrangement across: left stays left,
+		# high stays high, and nothing depends on either screen's pixels.
+		var fx := clampf(float(entry.get("x", 640.0)) / 1280.0, 0.0, 1.0)
+		var fy := clampf(float(entry.get("y", 300.0)) / 720.0, 0.0, 1.0)
+		art.position = Vector2(fx * (world.x - size), fy * (world.y - size))
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(art)
+
+
 func _barn(view: Vector2) -> void:
 	# Inside the shelf, to the right of the seeds. The first cut put it just
 	# above the shelf and it landed on top of the bottom row of beds -- there

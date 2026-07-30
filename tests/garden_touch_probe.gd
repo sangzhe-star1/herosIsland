@@ -90,6 +90,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_lesson_happens_once_in_a_childhood()
 	await _a_break_is_offered_not_pushed()
 	await _there_is_a_way_out()
+	await _the_decorating_door_and_its_furniture()
 
 	_close()
 
@@ -359,6 +360,74 @@ func _a_harvest_is_paid_for_once() -> void:
 	_garden.call("_harvest", next_cycle)
 	_ok(int(SaveManager.data["farm"]["warehouse"].get("carrot", 0)) == first + expected,
 		"but planting again in the same bed pays again -- once per planting")
+
+
+## 二期阶段 1：装饰间的门开在菜园里，摆好的东西回来还在，且咬不到手指。
+func _the_decorating_door_and_its_furniture() -> void:
+	# The door: data names a real room with a real scene, the chip is on the
+	# shelf, thumb-sized, wired, and it must not cover the barn card.
+	var room_id := str(GameData.get_level("star_garden")\
+		.get("config", {}).get("deco_room", ""))
+	_ok(room_id != "", "star_garden has no deco_room -- 二期的门没了")
+	if room_id != "":
+		var room: Dictionary = GameData.get_level(room_id)
+		_ok(not room.is_empty() and bool(room.get("room", false)),
+			"deco_room '%s' is not a room the game knows" % room_id)
+		var scene := GameData.get_minigame_scene(str(room.get("game_type", "")))
+		_ok(scene != "" and ResourceLoader.exists(scene),
+			"deco_room '%s' has no scene" % room_id)
+		_ok(str(room.get("config", {}).get("exit_room", "")) == "star_garden",
+			"the decorating room's back door must lead HOME to the garden")
+		_ok(str(room.get("config", {}).get("canvas_id", "")) == "garden",
+			"the decorating room must shelve under 'garden' -- anything else "
+			+ "risks the hero base's stickers")
+
+	var door: Node = _find_named(_garden, "DecoDoor")
+	_ok(door != null, "the garden shows no decorating door")
+	if door is Button:
+		var b := door as Button
+		_ok(b.size.y >= 60.0, "the deco door is %.0f tall -- under the thumb "
+			% b.size.y + "floor")
+		_ok(b.pressed.get_connections().size() > 0, "the deco door is not "
+			+ "wired to anything")
+
+	# The furniture: three saved decorations must stand in the farm world,
+	# and none of them may accept input.
+	SaveManager.set_creation("garden", [
+		{"icon": "sprout", "x": 200.0, "y": 200.0, "size": 84.0},
+		{"icon": "flag", "x": 640.0, "y": 300.0, "size": 84.0},
+		{"icon": "leaf", "x": 1100.0, "y": 500.0, "size": 84.0},
+	])
+	_garden.call("_draw_decorations")
+	await get_tree().process_frame
+	var layer: Node = _find_named(_garden, "Decorations")
+	_ok(layer != null, "three decorations are saved and none stand in the farm")
+	if layer != null:
+		var shown := 0
+		for child in layer.get_children():
+			if child is Control:
+				shown += 1
+				_ok((child as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE,
+					"a decoration accepts input -- furniture must never "
+					+ "swallow a tap meant for a plot")
+		_ok(shown == 3, "saved 3 decorations, the farm shows %d" % shown)
+
+	# And the hero base's shelf is exactly as it was.
+	var base_before: Array = SaveManager.get_creation("base")
+	SaveManager.set_creation("garden", [])
+	_garden.call("_draw_decorations")
+	_ok(SaveManager.get_creation("base") == base_before,
+		"touching the garden's decorations moved the hero base's shelf")
+
+
+func _find_named(node: Node, wanted: String) -> Node:
+	if node.name == wanted:
+		return node
+	for child in node.get_children():
+		var hit := _find_named(child, wanted)
+		if hit != null:
+			return hit
+	return null
 
 
 ## Acceptance #16. A child who wants out has to be able to get out.

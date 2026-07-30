@@ -42,6 +42,19 @@ const STICKERS := [
 	"star", "heart", "moon", "spark", "leaf", "flag", "medal", "crown",
 	"balloon", "music", "paw", "orb", "gem", "party_hat", "wings", "shield",
 ]
+
+
+## The room's own shelf of stickers, if its data brings one; the classic
+## mixed bag otherwise. 装饰菜园 brings garden things -- a room is what is on
+## its shelf as much as what is on its wall.
+func _sticker_set() -> Array:
+	var names: Array = level_data.get("config", {}).get("stickers", [])
+	return names if not names.is_empty() else STICKERS
+
+
+## What this room looks out on: the hero base dome, or (装饰间) a meadow.
+func _backdrop() -> String:
+	return str(level_data.get("config", {}).get("backdrop", "base"))
 const LIGHT_COLOURS := [
 	Color(0.98, 0.82, 0.36), Color(0.52, 0.84, 1.0), Color(0.96, 0.52, 0.62),
 	Color(0.56, 0.90, 0.60), Color(0.78, 0.60, 0.98),
@@ -105,11 +118,30 @@ func _build_base() -> void:
 	_paint_base()
 
 
+## The 装饰间 backdrop: a strip of meadow and a soil patch, echoing the farm
+## it decorates. No dome, no window -- and therefore no light to change,
+## which is why the lamp button stays home in this room.
+func _paint_meadow() -> void:
+	Shapes.fill(_base, Shapes.rounded_rect(Vector2(-560, 10), Vector2(1120, 150), 30.0),
+		Color(0.55, 0.74, 0.42), 0.0)
+	# fill, not lit: lit() lays a highlight copy over the soil and the two
+	# browns read as stacked planks rather than a bed of earth.
+	Shapes.fill(_base, Shapes.rounded_rect(Vector2(-460, -50), Vector2(920, 100), 26.0),
+		Color(0.52, 0.38, 0.26), 0.0)
+	for i in range(5):
+		var x := -420.0 + float(i) * 210.0
+		Shapes.fill(_base, Shapes.taper(Vector2(x, 16.0), Vector2(x, -34.0), 9.0, 7.0),
+			Color(0.72, 0.58, 0.40), 0.0)
+
+
 ## The hero's base: a dome on legs with a big window. Redrawn when the child
 ## changes its light colour, which is the one "setting" this room has.
 func _paint_base() -> void:
 	for child in _base.get_children():
 		child.queue_free()
+	if _backdrop() == "meadow":
+		_paint_meadow()
+		return
 	var tint: Color = LIGHT_COLOURS[_light % LIGHT_COLOURS.size()]
 	Shapes.ground_shadow(_base, Vector2(0, 130.0), 520.0, 0.22)
 	Shapes.lit(_base, Shapes.rounded_rect(Vector2(-230, -40), Vector2(460, 170), 26.0),
@@ -219,9 +251,9 @@ func _build_tray() -> void:
 		Color(0.05, 0.10, 0.22, 0.62), 0.0)
 
 	var owned: Array = []
-	for name in STICKERS:
+	for name in _sticker_set():
 		if SaveManager.has_sticker(name) or SaveManager.has_outfit(name) \
-				or STICKERS.find(name) < 8:
+				or _sticker_set().find(name) < 8:
 			owned.append(name)          # the first eight are always available
 	for i in range(owned.size()):
 		var node := Node2D.new()
@@ -340,17 +372,20 @@ func _build_hud() -> void:
 	_hud.add_child(done)
 
 	# One button that cycles the base's light colour. A settings screen for a
-	# six-year-old is one button that visibly changes something.
-	var lamp := UiKit.big_button(I18n.t("creative.light"), Palette.BLUE)
-	lamp.custom_minimum_size = Vector2(200, 104)
-	lamp.position = Vector2(24, 24)
-	lamp.pressed.connect(func():
-		_light = (_light + 1) % LIGHT_COLOURS.size()
-		_paint_base()
-		Juice.pop(_base, 0.24)
-		AudioManager.play_sfx("res://assets/audio/power_on.ogg")
-		_remember())
-	_hud.add_child(lamp)
+	# six-year-old is one button that visibly changes something -- so it only
+	# exists where there is a window to change. A meadow has no lamp, and a
+	# button that presses without anything happening teaches "buttons lie".
+	if _backdrop() == "base":
+		var lamp := UiKit.big_button(I18n.t("creative.light"), Palette.BLUE)
+		lamp.custom_minimum_size = Vector2(200, 104)
+		lamp.position = Vector2(24, 24)
+		lamp.pressed.connect(func():
+			_light = (_light + 1) % LIGHT_COLOURS.size()
+			_paint_base()
+			Juice.pop(_base, 0.24)
+			AudioManager.play_sfx("res://assets/audio/power_on.ogg")
+			_remember())
+		_hud.add_child(lamp)
 
 	_saved_note = Label.new()
 	_saved_note.text = I18n.t("creative.saved")

@@ -742,7 +742,8 @@
         "world.safety": "Safety Bureau",
         "world.sky_base": "Sky Base",
         "world.star_trials": "Star Trials",
-        "world.sunny_park": "Sunny Park"
+        "world.sunny_park": "Sunny Park",
+        "level.garden_deco": "Decorate the Garden"
     },
     "zh": {
         "adventure.again": "再来一次，你可以的！",
@@ -1487,6 +1488,7 @@
         "world.safety": "安全局",
         "world.sky_base": "天空基地",
         "world.star_trials": "星光试炼场",
-        "world.sunny_park": "阳光公园"
+        "world.sunny_park": "阳光公园",
+        "level.garden_deco": "装饰菜园"
     }
 }

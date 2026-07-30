@@ -32,6 +32,7 @@ func _ready() -> void:
 	print("=== studio probe ===")
 	var out: Array[String] = []
 	out.append_array(_two_rooms_two_shelves())
+	out.append_array(await _the_garden_room_is_its_own_room())
 	# A Mac (16:9) and an iPad (4:3). "expand" gives the second one a taller
 	# viewport, which is the whole reason this runs twice.
 	out.append_array(await _drag_on_a("Mac", Vector2i(1280, 720)))
@@ -41,6 +42,36 @@ func _ready() -> void:
 		print("  FAIL: ", f)
 	print("STUDIO PROBE %s" % ("PASSED" if out.is_empty() else "FAILED"))
 	get_tree().quit(0 if out.is_empty() else 1)
+
+
+## The decorating room, booted for real: meadow out the window (no dome, no
+## lamp), garden things on the shelf, and the whole of it filed under
+## "garden".
+func _the_garden_room_is_its_own_room() -> Array[String]:
+	var out: Array[String] = []
+	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
+	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
+	SaveManager.load_game()
+	GameManager.current_level_id = "garden_deco"
+	var scene := GameData.get_minigame_scene("creative_play")
+	var room: Node = load(scene).instantiate()
+	add_child(room)
+	for i in range(4):
+		await get_tree().process_frame
+	if str(room.get("_canvas_key")) != "garden":
+		out.append("the decorating room shelved under '%s', not 'garden'"
+			% room.get("_canvas_key"))
+	var lamp_found := false
+	for child in (room.get("_hud") as Node).get_children():
+		if child is Button and (child as Button).text == I18n.t("creative.light"):
+			lamp_found = true
+	if lamp_found:
+		out.append("the meadow room grew a lamp button -- there is no window "
+			+ "here for it to change")
+	room.queue_free()
+	await get_tree().process_frame
+	print("  the garden room keeps its own shelf and leaves the lamp home")
+	return out
 
 
 ## Two creative rooms must write to two different shelves.

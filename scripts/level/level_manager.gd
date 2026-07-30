@@ -200,12 +200,23 @@ func complete_level() -> void:
 
 
 ## Leaving early is allowed and costs nothing.
+##
+## Where "out" leads is the level's own business: config.exit_room names a
+## room (星光菜园回英雄基地 -- 验收 #16；装饰间回菜园), and everything
+## without one goes back to the world map like always. The name lives in
+## DATA -- the room-naming rule stops code from hardcoding it -- and a
+## missing or misspelt room falls back to the map: a child is never locked
+## in anywhere by a typo.
 func quit_level() -> void:
 	if _finished:
 		return
 	_finished = true
 	result.quit_early = true
 	result.duration_seconds = _elapsed
+	var exit_room := str(level_data.get("config", {}).get("exit_room", ""))
+	if exit_room != "" and not GameData.get_level(exit_room).is_empty():
+		GameManager.start_level(exit_room)
+		return
 	SceneManager.goto_world_map()
 
 
