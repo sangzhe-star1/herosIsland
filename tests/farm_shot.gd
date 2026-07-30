@@ -13,6 +13,12 @@ extends Node
 ## kitchen: the workshop kitchen at level 5 -- one soup ready to cook, one
 ##         stew short of tomatoes, one cooked dish waiting on the shelf.
 ## thanks: the visit board with a thank-you entry over an ordinary visit.
+## rack:   all fourteen crops owned -- the seed rack with its page arrows.
+## shop:   level 3, the batch that just went on sale and the level-5 batch
+##         still standing as starred ground. SHOT_PAGE=1 flips to page two.
+## book:   the recipe book, twelve recipes across two pages.
+## orders: level 3 with five orders delivered -- work first, receipts pad.
+## SHOT_PAGE=N flips the mode's paged surface to page N before the shot.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
@@ -102,8 +108,27 @@ func _ready() -> void:
 					"milestone_icon": "dish"},
 				{"who": "bear", "watered": 2, "star": 1, "at": NOON - 900},
 			]
+		if what == "rack":
+			farm["farm_xp"] = 200
+			farm["unlocked_crops"] = ["carrot", "corn", "strawberry",
+				"tomato", "lettuce", "potato", "peas", "wheat", "broccoli",
+				"pumpkin", "watermelon", "grape", "orange", "apple"]
+		if what == "shop":
+			farm["farm_xp"] = 60
+			SaveManager.data["rewards"]["coins"] = 120
+		if what == "book":
+			farm["unlocked_recipes"] = ["strawberry_soup", "potato_cakes",
+				"tomato_stew", "corn_chowder", "rainbow_salad",
+				"harvest_platter", "pea_soup"]
+		if what == "orders":
+			farm["farm_xp"] = 60
+			SaveManager.data["farm_orders"] = {"delivered": ["bear_carrots",
+				"robot_supply", "puppy_berries", "robot_wheat_run",
+				"bear_pumpkin_treat"]}
 		scene.call("_rebuild")
 		await get_tree().process_frame
+		var page := int(OS.get_environment("SHOT_PAGE")) \
+			if OS.get_environment("SHOT_PAGE") != "" else 0
 		if what == "board" or what == "thanks":
 			scene.call("_tap_building", "visit_board")
 			await get_tree().process_frame
@@ -116,6 +141,23 @@ func _ready() -> void:
 				scene.set("_confirm_cook", "strawberry_soup")
 				scene.call("_queue_rebuild")
 				await get_tree().process_frame
+		elif what == "shop":
+			scene.call("_open_panel", "shop")
+			scene.set("_shop_page", page)
+			scene.call("_queue_rebuild")
+			await get_tree().process_frame
+		elif what == "book":
+			scene.call("_open_panel", "recipes")
+			scene.set("_book_page", page)
+			scene.call("_queue_rebuild")
+			await get_tree().process_frame
+		elif what == "orders":
+			scene.call("_tap_building", "orders")
+			await get_tree().process_frame
+		elif what == "rack" and page > 0:
+			scene.set("_rack_page", page)
+			scene.call("_queue_rebuild")
+			await get_tree().process_frame
 
 	# SHOT_ZOOM=out presses minus until it stops: the whole-farm overview.
 	if OS.get_environment("SHOT_ZOOM") == "out" and what != "bear" \

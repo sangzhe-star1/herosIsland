@@ -80,6 +80,7 @@ func _ready() -> void:
 	_the_caterpillar_is_weeds_wearing_a_different_face()
 	# --- stage 3 (阶段 3 of the farm): the shop, the market, the roof ---
 	_the_shop_sells_a_crop_exactly_once()
+	_the_shop_grows_with_the_farm()
 	_the_market_pays_once_and_only_for_what_is_there()
 	# --- 阶段 4: the bear, the shared strawberry, and the visitor board ---
 	_the_bears_farm_is_arithmetic_and_kindness()
@@ -1080,6 +1081,47 @@ func _the_shop_sells_a_crop_exactly_once() -> void:
 	_ok(int(SaveManager.data["rewards"]["coins"]) == 3,
 		"with not one coin taken")
 	_ok(not SeedShop.owns("lettuce"), "and no lettuce handed over")
+
+
+## 三期阶段 2：种子跟着农场长。3 级的豌豆、5 级的苹果，在还没长到的
+## 农场里既不能买也不标价——那是圈好的地，不是没钱，更不是锁。等级
+## 一到，同一排种子按普通规矩开卖。钱的手一次都不许伸出来。
+func _the_shop_grows_with_the_farm() -> void:
+	_fresh_save()
+	SaveManager.data["rewards"]["coins"] = 500
+
+	# 1 级农场：3 级的豌豆和 5 级的苹果都还没长到。
+	_ok(SeedShop.state_of("peas") == "level",
+		"at level 1 the peas are ground not grown to, whatever the purse holds")
+	_ok(SeedShop.buy("peas") == "level",
+		"and buying them is refused with the level word, not the money word")
+	_ok(Coins.balance() == 500, "the refusal took nothing")
+	_ok(not SeedShop.owns("peas"), "and handed nothing over")
+	_ok(SeedShop.state_of("apple") == "level", "the apple waits for level 5")
+
+	# 3 级农场：豌豆开卖，苹果还在长。
+	SaveManager.data["farm"]["farm_xp"] = 60
+	_ok(SeedShop.state_of("peas") == "buyable",
+		"at level 3 the peas go on sale like any seed")
+	_ok(SeedShop.buy("peas") == "", "and sixty coins buy them")
+	_ok(Coins.balance() == 440, "...exactly sixty")
+	_ok(SeedShop.state_of("apple") == "level",
+		"the apple still waits -- one batch at a time")
+
+	# 5 级农场：全架开卖。买回来的和送回去的都走老规矩。
+	SaveManager.data["farm"]["farm_xp"] = 200
+	_ok(SeedShop.state_of("apple") == "buyable", "level 5 opens the orchard")
+	_ok(SeedShop.buy("apple") == "", "and the apple is his")
+	SeedShop.undo("apple")
+	_ok(not SeedShop.owns("apple") and Coins.balance() == 440,
+		"the regret window returns the whole two hundred and forty")
+
+	# 存档往返：等级门是算术，不是账本——xp 在，门就在对的位置。
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_ok(SeedShop.owns("peas"), "the peas survive the round-trip")
+	_ok(SeedShop.state_of("watermelon") == "buyable",
+		"and the gate still stands where the xp says")
 
 
 ## The market's whole contract: the quote is the payment, the payment happens

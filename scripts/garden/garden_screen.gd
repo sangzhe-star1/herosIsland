@@ -73,6 +73,14 @@ const SHELF_GAP := 12.0
 const ORDER_CARD := Vector2(378, 96)
 const ORDER_FIRST := 54.0        # heading down to the first card
 const ORDER_GAP := 110.0         # card to card
+## How the board picks its three: see _orders_for_board.
+const ORDER_BOARD_CARDS := 3
+
+## Paged surfaces: rows per panel page and tiles per rack page. Six rows is
+## what a 430-470 sheet holds above the 16:9 shelf line; seven tiles is what
+## the rack holds before the sticker-book chip.
+const PANEL_PAGE := 6
+const RACK_PAGE := 7
 
 ## How often the garden re-settles itself while the first lesson is running.
 ## Nothing else in this game ticks; see _lesson_tick for why this one does.
@@ -124,6 +132,14 @@ var _visit_open := false
 var _recipes_open := false
 var _kitchen_open := false
 var _confirm_cook := ""
+## Which page a paged surface is showing. Fourteen crops and twelve recipes
+## do not fit the glass at once, so the shop, the recipe book, the kitchen
+## and the seed rack each turn pages -- six rows (seven rack tiles) at a
+## time, with the world map's side arrows. Reset when their door opens.
+var _shop_page := 0
+var _book_page := 0
+var _kitchen_page := 0
+var _rack_page := 0
 ## Which crop's confirm card is up in the shop ("" for none).
 var _confirm_crop := ""
 ## Whether the barn's upgrade confirm card is up.
@@ -559,6 +575,11 @@ func _open_panel(which: String) -> void:
 	_visit_open = which == "visits"
 	_recipes_open = which == "recipes"
 	_kitchen_open = which == "kitchen"
+	# A door always opens on its first page -- a shop remembered mid-flip
+	# reads as a shop with rows missing.
+	_shop_page = 0
+	_book_page = 0
+	_kitchen_page = 0
 	_confirm_crop = ""
 	_confirm_cook = ""
 	_confirm_expand = -1
@@ -679,8 +700,16 @@ func _seed_rack(view: Vector2) -> void:
 	# row, and the whole shelf read as one squashed pile.
 	var unlocked: Array = _farm().get("unlocked_crops", [])
 	var chosen := _tools.crop_to_plant(unlocked)
-	for i in range(unlocked.size()):
-		var crop_id := str(unlocked[i])
+	# Fourteen owned crops do not fit one row of glass: the rack turns pages,
+	# seven tiles at a time, with the two arrows standing where the eighth
+	# tile would -- so a page is always the same seven reachable places and
+	# the drag-to-bed gesture never changes.
+	var rack_pages := int(ceil(unlocked.size() / float(RACK_PAGE)))
+	_rack_page = clampi(_rack_page, 0, maxi(rack_pages - 1, 0))
+	var on_page: Array = unlocked.slice(_rack_page * RACK_PAGE,
+		(_rack_page + 1) * RACK_PAGE)
+	for i in range(on_page.size()):
+		var crop_id := str(on_page[i])
 		var crop: Dictionary = GameData.get_crop(crop_id)
 		if crop.is_empty():
 			continue
@@ -719,6 +748,31 @@ func _seed_rack(view: Vector2) -> void:
 		var this_crop := crop_id
 		pick.pressed.connect(func(): _choose_seed(this_crop))
 		_play.add_child(pick)
+
+	# The rack's page arrows, standing where the eighth tile would. Only the
+	# arrow that goes somewhere is drawn, same rule as everywhere.
+	if rack_pages > 1:
+		var arrow_y: float = view.y - SHELF * 0.25 - 30.0
+		if _rack_page > 0:
+			var back := _chip_button("<", Color(0.97, 0.93, 0.83), Vector2(60, 60))
+			back.position = Vector2(RACK_X + RACK_STEP * float(RACK_PAGE) - 48.0,
+				arrow_y)
+			back.pressed.connect(func():
+				AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
+				_rack_page -= 1
+				_queue_rebuild())
+			_play.add_child(back)
+			_panel_buttons["rack_back"] = back
+		if _rack_page < rack_pages - 1:
+			var next := _chip_button(">", Color(0.97, 0.93, 0.83), Vector2(60, 60))
+			next.position = Vector2(
+				RACK_X + RACK_STEP * float(RACK_PAGE) + 20.0, arrow_y)
+			next.pressed.connect(func():
+				AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
+				_rack_page += 1
+				_queue_rebuild())
+			_play.add_child(next)
+			_panel_buttons["rack_next"] = next
 
 
 # --- what a tap does ----------------------------------------------------
@@ -1369,6 +1423,7 @@ func _spilled_basket(view: Vector2) -> void:
 ## they want, and what they will give for it.
 func _order_board(view: Vector2) -> void:
 	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
+	var board := _orders_for_board(delivered)
 	var at := _order_board_origin()
 
 	# The board used to live in the right third of the screen, permanently. It
@@ -1381,7 +1436,7 @@ func _order_board(view: Vector2) -> void:
 		UiKit.panel_style(Color(0.99, 0.97, 0.90), 28))
 	sheet.position = at - Vector2(24, 18)
 	sheet.custom_minimum_size = Vector2(ORDER_CARD.x + 48.0,
-		ORDER_FIRST + ORDER_GAP * float(maxi(GameData.garden_orders.size(), 1)) + 24.0)
+		ORDER_FIRST + ORDER_GAP * float(maxi(board.size(), 1)) + 24.0)
 	sheet.size = sheet.custom_minimum_size
 	_play.add_child(sheet)
 	if _world != null and is_instance_valid(_world):
@@ -1413,7 +1468,7 @@ func _order_board(view: Vector2) -> void:
 	_play.add_child(heading)
 
 	var y := at.y + ORDER_FIRST
-	for order in GameData.garden_orders:
+	for order in board:
 		var order_id := str(order.get("id", ""))
 		var done: bool = order_id in delivered
 		var wants: Dictionary = order.get("requirements", {})
@@ -1480,6 +1535,35 @@ func _order_board(view: Vector2) -> void:
 		y += ORDER_GAP
 
 
+## Which orders stand on the board today. Three rules, in order:
+##
+## 1. Grown-to only. An order gated "level:N" simply is not there below farm
+##    level N -- not a locked card, not a grey card, not there. The seeds it
+##    asks for arrive at the same level, so the board can never ask for a
+##    crop the child cannot plant.
+## 2. Work first. Undelivered orders, in the file's order, up to three.
+## 3. Receipts fill what is left. A delivered order's grey tick stays on the
+##    board only while there is room -- the receipt matters the day it is
+##    earned, and new work matters more the day it arrives.
+##
+## Pure and stateless, so probes can call it with any delivered list.
+func _orders_for_board(delivered: Array) -> Array:
+	var pending: Array = []
+	var receipts: Array = []
+	for order in GameData.garden_orders:
+		var gate := str(order.get("unlock_condition", ""))
+		if gate.begins_with("level:") and Level.level() < int(gate.substr(6)):
+			continue
+		if str(order.get("id", "")) in delivered:
+			receipts.append(order)
+		else:
+			pending.append(order)
+	var board: Array = pending.slice(0, ORDER_BOARD_CARDS)
+	while board.size() < ORDER_BOARD_CARDS and not receipts.is_empty():
+		board.append(receipts.pop_back())
+	return board
+
+
 ## Top left of the order board, measured from the viewport every time -- see
 ## _bed_centre for why nothing here may be measured from a hard-coded 720.
 func _order_board_origin() -> Vector2:
@@ -1487,11 +1571,13 @@ func _order_board_origin() -> Vector2:
 	return Vector2(view.x * 0.5 - ORDER_CARD.x * 0.5, TOP_BAR + 52.0)
 
 
-## The middle of one order's card, for the lesson's finger to land on.
+## The middle of one order's card, for the lesson's finger to land on. Walks
+## the BOARD, not the file -- the finger must land where the card is drawn.
 func _order_card_centre(order_id: String) -> Vector2:
+	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
 	var at := _order_board_origin()
 	var y := at.y + ORDER_FIRST
-	for order in GameData.garden_orders:
+	for order in _orders_for_board(delivered):
 		if str(order.get("id", "")) == order_id:
 			break
 		y += ORDER_GAP
@@ -1620,26 +1706,92 @@ func _grow_time_text(seconds: int) -> String:
 	return "%d时" % int(round(seconds / 3600.0))
 
 
-## The seed shop: six rows, and on every row the three numbers the red line
-## demands be visible BEFORE any confirm button exists -- what it costs, how
-## long it grows, how many come off. Nothing here is a one-press purchase.
+## Side arrows for a sheet with more rows than glass: the world map's page
+## language shrunk to a panel. Arrows stand OUTSIDE the paper, vertically
+## centred, and only the one that goes somewhere is drawn -- an arrow that
+## shakes its head is a lock wearing a different hat. `flip` receives -1/+1;
+## the caller owns the page variable and the clamp.
+func _pager(origin: Vector2, wide: float, tall: float, page: int,
+		pages: int, flip: Callable) -> void:
+	if pages <= 1:
+		return
+	if page > 0:
+		var back := _chip_button("<", Color(0.99, 0.96, 0.88), Vector2(60, 76))
+		back.position = Vector2(origin.x - 74.0, origin.y + tall * 0.5 - 38.0)
+		back.pressed.connect(func():
+			AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
+			flip.call(-1))
+		_play.add_child(back)
+		if _world != null and is_instance_valid(_world):
+			_world.add_blocker(back)
+		_panel_buttons["page_back"] = back
+	if page < pages - 1:
+		var next := _chip_button(">", Color(0.99, 0.96, 0.88), Vector2(60, 76))
+		next.position = Vector2(origin.x + wide + 14.0,
+			origin.y + tall * 0.5 - 38.0)
+		next.pressed.connect(func():
+			AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
+			flip.call(+1))
+		_play.add_child(next)
+		if _world != null and is_instance_valid(_world):
+			_world.add_blocker(next)
+		_panel_buttons["page_next"] = next
+
+
+## The seed shop: six rows a page, and on every row the three numbers the red
+## line demands be visible BEFORE any confirm button exists -- what it costs,
+## how long it grows, how many come off. Nothing here is a one-press purchase.
+## A seed of a level the farm has not grown to is a dim silhouette with the
+## star badge saying which level -- 圈好的地 on a shelf, never a lock.
 func _shop_panel(view: Vector2) -> void:
 	var wide := 780.0
-	var origin := _panel_sheet(view, "garden.shop_title", wide, 430.0)
+	var tall := 430.0
+	var origin := _panel_sheet(view, "garden.shop_title", wide, tall)
+	var seeds: Array = GameData.farm_seed_shop.get("seeds", [])
+	var pages := int(ceil(seeds.size() / float(PANEL_PAGE)))
+	_shop_page = clampi(_shop_page, 0, maxi(pages - 1, 0))
+	_pager(origin, wide, tall, _shop_page, pages, func(step: int):
+		_shop_page += step
+		_confirm_crop = ""
+		_queue_rebuild())
 	var y := origin.y + 74.0
-	for row in GameData.farm_seed_shop.get("seeds", []):
+	for row in seeds.slice(_shop_page * PANEL_PAGE,
+			(_shop_page + 1) * PANEL_PAGE):
 		var crop_id := str(row.get("crop_id", ""))
 		var crop: Dictionary = GameData.get_crop(crop_id)
 		if crop.is_empty():
 			continue
+		var gated: bool = SeedShop.state_of(crop_id) == "level"
 		var art := UiKit.picture(str(crop.get("icon", "seed")), 44.0)
 		if art != null:
 			art.position = Vector2(origin.x + 30.0, y)
+			if gated:
+				# The silhouette treatment the world map's stones taught:
+				# still THERE, still named, just not grown to yet.
+				art.modulate = Color(1, 1, 1, 0.35)
 			_play.add_child(art)
-		var name_tag := UiKit.title(I18n.t(str(crop.get("name_key", ""))), 24)
+		var name_tag := UiKit.title(I18n.t(str(crop.get("name_key", ""))), 24,
+			Color(0.62, 0.60, 0.56) if gated else Color(0.25, 0.22, 0.18))
 		name_tag.position = Vector2(origin.x + 88.0, y + 8.0)
 		name_tag.size = Vector2(96, 30)
 		_play.add_child(name_tag)
+
+		if gated:
+			# No price, no clock, no chip: a seed the farm has not grown to
+			# has nothing to afford and nothing to miss. The star badge says
+			# which level, the same way the stones over the ninth bed do --
+			# pointing at the badge IS the whole answer.
+			var badge := UiKit.picture("star", 30.0)
+			if badge != null:
+				badge.position = Vector2(origin.x + 200.0, y + 6.0)
+				_play.add_child(badge)
+			var lvl := UiKit.title(str(SeedShop.level_needed(crop_id)), 26,
+				Color(0.62, 0.52, 0.36))
+			lvl.position = Vector2(origin.x + 238.0, y + 7.0)
+			lvl.size = Vector2(44, 30)
+			_play.add_child(lvl)
+			y += 56.0
+			continue
 
 		# The three numbers, always, owned or not: the row is the label on the
 		# shelf, not the receipt.
@@ -2277,15 +2429,23 @@ func _recipe_learned_card(recipe: Dictionary) -> void:
 	t.tween_callback(card.queue_free)
 
 
-## 小熊的菜谱本：一页六道菜。会做的亮着、配料和名字都在；还不会的只留
-## 暗色配料——"去凑齐这些"本身就是答案，和图鉴的剪影一个道理。
+## 小熊的菜谱本：一页六道菜，多了翻页。会做的亮着、配料和名字都在；还不
+## 会的只留暗色配料——"去凑齐这些"本身就是答案，和图鉴的剪影一个道理。
 func _recipes_panel(view: Vector2) -> void:
 	var wide := 640.0
-	var origin := _panel_sheet(view, "garden.recipes_title", wide, 470.0)
+	var tall := 470.0
+	var origin := _panel_sheet(view, "garden.recipes_title", wide, tall)
+	var book: Array = Recipes.all()
+	var pages := int(ceil(book.size() / float(PANEL_PAGE)))
+	_book_page = clampi(_book_page, 0, maxi(pages - 1, 0))
+	_pager(origin, wide, tall, _book_page, pages, func(step: int):
+		_book_page += step
+		_queue_rebuild())
 	# 62 起步、62 一步：和加工小屋同一把尺子——第六行的底边要停在
 	# 16:9 货架的上沿（552）之上，70 的步子会让它钻进货架底下。
 	var y := origin.y + 62.0
-	for recipe in Recipes.all():
+	for recipe in book.slice(_book_page * PANEL_PAGE,
+			(_book_page + 1) * PANEL_PAGE):
 		var known: bool = Recipes.is_unlocked(str(recipe.get("id", "")))
 		var row := Panel.new()
 		row.add_theme_stylebox_override("panel", UiKit.panel_style(
@@ -2328,11 +2488,18 @@ func _recipes_panel(view: Vector2) -> void:
 ## short ingredients get a headshake, never a greyed-out row.
 func _kitchen_panel(view: Vector2) -> void:
 	var wide := 660.0
-	var origin := _panel_sheet(view, "garden.kitchen_title", wide, 470.0)
+	var tall := 470.0
+	var origin := _panel_sheet(view, "garden.kitchen_title", wide, tall)
 	var known: Array = []
 	for recipe in Recipes.all():
 		if Recipes.is_unlocked(str(recipe.get("id", ""))):
 			known.append(recipe)
+	var pages := int(ceil(known.size() / float(PANEL_PAGE)))
+	_kitchen_page = clampi(_kitchen_page, 0, maxi(pages - 1, 0))
+	_pager(origin, wide, tall, _kitchen_page, pages, func(step: int):
+		_kitchen_page += step
+		_confirm_cook = ""
+		_queue_rebuild())
 
 	if known.is_empty():
 		var face := UiKit.picture("picture_book", 84.0)
@@ -2348,11 +2515,12 @@ func _kitchen_panel(view: Vector2) -> void:
 		return
 
 	# 行高 56、步进 62、从 62 起步：16:9 的玻璃在货架上沿（720-168=552）
-	# 就到头了，全部 6 道菜都学会时最后一行的底边得停在它上面——
+	# 就到头了，一页 6 行时最后一行的底边得停在它上面——
 	# 112 + 62 + 5x62 + 56 = 540，留 12px。按 70 一步走，第六行就
 	# 钻到货架底下去了。
 	var y := origin.y + 62.0
-	for recipe in known:
+	for recipe in known.slice(_kitchen_page * PANEL_PAGE,
+			(_kitchen_page + 1) * PANEL_PAGE):
 		var rid := str(recipe.get("id", ""))
 		var row := Panel.new()
 		row.add_theme_stylebox_override("panel",
@@ -2649,9 +2817,11 @@ func _lesson_plot() -> int:
 
 
 ## The first order the barn can pay for and nobody has delivered yet, or "".
+## Reads the BOARD, not the file: a level-gated order is not there to point
+## at, and a finger aimed at a card that is not drawn teaches "the game lies".
 func _an_order_he_can_fill() -> String:
 	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
-	for order in GameData.garden_orders:
+	for order in _orders_for_board(delivered):
 		var order_id := str(order.get("id", ""))
 		if order_id in delivered:
 			continue

@@ -3,48 +3,168 @@
     "id": "strawberry_soup",
     "name_key": "recipe.strawberry_soup",
     "needs": [
-      {"crop_id": "strawberry", "count": 3}
+      {
+        "crop_id": "strawberry",
+        "count": 3
+      }
     ]
   },
   {
     "id": "potato_cakes",
     "name_key": "recipe.potato_cakes",
     "needs": [
-      {"crop_id": "potato", "count": 3}
+      {
+        "crop_id": "potato",
+        "count": 3
+      }
     ]
   },
   {
     "id": "tomato_stew",
     "name_key": "recipe.tomato_stew",
     "needs": [
-      {"crop_id": "tomato", "count": 3},
-      {"crop_id": "carrot", "count": 1}
+      {
+        "crop_id": "tomato",
+        "count": 3
+      },
+      {
+        "crop_id": "carrot",
+        "count": 1
+      }
     ]
   },
   {
     "id": "corn_chowder",
     "name_key": "recipe.corn_chowder",
     "needs": [
-      {"crop_id": "corn", "count": 3},
-      {"crop_id": "potato", "count": 1}
+      {
+        "crop_id": "corn",
+        "count": 3
+      },
+      {
+        "crop_id": "potato",
+        "count": 1
+      }
     ]
   },
   {
     "id": "rainbow_salad",
     "name_key": "recipe.rainbow_salad",
     "needs": [
-      {"crop_id": "lettuce", "count": 2},
-      {"crop_id": "tomato", "count": 2},
-      {"crop_id": "carrot", "count": 1}
+      {
+        "crop_id": "lettuce",
+        "count": 2
+      },
+      {
+        "crop_id": "tomato",
+        "count": 2
+      },
+      {
+        "crop_id": "carrot",
+        "count": 1
+      }
     ]
   },
   {
     "id": "harvest_platter",
     "name_key": "recipe.harvest_platter",
     "needs": [
-      {"crop_id": "carrot", "count": 2},
-      {"crop_id": "corn", "count": 2},
-      {"crop_id": "strawberry", "count": 2}
+      {
+        "crop_id": "carrot",
+        "count": 2
+      },
+      {
+        "crop_id": "corn",
+        "count": 2
+      },
+      {
+        "crop_id": "strawberry",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "id": "pea_soup",
+    "name_key": "recipe.pea_soup",
+    "needs": [
+      {
+        "crop_id": "peas",
+        "count": 3
+      }
+    ]
+  },
+  {
+    "id": "pumpkin_pie",
+    "name_key": "recipe.pumpkin_pie",
+    "needs": [
+      {
+        "crop_id": "pumpkin",
+        "count": 1
+      },
+      {
+        "crop_id": "wheat",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "id": "grape_jam",
+    "name_key": "recipe.grape_jam",
+    "needs": [
+      {
+        "crop_id": "grape",
+        "count": 3
+      }
+    ]
+  },
+  {
+    "id": "fruit_plate",
+    "name_key": "recipe.fruit_plate",
+    "needs": [
+      {
+        "crop_id": "watermelon",
+        "count": 1
+      },
+      {
+        "crop_id": "grape",
+        "count": 2
+      },
+      {
+        "crop_id": "orange",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "apple_pie",
+    "name_key": "recipe.apple_pie",
+    "needs": [
+      {
+        "crop_id": "apple",
+        "count": 2
+      },
+      {
+        "crop_id": "wheat",
+        "count": 2
+      }
+    ]
+  },
+  {
+    "id": "roast_veggies",
+    "name_key": "recipe.roast_veggies",
+    "needs": [
+      {
+        "crop_id": "broccoli",
+        "count": 2
+      },
+      {
+        "crop_id": "potato",
+        "count": 2
+      },
+      {
+        "crop_id": "carrot",
+        "count": 1
+      }
     ]
   }
 ]

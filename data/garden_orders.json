@@ -51,5 +51,89 @@
     },
     "unlock_condition": "",
     "completion_transaction_key": "farm_order_puppy_berries"
+  },
+  {
+    "id": "robot_wheat_run",
+    "customer_id": "robot",
+    "customer_icon": "robot",
+    "name_key": "npc.robot",
+    "requirements": {
+      "wheat": 3,
+      "peas": 2
+    },
+    "rewards": {
+      "coins": 26,
+      "items": {
+        "plank": 1
+      }
+    },
+    "unlock_condition": "level:3",
+    "completion_transaction_key": "farm_order_robot_wheat_run"
+  },
+  {
+    "id": "bear_pumpkin_treat",
+    "customer_id": "bear",
+    "customer_icon": "teddy",
+    "name_key": "npc.bear",
+    "requirements": {
+      "pumpkin": 1,
+      "broccoli": 2
+    },
+    "rewards": {
+      "coins": 40
+    },
+    "unlock_condition": "level:3",
+    "completion_transaction_key": "farm_order_bear_pumpkin_treat"
+  },
+  {
+    "id": "puppy_pea_picnic",
+    "customer_id": "puppy",
+    "customer_icon": "paw",
+    "name_key": "npc.puppy",
+    "requirements": {
+      "peas": 4,
+      "carrot": 2
+    },
+    "rewards": {
+      "coins": 24,
+      "items": {
+        "plank": 1
+      }
+    },
+    "unlock_condition": "level:3",
+    "completion_transaction_key": "farm_order_puppy_pea_picnic"
+  },
+  {
+    "id": "robot_melon_delivery",
+    "customer_id": "robot",
+    "customer_icon": "robot",
+    "name_key": "npc.robot",
+    "requirements": {
+      "watermelon": 1,
+      "grape": 2
+    },
+    "rewards": {
+      "coins": 60
+    },
+    "unlock_condition": "level:5",
+    "completion_transaction_key": "farm_order_robot_melon_delivery"
+  },
+  {
+    "id": "bear_orchard_basket",
+    "customer_id": "bear",
+    "customer_icon": "teddy",
+    "name_key": "npc.bear",
+    "requirements": {
+      "apple": 2,
+      "orange": 1
+    },
+    "rewards": {
+      "coins": 85,
+      "items": {
+        "plank": 1
+      }
+    },
+    "unlock_condition": "level:5",
+    "completion_transaction_key": "farm_order_bear_orchard_basket"
   }
 ]

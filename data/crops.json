@@ -172,5 +172,237 @@
     "harvest_gesture": "cut_stem",
     "tutorial_growth_override": 0,
     "unlock_condition": "shop"
+  },
+  {
+    "id": "peas",
+    "name_key": "crop.peas",
+    "icon": "res://assets/crops/peas.png",
+    "growth_seconds": 2700,
+    "growth_stages": 5,
+    "stage_seconds": [
+      450,
+      629,
+      720,
+      901
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "res://assets/crops/peas.png",
+      "res://assets/crops/peas.png"
+    ],
+    "care_event_types": [
+      "thirsty"
+    ],
+    "care_event_stage": 1,
+    "thirst_seconds": 1800,
+    "harvest_amount": 4,
+    "harvest_gesture": "open_pod",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
+  },
+  {
+    "id": "wheat",
+    "name_key": "crop.wheat",
+    "icon": "res://assets/crops/wheat.png",
+    "growth_seconds": 5400,
+    "growth_stages": 5,
+    "stage_seconds": [
+      901,
+      1258,
+      1441,
+      1800
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "res://assets/crops/wheat.png",
+      "res://assets/crops/wheat.png"
+    ],
+    "care_event_types": [
+      "weeds"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 0,
+    "harvest_amount": 5,
+    "harvest_gesture": "swipe_cut",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
+  },
+  {
+    "id": "broccoli",
+    "name_key": "crop.broccoli",
+    "icon": "res://assets/crops/broccoli.png",
+    "growth_seconds": 9000,
+    "growth_stages": 5,
+    "stage_seconds": [
+      1503,
+      2097,
+      2403,
+      2997
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "res://assets/crops/broccoli.png",
+      "res://assets/crops/broccoli.png"
+    ],
+    "care_event_types": [
+      "thirsty"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 6000,
+    "harvest_amount": 3,
+    "harvest_gesture": "cut_stem",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
+  },
+  {
+    "id": "pumpkin",
+    "name_key": "crop.pumpkin",
+    "icon": "res://assets/crops/pumpkin.png",
+    "growth_seconds": 18000,
+    "growth_stages": 5,
+    "stage_seconds": [
+      3006,
+      4194,
+      4806,
+      5994
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "res://assets/crops/pumpkin.png",
+      "res://assets/crops/pumpkin.png"
+    ],
+    "care_event_types": [
+      "bug"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 0,
+    "harvest_amount": 2,
+    "harvest_gesture": "roll_to_basket",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
+  },
+  {
+    "id": "watermelon",
+    "name_key": "crop.watermelon",
+    "icon": "res://assets/crops/watermelon.png",
+    "growth_seconds": 21600,
+    "growth_stages": 5,
+    "stage_seconds": [
+      3607,
+      5032,
+      5767,
+      7194
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "res://assets/crops/watermelon.png",
+      "res://assets/crops/watermelon.png"
+    ],
+    "care_event_types": [
+      "thirsty"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 14400,
+    "harvest_amount": 2,
+    "harvest_gesture": "roll_to_basket",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
+  },
+  {
+    "id": "grape",
+    "name_key": "crop.grape",
+    "icon": "res://assets/crops/grape.png",
+    "growth_seconds": 32400,
+    "growth_stages": 5,
+    "stage_seconds": [
+      5410,
+      7549,
+      8650,
+      10791
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "res://assets/crops/grape.png",
+      "res://assets/crops/grape.png"
+    ],
+    "care_event_types": [
+      "bug"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 0,
+    "harvest_amount": 4,
+    "harvest_gesture": "cut_cluster",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
+  },
+  {
+    "id": "orange",
+    "name_key": "crop.orange",
+    "icon": "res://assets/crops/orange.png",
+    "growth_seconds": 43200,
+    "growth_stages": 5,
+    "stage_seconds": [
+      7214,
+      10065,
+      11534,
+      14387
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "res://assets/crops/orange.png",
+      "res://assets/crops/orange.png"
+    ],
+    "care_event_types": [
+      "thirsty"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 28800,
+    "harvest_amount": 3,
+    "harvest_gesture": "twist",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
+  },
+  {
+    "id": "apple",
+    "name_key": "crop.apple",
+    "icon": "res://assets/crops/apple.png",
+    "growth_seconds": 57600,
+    "growth_stages": 5,
+    "stage_seconds": [
+      9619,
+      13420,
+      15379,
+      19182
+    ],
+    "growth_assets": [
+      "seed",
+      "sprout",
+      "sprout",
+      "res://assets/crops/apple.png",
+      "res://assets/crops/apple.png"
+    ],
+    "care_event_types": [
+      "weeds"
+    ],
+    "care_event_stage": 2,
+    "thirst_seconds": 0,
+    "harvest_amount": 3,
+    "harvest_gesture": "shake_tree",
+    "tutorial_growth_override": 0,
+    "unlock_condition": "shop"
   }
 ]

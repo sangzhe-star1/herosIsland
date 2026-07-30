@@ -27,10 +27,17 @@ extends RefCounted
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Level := preload("res://scripts/garden/farm_level_manager.gd")
 
 
 static func price_of(crop_id: String) -> int:
 	return maxi(0, int(GameData.seed_listing(crop_id).get("price", 0)))
+
+
+## Which farm level this seed asks the farm to have grown to. Data, with 1 as
+## the silent default so the six original rows did not have to change.
+static func level_needed(crop_id: String) -> int:
+	return maxi(1, int(GameData.seed_listing(crop_id).get("level", 1)))
 
 
 static func owns(crop_id: String) -> bool:
@@ -38,14 +45,19 @@ static func owns(crop_id: String) -> bool:
 
 
 ## What the shop would say about this row: "owned" | "free" | "buyable" |
-## "poor" | "unknown". Recomputed every time it is asked -- the hero house
-## learned the hard way that a cached copy of this table goes stale.
+## "poor" | "level" | "unknown". Recomputed every time it is asked -- the hero
+## house learned the hard way that a cached copy of this table goes stale.
+##
+## "level" outranks money on purpose: a seed the farm has not grown to is
+## 圈好的地 -- it has no price yet, so it can be neither afforded nor missed.
 static func state_of(crop_id: String) -> String:
 	if GameData.get_crop(crop_id).is_empty() \
 			or GameData.seed_listing(crop_id).is_empty():
 		return "unknown"
 	if owns(crop_id):
 		return "owned"
+	if Level.level() < level_needed(crop_id):
+		return "level"
 	var price := price_of(crop_id)
 	if price <= 0:
 		# On the shelf, free, and somehow not owned -- a save from before this
@@ -64,6 +76,10 @@ static func buy(crop_id: String) -> String:
 			return "owned"
 		"poor":
 			return "poor"
+		"level":
+			# However it was called. The screen never offers this button, but
+			# a refusal that lives only in the screen is not a refusal.
+			return "level"
 	# Money first, and Coins.spend refuses and changes NOTHING when it cannot
 	# pay -- so a caller that forgot to check can still not overdraw.
 	if not Coins.spend(price_of(crop_id)):

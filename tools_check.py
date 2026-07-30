@@ -689,7 +689,19 @@ if os.path.exists("data/crops.json"):
         if str(crop.get("name_key", "")) == "":
             errors.append(f"crops.json: crop '{cid}' has no name_key")
         icon = str(crop.get("icon", ""))
-        if icon != "" and icon not in crop_icon_names:
+        # UiKit.picture takes either a drawable name or a res:// path (the
+        # farm's bug icon set the precedent). A path passes iff the file is
+        # really on disk OR its basename is drawable -- the same fallback the
+        # runtime applies, so this rule and the screen agree on what renders.
+        if icon.startswith("res://"):
+            _p = icon[len("res://"):]
+            if not os.path.exists(_p) \
+                    and _p.split("/")[-1].rsplit(".", 1)[0] not in crop_icon_names:
+                errors.append(f"crops.json: crop '{cid}' asks for art '{icon}' "
+                              f"that is not on disk, and IconLibrary cannot "
+                              f"draw its name either -- it would render as "
+                              f"nothing at all")
+        elif icon != "" and icon not in crop_icon_names:
             errors.append(f"crops.json: crop '{cid}' asks for icon '{icon}', "
                           f"which IconLibrary cannot draw -- it would render as "
                           f"nothing at all")

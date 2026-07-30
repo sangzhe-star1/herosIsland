@@ -31,7 +31,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 216
+const CHECKS_EXPECTED := 256
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -93,6 +93,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_decorating_door_and_its_furniture()
 	await _the_bear_teaches_once_and_it_sticks()
 	await _the_kitchen_asks_before_ingredients_leave()
+	await _fourteen_seeds_take_turns()
 
 	_close()
 
@@ -388,19 +389,41 @@ func _the_bear_teaches_once_and_it_sticks() -> void:
 		"unlocking a recipe took the strawberries -- collecting must never "
 		+ "confiscate the harvest it praises")
 
-	# 菜谱本面板：知道的亮着，不知道的只有暗配料
+	# 菜谱本面板：知道的亮着，不知道的只有暗配料。十二道菜翻两页，
+	# 每一页的行数和翻完见到的总数都要对上——一页 6 行不是"只有 6 道"。
 	_garden.call("_open_panel", "recipes")
 	await get_tree().process_frame
 	await get_tree().process_frame
+	var total := GameData.garden_recipes.size()
+	var seen := 0
+	var pages_walked := 0
+	while true:
+		pages_walked += 1
+		var rows := _recipe_rows()
+		_ok(rows == mini(6, total - seen),
+			"page %d of the recipe book shows %d rows, wanted %d"
+			% [pages_walked, rows, mini(6, total - seen)])
+		seen += rows
+		var next: Variant = (_garden.get("_panel_buttons") as Dictionary)\
+			.get("page_next")
+		if not (next is Button) or pages_walked > 8:
+			break
+		(next as Button).pressed.emit()
+		await get_tree().process_frame
+		await get_tree().process_frame
+	_ok(seen == total,
+		"flipping to the end of the book met %d recipes of %d" % [seen, total])
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+
+## Count the recipe rows standing on the sheet right now.
+func _recipe_rows() -> int:
 	var rows := 0
 	for child in (_garden.get("_play") as Node).get_children():
 		if child is Panel and (child as Panel).size == Vector2(640.0 - 48.0, 56.0):
 			rows += 1
-	_ok(rows == GameData.garden_recipes.size(),
-		"the recipe book shows %d rows for %d recipes"
-		% [rows, GameData.garden_recipes.size()])
-	_garden.call("_close_panels")
-	await get_tree().process_frame
+	return rows
 
 
 ## 二期阶段 1：装饰间的门开在菜园里，摆好的东西回来还在，且咬不到手指。
@@ -577,6 +600,192 @@ func _the_kitchen_asks_before_ingredients_leave() -> void:
 	await get_tree().process_frame
 
 
+## 三期阶段 2：十四种种子轮流站上货架。货架翻页翻到的种子拖出去真能种；
+## 种子铺没长到的排是暗剪影加星章（连能按的芽都没有——按不了的买 chip
+## 是戴着笑脸的锁）；厨房学到第七道菜时也翻页；订单板只挂长到了的活，
+## 先挂没干完的，干完的回执垫空位，永远三张。
+func _fourteen_seeds_take_turns() -> void:
+	var farm: Dictionary = SaveManager.data["farm"]
+	var everything := ["carrot", "corn", "strawberry", "tomato", "lettuce",
+		"potato", "peas", "wheat", "broccoli", "pumpkin", "watermelon",
+		"grape", "orange", "apple"]
+	farm["farm_xp"] = 200
+	farm["unlocked_crops"] = everything.duplicate()
+	SaveManager.data["rewards"]["coins"] = 500
+	SaveManager.save_game()
+	_garden.call("_close_panels")
+	# The kitchen section walked the camera to the workshop; the drag below
+	# aims at bed 0, so walk home first the way the screen itself would.
+	(_garden.get("_world") as Node).call("go_home")
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+	# 货架第一页：七块整整齐齐，向右的箭头站在第八块的位置上。
+	_ok(_rack_tiles() == 7, "page one of the rack holds seven tiles")
+	var buttons: Dictionary = _garden.get("_panel_buttons")
+	_ok(not (buttons.get("rack_back") is Button),
+		"no back arrow on the first page -- an arrow that shakes its head "
+		+ "is a lock")
+	var next: Variant = buttons.get("rack_next")
+	_ok(next is Button, "fourteen crops give the rack a next arrow")
+
+	# 翻到第二页，把第二页的第一颗（小麦）真的拖进地里。
+	if next is Button:
+		(next as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+		_ok(_rack_tiles() == 7, "page two holds the other seven")
+		_ok((_garden.get("_panel_buttons") as Dictionary).get("rack_back")
+			is Button, "and now there is a way back")
+		var plots := _plots()
+		plots[0]["state"] = Farm.TILLED
+		plots[0]["crop_id"] = ""
+		SaveManager.save_game()
+		_garden.call("_rebuild")
+		await get_tree().process_frame
+		await _finger(_seed_tile(0), _bed(0))
+		_ok(str(_plots()[0].get("crop_id", "")) == "wheat",
+			"a seed dragged off page two lands in the bed like any seed")
+
+	# 种子铺：2 级农场翻到第二页，没长到的排上一个能按的芽都没有。
+	farm = SaveManager.data["farm"]
+	farm["unlocked_crops"] = ["carrot", "corn", "strawberry", "tomato",
+		"lettuce", "potato"]
+	farm["farm_xp"] = 20
+	SaveManager.save_game()
+	_garden.call("_open_panel", "shop")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	buttons = _garden.get("_panel_buttons")
+	var flip: Variant = buttons.get("page_next")
+	_ok(flip is Button, "fourteen seeds give the shop a second page")
+	if flip is Button:
+		(flip as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+		_ok(_buy_chip_count() == 0,
+			"at level 2 the whole second page is quiet ground -- not one "
+			+ "buy chip on a seed the farm has not grown to")
+
+	# 3 级：这一批开卖，下一批还站着。
+	SaveManager.data["farm"]["farm_xp"] = 60
+	_garden.call("_open_panel", "shop")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	buttons = _garden.get("_panel_buttons")
+	if buttons.get("page_next") is Button:
+		(buttons.get("page_next") as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+	buttons = _garden.get("_panel_buttons")
+	_ok(buttons.get("buy_peas") is Button,
+		"at level 3 the peas grow a buy chip")
+	_ok(not (buttons.get("buy_watermelon") is Button),
+		"and the watermelon still waits for level 5")
+
+	# 5 级：果园开门。
+	SaveManager.data["farm"]["farm_xp"] = 200
+	_garden.call("_open_panel", "shop")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	buttons = _garden.get("_panel_buttons")
+	if buttons.get("page_next") is Button:
+		(buttons.get("page_next") as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+	buttons = _garden.get("_panel_buttons")
+	_ok(buttons.get("buy_watermelon") is Button,
+		"level 5 lets the watermelon onto the counter")
+
+	# 厨房：会做第七道菜的那天，锅台也学会翻页。
+	SaveManager.data["farm"]["unlocked_recipes"] = ["strawberry_soup",
+		"potato_cakes", "tomato_stew", "corn_chowder", "rainbow_salad",
+		"harvest_platter", "pea_soup"]
+	_garden.call("_open_panel", "kitchen")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	buttons = _garden.get("_panel_buttons")
+	_ok(buttons.get("page_next") is Button,
+		"seven known dishes give the kitchen a second page")
+	if buttons.get("page_next") is Button:
+		(buttons.get("page_next") as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+		buttons = _garden.get("_panel_buttons")
+		_ok(buttons.get("cook_pea_soup") is Button,
+			"and the seventh dish has its cook chip on page two")
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+	# 订单板：长到了才挂出来，没干完的先挂，回执垫空位，永远三张。
+	SaveManager.data["farm"]["farm_xp"] = 0
+	var board: Array = _garden.call("_orders_for_board", [])
+	_ok(board.size() == 3 and _board_ids(board) == ["bear_carrots",
+		"robot_supply", "puppy_berries"],
+		"at level 1 the board hangs exactly the three first orders")
+	SaveManager.data["farm"]["farm_xp"] = 60
+	board = _garden.call("_orders_for_board",
+		["bear_carrots", "robot_supply", "puppy_berries"])
+	_ok(_board_ids(board) == ["robot_wheat_run", "bear_pumpkin_treat",
+		"puppy_pea_picnic"],
+		"level 3 work replaces finished work, oldest receipts leave first")
+	var all_l3 := ["bear_carrots", "robot_supply", "puppy_berries",
+		"robot_wheat_run", "bear_pumpkin_treat", "puppy_pea_picnic"]
+	board = _garden.call("_orders_for_board", all_l3)
+	# 不只数张数：3 级农场干完了 3 级的活，板上必须是回执，不许有
+	# 5 级的活提前挂出来——只数 size 的话，等级门被拆了这里照样绿。
+	var receipts_only := board.size() == 3
+	for entry in board:
+		if not (str((entry as Dictionary).get("id", "")) in all_l3):
+			receipts_only = false
+	_ok(receipts_only,
+		"a level-3 board with nothing left to do shows receipts, "
+		+ "never level-5 work ahead of its level")
+	SaveManager.data["farm"]["farm_xp"] = 200
+	board = _garden.call("_orders_for_board", ["bear_carrots", "robot_supply",
+		"puppy_berries", "robot_wheat_run", "bear_pumpkin_treat",
+		"puppy_pea_picnic"])
+	_ok(_board_ids(board).slice(0, 2) == ["robot_melon_delivery",
+		"bear_orchard_basket"],
+		"level 5 hangs the orchard orders the day the orchard opens")
+
+	# 真的画出来也一样多：开一次板子数卡片。
+	_garden.call("_open_panel", "orders")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var cards: Array = []
+	_collect_order_cards(_garden, cards)
+	_ok(cards.size() == 3, "the drawn board holds exactly three cards")
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+
+## Seed tiles standing on the rack right now, counted by their exact size.
+func _rack_tiles() -> int:
+	var found := 0
+	for child in (_garden.get("_play") as Node).get_children():
+		if child is Button and (child as Button).flat \
+				and (child as Button).size == Vector2(96, 72):
+			found += 1
+	return found
+
+
+## Buy chips standing in the shop right now.
+func _buy_chip_count() -> int:
+	var found := 0
+	for key in (_garden.get("_panel_buttons") as Dictionary).keys():
+		if str(key).begins_with("buy_"):
+			found += 1
+	return found
+
+
+func _board_ids(board: Array) -> Array:
+	var ids: Array = []
+	for order in board:
+		ids.append(str((order as Dictionary).get("id", "")))
+	return ids
+
+
 func _find_named(node: Node, wanted: String) -> Node:
 	if node.name == wanted:
 		return node
@@ -747,11 +956,17 @@ func _open_the_board() -> void:
 	await get_tree().process_frame
 
 
-## The card for one order, found by where the board puts it.
+## The card for one order, found by where the board puts it. Walks the same
+## _orders_for_board the screen draws from -- the board no longer mirrors the
+## file (level gates, pending-first, receipts pad), so an index into the file
+## would find the wrong card the moment any of that mattered.
 func _order_card(order_id: String) -> Button:
+	var delivered: Array = SaveManager.data.get("farm_orders", {})\
+		.get("delivered", [])
+	var board: Array = _garden.call("_orders_for_board", delivered)
 	var index := -1
-	for i in range(GameData.garden_orders.size()):
-		if str(GameData.garden_orders[i].get("id", "")) == order_id:
+	for i in range(board.size()):
+		if str((board[i] as Dictionary).get("id", "")) == order_id:
 			index = i
 			break
 	if index < 0:

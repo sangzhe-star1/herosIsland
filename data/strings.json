@@ -759,7 +759,13 @@
         "garden.cook_one": "Cook one",
         "garden.give_bear": "Give to the bear",
         "garden.dish_thanks": "The bear ate every last bite -- his eyes lit right up!",
-        "garden.kitchen_empty": "Collect a recipe first -- the bear's recipe book is waiting in the barn."
+        "garden.kitchen_empty": "Collect a recipe first -- the bear's recipe book is waiting in the barn.",
+        "recipe.pea_soup": "Pea Soup",
+        "recipe.pumpkin_pie": "Pumpkin Pie",
+        "recipe.grape_jam": "Grape Jam",
+        "recipe.fruit_plate": "Fruit Plate",
+        "recipe.apple_pie": "Apple Pie",
+        "recipe.roast_veggies": "Roasted Veggies"
     },
     "zh": {
         "adventure.again": "再来一次，你可以的！",
@@ -1521,6 +1527,12 @@
         "garden.cook_one": "做一份",
         "garden.give_bear": "送给小熊",
         "garden.dish_thanks": "小熊把菜吃得干干净净，眼睛都亮了！",
-        "garden.kitchen_empty": "先去凑齐一道菜谱，小熊的菜谱本在仓库里等你。"
+        "garden.kitchen_empty": "先去凑齐一道菜谱，小熊的菜谱本在仓库里等你。",
+        "recipe.pea_soup": "豌豆汤",
+        "recipe.pumpkin_pie": "南瓜派",
+        "recipe.grape_jam": "葡萄果酱",
+        "recipe.fruit_plate": "水果拼盘",
+        "recipe.apple_pie": "苹果甜派",
+        "recipe.roast_veggies": "田园烤蔬菜"
     }
 }
