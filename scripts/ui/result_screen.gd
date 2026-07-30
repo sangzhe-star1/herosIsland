@@ -142,8 +142,16 @@ func _ready() -> void:
 	again.pressed.connect(func(): GameManager.start_level(GameManager.current_level_id))
 	buttons.add_child(again)
 
+	# Back to wherever this level's door was, not "back to the map" on faith.
+	# The eight 丰收 challenges are entered through a door INSIDE the garden;
+	# this button used to answer with the island, which is neither where he
+	# came from nor -- since the garden left the map -- somewhere the garden
+	# can be found. Same helper the in-level exit uses, so the two doors out
+	# of one level can never disagree.
 	var to_map := UiKit.big_button(I18n.t("result.back_to_map"), Palette.BLUE)
-	to_map.pressed.connect(func(): SceneManager.goto_world_map())
+	var level_data: Dictionary = GameData.get_level(GameManager.current_level_id)
+	to_map.pressed.connect(func():
+		LevelManager.go_out_the_way_he_came_in(level_data))
 	buttons.add_child(to_map)
 
 	if next_id == "":

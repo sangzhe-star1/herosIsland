@@ -31,7 +31,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 268
+const CHECKS_EXPECTED := 352
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -858,22 +858,150 @@ func _there_is_a_way_out() -> void:
 	_ok(back.pressed.get_connections().size() > 0,
 		"...and pressing it does something")
 
-	# And it leads HOME, by data. 验收单第 16 条按原文落地（2026-07-29
-	# Zane 拍板）：出口写在 star_garden.config.exit_room 里，必须指向一个
-	# 真实存在、场景也真的在的房间。指错了代码会安静地退回世界地图——
-	# 孩子出得去，但验收就名存实亡了，所以这里盯着数据本身。
-	var exit_room := str(GameData.get_level("star_garden")\
-		.get("config", {}).get("exit_room", ""))
-	_ok(exit_room != "", "star_garden has no exit_room -- acceptance #16 says "
-		+ "the garden goes home to 英雄基地, and nothing says where home is")
-	if exit_room != "":
-		var room := GameData.get_level(exit_room)
-		_ok(not room.is_empty() and bool(room.get("room", false)),
-			"exit_room '%s' is not a room the game knows" % exit_room)
-		var scene := GameData.get_minigame_scene(str(room.get("game_type", "")))
-		_ok(scene != "" and ResourceLoader.exists(scene),
-			"exit_room '%s' has no scene to arrive in" % exit_room)
+	await _the_way_out_leads_where_he_came_from()
+	await _the_back_button_shuts_the_paper_first()
+	await _the_panel_has_a_visible_way_out()
 	await get_tree().process_frame
+
+
+## Where "out" goes, by data. 验收单第 16 条 2026-07-30 结案。
+##
+## Two attempts failed the same way before this one. 7-29: exit to 英雄基地 --
+## the only "come from the map, do not go back to the map" door in the game,
+## and the base had no back button of its own. 7-30 morning: exit to the world
+## map like the other 34 levels -- still lost, because he does not ARRIVE from
+## the island. He arrives from the card on the home screen.
+##
+## So the garden is off the island entirely (`mode`, which is what
+## get_levels_for_world filters on) and its exit is the home screen. One rule:
+## 从哪进就从哪出.
+func _the_way_out_leads_where_he_came_from() -> void:
+	var garden := GameData.get_level("star_garden")
+	var config: Dictionary = garden.get("config", {})
+
+	_ok(str(garden.get("mode", "")) != "",
+		"star_garden 没有 mode —— 它会重新出现在成长岛上，而它的门在首页。"
+		+ "两个入口一个出口，孩子从卡片进、从岛上出（2026-07-30 拿掉的）")
+
+	var on_the_island := false
+	for level in GameData.get_levels_for_world(str(garden.get("world", ""))):
+		if str(level.get("id", "")) == "star_garden":
+			on_the_island = true
+	_ok(not on_the_island,
+		"菜园又出现在 sunny_park 的地图关卡里了 —— 岛上会画出它的图钉")
+
+	_ok(str(config.get("exit_to", "")) == "home",
+		"star_garden.config.exit_to 是 '%s'，不是 'home' —— "
+		% str(config.get("exit_to", ""))
+		+ "他从首页那张卡片进来的，退出就该回首页")
+	_ok(str(config.get("exit_room", "")) == "",
+		"star_garden 同时配了 exit_room '%s'，它会盖过 exit_to"
+		% str(config.get("exit_room", "")))
+
+	# 丰收八关的门开在菜园里，所以它们回菜园。同一条规则的第二个例子——写在
+	# 这里是因为一条只有一个例子的规则，读起来像一个特例。
+	var harvest := GameData.get_levels_for_mode("harvest")
+	_ok(harvest.size() > 0, "丰收模式一关都没有了")
+	for level in harvest:
+		_ok(str(level.get("config", {}).get("exit_room", "")) == "star_garden",
+			"丰收关 '%s' 退出后不回菜园 —— 它的门开在菜园里，"
+			% str(level.get("id", "")) + "而菜园已经不在岛上了")
+	await get_tree().process_frame
+
+
+## The back button, with a sheet of paper over the farm.
+##
+## This is the one he actually pressed. With the market open there are two
+## exits on the glass, and the big dark one in the corner used to mean "throw
+## away the whole garden". A six-year-old presses the one he can see.
+func _the_back_button_shuts_the_paper_first() -> void:
+	_garden.call("_open_panel", "market")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(bool(_garden.get("_market_open")),
+		"the market did not open, so the rest of this proves nothing")
+
+	var back := _find_back_button(_garden)
+	if back == null:
+		_ok(false, "the back button vanished when the market opened")
+		return
+	back.emit_signal("pressed")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	_ok(is_instance_valid(_garden) and _garden.is_inside_tree(),
+		"按返回键把整个菜园退掉了 —— 市场开着的时候，那一按应该只是关掉市场。"
+		+ "他会按这个键，因为它是屏幕上最大最显眼的那个，而不是因为他想走")
+	_ok(not bool(_garden.get("_market_open")),
+		"...and the market is shut afterwards")
+	# Re-found, not reused: closing the panel rebuilds the screen, so the
+	# button pressed a moment ago is a freed object by now. Reading `back`
+	# here faults, and a probe that faults skips the rest of its own checks
+	# and still prints PASSED -- which is what this line did on its first run.
+	var back_again := _find_back_button(_garden)
+	_ok(back_again != null
+			and back_again.pressed.get_connections().size() > 0,
+		"...and the button is still there and still wired for the second "
+		+ "press, which is the one that does leave")
+
+
+## The panel's own close button, measured rather than eyeballed.
+##
+## It shipped at 1.11:1 against its own fill AND against the paper behind it.
+## Screenshots existed; nobody could see it in them either. 3:1 is the floor
+## for a control a child is expected to find.
+func _the_panel_has_a_visible_way_out() -> void:
+	_garden.call("_open_panel", "market")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var shut := _find_button_labelled(_garden, "X")
+	_ok(shut != null, "the market panel has no close button of its own")
+	if shut == null:
+		_garden.call("_close_panels")
+		return
+
+	_ok(shut.size.x >= 60.0 and shut.size.y >= 60.0,
+		"面板的关闭键 %.0fx%.0f，比拇指小" % [shut.size.x, shut.size.y])
+
+	var box := shut.get_theme_stylebox("normal")
+	var fill: Color = box.bg_color if box is StyleBoxFlat else Color(1, 1, 1)
+	var glyph := shut.get_theme_color("font_color")
+	var paper := Color(0.99, 0.97, 0.90)  # _panel_sheet's own paper
+	_ok(_contrast(glyph, fill) >= 3.0,
+		"关闭键的字和它自己的底色对比度只有 %.2f:1 —— 看不见的出口等于没有出口"
+		% _contrast(glyph, fill))
+	_ok(_contrast(fill, paper) >= 3.0,
+		"关闭键的底色和面板的纸对比度只有 %.2f:1 —— 按钮和纸糊在一起，找不到边"
+		% _contrast(fill, paper))
+
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+
+## WCAG relative luminance, so "can he see it" is a number and not an opinion.
+func _contrast(a: Color, b: Color) -> float:
+	var la := _luminance(a)
+	var lb := _luminance(b)
+	return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+func _luminance(c: Color) -> float:
+	var parts := [c.r, c.g, c.b]
+	var out := []
+	for v in parts:
+		out.append(v / 12.92 if v <= 0.03928 else pow((v + 0.055) / 1.055, 2.4))
+	return 0.2126 * out[0] + 0.7152 * out[1] + 0.0722 * out[2]
+
+
+func _find_button_labelled(node: Node, label: String) -> Button:
+	for child in node.get_children():
+		if child is Button and str(child.text) == label:
+			return child
+		var found := _find_button_labelled(child, label)
+		if found != null:
+			return found
+	return null
 
 
 func _seed_tile(index: int) -> Vector2:

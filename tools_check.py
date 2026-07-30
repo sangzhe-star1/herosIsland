@@ -763,6 +763,47 @@ if os.path.exists("data/garden_orders.json"):
             errors.append(f"garden_orders.json: order '{oid}' asks for icon "
                           f"'{icon}', which IconLibrary cannot draw")
 
+# --- 5o. a level that is not on the island has to say where its exit goes
+#
+# quit_level() falls back to the world map, which is the right answer for the
+# 34 levels whose door IS a pin on the island. For anything with a `mode` the
+# fallback is a lie: the level is not drawn on that map, so "back" delivers a
+# child somewhere he has never been, to look for a door that is not there.
+#
+# Cost twice in one day. 丰收行动's eight challenges are opened from a button
+# inside the garden and landed him on the island. 星光菜园 itself is opened
+# from a card on the home screen and did the same -- and once the garden came
+# off the map, the island it returned to no longer even contained it.
+#
+# Either field answers it: exit_room names another level, exit_to names a
+# screen that is not a level ("home").
+for level in levels:
+    if str(level.get("mode", "")) == "":
+        continue
+    config = level.get("config", {})
+    if str(config.get("exit_room", "")) or str(config.get("exit_to", "")):
+        continue
+    errors.append(
+        f"levels.json: '{level.get('id', '?')}' has mode "
+        f"'{level.get('mode')}', so it is NOT drawn on the island -- but it "
+        f"says nothing about where its exit goes, and the fallback is the "
+        f"world map. He presses 返回 and lands on an island this level is not "
+        f"on. Give it config.exit_room (another level) or config.exit_to "
+        f"(\"home\")")
+
+# Every exit that names a room must name one that exists, or the fallback
+# quietly swallows the intent: the child still gets out, and the destination
+# somebody wrote down never happens.
+by_id = {str(l.get("id", "")): l for l in levels}
+for level in levels:
+    room_id = str(level.get("config", {}).get("exit_room", ""))
+    if room_id and room_id not in by_id:
+        errors.append(
+            f"levels.json: '{level.get('id', '?')}' exits to '{room_id}', "
+            f"which is not a level. The code falls back to the world map, so "
+            f"this reads as working and silently goes somewhere else")
+
+
 # --- 5p. a room says it is a room, and nobody names one by hand
 #
 # "Is this world finished" and "how much of the island is left" both have to

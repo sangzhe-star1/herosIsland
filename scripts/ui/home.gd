@@ -237,11 +237,14 @@ func _build_cards() -> void:
 			"motion": "turn", "go": func(): _goto("res://scenes/reward/RewardCenter.tscn")},
 		{"key": "home.house", "icon": "house", "color": Palette.PURPLE,
 			"motion": "bob", "go": func(): _goto("res://scenes/shop/HeroHouseScreen.tscn")},
-		# The farm's front door, beside the world-map room that also leads
-		# there. Two entrances to one garden is not a duplicate: the map
-		# entrance tells the story ("your room on the island"), this one
-		# answers the child who opened the game TO water his carrots and
-		# should not have to walk the island to do it.
+		# The farm's front door, and since 2026-07-30 its ONLY door.
+		#
+		# The garden used to ALSO be a room on the island, which made "退出" a
+		# question with no right answer: back to a map he may never have seen,
+		# or back to here? It answered "the map", and the child who came in
+		# through this card landed somewhere he had not been. The garden is off
+		# the island now (mode: standalone in levels.json) and its way out is
+		# this screen -- 从哪进就从哪出，全游戏一条规则。
 		{"key": "home.garden", "icon": "carrot", "color": Palette.RED,
 			"motion": "sprout", "go": func(): _on_garden()},
 	]

@@ -33,6 +33,7 @@ func _ready() -> void:
 	var out: Array[String] = []
 	out.append_array(_two_rooms_two_shelves())
 	out.append_array(await _the_garden_room_is_its_own_room())
+	out.append_array(await _both_rooms_have_an_arrow_out())
 	# A Mac (16:9) and an iPad (4:3). "expand" gives the second one a taller
 	# viewport, which is the whole reason this runs twice.
 	out.append_array(await _drag_on_a("Mac", Vector2i(1280, 720)))
@@ -71,6 +72,68 @@ func _the_garden_room_is_its_own_room() -> Array[String]:
 	room.queue_free()
 	await get_tree().process_frame
 	print("  the garden room keeps its own shelf and leaves the lamp home")
+	return out
+
+
+## Both creative rooms need the arrow, not just the green button.
+##
+## The room shipped with one door: 「做好了！」. The reasoning written above it
+## was "leaving is finishing, there is nothing here to abandon" -- true only
+## while the only way IN was choosing to come. On 2026-07-30 the garden was
+## ejecting him in here on a mis-press, and the one way out was a green button
+## congratulating him for something he never started. A child who cannot read
+## was stuck in a room he never chose.
+##
+## Also asserts the arrow does not throw away his stickers: the room saves on
+## every drop, and the arrow saves again before it goes.
+func _both_rooms_have_an_arrow_out() -> Array[String]:
+	var out: Array[String] = []
+	for level_id in ["hero_studio", "garden_deco"]:
+		DirAccess.remove_absolute(SaveManager.SAVE_PATH)
+		DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
+		SaveManager.load_game()
+		GameManager.current_level_id = level_id
+		var room: Node = load(GameData.get_minigame_scene("creative_play")).instantiate()
+		add_child(room)
+		for i in range(4):
+			await get_tree().process_frame
+
+		var arrow: Button = null
+		for child in (room.get("_hud") as Node).get_children():
+			if child is Button and (child as Button).text == "<":
+				arrow = child
+		if arrow == null:
+			out.append("%s 没有返回键 —— 唯一的门是「做好了！」，" % level_id
+				+ "一个不识字的孩子被弹进来之后出不去")
+		else:
+			if not arrow.visible or arrow.size.x < 60.0 or arrow.size.y < 60.0:
+				out.append("%s 的返回键 %.0fx%.0f，比拇指小"
+					% [level_id, arrow.size.x, arrow.size.y])
+			if arrow.pressed.get_connections().size() == 0:
+				out.append("%s 的返回键没接任何东西 —— 按下去什么都不会发生"
+					% level_id)
+			# Nothing that can take a press may sit on top of it. The lamp used
+			# to start at exactly the x the arrow now does -- putting the arrow
+			# in without moving the lamp would have given him two buttons in
+			# one place and no way to tell which he hit. The full-rect tray is
+			# skipped on purpose: MOUSE_FILTER_IGNORE means it cannot take the
+			# press, so overlapping it is not a collision.
+			for child in (room.get("_hud") as Node).get_children():
+				if child == arrow or not (child is Control):
+					continue
+				var other := child as Control
+				if not other.visible \
+						or other.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+					continue
+				if Rect2(arrow.position, arrow.size)\
+						.intersects(Rect2(other.position, other.size)):
+					out.append("%s 的返回键被 '%s' 压住了 —— 两个按钮叠在一格里"
+						% [level_id,
+						(other as Button).text if other is Button else other.name])
+		room.queue_free()
+		await get_tree().process_frame
+	print("  both creative rooms have an arrow out: %s"
+		% ("ok" if out.is_empty() else "BROKEN"))
 	return out
 
 

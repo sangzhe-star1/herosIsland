@@ -959,6 +959,7 @@
   {
     "id": "star_garden",
     "world": "sunny_park",
+    "mode": "standalone",
     "name_key": "level.star_garden",
     "game_type": "garden",
     "room": true,
@@ -969,7 +970,7 @@
       "badge": ""
     },
     "config": {
-      "exit_room": "hero_studio",
+      "exit_to": "home",
       "deco_room": "garden_deco"
     }
   },
@@ -1042,7 +1043,8 @@
           "crop_id": "carrot",
           "count": 5
         }
-      ]
+      ],
+      "exit_room": "star_garden"
     },
     "mode": "harvest"
   },
@@ -1114,7 +1116,8 @@
           ],
           "sample": "res://assets/crops/tomato.png"
         }
-      ]
+      ],
+      "exit_room": "star_garden"
     },
     "mode": "harvest"
   },
@@ -1154,7 +1157,8 @@
           "crop_id": "corn",
           "count": 4
         }
-      ]
+      ],
+      "exit_room": "star_garden"
     },
     "mode": "harvest"
   },
@@ -1194,7 +1198,8 @@
           "crop_id": "potato",
           "count": 6
         }
-      ]
+      ],
+      "exit_room": "star_garden"
     },
     "mode": "harvest"
   },
@@ -1261,7 +1266,8 @@
           ],
           "sample": "res://assets/crops/orange.png"
         }
-      ]
+      ],
+      "exit_room": "star_garden"
     },
     "mode": "harvest"
   },
@@ -1301,7 +1307,8 @@
           "crop_id": "peas",
           "count": 9
         }
-      ]
+      ],
+      "exit_room": "star_garden"
     },
     "mode": "harvest"
   },
@@ -1419,7 +1426,8 @@
             }
           ]
         }
-      ]
+      ],
+      "exit_room": "star_garden"
     },
     "mode": "harvest"
   },
@@ -1560,7 +1568,8 @@
           "tag": "golden",
           "basket": "gift"
         }
-      ]
+      ],
+      "exit_room": "star_garden"
     },
     "mode": "harvest"
   },

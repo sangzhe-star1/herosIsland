@@ -398,7 +398,7 @@ func _top_bar(view: Vector2) -> void:
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play.add_child(strip)
 
-	var back := UiKit.back_button(func(): quit_level())
+	var back := UiKit.back_button(func(): _one_step_back())
 	back.position = Vector2(26, 22)
 	_play.add_child(back)
 
@@ -605,6 +605,34 @@ func _close_panels() -> void:
 	_confirm_upgrade = false
 	_market_sell = {}
 	_queue_rebuild()
+
+
+## Is there a sheet of paper over the farm right now?
+##
+## Reads the same seven flags `_open_panel` writes, plus the expand card --
+## that one is drawn OUTSIDE the elif chain, so it can be the only thing on
+## top of the farm and would otherwise not count as "something is open".
+func _something_is_open() -> bool:
+	return _orders_open or _shop_open or _market_open or _barn_open \
+		or _visit_open or _recipes_open or _kitchen_open \
+		or _confirm_expand >= 0
+
+
+## The back button, one step at a time.
+##
+## With a panel open there are two ways off the screen: this button -- 112x96,
+## dark, top-left, where every other room in the game puts "leave" -- and the
+## panel's own close button. A six-year-old presses the one he can see, and
+## before this it meant "throw away the whole garden", which is the most
+## destructive reading available. Now the first press shuts the paper and the
+## second one leaves. Nothing is taken away: the panel's own close button
+## still works, and two presses still get him out.
+func _one_step_back() -> void:
+	if _something_is_open():
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		_close_panels()
+		return
+	quit_level()
 
 
 ## One capsule for how close in the farm is drawn: plus above, minus below,
@@ -1721,17 +1749,26 @@ func _panel_sheet(view: Vector2, title_key: String, wide: float,
 	title.size = Vector2(wide - 130.0, 40)
 	_play.add_child(title)
 
+	# The way out of the paper, in the same dark slate as the back button.
+	#
+	# It used to be a cream button on cream paper carrying a grey letter:
+	# 1.11:1 against its own fill AND against the sheet behind it, which is
+	# not "low contrast", it is invisible. Nobody found it, so the only exit
+	# anyone could see was the back button in the corner -- and that one used
+	# to quit the whole garden. Measured in garden_touch_probe now; 3:1 is
+	# the floor for a control you are expected to find.
 	var shut := Button.new()
 	shut.flat = false
 	shut.focus_mode = Control.FOCUS_NONE
 	shut.text = "X"
-	shut.add_theme_font_size_override("font_size", 32)
-	shut.position = origin + Vector2(wide - 74.0, 12.0)
-	shut.custom_minimum_size = Vector2(62, 62)
-	shut.size = Vector2(62, 62)
+	shut.add_theme_font_size_override("font_size", 38)
+	shut.add_theme_color_override("font_color", Palette.ON_COLOR)
+	shut.position = origin + Vector2(wide - 84.0, 12.0)
+	shut.custom_minimum_size = Vector2(72, 72)
+	shut.size = Vector2(72, 72)
 	for look in ["normal", "hover", "pressed", "focus"]:
 		shut.add_theme_stylebox_override(look,
-			UiKit.panel_style(Color(0.96, 0.92, 0.84), 20))
+			UiKit.panel_style(Palette.SLATE, 20))
 	shut.pressed.connect(_close_panels)
 	_play.add_child(shut)
 	return origin

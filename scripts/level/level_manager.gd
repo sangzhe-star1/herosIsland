@@ -201,21 +201,43 @@ func complete_level() -> void:
 
 ## Leaving early is allowed and costs nothing.
 ##
-## Where "out" leads is the level's own business: config.exit_room names a
-## room (星光菜园回英雄基地 -- 验收 #16；装饰间回菜园), and everything
-## without one goes back to the world map like always. The name lives in
-## DATA -- the room-naming rule stops code from hardcoding it -- and a
-## missing or misspelt room falls back to the map: a child is never locked
-## in anywhere by a typo.
+## One rule, said once: **他从哪进来，就从哪出去**. Where that is lives in
+## DATA, never in code -- the room-naming rule forbids naming a room here, and
+## a missing or misspelt destination falls back to the world map, so a child is
+## never locked in anywhere by a typo.
+##
+## Two fields, because there are two kinds of "where":
+##
+##   config.exit_room -- another LEVEL (装饰间回菜园, 丰收八关回菜园)
+##   config.exit_to   -- a SCREEN that is not a level; "home" is the only one
+##
+## Everything with neither goes back to the world map, which is right for the
+## 34 levels whose door is a pin on the island.
+##
+## 这条规则是两次实测撞出来的。菜园先是回英雄基地（验收 #16 原文，7-29），
+## 迷路；改回世界地图（7-30），还是迷路——因为他根本不是从岛上进去的，他是
+## 从首页那张卡片进去的。所以菜园现在**不在岛上**（mode: standalone），
+## 出口是首页。同一天发现丰收八关也一样：门开在菜园里，出来却站在岛上。
 func quit_level() -> void:
 	if _finished:
 		return
 	_finished = true
 	result.quit_early = true
 	result.duration_seconds = _elapsed
-	var exit_room := str(level_data.get("config", {}).get("exit_room", ""))
+	go_out_the_way_he_came_in(level_data)
+
+
+## The one place that turns a level's data into a destination. Shared with the
+## result screen so "退出" and "结算页上的返回" can never disagree -- they used
+## to, and the disagreement is invisible until a child takes the other door.
+static func go_out_the_way_he_came_in(data: Dictionary) -> void:
+	var config: Dictionary = data.get("config", {})
+	var exit_room := str(config.get("exit_room", ""))
 	if exit_room != "" and not GameData.get_level(exit_room).is_empty():
 		GameManager.start_level(exit_room)
+		return
+	if str(config.get("exit_to", "")) == "home":
+		SceneManager.goto_home()
 		return
 	SceneManager.goto_world_map()
 

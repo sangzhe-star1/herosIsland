@@ -371,6 +371,18 @@ func _build_hud() -> void:
 		complete_level())
 	_hud.add_child(done)
 
+	# And the arrow, because "nothing here to abandon" was only true while the
+	# only way IN was choosing to come. The garden used to eject him in here on
+	# a mis-press, and then the one door out was a green button claiming he had
+	# finished something he never started. Every other room in the game has an
+	# arrow in this corner; a room that does not is a room a child who cannot
+	# read is stuck in. Saves first -- leaving is not losing.
+	var back := UiKit.back_button(func():
+		_remember()
+		quit_level())
+	back.position = Vector2(24, 24)
+	_hud.add_child(back)
+
 	# One button that cycles the base's light colour. A settings screen for a
 	# six-year-old is one button that visibly changes something -- so it only
 	# exists where there is a window to change. A meadow has no lamp, and a
@@ -378,7 +390,9 @@ func _build_hud() -> void:
 	if _backdrop() == "base":
 		var lamp := UiKit.big_button(I18n.t("creative.light"), Palette.BLUE)
 		lamp.custom_minimum_size = Vector2(200, 104)
-		lamp.position = Vector2(24, 24)
+		# Was (24, 24) -- exactly where the arrow now sits. Moved right of it
+		# with room to breathe, so two buttons never share one thumb-target.
+		lamp.position = Vector2(168, 24)
 		lamp.pressed.connect(func():
 			_light = (_light + 1) % LIGHT_COLOURS.size()
 			_paint_base()
