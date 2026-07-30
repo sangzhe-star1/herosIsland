@@ -1,0 +1,50 @@
+[
+  {
+    "id": "strawberry_soup",
+    "name_key": "recipe.strawberry_soup",
+    "needs": [
+      {"crop_id": "strawberry", "count": 3}
+    ]
+  },
+  {
+    "id": "potato_cakes",
+    "name_key": "recipe.potato_cakes",
+    "needs": [
+      {"crop_id": "potato", "count": 3}
+    ]
+  },
+  {
+    "id": "tomato_stew",
+    "name_key": "recipe.tomato_stew",
+    "needs": [
+      {"crop_id": "tomato", "count": 3},
+      {"crop_id": "carrot", "count": 1}
+    ]
+  },
+  {
+    "id": "corn_chowder",
+    "name_key": "recipe.corn_chowder",
+    "needs": [
+      {"crop_id": "corn", "count": 3},
+      {"crop_id": "potato", "count": 1}
+    ]
+  },
+  {
+    "id": "rainbow_salad",
+    "name_key": "recipe.rainbow_salad",
+    "needs": [
+      {"crop_id": "lettuce", "count": 2},
+      {"crop_id": "tomato", "count": 2},
+      {"crop_id": "carrot", "count": 1}
+    ]
+  },
+  {
+    "id": "harvest_platter",
+    "name_key": "recipe.harvest_platter",
+    "needs": [
+      {"crop_id": "carrot", "count": 2},
+      {"crop_id": "corn", "count": 2},
+      {"crop_id": "strawberry", "count": 2}
+    ]
+  }
+]

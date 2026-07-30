@@ -33,6 +33,7 @@ const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Hints := preload("res://scripts/shared/hint_director.gd")
 const Rest := preload("res://scripts/shared/rest_director.gd")
+const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
@@ -120,6 +121,7 @@ var _market_open := false
 var _barn_open := false
 ## Whether the visitor board is open: who has dropped by and what they left.
 var _visit_open := false
+var _recipes_open := false
 ## Which crop's confirm card is up in the shop ("" for none).
 var _confirm_crop := ""
 ## Whether the barn's upgrade confirm card is up.
@@ -289,6 +291,8 @@ func _rebuild() -> void:
 		_barn_panel(view)
 	elif _visit_open:
 		_visit_panel(view)
+	elif _recipes_open:
+		_recipes_panel(view)
 	_expand_card(view)
 	_undo_toast(view)
 	# The barn is drawn AFTER the rack, because the rack lays down the shelf
@@ -534,6 +538,7 @@ func _open_panel(which: String) -> void:
 	_market_open = which == "market"
 	_barn_open = which == "barn"
 	_visit_open = which == "visits"
+	_recipes_open = which == "recipes"
 	_confirm_crop = ""
 	_confirm_expand = -1
 	_confirm_upgrade = false
@@ -549,6 +554,7 @@ func _close_panels() -> void:
 	_market_open = false
 	_barn_open = false
 	_visit_open = false
+	_recipes_open = false
 	_confirm_crop = ""
 	_confirm_expand = -1
 	_confirm_upgrade = false
@@ -825,7 +831,11 @@ func _harvest_core(plot: Dictionary) -> int:
 	# harvest that ignores that answer is a harvest that silently eats crops
 	# the moment the barn is full. store_harvest() is the only call that
 	# guarantees stored + spilled == picked.
+	var learned: Array = []
 	Barn.store_harvest(crop_id, picked)
+	learned = Recipes.check_barn()
+	if not learned.is_empty():
+		_recipe_learned_card(learned[0])
 
 	# The plot goes back to TURNED EARTH rather than to grass.
 	#
@@ -1866,6 +1876,26 @@ func _barn_panel(view: Vector2) -> void:
 	room.size = Vector2(180, 48)
 	_play.add_child(room)
 
+	# The recipe book lives where its ingredients do. A chip, not a word.
+	var book := Button.new()
+	book.name = "RecipeBook"
+	book.focus_mode = Control.FOCUS_NONE
+	book.position = origin + Vector2(wide - 96.0, 78.0)
+	book.custom_minimum_size = Vector2(64, 64)
+	book.size = Vector2(64, 64)
+	book.add_theme_stylebox_override("normal", UiKit.panel_style(Color(0.97, 0.93, 0.83), 16))
+	book.add_theme_stylebox_override("hover", UiKit.panel_style(Color(0.99, 0.96, 0.88), 16))
+	book.add_theme_stylebox_override("pressed", UiKit.panel_style(Color(0.93, 0.88, 0.76), 16))
+	var book_art := UiKit.picture("picture_book", 44.0)
+	if book_art != null:
+		book_art.position = Vector2(10, 10)
+		book_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		book.add_child(book_art)
+	book.pressed.connect(func():
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		_open_panel("recipes"))
+	_play.add_child(book)
+
 	var x := origin.x + 46.0
 	var y := origin.y + 210.0
 	for pair in Barn.contents():
@@ -2162,6 +2192,93 @@ func _point_at_market() -> void:
 
 ## The regret window, drawn while it is open. One small card, one button, and
 ## letting it lapse costs nothing -- it just stops being offered.
+## The bear's lesson, the moment it is earned: a card slides in with his
+## face, the dish's ingredients, and the name -- then leaves by itself.
+## Nothing to dismiss, nothing modal: the harvest that earned it is still
+## mid-celebration and this must not interrupt that.
+func _recipe_learned_card(recipe: Dictionary) -> void:
+	var view: Vector2 = get_viewport_rect().size
+	var wide := 520.0
+	var card := Panel.new()
+	card.add_theme_stylebox_override("panel",
+		UiKit.panel_style(Color(1.0, 0.99, 0.95, 0.98), 22))
+	card.position = Vector2((view.x - wide) * 0.5, 96.0)
+	card.custom_minimum_size = Vector2(wide, 116.0)
+	card.size = Vector2(wide, 116.0)
+	card.z_index = 30
+	add_child(card)
+	var face := UiKit.picture("teddy", 72.0)
+	if face != null:
+		face.position = Vector2(20.0, 22.0)
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(face)
+	var said := UiKit.title(I18n.t("garden.recipe_learned"), UiKit.TYPE_CAPTION,
+		Color(0.52, 0.48, 0.40))
+	said.position = Vector2(108.0, 18.0)
+	said.size = Vector2(wide - 130.0, 26.0)
+	said.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	card.add_child(said)
+	var dish := UiKit.title(I18n.t(str(recipe.get("name_key", ""))), UiKit.TYPE_BODY)
+	dish.position = Vector2(108.0, 46.0)
+	dish.size = Vector2(wide - 130.0, 34.0)
+	dish.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	card.add_child(dish)
+	var x := 108.0
+	for need in recipe.get("needs", []):
+		var art := UiKit.picture(
+			str(GameData.get_crop(str(need.get("crop_id", ""))).get("icon", "seed")), 26.0)
+		if art != null:
+			art.position = Vector2(x, 82.0)
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(art)
+		x += 34.0
+	AudioManager.play_sfx("res://assets/audio/correct.ogg")
+	Juice.pop(card, 0.14)
+	var t := card.create_tween()
+	t.tween_interval(2.6)
+	t.tween_property(card, "modulate:a", 0.0, 0.4)
+	t.tween_callback(card.queue_free)
+
+
+## 小熊的菜谱本：一页六道菜。会做的亮着、配料和名字都在；还不会的只留
+## 暗色配料——"去凑齐这些"本身就是答案，和图鉴的剪影一个道理。
+func _recipes_panel(view: Vector2) -> void:
+	var wide := 640.0
+	var origin := _panel_sheet(view, "garden.recipes_title", wide, 470.0)
+	var y := origin.y + 70.0
+	for recipe in Recipes.all():
+		var known: bool = Recipes.is_unlocked(str(recipe.get("id", "")))
+		var row := Panel.new()
+		row.add_theme_stylebox_override("panel", UiKit.panel_style(
+			Color(1.0, 0.99, 0.95) if known else Color(0.93, 0.91, 0.86), 16))
+		row.position = Vector2(origin.x + 24.0, y)
+		row.custom_minimum_size = Vector2(wide - 48.0, 56.0)
+		row.size = Vector2(wide - 48.0, 56.0)
+		_play.add_child(row)
+		var x := row.position.x + 14.0
+		for need in recipe.get("needs", []):
+			var art := UiKit.picture(str(GameData.get_crop(
+				str(need.get("crop_id", ""))).get("icon", "seed")), 30.0)
+			if art != null:
+				art.position = Vector2(x, y + 13.0)
+				art.modulate = Color(1, 1, 1, 1.0) if known else Color(1, 1, 1, 0.35)
+				_play.add_child(art)
+			var many := UiKit.title("x%d" % int(need.get("count", 1)), 16,
+				Color(0.4, 0.38, 0.34) if known else Color(0.62, 0.60, 0.56))
+			many.position = Vector2(x + 28.0, y + 20.0)
+			many.size = Vector2(34.0, 20.0)
+			_play.add_child(many)
+			x += 66.0
+		var dish := UiKit.title(I18n.t(str(recipe.get("name_key", ""))) if known
+			else "?", UiKit.TYPE_BODY,
+			Color(0.30, 0.28, 0.24) if known else Color(0.62, 0.60, 0.56))
+		dish.position = Vector2(row.position.x + row.size.x - 220.0, y + 12.0)
+		dish.size = Vector2(200.0, 32.0)
+		dish.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_play.add_child(dish)
+		y += 64.0
+
+
 func _undo_toast(view: Vector2) -> void:
 	if _pending_undo.is_empty():
 		return

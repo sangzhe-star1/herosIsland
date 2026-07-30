@@ -743,7 +743,15 @@
         "world.sky_base": "Sky Base",
         "world.star_trials": "Star Trials",
         "world.sunny_park": "Sunny Park",
-        "level.garden_deco": "Decorate the Garden"
+        "level.garden_deco": "Decorate the Garden",
+        "garden.recipes_title": "Bear's Recipe Book",
+        "garden.recipe_learned": "The bear taught you a new recipe!",
+        "recipe.strawberry_soup": "Strawberry Soup",
+        "recipe.potato_cakes": "Potato Cakes",
+        "recipe.tomato_stew": "Tomato Stew",
+        "recipe.corn_chowder": "Corn Chowder",
+        "recipe.rainbow_salad": "Rainbow Salad",
+        "recipe.harvest_platter": "Harvest Platter"
     },
     "zh": {
         "adventure.again": "再来一次，你可以的！",
@@ -1489,6 +1497,14 @@
         "world.sky_base": "天空基地",
         "world.star_trials": "星光试炼场",
         "world.sunny_park": "阳光公园",
-        "level.garden_deco": "装饰菜园"
+        "level.garden_deco": "装饰菜园",
+        "garden.recipes_title": "小熊的菜谱本",
+        "garden.recipe_learned": "小熊教了你一道新菜谱！",
+        "recipe.strawberry_soup": "草莓甜汤",
+        "recipe.potato_cakes": "土豆小饼",
+        "recipe.tomato_stew": "番茄浓汤",
+        "recipe.corn_chowder": "玉米浓汤",
+        "recipe.rainbow_salad": "彩虹沙拉",
+        "recipe.harvest_platter": "丰收大拼盘"
     }
 }

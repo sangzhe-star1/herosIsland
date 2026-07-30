@@ -91,6 +91,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _a_break_is_offered_not_pushed()
 	await _there_is_a_way_out()
 	await _the_decorating_door_and_its_furniture()
+	await _the_bear_teaches_once_and_it_sticks()
 
 	_close()
 
@@ -360,6 +361,45 @@ func _a_harvest_is_paid_for_once() -> void:
 	_garden.call("_harvest", next_cycle)
 	_ok(int(SaveManager.data["farm"]["warehouse"].get("carrot", 0)) == first + expected,
 		"but planting again in the same bed pays again -- once per planting")
+
+
+## 二期阶段 2：凑齐配料小熊教一次，教过的写进存档，菜谱本亮对行。
+func _the_bear_teaches_once_and_it_sticks() -> void:
+	var Recipes := preload("res://scripts/garden/recipe_manager.gd")
+	var Barn := preload("res://scripts/garden/inventory_manager.gd")
+	# 凑齐草莓甜汤的三颗草莓
+	Barn.put("strawberry", 3)
+	var fresh: Array = Recipes.check_barn()
+	_ok(fresh.size() == 1 and str(fresh[0].get("id", "")) == "strawberry_soup",
+		"three strawberries in the barn should teach exactly the soup, got %s"
+		% [fresh])
+	_ok(Recipes.check_barn().is_empty(),
+		"checking again re-taught something -- a child congratulated twice "
+		+ "for one dish learns the praise is a machine")
+	_ok(Recipes.is_unlocked("strawberry_soup"), "the ledger did not keep it")
+
+	# 存档往返
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_ok(Recipes.is_unlocked("strawberry_soup"),
+		"the recipe vanished across a save round-trip")
+	_ok(Barn.has("strawberry", 3),
+		"unlocking a recipe took the strawberries -- collecting must never "
+		+ "confiscate the harvest it praises")
+
+	# 菜谱本面板：知道的亮着，不知道的只有暗配料
+	_garden.call("_open_panel", "recipes")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var rows := 0
+	for child in (_garden.get("_play") as Node).get_children():
+		if child is Panel and (child as Panel).size == Vector2(640.0 - 48.0, 56.0):
+			rows += 1
+	_ok(rows == GameData.garden_recipes.size(),
+		"the recipe book shows %d rows for %d recipes"
+		% [rows, GameData.garden_recipes.size()])
+	_garden.call("_close_panels")
+	await get_tree().process_frame
 
 
 ## 二期阶段 1：装饰间的门开在菜园里，摆好的东西回来还在，且咬不到手指。
