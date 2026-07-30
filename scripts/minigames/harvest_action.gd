@@ -123,9 +123,44 @@ func setup_level() -> void:
 
 	_hints = Hints.new()
 	add_child(_hints)
+	# Row three of the difficulty table: errors before help. 温和 1 / 普通 2 /
+	# 勇敢 3 -- the same harder_i() the rest of the game trusts, never a second
+	# difficulty system.
+	_hints.misses_before_help = harder_i(2, 1)
 	_hints.watch(_nudge, _show_the_move, _do_the_hard_part)
 	_hints.escalated.connect(func(_level: int): _helped = true)
 	_teach_if_new(config)
+	_build_brave_clock()
+
+
+## The last row of the difficulty table: at 勇敢 a small clock runs, purely to
+## watch -- no countdown, nothing lost when it grows. The brave child gets one
+## more thing to think about ("how fast was I?"), the other two tiers never
+## see a timer at all, and a number that only ever counts UP cannot make
+## anyone lose.
+var _clock: Label
+
+
+func _build_brave_clock() -> void:
+	if difficulty() != BRAVE:
+		return
+	_clock = Label.new()
+	_clock.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
+	UiKit.on_art(_clock, 6)
+	_clock.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
+	_clock.position = Vector2(148, 44)
+	_clock.size = Vector2(140, 34)
+	_clock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_clock)
+
+
+func _process(delta: float) -> void:
+	# The base class ticks _elapsed and the rest of the level's heartbeat in
+	# ITS _process -- overriding without super here silently froze the level
+	# timer, which is the exact kind of bug a clock exists to reveal.
+	super._process(delta)
+	if _clock != null and is_instance_valid(_clock):
+		_clock.text = "%d:%02d" % [int(_elapsed) / 60, int(_elapsed) % 60]
 
 
 # --- the field ------------------------------------------------------------
@@ -138,26 +173,40 @@ func setup_level() -> void:
 ## child who watched the wrong carrot come up has no way to put it back. The
 ## garden learned this the same way and its beds are spaced off DragField.SNAP.
 func _lay_out(config: Dictionary) -> void:
-	var spec: Array = config.get("targets", [])
-	# How many things are going on the ground, before any of them are made:
-	# the grid is planned once for the whole level rather than searched for
-	# one crop at a time. See _plan_positions.
+	# The plan is settled FIRST -- crop, ripeness and count per entry, with
+	# the difficulty already folded in -- then planted. Planning and planting
+	# used to be one loop, and the moment a count depended on difficulty the
+	# grid would have been sized for the data's numbers while the field held
+	# the scaled ones.
+	var plan: Array = []
 	var count := 0
-	for entry in spec:
-		if not Crops.get_crop(str(entry.get("crop_id", ""))).is_empty():
-			count += int(entry.get("count", 1))
+	for entry in config.get("targets", []):
+		var crop: Dictionary = Crops.get_crop(str(entry.get("crop_id", "")))
+		if crop.is_empty():
+			continue
+		var step := str(entry.get("maturity", Maturity.READY))
+		var n := int(entry.get("count", 1))
+		# Row two of the difficulty table: the decoy share. Things that are
+		# NOT pickable for this level -- unripe, almost-ready, whatever the
+		# order refuses -- are the "which ones are actually ready" question,
+		# and the braver tier asks it more often. Data holds the 普通 number;
+		# 温和 sees fewer, 勇敢 more. Never below one: a decoy the data asked
+		# for teaches something even at the gentlest setting.
+		if not Maturity.pickable(step, _allowed):
+			n = maxi(int(round(harder(float(n), 1.45))), 1)
+		plan.append({"crop": crop, "step": step, "count": n})
+		count += n
+
 	# Spacing against the WIDEST crop on this field, reach against each crop's
 	# own. A pumpkin and a strawberry spaced for the strawberry would have the
 	# pumpkin swallowing presses aimed at the berry next to it.
 	var spots := _plan_positions(count, _bed(), _spread(config) * 2.0 + 20.0)
 	var next := 0
 
-	for entry in spec:
-		var crop: Dictionary = Crops.get_crop(str(entry.get("crop_id", "")))
-		if crop.is_empty():
-			continue
-		var step := str(entry.get("maturity", Maturity.READY))
-		for i in range(int(entry.get("count", 1))):
+	for entry in plan:
+		var crop: Dictionary = _tuned(entry["crop"])
+		var step: String = entry["step"]
+		for i in range(int(entry["count"])):
 			var at: Vector2 = spots[next] if next < spots.size() \
 				else _bed().position + _bed().size * 0.5
 			next += 1
@@ -178,6 +227,25 @@ func _lay_out(config: Dictionary) -> void:
 		_orders = [{"requirements": config.get("order", [])}]
 	_restore_checkpoint()
 	_load_order()
+
+
+## Rows four, five and six of the difficulty table, folded into the crop's own
+## gesture parameters before the target is built: the drag cone tightens
+## (×0.8 per step), a twist wants more of the circle (×1.15), a dig or shake
+## wants one more pass. The crop dict is deep-copied -- GameData hands out
+## references, and tuning the shared copy would make the FIRST difficulty this
+## session saw permanent for every level after it.
+func _tuned(crop: Dictionary) -> Dictionary:
+	var out: Dictionary = crop.duplicate(true)
+	var params: Dictionary = out.get("gesture_params", {})
+	if params.has("angle"):
+		params["angle"] = harder(float(params["angle"]), 0.8)
+	if params.has("turn"):
+		params["turn"] = harder(float(params["turn"]), 1.15)
+	if params.has("turns"):
+		params["turns"] = harder_i(int(params["turns"]), 1)
+	out["gesture_params"] = params
+	return out
 
 
 ## Where he had got to, if he was here before and left in the middle.
@@ -225,8 +293,17 @@ func _load_order() -> void:
 	_picked.clear()
 	if _order_index >= _orders.size():
 		return
-	for entry in (_orders[_order_index] as Dictionary).get("requirements", []):
+	var order: Dictionary = _orders[_order_index]
+	for entry in order.get("requirements", []):
 		_wanted[str(entry.get("crop_id", ""))] = int(entry.get("count", 1))
+	# Row seven of the difficulty table: at 勇敢, an order may carry one extra
+	# line, written in the level's data as `brave_extra` -- typically the
+	# golden one, which also has to go in the RIGHT basket. The other two
+	# tiers never see the line at all. Data decides what the exception is;
+	# difficulty only decides whether it is asked.
+	if difficulty() == BRAVE:
+		for entry in order.get("brave_extra", []):
+			_wanted[str(entry.get("crop_id", ""))] = int(entry.get("count", 1))
 
 
 ## How far from the middle of a target a press still counts.

@@ -57,6 +57,11 @@ func _ready() -> void:
 		_shape = "%dx%d" % [shape.x, shape.y]
 		await _run_on_a(shape)
 
+	# The difficulty table is shape-independent; once is enough.
+	_shape = "difficulty"
+	await _the_difficulty_table_is_real()
+	_the_late_levels_hold_their_shape()
+
 	for failure in _failures:
 		print("FAIL  %s" % failure)
 	print("  questions asked with a thumb: %d" % _asked)
@@ -97,6 +102,148 @@ func _fresh() -> void:
 	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 	SaveManager.load_game()
+
+
+## Boot a level AT a difficulty. _open()'s _fresh() wipes the save, so the
+## setting has to land after the wipe and before the scene reads it.
+func _open_at(level_id: String, tier: int) -> void:
+	_fresh()
+	SaveManager.set_setting("difficulty", tier)
+	GameManager.current_level_id = level_id
+	_level = load(
+		"res://scenes/minigames/harvest_action/HarvestAction.tscn").instantiate()
+	add_child(_level)
+	for i in range(6):
+		await get_tree().process_frame
+
+
+## Every row of the difficulty table, measured on the real field at all three
+## tiers. Before this, the table lived in HARVEST_DESIGN.md and exactly ONE of
+## its eight rows was wired -- the seven others were design fiction, and
+## nothing said so because nothing asked.
+func _the_difficulty_table_is_real() -> void:
+	var decoys := {}
+	var angles := {}
+	var hints := {}
+	var turns := {}
+	var twist := {}
+	var clock := {}
+	var extra := {}
+	for tier in [0, 1, 2]:
+		# Row 2+3+8, read off the ripeness level.
+		await _open_at("harvest_02", tier)
+		var not_pickable := 0
+		for node in _level.get("_targets"):
+			if not node.get("taken") \
+					and str(node.get("step")) not in ["ready", "golden"]:
+				not_pickable += 1
+		decoys[tier] = not_pickable
+		hints[tier] = int((_level.get("_hints") as Node).get("misses_before_help"))
+		clock[tier] = _level.get("_clock") != null
+		await _close()
+
+		# Row 4, read off a carrot's tuned cone.
+		await _open_at("harvest_01", tier)
+		angles[tier] = _angle_of_first_target()
+		await _close()
+
+		# Rows 5 and 6, read off the orchard's twist and the dig's passes.
+		await _open_at("harvest_05", tier)
+		twist[tier] = _param_of("orange", "turn")
+		await _close()
+		await _open_at("harvest_04", tier)
+		turns[tier] = _param_of("potato", "turns")
+		await _close()
+
+		# Row 7, read off the celebration's last order.
+		await _open_at("harvest_07", tier)
+		_level.set("_order_index", 1)
+		_level.call("_load_order")
+		extra[tier] = (_level.get("_wanted") as Dictionary).has("golden_carrot")
+		await _close()
+
+	print("  decoys g/n/b: %s/%s/%s   hints: %s/%s/%s   angle: %.0f/%.0f/%.0f"
+		% [decoys[0], decoys[1], decoys[2], hints[0], hints[1], hints[2],
+			angles[0], angles[1], angles[2]])
+	_ok(decoys[0] < decoys[1] and decoys[1] < decoys[2],
+		"the decoy share does not grow with difficulty (%s/%s/%s)"
+		% [decoys[0], decoys[1], decoys[2]])
+	_ok(hints[0] == 1 and hints[1] == 2 and hints[2] == 3,
+		"errors-before-help should be 1/2/3, got %s/%s/%s"
+		% [hints[0], hints[1], hints[2]])
+	_ok(angles[0] > angles[1] and angles[1] > angles[2],
+		"the drag cone does not tighten with difficulty (%.0f/%.0f/%.0f)"
+		% [angles[0], angles[1], angles[2]])
+	_ok(twist[0] < twist[1] and twist[1] < twist[2],
+		"the twist does not ask more of the circle with difficulty")
+	_ok(turns[0] < turns[1] and turns[1] < turns[2],
+		"dig passes should be 2/3/4-ish, got %s/%s/%s"
+		% [turns[0], turns[1], turns[2]])
+	_ok(not clock[0] and not clock[1] and clock[2],
+		"the clock should exist at 勇敢 and only there (%s/%s/%s)"
+		% [clock[0], clock[1], clock[2]])
+	_ok(not extra[0] and not extra[1] and extra[2],
+		"the brave-only order line should appear at 勇敢 and only there")
+
+	# The probe leaves the house as it found it: NORMAL, clean save.
+	_fresh()
+
+
+func _angle_of_first_target() -> float:
+	for node in _level.get("_targets"):
+		var params: Dictionary = (node.get("crop") as Dictionary)\
+			.get("gesture_params", {})
+		if params.has("angle"):
+			return float(params["angle"])
+	return -1.0
+
+
+func _param_of(crop_id: String, key: String) -> float:
+	for node in _level.get("_targets"):
+		var crop: Dictionary = node.get("crop")
+		if str(crop.get("id", "")) == crop_id \
+				and (crop.get("gesture_params", {}) as Dictionary).has(key):
+			return float(crop["gesture_params"][key])
+	return -1.0
+
+
+## The two late levels, held to the design table by data: the seventh level
+## is the 1→2→3 order STEP (two orders, the pumpkin's roll makes its first
+## entrance), the celebration fields wheat and watermelon so the two spare
+## gestures finally have somewhere to live, and the ripeness level carries
+## the almost-ready step so the fourth maturity stops being dead data.
+func _the_late_levels_hold_their_shape() -> void:
+	var c7: Dictionary = GameData.get_level("harvest_07").get("config", {})
+	_ok((c7.get("orders", []) as Array).size() == 2,
+		"harvest_07 should carry TWO orders -- the step between one and three")
+	var ids7 := []
+	for t in c7.get("targets", []):
+		ids7.append(str(t.get("crop_id", "")))
+	_ok("pumpkin" in ids7, "harvest_07 lost its pumpkin -- roll_to_basket "
+		+ "never gets taught before the celebration needs it")
+
+	var c8: Dictionary = GameData.get_level("harvest_08").get("config", {})
+	var ids8 := []
+	for t in c8.get("targets", []):
+		ids8.append(str(t.get("crop_id", "")))
+	_ok("wheat" in ids8 and "watermelon" in ids8,
+		"harvest_08 should field wheat and watermelon (%s)" % [ids8])
+	var takes_grain := false
+	for basket in c8.get("baskets", []):
+		if "grain" in (basket.get("accepts_tags", []) as Array):
+			takes_grain = true
+	_ok(takes_grain, "wheat is on the field and no basket accepts grain -- "
+		+ "a crop that can be picked and never put down. (A fourth basket was "
+		+ "tried and failed the thumb rule at 16:9 -- the veg basket carries "
+		+ "the grain tag instead.)")
+
+	var c2: Dictionary = GameData.get_level("harvest_02").get("config", {})
+	var has_almost := false
+	for t in c2.get("targets", []):
+		if str(t.get("maturity", "")) == "almost_ready":
+			has_almost = true
+	_ok(has_almost, "harvest_02 should ask the almost-ready question -- "
+		+ "the fourth maturity step exists and no level uses it")
 
 
 func _open(level_id: String) -> void:

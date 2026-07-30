@@ -60,11 +60,20 @@ func progress() -> void:
 	_idle = 0.0
 
 
+## How many wrong tries before help arrives. 1 is the old behaviour (help on
+## the first miss) and stays the default for every level that never sets it.
+## The harvest levels set it from the parent's difficulty switch: a braver
+## child gets more room to be wrong before anyone leans in -- difficulty as
+## patience, not punishment.
+var misses_before_help := 1
+
+
 ## The child got something wrong. Not a punishment, a signal.
 func missed() -> void:
 	_misses += 1
 	_idle = 0.0
-	if _misses >= 1:
+	if _misses >= misses_before_help:
+		_misses = 0
 		_step()
 
 
