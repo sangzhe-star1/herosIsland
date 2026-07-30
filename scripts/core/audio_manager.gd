@@ -56,11 +56,42 @@ func stop_music() -> void:
 	_music.stop()
 
 
+## How close together the same sound has to be before the second one is a
+## stutter rather than a rhythm. Two DIFFERENT sounds on one frame is a chord;
+## the same sound twice is one event that three layers each decided to
+## announce.
+const SAME_SFX_GAP := 0.09
+
+var _last_sfx := ""
+var _last_sfx_at := -1.0
+## How many sounds have actually STARTED -- not how many were asked for. The
+## gap between those two numbers is the entire point of the dedup below, and
+## it is the only thing a headless probe can observe: with no audio device
+## there is nothing to listen to, so "did he hear one or three" has to be a
+## number the code keeps for itself.
+var sfx_plays := 0
+
+
+## One event, one sound.
+##
+## Losing the last light fired try_again.ogg three times on a single frame: the
+## minigame said it, score_mistake() said it, and the out-of-light card said it
+## again. Nobody was wrong -- each layer legitimately marks that moment -- so
+## the fix belongs here and not in a hunt through call sites that would miss
+## the fourth one. Different sounds still stack; only an identical repeat
+## inside SAME_SFX_GAP is dropped.
 func play_sfx(path: String) -> void:
 	var stream := _load_stream(path)
-	if stream != null:
-		_sfx.stream = stream
-		_sfx.play()
+	if stream == null:
+		return
+	var now: float = float(GameClock.ticks_ms()) / 1000.0
+	if path == _last_sfx and now - _last_sfx_at < SAME_SFX_GAP:
+		return
+	_last_sfx = path
+	_last_sfx_at = now
+	sfx_plays += 1
+	_sfx.stream = stream
+	_sfx.play()
 
 
 ## Spoken instruction or praise. Silently no-ops until audio files are recorded,

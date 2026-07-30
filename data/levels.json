@@ -1013,6 +1013,419 @@
     }
   },
   {
+    "id": "battle_01",
+    "world": "sunny_park",
+    "mode": "battle",
+    "name_key": "level.battle_01",
+    "game_type": "monster_duel",
+    "difficulty": 1,
+    "target": {
+      "correct": 14
+    },
+    "reward": {
+      "coins": 14,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.5,
+      "shield_cooldown": 5.4,
+      "ult_needed": 4,
+      "goo_interval": 6.5,
+      "monster": {
+        "id": "stone_cub",
+        "scale": 0.9
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home"
+    }
+  },
+  {
+    "id": "battle_02",
+    "world": "sky_base",
+    "mode": "battle",
+    "name_key": "level.battle_02",
+    "game_type": "monster_duel",
+    "difficulty": 2,
+    "target": {
+      "correct": 16
+    },
+    "reward": {
+      "coins": 16,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.44,
+      "shield_cooldown": 5.34,
+      "ult_needed": 4,
+      "goo_interval": 6.3,
+      "monster": {
+        "id": "light_bug",
+        "scale": 0.945
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home"
+    }
+  },
+  {
+    "id": "battle_03",
+    "world": "night_city",
+    "mode": "battle",
+    "name_key": "level.battle_03",
+    "game_type": "monster_duel",
+    "difficulty": 2,
+    "target": {
+      "correct": 18
+    },
+    "reward": {
+      "coins": 16,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.38,
+      "shield_cooldown": 5.28,
+      "ult_needed": 4,
+      "goo_interval": 6.1,
+      "monster": {
+        "id": "moon_lizard",
+        "scale": 0.99
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home"
+    }
+  },
+  {
+    "id": "battle_04",
+    "world": "sunny_park",
+    "mode": "battle",
+    "name_key": "level.battle_04",
+    "game_type": "monster_duel",
+    "difficulty": 2,
+    "target": {
+      "correct": 20
+    },
+    "reward": {
+      "coins": 16,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.32,
+      "shield_cooldown": 5.22,
+      "ult_needed": 5,
+      "goo_interval": 5.9,
+      "monster": {
+        "id": "twin_horn",
+        "scale": 1.035
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home"
+    }
+  },
+  {
+    "id": "battle_05",
+    "world": "monster_valley",
+    "mode": "battle",
+    "name_key": "level.battle_05",
+    "game_type": "monster_duel",
+    "difficulty": 2,
+    "target": {
+      "correct": 22
+    },
+    "reward": {
+      "coins": 16,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.26,
+      "shield_cooldown": 5.16,
+      "ult_needed": 5,
+      "goo_interval": 5.7,
+      "monster": {
+        "id": "rock_horn",
+        "scale": 1.08
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home"
+    }
+  },
+  {
+    "id": "battle_06",
+    "world": "monster_valley",
+    "mode": "battle",
+    "name_key": "level.battle_06",
+    "game_type": "monster_duel",
+    "difficulty": 2,
+    "target": {
+      "correct": 24
+    },
+    "reward": {
+      "coins": 16,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.2,
+      "shield_cooldown": 5.1,
+      "ult_needed": 5,
+      "goo_interval": 5.5,
+      "monster": {
+        "id": "sand_fist",
+        "scale": 1.125
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home"
+    }
+  },
+  {
+    "id": "battle_07",
+    "world": "night_city",
+    "mode": "battle",
+    "name_key": "level.battle_07",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "target": {
+      "correct": 26
+    },
+    "reward": {
+      "coins": 18,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.14,
+      "shield_cooldown": 5.04,
+      "ult_needed": 6,
+      "goo_interval": 5.3,
+      "monster": {
+        "id": "drill_armor",
+        "scale": 1.17
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home"
+    }
+  },
+  {
+    "id": "battle_08",
+    "world": "dark_castle",
+    "mode": "battle",
+    "name_key": "level.battle_08",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "target": {
+      "correct": 28
+    },
+    "reward": {
+      "coins": 18,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.08,
+      "shield_cooldown": 4.98,
+      "ult_needed": 6,
+      "goo_interval": 5.1,
+      "monster": {
+        "id": "flame_tail",
+        "scale": 1.215
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home",
+      "roar_interval": 9.0
+    }
+  },
+  {
+    "id": "battle_09",
+    "world": "sunny_park",
+    "mode": "battle",
+    "name_key": "level.battle_09",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "target": {
+      "correct": 30
+    },
+    "reward": {
+      "coins": 18,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 1.02,
+      "shield_cooldown": 4.92,
+      "ult_needed": 6,
+      "goo_interval": 4.9,
+      "monster": {
+        "id": "red_wing",
+        "scale": 1.26
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home",
+      "roar_interval": 8.75
+    }
+  },
+  {
+    "id": "battle_10",
+    "world": "night_city",
+    "mode": "battle",
+    "name_key": "level.battle_10",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "target": {
+      "correct": 32
+    },
+    "reward": {
+      "coins": 18,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 0.96,
+      "shield_cooldown": 4.86,
+      "ult_needed": 7,
+      "goo_interval": 4.7,
+      "monster": {
+        "id": "steel_spine",
+        "scale": 1.305
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home",
+      "roar_interval": 8.5
+    }
+  },
+  {
+    "id": "battle_11",
+    "world": "monster_valley",
+    "mode": "battle",
+    "name_key": "level.battle_11",
+    "game_type": "monster_duel",
+    "difficulty": 3,
+    "target": {
+      "correct": 34
+    },
+    "reward": {
+      "coins": 18,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 0.9,
+      "shield_cooldown": 4.8,
+      "ult_needed": 7,
+      "goo_interval": 4.5,
+      "monster": {
+        "id": "crystal_armor",
+        "scale": 1.35
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home",
+      "roar_interval": 8.25
+    }
+  },
+  {
+    "id": "battle_12",
+    "world": "sky_base",
+    "mode": "battle",
+    "name_key": "level.battle_12",
+    "game_type": "monster_duel",
+    "difficulty": 4,
+    "target": {
+      "correct": 36
+    },
+    "reward": {
+      "coins": 20,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 0.84,
+      "shield_cooldown": 4.74,
+      "ult_needed": 7,
+      "goo_interval": 4.3,
+      "monster": {
+        "id": "blue_wing_armor",
+        "scale": 1.395
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home",
+      "roar_interval": 8.0
+    }
+  },
+  {
+    "id": "battle_13",
+    "world": "dark_castle",
+    "mode": "battle",
+    "name_key": "level.battle_13",
+    "game_type": "monster_duel",
+    "difficulty": 4,
+    "target": {
+      "correct": 38
+    },
+    "reward": {
+      "coins": 20,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 0.78,
+      "shield_cooldown": 4.68,
+      "ult_needed": 8,
+      "goo_interval": 4.1,
+      "monster": {
+        "id": "blaze_claw",
+        "scale": 1.44
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home",
+      "roar_interval": 7.75
+    }
+  },
+  {
+    "id": "battle_14",
+    "world": "sky_base",
+    "mode": "battle",
+    "name_key": "level.battle_14",
+    "game_type": "monster_duel",
+    "difficulty": 5,
+    "target": {
+      "correct": 40
+    },
+    "reward": {
+      "coins": 22,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 0.72,
+      "shield_cooldown": 4.62,
+      "ult_needed": 8,
+      "goo_interval": 3.9,
+      "monster": {
+        "id": "thunder_wyvern",
+        "scale": 1.485
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home",
+      "roar_interval": 7.5
+    }
+  },
+  {
+    "id": "battle_15",
+    "world": "dark_castle",
+    "mode": "battle",
+    "name_key": "level.battle_15",
+    "game_type": "monster_duel",
+    "difficulty": 5,
+    "target": {
+      "correct": 42
+    },
+    "reward": {
+      "coins": 22,
+      "badge": ""
+    },
+    "config": {
+      "beam_cooldown": 0.66,
+      "shield_cooldown": 4.56,
+      "ult_needed": 8,
+      "goo_interval": 3.7,
+      "monster": {
+        "id": "shadow_wing",
+        "scale": 1.53
+      },
+      "instruction_key": "duel.instruction",
+      "exit_to": "home",
+      "roar_interval": 7.25
+    }
+  },
+  {
     "id": "harvest_01",
     "world": "sunny_park",
     "name_key": "level.harvest_01",

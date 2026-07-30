@@ -886,7 +886,18 @@ func _monster_attack_goo() -> void:
 	style.border_color = Color(0.40, 0.62, 0.30)
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		goo.add_theme_stylebox_override(state, style)
+	# Press, not release. A Button fires on RELEASE by default, so the finger
+	# had to go down AND come up on the same 96px target -- while that target
+	# is 2.4 seconds into a parabola. It slides out from under him and the swat
+	# misses. The three skill keys beside it have always fired on press (they
+	# read raw gui_input); the one thing on this screen that MOVES was the one
+	# thing wired to release.
+	goo.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	goo.pressed.connect(_swat_goo.bind(goo))
+	# And it has to say it can be hit. The only teaching is one line of text,
+	# once, for three seconds (_taught_swat) -- which a child who cannot read
+	# never receives at all. A thing that pulses is a thing you touch.
+	UiKit.breathe(goo, 0.05, 0.7)
 	var from: Vector2 = _monster.position + Vector2(-40, -240 * _monster.scale.x)
 	goo.position = from - goo_size / 2.0
 	_play_area.add_child(goo)

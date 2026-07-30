@@ -286,6 +286,23 @@ fi
 no_script_errors "$RESULT_OUT" "Result Probe"
 rm -f "$RESULT_OUT"
 
+# 打怪兽的手感. Not "does it build", not "does it look right" -- does it
+# ANSWER. The three failures this was written for were invisible to every other
+# layer: the only MOVING target fired on release so it could not be swatted,
+# the cooldown tap called a method that does not exist, and one lost light
+# played the same sound three times on one frame.
+echo
+echo "Running battle feel probe..."
+BF_OUT=$(mktemp)
+timeout 240 "$GODOT" --headless --path . res://tests/BattleFeelProbe.tscn 2>&1 | tee "$BF_OUT"
+if ! grep -q "BATTLE FEEL PROBE PASSED" "$BF_OUT"; then
+  rm -f "$BF_OUT"
+  echo "Battle feel probe failed."
+  exit 1
+fi
+no_script_errors "$BF_OUT" "Battle Feel Probe"
+rm -f "$BF_OUT"
+
 # The one check that presses things. Every other check here answers "does it
 # build" or "does it look right", and a level can pass both while being
 # completely dead -- five templates shipped with a zero-sized tap area and

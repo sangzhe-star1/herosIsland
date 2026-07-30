@@ -223,20 +223,29 @@ func _a_child_can_hit_it(home: Control) -> void:
 ## being able to say why, and it is arithmetic, so it can simply be asserted.
 func _one_rhythm(home: Control, view: Vector2) -> void:
 	var boxes: Array = home.get("_card_boxes")
-	if boxes == null or boxes.size() < 4:
-		_ok(false, "home did not publish four card rectangles")
+	if boxes == null or boxes.size() < 3:
+		_ok(false, "home did not publish a banner and at least two card rectangles")
 		return
 	var primary: Rect2 = boxes[0]
-	var gap_a: float = (boxes[2] as Rect2).position.x - (boxes[1] as Rect2).end.x
-	var gap_b: float = (boxes[3] as Rect2).position.x - (boxes[2] as Rect2).end.x
-	_ok(absf(gap_a - gap_b) <= 1.0,
-		"the three small cards are not evenly spaced: %.1f then %.1f" % [gap_a, gap_b])
+	# However many small cards there are. Counting them rather than writing 3
+	# here is the same lesson twice: the layout hard-coded the count and the
+	# fifth card walked off the screen; this probe hard-coded it too and went on
+	# measuring the third card while the fourth was the one hanging off the end.
+	var last: Rect2 = boxes[boxes.size() - 1]
+	var gaps: Array[float] = []
+	for i in range(2, boxes.size()):
+		gaps.append((boxes[i] as Rect2).position.x - (boxes[i - 1] as Rect2).end.x)
+	var widest := 0.0
+	for g in gaps:
+		widest = maxf(widest, absf(g - gaps[0]))
+	_ok(widest <= 1.0,
+		"the %d small cards are not evenly spaced: %s" % [boxes.size() - 1, gaps])
 	_ok(absf((boxes[1] as Rect2).position.x - primary.position.x) <= 1.0,
 		"the card block does not start on one line: big card at x=%.1f, small at x=%.1f"
 		% [primary.position.x, (boxes[1] as Rect2).position.x])
-	_ok(absf((boxes[3] as Rect2).end.x - primary.end.x) <= 1.5,
+	_ok(absf(last.end.x - primary.end.x) <= 1.5,
 		"the card block does not end on one line: big card ends at x=%.1f, small at x=%.1f"
-		% [primary.end.x, (boxes[3] as Rect2).end.x])
+		% [primary.end.x, last.end.x])
 	# One safe edge, used by everything that touches an edge. The number is
 	# read out of the screen's own source rather than written here, so this
 	# tests that the rhythm is FOLLOWED, not that it is still 24.

@@ -142,7 +142,12 @@ func _layout() -> void:
 	var rows_h: float = body_h - GAP
 	var h1: float = _snap(rows_h * 0.46)
 	var h2: float = rows_h - h1
-	var sec_w: float = (cards_w - GAP * 2.0) / 3.0
+	# Counted, not written down. The literal 3 here is exactly the mistake this
+	# file's header is about: the grid was hand-fitted to the card count, and
+	# the fifth card walked off the edge of the screen. Adding 光之战士 made it
+	# four. Whatever the array holds, the row divides by it.
+	var secondary: int = maxi(_cards.size() - 1, 1)
+	var sec_w: float = (cards_w - GAP * float(secondary - 1)) / float(secondary)
 
 	# The greeting starts where the cards start. Aligning it to the screen edge
 	# instead put it above the hero, which reads as a label for the hero.
@@ -150,7 +155,7 @@ func _layout() -> void:
 	_greeting.size = Vector2(cards_w * 0.7, HEADER_H)
 
 	_card_boxes = [Rect2(Vector2(cards_x, body_top), Vector2(cards_w, h1))]
-	for i in range(3):
+	for i in range(secondary):
 		_card_boxes.append(Rect2(
 			Vector2(cards_x + (sec_w + GAP) * float(i), body_top + h1 + GAP),
 			Vector2(sec_w, h2)))
@@ -247,6 +252,13 @@ func _build_cards() -> void:
 		# this screen -- 从哪进就从哪出，全游戏一条规则。
 		{"key": "home.garden", "icon": "carrot", "color": Palette.RED,
 			"motion": "sprout", "go": func(): _on_garden()},
+		# 光之战士. The monster fighting used to be six boss levels scattered one
+		# per island world -- a child who wants to fight a monster had to walk
+		# the island and finish five other things first. It is its own door now,
+		# off the map like the garden, and the icon is the monster itself
+		# because that is the word he owns.
+		{"key": "home.battle", "icon": "monster", "color": Palette.PURPLE,
+			"motion": "bob", "go": func(): _on_battle()},
 	]
 
 	# What is waiting behind each door, said with a picture in the corner.
@@ -907,6 +919,28 @@ func _on_garden() -> void:
 				and str(level.get("game_type", "")) == "garden":
 			GameManager.start_level(str(level.get("id", "")))
 			return
+
+
+## 光之战士: the next monster he has not beaten.
+##
+## The same shape as the garden's 丰收 door, and for the same reason: a menu of
+## fifteen is a menu, and a six-year-old who cannot read chooses by pressing
+## the biggest thing. One door, one fight, always the next one.
+##
+## When all fifteen are done it offers the last one again -- replaying is fine,
+## and a door that stops opening is a door that looks broken. Nobody spells a
+## level id here; the path is whatever levels.json files under this mode.
+func _on_battle() -> void:
+	var levels: Array = GameData.get_levels_for_mode("battle")
+	if levels.is_empty():
+		return
+	var next: Dictionary = levels[levels.size() - 1]
+	for level in levels:
+		if int(SaveManager.get_level_progress(str(level.get("id", ""))
+				).get("stars", 0)) <= 0:
+			next = level
+			break
+	GameManager.start_level(str(next.get("id", "")))
 
 
 ## Advisory only. There is no lock and no countdown -- it is a suggestion the

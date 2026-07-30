@@ -559,6 +559,22 @@ func _show_cheer_texture(hold_seconds: float = 1.5) -> void:
 	)
 
 
+## "Almost" -- the chest light answering a press that could not fire yet.
+##
+## Forwarded rather than reimplemented: HeroArt and PuppyArt both have their
+## own pulse, and this wrapper is what every level actually holds. It was
+## missing, so `_hero.pulse_core(1)` in light_defense.gd and
+## monster_expedition.gd resolved to nothing and the tap during cooldown got
+## silence -- which is the one thing those two call sites have a comment
+## promising never to do. A press that produces nothing reads as a broken
+## game, and a six-year-old does not press a third time.
+func pulse_core(times: int = 1) -> void:
+	if _art != null and is_instance_valid(_art):
+		_art.pulse_core(times)
+	if _pup != null and is_instance_valid(_pup):
+		_pup.pulse_core(times)
+
+
 ## The chest light brightening, for moments worth marking.
 func power_up() -> void:
 	if _art != null and is_instance_valid(_art):
