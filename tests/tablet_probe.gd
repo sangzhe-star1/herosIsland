@@ -83,26 +83,11 @@ const SCREENS := [
 		"dead": 0.20, "holds": "_targets"},
 	{"id": "night_city_02", "scene": "res://scenes/minigames/puzzle_mechanism/PuzzleMechanism.tscn",
 		"dead": 0.48, "holds": "_pieces"},
+	{"id": "bonus_echo", "scene": "res://scenes/minigames/light_echo/LightEcho.tscn",
+		"dead": 0.30, "stands": ["_hero"], "holds": "_pads"},
+	{"id": "bonus_blaster", "scene": "res://scenes/minigames/light_defense/LightDefense.tscn",
+		"dead": 0.0, "no_floor": true, "stands": ["_hero"]},
 ]
-
-# STILL NOT IN THE LIST, and it is the failure mode a list of names always has:
-# every screen this file was written for is above, and the two that were most
-# broken were never added.
-#
-#   bonus_echo     (light_echo)     hero  80% down at 720, 74% at 960
-#   bonus_blaster  (light_defense)  hero  17% down at 720, 12% at 960
-#                                   and 83-88% of the bottom left empty
-#
-# Measured on 2026-07-30 by adding both here. light_echo's hard-coded layout
-# has since been routed through screen_fit, which removed the worst of it --
-# the hero no longer stands in mid-air on a 4:3 window -- but neither screen
-# holds the same FRACTION across the two shapes yet, and light_defense's whole
-# tap surface is the screen itself, so the dead-band rule as written does not
-# describe it at all.
-#
-# Left out rather than given a loose tolerance on purpose: a threshold widened
-# until it passes is a probe that has stopped watching. The numbers above are
-# the starting point for finishing the job, not a suggestion to tune them away.
 
 var _failures: Array[String] = []
 var _shape := ""
@@ -221,6 +206,20 @@ func _measure(screen: Dictionary, seen: Dictionary) -> void:
 	if low <= 0.0:
 		_ok(false, "%s: found nothing placed on the screen at all -- either the "
 			% key + "level is empty or this probe is measuring the wrong thing")
+	elif bool(screen.get("no_floor", false)):
+		# A screen whose TARGET is the screen. light_defense is aimed by
+		# tapping anywhere at all, so the only placed controls on it are the
+		# back button and the top-left HUD, and both of those are chrome that
+		# correctly keeps its distance from the TOP. The lowest-thing rule
+		# then measures a badge at y=120 and reports 83% of the screen empty
+		# on every shape, which is true and means nothing.
+		#
+		# Named rather than given a loose threshold: "this rule does not
+		# describe this screen" is a different statement from "this screen is
+		# allowed to be 95% empty", and only one of them stays honest when
+		# somebody later puts a real control down there.
+		print("   %-15s lowest %4d of %4d -- floor rule not applied (no_floor)"
+			% [key, int(low), int(_view.y)])
 	else:
 		var dead: float = (_view.y - low) / _view.y
 		print("   %-15s lowest %4d of %4d, %4.1f%% of the screen below it"

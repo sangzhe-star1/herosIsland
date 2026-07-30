@@ -85,7 +85,9 @@ var _light_box: HBoxContainer
 var _badges: HBoxContainer
 var _ground := 620.0
 var _instruction: Label
-var _progress: Label
+var _progress: Label            # only when there are too many for pips
+var _pip_row: HBoxContainer
+var _pips: Array[Control] = []
 var _drafting := false
 
 
@@ -168,13 +170,18 @@ func _build_scene(config: Dictionary) -> void:
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_instruction)
 
-	_progress = Label.new()
-	_progress.add_theme_font_size_override("font_size", 30)
-	_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
-	UiKit.on_art(_progress)
-	_progress.position = Vector2(1078, 24)
-	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(_progress)
+	# 还剩几只，用图说.
+	#
+	# This was "3 / 8" at 30 px, which is a sentence in a language the player
+	# does not read yet. A row of little monsters says the same thing without
+	# any: the ones he has seen off are bright, the ones still coming are dim.
+	# Same trick as the light hearts on the other side of the screen, so the
+	# two halves of the HUD are read the same way.
+	_pip_row = HBoxContainer.new()
+	_pip_row.add_theme_constant_override("separation", 6)
+	_pip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_area.add_child(_pip_row)
+	_build_pips()
 
 	# The hero's light, top left under the back button.
 	_light_box = HBoxContainer.new()
@@ -589,11 +596,73 @@ func _draft_card(id: String, holder: Control) -> Control:
 		_take(id))
 	box.add_child(button)
 
-	var desc := UiKit.title(I18n.t(str(spec["desc_key"])), 20, Palette.INK_SOFT)
+	# What it DOES, in pictures.
+	#
+	# This was one line of 20 px grey text and nothing else -- the single most
+	# text-only thing left in the game, on the one screen where a six-year-old
+	# has to make a real choice. "爆炸会再找一只怪兽" is three cards of letters
+	# to him, so he picks whichever is on the left.
+	#
+	# The row below says it as a before-and-after: what he has now, an arrow,
+	# what he would have. Nothing to read, and it is TRUE rather than generic --
+	# a card taken twice shows two becoming three, not one becoming two.
+	var shows: Array = _picture_of(id, have)
+	if not shows.is_empty():
+		var strip := HBoxContainer.new()
+		strip.alignment = BoxContainer.ALIGNMENT_CENTER
+		strip.add_theme_constant_override("separation", 6)
+		for item in shows:
+			var art: Control = UiKit.picture(str(item), 30.0)
+			if art != null:
+				art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				strip.add_child(art)
+		box.add_child(strip)
+
+	# The words stay, smaller and under the picture. They are for the adult in
+	# the room, who is often the one being asked "which one should I take?".
+	var desc := UiKit.title(I18n.t(str(spec["desc_key"])), 18, Palette.INK_SOFT)
 	desc.custom_minimum_size = Vector2(250, 0)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(desc)
 	return box
+
+
+## The before-and-after strip for one upgrade: icons, "next", icons.
+##
+## Every name here is already in the icon library -- nothing new is drawn, and
+## nothing is invented that the level does not actually do:
+##
+##   rapid   fewer waits         one lightning  -> two
+##   spread  one more bolt       n sparks       -> n+1
+##   power   a harder hit        one fist       -> two
+##   wide    a bigger blast      small blast    -> big blast (two of them)
+##   slow    they trudge         one snowflake  -> two
+##   split   it finds another    one monster    -> two monsters
+##   guard   one more heart      n hearts       -> n+1
+func _picture_of(id: String, have: int) -> Array:
+	var was: int = 1 + have
+	var now: int = was + 1
+	var icon := ""
+	match id:
+		"rapid": icon = "lightning"
+		"spread": icon = "spark"
+		"power": icon = "power"
+		"wide": icon = "blast"
+		"slow": icon = "slow"
+		"split": icon = "monster"
+		"guard":
+			icon = "heart"
+			was = BASE_LIGHT + have
+			now = was + 1
+		_: return []
+	# Kept short: a strip of nine hearts is a counting exercise, not a picture.
+	var out: Array = []
+	for i in range(mini(was, 3)):
+		out.append(icon)
+	out.append("next")
+	for i in range(mini(now, 4)):
+		out.append(icon)
+	return out
 
 
 func _take(id: String) -> void:
@@ -698,10 +767,66 @@ func _event_position(event: InputEvent) -> Vector2:
 	return Vector2.ZERO
 
 
-func _update_progress() -> void:
-	if _progress == null:
+## One pip per monster, while that stays readable.
+##
+## Above PIP_MAX the row would be a smear of 8 px dots, so it falls back to the
+## number -- with the picture beside it, which the old version did not have
+## either. Every level these two templates actually ship with is 8, so the
+## fallback is a guard rather than the normal case; it is written down instead
+## of pretending the row scales for ever.
+const PIP_MAX := 12
+const PIP := 30.0
+
+func _build_pips() -> void:
+	if _pip_row == null or not is_instance_valid(_pip_row):
 		return
-	_progress.text = "%d / %d" % [_defeated, _targets]
+	for c in _pip_row.get_children():
+		c.queue_free()
+	_pips.clear()
+	if _targets <= PIP_MAX:
+		for i in range(_targets):
+			var pip: Control = UiKit.picture("monster", PIP)
+			if pip == null:
+				continue
+			pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_pip_row.add_child(pip)
+			_pips.append(pip)
+	else:
+		var icon: Control = UiKit.picture("monster", PIP)
+		if icon != null:
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_pip_row.add_child(icon)
+		_progress = Label.new()
+		_progress.add_theme_font_size_override("font_size", 30)
+		_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
+		UiKit.on_art(_progress)
+		_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_pip_row.add_child(_progress)
+	_place_pips()
+	_update_progress()
+
+
+## Right-hand corner, on the same top margin as everything else up there.
+func _place_pips() -> void:
+	if _pip_row == null or not is_instance_valid(_pip_row):
+		return
+	var wide: float = float(_pips.size()) * PIP + float(maxi(_pips.size() - 1, 0)) * 6.0
+	if _pips.is_empty():
+		wide = PIP + 6.0 + 70.0
+	_pip_row.position = Vector2(_play_area.size.x - 24.0 - wide, 24.0)
+
+
+func _update_progress() -> void:
+	# Dim, not gone: a monster that has not arrived yet is still a monster he
+	# is going to meet, and a row that shortens as he wins reads as losing
+	# ground. Opacity only -- never a second colour for the same thing.
+	for i in range(_pips.size()):
+		var pip: Control = _pips[i]
+		if is_instance_valid(pip):
+			pip.modulate = Color(1, 1, 1, 1) if i < _defeated \
+				else Color(0.62, 0.66, 0.76, 0.45)
+	if _progress != null and is_instance_valid(_progress):
+		_progress.text = "%d / %d" % [_defeated, _targets]
 
 
 ## The curtain call.

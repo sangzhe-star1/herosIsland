@@ -54,7 +54,9 @@ var _listening := false         # true while the child may tap
 
 var _play_area: Control
 var _instruction: Label
-var _progress: Label
+var _progress: Label            # only when there are too many for pips
+var _pip_row: HBoxContainer
+var _pips: Array[Control] = []
 var _hero: SkinnedCharacter
 const DOT := 56.0
 
@@ -124,13 +126,41 @@ func _build_scene(config: Dictionary) -> void:
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_instruction)
 
-	_progress = Label.new()
-	_progress.add_theme_font_size_override("font_size", 32)
-	_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
-	UiKit.on_art(_progress)
-	_progress.position = Vector2(Fit.right(_play_area, 1020.0), 44)
-	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(_progress)
+	# 唱对了几句，用图说. Was "3 / 8" at 32 px -- a sentence in a language the
+	# player does not read yet. One music note per phrase: sung-back ones
+	# bright, the rest dim. Never removed, only dimmed, so the row never
+	# shortens under him.
+	_pip_row = HBoxContainer.new()
+	_pip_row.add_theme_constant_override("separation", 6)
+	_pip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_area.add_child(_pip_row)
+	var want: int = target_value("correct", 5)
+	if want <= PIP_MAX:
+		for i in range(want):
+			var pip: Control = UiKit.picture("music", PIP)
+			if pip == null:
+				continue
+			pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_pip_row.add_child(pip)
+			_pips.append(pip)
+	else:
+		# Above PIP_MAX the row is a smear of tiny dots, so the number comes
+		# back -- with the picture beside it, which it never had before.
+		var icon: Control = UiKit.picture("music", PIP)
+		if icon != null:
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_pip_row.add_child(icon)
+		_progress = Label.new()
+		_progress.add_theme_font_size_override("font_size", 32)
+		_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
+		UiKit.on_art(_progress)
+		_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_pip_row.add_child(_progress)
+	var wide: float = float(_pips.size()) * PIP \
+		+ float(maxi(_pips.size() - 1, 0)) * 6.0
+	if _pips.is_empty():
+		wide = PIP + 6.0 + 70.0
+	_pip_row.position = Vector2(_play_area.size.x - 24.0 - wide, 44.0)
 	_update_progress()
 
 	# The state, without the reading: an EAR medallion while the island
@@ -202,8 +232,16 @@ func _build_scene(config: Dictionary) -> void:
 		var pad := Panel.new()
 		pad.size = PAD_SIZE
 		var lift: float = absf(float(i) - float(_pad_count - 1) / 2.0) * 18.0
+		# The BOTTOM edge is what has to scale, not the top.
+		#
+		# Fitting the top and leaving a fixed 150 px of pad hanging below it is
+		# only half a fix: the top lands at the right fraction, the bottom lands
+		# short, and the empty band under the pad row grows on a taller screen
+		# exactly the way it did before. tablet_probe measures the lowest thing
+		# a hand goes to -- which is this bottom edge -- and read 80% of the way
+		# down at 720 against 74% at 960: the same complaint, one step quieter.
 		pad.position = Vector2(start_x + i * (PAD_SIZE.x + spacing),
-			Fit.y(_play_area, 400.0) + lift)
+			Fit.y(_play_area, 400.0 + lift + PAD_SIZE.y) - PAD_SIZE.y)
 		pad.pivot_offset = PAD_SIZE / 2.0
 		pad.mouse_filter = Control.MOUSE_FILTER_STOP
 
@@ -582,10 +620,17 @@ func on_correct() -> void:
 	_update_progress()
 
 
+const PIP_MAX := 12
+const PIP := 30.0
+
 func _update_progress() -> void:
-	if _progress == null:
-		return
-	_progress.text = "%d / %d" % [result.correct, target_value("correct", 5)]
+	for i in range(_pips.size()):
+		var pip: Control = _pips[i]
+		if is_instance_valid(pip):
+			pip.modulate = Color(1, 1, 1, 1) if i < result.correct \
+				else Color(0.62, 0.66, 0.76, 0.45)
+	if _progress != null and is_instance_valid(_progress):
+		_progress.text = "%d / %d" % [result.correct, target_value("correct", 5)]
 
 
 ## The curtain call. See the note on light_defense.complete_level -- this
