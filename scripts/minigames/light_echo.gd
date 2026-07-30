@@ -27,6 +27,15 @@ const PAD_SIZE := Vector2(150, 150)
 ## gone before the child has finished looking up is not a demo, it is a
 ## rumour. The lead-in matters as much -- the round used to begin singing
 ## 0.8 s after the level appeared, while the child was still arriving.
+## Reached by preload, never by class name -- same reason as everywhere else on
+## the island. This was the last battle template with no fitting at all: pads at
+## a hard y=400, the hero at a hard (170, 560), the replay key at a hard
+## (1120, 112), and start_x worked out from the literal 1280. On a 4:3 tablet
+## the viewport is 1280x960 and the horizon moves down with it, so the hero
+## stood 265 px in the air above 380 px of empty grass -- and tablet_probe never
+## caught it because this screen was not in its list.
+const Fit := preload("res://scripts/shared/screen_fit.gd")
+
 const NOTE_GAP := 0.78
 const LEAD_IN := 1.4
 ## While the child is singing back, a nudge if nothing is tapped for this
@@ -97,14 +106,20 @@ func _build_scene(config: Dictionary) -> void:
 	_play_area.add_child(back)
 
 	_instruction = Label.new()
-	_instruction.text = I18n.t("echo.listen")
+	# The level's own opening line, not a hard-coded one. bonus_echo sets
+	# instruction_key to echo.instruction; the string is written, translated and
+	# configured, and it has never once reached the screen because this line
+	# ignored the field. The other two battle templates both read it. The
+	# "listen" and "your turn" lines that follow are STATES and stay as they
+	# are -- this is the sentence that introduces the level.
+	_instruction.text = I18n.t(str(config.get("instruction_key", "echo.listen")))
 	_instruction.add_theme_font_size_override("font_size", 38)
 	_instruction.add_theme_color_override("font_color", Palette.ON_COLOR)
 	UiKit.on_art(_instruction)
 	_instruction.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.75))
 	_instruction.add_theme_constant_override("outline_size", 8)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_instruction.position = Vector2(340, 40)
+	_instruction.position = Vector2((Fit.view(_play_area).x - 600.0) * 0.5, 40)
 	_instruction.size = Vector2(600, 56)
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_instruction)
@@ -113,7 +128,7 @@ func _build_scene(config: Dictionary) -> void:
 	_progress.add_theme_font_size_override("font_size", 32)
 	_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
 	UiKit.on_art(_progress)
-	_progress.position = Vector2(1020, 44)
+	_progress.position = Vector2(Fit.right(_play_area, 1020.0), 44)
 	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_progress)
 	_update_progress()
@@ -133,7 +148,7 @@ func _build_scene(config: Dictionary) -> void:
 	# away for two seconds actually needs.
 	_replay = Button.new()
 	_replay.custom_minimum_size = Vector2(104, 104)
-	_replay.position = Vector2(1120, 112)
+	_replay.position = Vector2(Fit.right(_play_area, 1120.0), 112)
 	_replay.focus_mode = Control.FOCUS_NONE
 	var rp_style := StyleBoxFlat.new()
 	rp_style.bg_color = Color(0.09, 0.15, 0.30, 0.92)
@@ -157,7 +172,7 @@ func _build_scene(config: Dictionary) -> void:
 	# The hero conducts from the side; the chest light sings every note.
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
-	_hero.position = Vector2(170, 560)
+	_hero.position = Fit.at(_play_area, Vector2(170, 560))
 	_hero.scale = Vector2(1.4, 1.4)
 	_play_area.add_child(_hero)
 
@@ -177,17 +192,18 @@ func _build_scene(config: Dictionary) -> void:
 	var colors: Array = config.get("colors", DEFAULT_COLORS)
 	var spacing := 40.0
 	var total: float = _pad_count * PAD_SIZE.x + (_pad_count - 1) * spacing
-	var start_x: float = (1280.0 - total) / 2.0 + 60.0
+	var start_x: float = (Fit.view(_play_area).x - total) / 2.0 + 60.0
 	# The lamps hang centred over the pad row, whatever the pad count -- the
 	# same numbers, not a guessed constant that drifts when a level asks for
 	# three pads or five.
-	_dot_row.position = Vector2(start_x, 330.0)
+	_dot_row.position = Vector2(start_x, Fit.y(_play_area, 330.0))
 	_dot_row.size = Vector2(total, 54.0)
 	for i in range(_pad_count):
 		var pad := Panel.new()
 		pad.size = PAD_SIZE
 		var lift: float = absf(float(i) - float(_pad_count - 1) / 2.0) * 18.0
-		pad.position = Vector2(start_x + i * (PAD_SIZE.x + spacing), 400.0 + lift)
+		pad.position = Vector2(start_x + i * (PAD_SIZE.x + spacing),
+			Fit.y(_play_area, 400.0) + lift)
 		pad.pivot_offset = PAD_SIZE / 2.0
 		pad.mouse_filter = Control.MOUSE_FILTER_STOP
 
@@ -570,3 +586,17 @@ func _update_progress() -> void:
 	if _progress == null:
 		return
 	_progress.text = "%d / %d" % [result.correct, target_value("correct", 5)]
+
+
+## The curtain call. See the note on light_defense.complete_level -- this
+## template had the same silence at the end, for the same reason: score_correct
+## reaching the target let LevelManager finish the level by itself, and nobody
+## ever wrote the moment in between.
+func complete_level() -> void:
+	if not _finished:
+		if is_instance_valid(_hero):
+			_hero.celebrate()
+		Juice.burst(_play_area, _hero.position + Vector2(0, -150.0), 30)
+		AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
+		await get_tree().create_timer(1.0).timeout
+	await super.complete_level()

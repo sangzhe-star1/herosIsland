@@ -110,6 +110,8 @@ var _ult_button: Control
 ## way for all three.
 var _skills: Dictionary = {}
 var _light_pips: Array[Control] = []
+## Which skill currently wears the accent ring. "" until the wheel is built.
+var _accent_on := ""
 var _light_left := LIGHT_PIPS
 var _threats: Array = []          # goo and roar nodes in flight
 var _taught_swat := false         # the "tap the goo" line, shown once
@@ -232,7 +234,7 @@ func _build_scene(config: Dictionary) -> void:
 	_hero.entrance(340.0, 0.15)
 
 	var back := UiKit.back_button(func(): quit_level())
-	back.position = Vector2(24, 24)
+	back.position = Vector2(MARGIN, MARGIN)
 	_play_area.add_child(back)
 
 	_instruction = Label.new()
@@ -243,8 +245,12 @@ func _build_scene(config: Dictionary) -> void:
 	_instruction.add_theme_color_override("font_outline_color", Color(0.05, 0.09, 0.16, 0.75))
 	_instruction.add_theme_constant_override("outline_size", 8)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_instruction.position = Vector2(340, 30)
-	_instruction.size = Vector2(600, 56)
+	# Centred against the screen he is holding, and sitting on the same top
+	# margin as the back button rather than 6 px above it.
+	var band_w: float = 600.0
+	_instruction.position = Vector2(
+		(Fit.view(_play_area).x - band_w) * 0.5, MARGIN)
+	_instruction.size = Vector2(band_w, 56)
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_instruction)
 
@@ -252,6 +258,28 @@ func _build_scene(config: Dictionary) -> void:
 	_build_light_bar()
 	_build_skill_wheel()
 
+
+# --- 一个节奏 ------------------------------------------------------------
+#
+# Every gap, inset and corner on this screen comes from these four numbers or
+# a whole multiple of them. Written down once, referenced everywhere: numbers
+# scattered through a layout do not stay aligned, and this screen had already
+# collected three button sizes, two near-identical golds and four different
+# vertical positions in the thumb corner alone.
+
+## The rhythm. Every distance here is GAP or a multiple of it.
+const GAP := 12.0
+## The safe edge, shared by everything that touches one.
+const MARGIN := 24.0
+## Children's touch target, and the ONE size all three skills are drawn at.
+## Well over the 60 px floor because this is the thing he presses forty times.
+const SKILL := 108.0
+## The one accent. Whatever is most worth pressing right now wears it, and
+## nothing else on the screen is allowed to.
+const ACCENT := Color(1.0, 0.84, 0.36)
+
+const DESIGN_W := 1280.0
+const DESIGN_H := 720.0
 
 const HP_W := 560.0
 const HP_H := 34.0
@@ -319,7 +347,9 @@ func _monster_head(size: float) -> Control:
 
 func _build_meter() -> void:
 	var holder := Control.new()
-	holder.position = HP_AT
+	# Centred, and one GAP below the instruction instead of two pixels into it.
+	holder.position = Vector2((Fit.view(_play_area).x - HP_W) * 0.5,
+		MARGIN + 56.0 + GAP)
 	holder.size = Vector2(HP_W, HP_H)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(holder)
@@ -395,42 +425,63 @@ func _update_meter() -> void:
 ## whatever shape the tablet turns out to be. Left as design numbers they sat
 ## in the middle of an iPad with the child's thumb under empty grass.
 func _build_skill_wheel() -> void:
-	# Kept as a member so the tablet probe can check the three buttons are
-	# still ON it. Pad and buttons are placed by two separate Fit.corner
-	# calls, and two calls can drift apart.
+	# One capsule holding three, rather than three discs scattered near each
+	# other. Related controls that live in one container read as one control
+	# with three parts, and the container is what makes the thumb corner look
+	# deliberate instead of occupied.
+	#
+	# Everything below is derived from GAP and SKILL. Nothing here is a number
+	# somebody typed while looking at a mock-up, which is what produced the
+	# three sizes and three border colours this replaced: 124/108/100 px with
+	# gold, blue and a SECOND, slightly different gold. Three accents is no
+	# accent, and two golds a shade apart read as a mistake rather than a rank.
+	var inner := GAP * 2.0
+	var pad_size := Vector2(SKILL * 3.0 + GAP * 2.0 + inner * 2.0, SKILL + inner * 2.0)
 	_skill_pad = Panel.new()
 	var pad := _skill_pad
-	pad.position = Fit.corner(_play_area, Vector2(890, 552))
-	pad.size = Vector2(384, 168)
+	pad.position = Fit.corner(_play_area,
+		Vector2(DESIGN_W - MARGIN - pad_size.x, DESIGN_H - MARGIN - pad_size.y))
+	pad.size = pad_size
 	var pad_style := StyleBoxFlat.new()
 	pad_style.bg_color = Color(0.06, 0.09, 0.20, 0.42)
-	pad_style.corner_radius_top_left = 46
-	pad_style.corner_radius_bottom_left = 46
-	pad_style.corner_radius_top_right = 46
-	pad_style.corner_radius_bottom_right = 46
+	# A capsule: the radius IS half the height, so it cannot drift out of the
+	# family the way four separately-written corner numbers can.
+	pad_style.set_corner_radius_all(int(pad_size.y * 0.5))
 	pad.add_theme_stylebox_override("panel", pad_style)
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(pad)
 
-	_ult_button = _skill_button("ult", Fit.corner(_play_area, Vector2(912, 596)), 100, "star",
-		Color(0.98, 0.78, 0.28))
+	# Left to right: ult, shield, beam. Beam stays rightmost and therefore
+	# closest to where a landscape thumb already rests -- that was right the
+	# first time, and it is the only thing about the old arrangement that was.
+	var row_y: float = pad.position.y + inner
+	var slot_x: float = pad.position.x + inner
+	_ult_button = _skill_button("ult", Vector2(slot_x, row_y), SKILL, "star")
 	_ult_button.gui_input.connect(_on_ult_input)
 
-	_shield_button = _skill_button("shield", Fit.corner(_play_area, Vector2(1024, 574)), 108, "shield",
-		Color(0.48, 0.74, 0.98))
+	slot_x += SKILL + GAP
+	_shield_button = _skill_button("shield", Vector2(slot_x, row_y), SKILL, "shield")
 	_shield_button.gui_input.connect(_on_shield_input)
 
-	_beam_button = _skill_button("beam", Fit.corner(_play_area, Vector2(1140, 584)), 124, "spark",
-		Color(1.0, 0.86, 0.40))
+	slot_x += SKILL + GAP
+	_beam_button = _skill_button("beam", Vector2(slot_x, row_y), SKILL, "spark")
 	_beam_button.gui_input.connect(_on_beam_input)
+	_refresh_accent()
 
 	_set_skill_ready("ult", false)
 	_set_skill_ready("shield", true)
 	_set_skill_ready("beam", true)
 
 
-func _skill_button(key: String, at: Vector2, size: float, icon_name: String,
-		ring: Color) -> Control:
+## One skill, drawn the same as the other two.
+##
+## No colour argument any more. Every button is the same dark disc with the
+## same soft drop shadow, and exactly one of them wears the accent ring at a
+## time -- see _refresh_accent. Shadow OR border, never both: the old version
+## had a 6-7 px coloured border AND a shadow on all three, which is the
+## double-edge that makes a control look pasted on.
+func _skill_button(key: String, at: Vector2, size: float,
+		icon_name: String) -> Control:
 	var button := Panel.new()
 	button.size = Vector2(size, size)
 	button.position = at
@@ -438,11 +489,6 @@ func _skill_button(key: String, at: Vector2, size: float, icon_name: String,
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.09, 0.15, 0.30, 0.94)
 	style.set_corner_radius_all(int(size / 2.0))
-	style.border_width_bottom = 7
-	style.border_width_top = 6
-	style.border_width_left = 6
-	style.border_width_right = 6
-	style.border_color = ring
 	style.shadow_color = Color(0.0, 0.04, 0.12, 0.45)
 	style.shadow_size = 10
 	style.shadow_offset = Vector2(0, 6)
@@ -464,11 +510,44 @@ func _skill_button(key: String, at: Vector2, size: float, icon_name: String,
 	pie.antialiased = true
 	button.add_child(pie)
 
+	# The accent ring, built for every button but shown on only one. Kept as a
+	# node rather than a border on the style so that moving the accent is one
+	# property change instead of rebuilding three stylebox objects every frame.
+	var ring := Line2D.new()
+	ring.points = Shapes.circle_points(Vector2(size * 0.5, size * 0.5),
+		size * 0.5 - 3.0, 30)
+	ring.closed = true
+	ring.width = 6.0
+	ring.default_color = ACCENT
+	ring.antialiased = true
+	ring.visible = false
+	button.add_child(ring)
+
 	_play_area.add_child(button)
 	_skills[key] = {
-		"button": button, "pie": pie, "radius": size * 0.5, "colour": ring, "ready": true,
+		"button": button, "pie": pie, "radius": size * 0.5, "colour": ACCENT,
+		"ready": true, "ring": ring,
 	}
 	return button
+
+
+## Exactly one accent on the screen, on the thing most worth pressing now.
+##
+## The rule is a ladder, not a mood: a full special move outranks everything,
+## otherwise the beam. The other two are still perfectly pressable -- they are
+## simply not shouting, which is what lets the one that IS shouting mean
+## something. A child who cannot read has to be able to find "the button" in
+## the half second before he gives up and presses whatever is biggest.
+func _refresh_accent() -> void:
+	var want: String = "ult" if ult_ready() else "beam"
+	if want == _accent_on:
+		return
+	_accent_on = want
+	for key in _skills.keys():
+		var skill: Dictionary = _skills[key]
+		var ring = skill.get("ring")
+		if ring != null and is_instance_valid(ring):
+			ring.visible = key == want
 
 
 ## The dark wedge over a cooling skill. `fraction` is how much is left.
@@ -622,8 +701,10 @@ func _refuse(key: String) -> void:
 ## cost of being hit is stars, and stars never go below one.
 func _build_light_bar() -> void:
 	var row := HBoxContainer.new()
-	row.position = Vector2(150, 34)
-	row.add_theme_constant_override("separation", 10)
+	# Beside the back button, on the same rhythm and centred against its height
+	# rather than floating ten pixels above its middle.
+	row.position = Vector2(MARGIN + 112.0 + GAP, MARGIN + (96.0 - 46.0) * 0.5)
+	row.add_theme_constant_override("separation", int(GAP))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(row)
 	for i in range(LIGHT_PIPS):
@@ -760,6 +841,7 @@ func _process(delta: float) -> void:
 	_set_skill_ready("shield", shield_left <= 0.0)
 	_set_skill_cooldown("ult", 1.0 - float(_ult_charge) / float(maxi(_ult_needed, 1)))
 	_set_skill_ready("ult", ult_ready())
+	_refresh_accent()
 	if _shield_bubble != null and is_instance_valid(_shield_bubble) and _clock > _shield_until:
 		_shield_bubble.queue_free()
 		_shield_bubble = null

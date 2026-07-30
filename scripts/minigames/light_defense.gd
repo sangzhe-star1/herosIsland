@@ -2,6 +2,11 @@ extends LevelManager
 ## Light Defence: the monsters keep coming, and the hero keeps getting
 ## stronger.
 ##
+## The last monster used to walk off and then nothing happened at all -- no
+## cheer, no confetti, no fanfare, just a cut to the results screen. The duel
+## template has had a proper curtain call the whole time; see complete_level
+## at the bottom of this file for the one this now shares with it.
+##
 ## Replaces the whack-a-mole range, for two reasons the playtester's father
 ## gave in one breath: the shooting level should have a STREAM of monsters
 ## rather than heads popping politely out of holes, and the island's levels
@@ -497,7 +502,11 @@ func _defeat(walker: Dictionary) -> void:
 			t.chain().tween_callback(node.queue_free)
 		else:
 			node.queue_free()
-	AudioManager.play_sfx("res://assets/audio/coin.ogg")
+	# monster_defeat, not coin. A coin is the sound of buying something, and
+	# what just happened is a monster getting tired and waving goodbye -- the
+	# two were never the same event, and score_correct() below already plays
+	# correct.ogg on the same frame, so this was also two sounds at once.
+	AudioManager.play_sfx("res://assets/audio/monster_defeat.ogg")
 	_defeated += 1
 	score_correct()
 	_update_progress()
@@ -693,3 +702,21 @@ func _update_progress() -> void:
 	if _progress == null:
 		return
 	_progress.text = "%d / %d" % [_defeated, _targets]
+
+
+## The curtain call.
+##
+## Every other template on the island ends with the hero cheering and confetti
+## in the air; this one ended with the last monster walking off and the screen
+## cutting to the results card. That silence reads as "the game stopped", not
+## as "you won" -- and winning is the entire point of the ninety seconds
+## before it. Same shape as the duel's, deliberately: two templates that end
+## the same way teach one ending.
+func complete_level() -> void:
+	if not _finished:
+		if is_instance_valid(_hero):
+			_hero.celebrate()
+		Juice.burst(_play_area, _hero.position + Vector2(0, -150.0), 30)
+		AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
+		await get_tree().create_timer(1.0).timeout
+	await super.complete_level()

@@ -85,6 +85,25 @@ const SCREENS := [
 		"dead": 0.48, "holds": "_pieces"},
 ]
 
+# STILL NOT IN THE LIST, and it is the failure mode a list of names always has:
+# every screen this file was written for is above, and the two that were most
+# broken were never added.
+#
+#   bonus_echo     (light_echo)     hero  80% down at 720, 74% at 960
+#   bonus_blaster  (light_defense)  hero  17% down at 720, 12% at 960
+#                                   and 83-88% of the bottom left empty
+#
+# Measured on 2026-07-30 by adding both here. light_echo's hard-coded layout
+# has since been routed through screen_fit, which removed the worst of it --
+# the hero no longer stands in mid-air on a 4:3 window -- but neither screen
+# holds the same FRACTION across the two shapes yet, and light_defense's whole
+# tap surface is the screen itself, so the dead-band rule as written does not
+# describe it at all.
+#
+# Left out rather than given a loose tolerance on purpose: a threshold widened
+# until it passes is a probe that has stopped watching. The numbers above are
+# the starting point for finishing the job, not a suggestion to tune them away.
+
 var _failures: Array[String] = []
 var _shape := ""
 var _view := Vector2.ZERO
