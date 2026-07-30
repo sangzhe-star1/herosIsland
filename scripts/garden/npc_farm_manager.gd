@@ -79,6 +79,37 @@ static func record_pick(now: int) -> void:
 	farm["npc"] = npc
 
 
+# --- 三期阶段 3：悄悄摘一颗 ------------------------------------------------
+#
+# The share star is permission; this is the joke that lives one bed over. A
+# strawberry with NO star ripens on the sneak bed once per growth cycle, and
+# a child who takes it is not caught, not scolded, not even mentioned -- the
+# bear says nothing, and on his next visit he quietly shares one more. The
+# whole exchange costs the bear nothing (his farm is arithmetic; the berry
+# is conjured exactly like the share one) and teaches the only version of
+# this joke worth teaching: a friend's answer to small mischief is grace.
+#
+# Same growth clock as the share (no midnight, nothing forfeited), but NOT
+# gated on help_owed: grace is unconditional, the share star still waits on
+# the kindness.
+
+
+## Is the quiet strawberry standing ripe right now?
+static func can_sneak(now: int) -> bool:
+	return current_cycle(now) > int(bear_state().get("last_sneak_cycle", -1))
+
+
+## The quiet pick, written down first like every pick: this cycle is spent,
+## and the bear now owes one wink. The berry itself is the CALLER's to store
+## -- same split as record_pick / store_harvest.
+static func record_sneak(now: int) -> void:
+	var farm: Dictionary = SaveManager.data["farm"]
+	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
+	npc["bear"]["last_sneak_cycle"] = current_cycle(now)
+	npc["bear"]["sneak_owed"] = true
+	farm["npc"] = npc
+
+
 ## The watering is done: the promise clears and the friendship grows by one.
 ## The flag itself is the idempotence -- a second call finds nothing owed and
 ## changes nothing, however it arrives.
@@ -117,6 +148,7 @@ static func bear_beds(now: int) -> Array:
 		var plot: Dictionary = Farm.fresh_plot(i)
 		plot["crop_id"] = crop_id
 		plot["share"] = bool(def.get("share", false))
+		plot["sneak"] = bool(def.get("sneak", false))
 		plot["help_target"] = bool(def.get("thirsty", false))
 
 		if plot["share"]:
@@ -125,6 +157,15 @@ static func bear_beds(now: int) -> Array:
 				plot["growth_stage"] = Farm.STAGES - 1
 			else:
 				# Growing back: however far the current cycle has run.
+				_grow_to(plot, crop_id,
+					float(now % share_period()) / float(share_period()))
+		elif plot["sneak"]:
+			# The quiet one: ripe with NO star over it -- the missing star IS
+			# the "nobody said I could" of the joke. Same clock as the share.
+			if can_sneak(now):
+				plot["state"] = Farm.READY
+				plot["growth_stage"] = Farm.STAGES - 1
+			else:
 				_grow_to(plot, crop_id,
 					float(now % share_period()) / float(share_period()))
 		elif plot["help_target"]:
@@ -194,10 +235,30 @@ static func maybe_visit(now: int) -> Dictionary:
 	farm["npc_friendship"] = friends
 
 	npc["bear"]["last_visit_at"] = now
-	farm["npc"] = npc
 
 	var entry := {"who": "bear", "watered": watered, "star": 1, "at": now}
+
+	# 悄悄摘一颗的下半句：小熊什么都没说，多分你一颗。One wink per owed
+	# sneak however many cycles were sneaked -- it is a joke, not a wage --
+	# and the flag clears in the same breath the berry lands, so a settle
+	# that runs twice winks once. The berry takes the harvest door like the
+	# shared one; a full barn keeps it exactly as store_harvest decides.
+	if bool(npc["bear"].get("sneak_owed", false)):
+		npc["bear"]["sneak_owed"] = false
+		var farm_def: Dictionary = GameData.get_npc_farm("bear")
+		Barn.store_harvest(str(farm_def.get("share_crop", "strawberry")), 1)
+		entry["shared_back"] = 1
+
+	farm["npc"] = npc
+
 	_grant_milestone("bear", entry)
+	if int(entry.get("shared_back", 0)) > 0 \
+			and not entry.has("milestone_key"):
+		# The wink's one line, amber on the board -- unless a real milestone
+		# happened this same visit, in which case the milestone's sentence
+		# wins and the strawberry icon still tells the rest.
+		entry["milestone_key"] = "garden.visit_shared_back"
+		entry["milestone_icon"] = "strawberry"
 	Farm.remember_visit(farm, entry)
 	return entry
 

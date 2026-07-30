@@ -29,7 +29,7 @@
         },
         {
           "crop": "strawberry",
-          "phase": 0.8
+          "sneak": true
         }
       ]
     }

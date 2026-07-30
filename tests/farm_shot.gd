@@ -13,6 +13,10 @@ extends Node
 ## kitchen: the workshop kitchen at level 5 -- one soup ready to cook, one
 ##         stew short of tomatoes, one cooked dish waiting on the shelf.
 ## thanks: the visit board with a thank-you entry over an ordinary visit.
+## wink:   the visit board carrying the quiet-strawberry answer -- one amber
+##         line, one strawberry icon, told over an ordinary visit.
+## poke:   the farm with furniture standing -- captured mid-wiggle, one
+##         decoration answering a tap.
 ## rack:   all fourteen crops owned -- the seed rack with its page arrows.
 ## shop:   level 3, the batch that just went on sale and the level-5 batch
 ##         still standing as starred ground. SHOT_PAGE=1 flips to page two.
@@ -108,6 +112,20 @@ func _ready() -> void:
 					"milestone_icon": "dish"},
 				{"who": "bear", "watered": 2, "star": 1, "at": NOON - 900},
 			]
+		if what == "wink":
+			farm["visit_log"] = [
+				{"who": "bear", "kind": "", "watered": 1, "star": 1,
+					"shared_back": 1, "at": NOON - 300,
+					"milestone_key": "garden.visit_shared_back",
+					"milestone_icon": "strawberry"},
+				{"who": "bear", "watered": 2, "star": 1, "at": NOON - 900},
+			]
+		if what == "poke":
+			SaveManager.set_creation("garden", [
+				{"icon": "flag", "x": 477.0, "y": 377.0, "size": 96.0},
+				{"icon": "balloon", "x": 700.0, "y": 300.0, "size": 84.0},
+				{"icon": "heart", "x": 300.0, "y": 500.0, "size": 72.0},
+			])
 		if what == "rack":
 			farm["farm_xp"] = 200
 			farm["unlocked_crops"] = ["carrot", "corn", "strawberry",
@@ -129,7 +147,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 		var page := int(OS.get_environment("SHOT_PAGE")) \
 			if OS.get_environment("SHOT_PAGE") != "" else 0
-		if what == "board" or what == "thanks":
+		if what == "board" or what == "thanks" or what == "wink":
 			scene.call("_tap_building", "visit_board")
 			await get_tree().process_frame
 		elif what == "kitchen":
@@ -169,6 +187,18 @@ func _ready() -> void:
 	# Long enough for the dog to have RUN from his kennel to the ripe bed and
 	# sat down beside it -- a farm standing at attention is not this farm.
 	await get_tree().create_timer(3.4).timeout
+	if what == "poke":
+		# Fire the wiggle NOW and catch it mid-tilt: the answer lasts four
+		# tenths of a second, which is the point -- and the reason it cannot
+		# be photographed after the usual settle.
+		var layer: Node = (scene.get("_world") as Node)\
+			.get_node_or_null("Decorations")
+		if layer != null and layer.get_child_count() > 0:
+			var art := layer.get_child(0) as Control
+			scene.call("_poke_decoration", (scene.get("_world") as Node)
+				.get("camera").call("world_to_screen",
+					art.position + art.size * 0.5))
+			await get_tree().create_timer(0.1).timeout
 	await RenderingServer.frame_post_draw
 	var image := get_viewport().get_texture().get_image()
 	print("farm_shot -> ", error_string(image.save_png(out)))

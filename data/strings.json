@@ -765,7 +765,8 @@
         "recipe.grape_jam": "Grape Jam",
         "recipe.fruit_plate": "Fruit Plate",
         "recipe.apple_pie": "Apple Pie",
-        "recipe.roast_veggies": "Roasted Veggies"
+        "recipe.roast_veggies": "Roasted Veggies",
+        "garden.visit_shared_back": "The bear said nothing -- and quietly shared one more strawberry with you"
     },
     "zh": {
         "adventure.again": "再来一次，你可以的！",
@@ -1533,6 +1534,7 @@
         "recipe.grape_jam": "葡萄果酱",
         "recipe.fruit_plate": "水果拼盘",
         "recipe.apple_pie": "苹果甜派",
-        "recipe.roast_veggies": "田园烤蔬菜"
+        "recipe.roast_veggies": "田园烤蔬菜",
+        "garden.visit_shared_back": "小熊什么都没说，悄悄多分了你一颗草莓"
     }
 }

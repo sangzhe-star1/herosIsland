@@ -40,7 +40,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 671
+const CHECKS_EXPECTED := 675
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -1549,17 +1549,21 @@ func _a_visit_to_the_bears_farm() -> void:
 	var beds: Array = NpcFarm.bear_beds(GameClock.now_unix())
 	var share := -1
 	var thirsty := -1
+	var sneak := -1
 	var own := -1
 	for i in range(beds.size()):
 		var plot: Dictionary = beds[i]
 		if bool(plot.get("share", false)):
 			share = i
+		elif bool(plot.get("sneak", false)):
+			sneak = i
 		elif bool(plot.get("help_target", false)):
 			thirsty = i
 		elif own < 0:
 			own = i
-	_ok(share >= 0 and thirsty >= 0 and own >= 0,
-		"the bear's farm has a share bed, a thirsty bed, and his own")
+	_ok(share >= 0 and thirsty >= 0 and sneak >= 0 and own >= 0,
+		"the bear's farm has a share bed, a quiet bed, a thirsty bed, "
+		+ "and his own")
 	_ok(bear.get("_star") != null, "the share star is up for a new friend")
 
 	var strawberries := Barn.count("strawberry")
@@ -1603,12 +1607,27 @@ func _a_visit_to_the_bears_farm() -> void:
 			doors += 1
 	_ok(doors >= 1, "there is a way home")
 
-	# Five taps landed above. With touch<->mouse emulation on, one physical
+	# 悄悄摘一颗：星星旁边那畦熟着，头顶上什么都没有——没有星，才是
+	# 这个玩笑的全部。摘一颗是允许的、拿回家的、不发星也不挨说的；
+	# 一个生长周期只有一颗。
+	var quiet_before := Barn.count("strawberry")
+	await _tap(bear.call("_bed_centre", sneak))
+	_ok(Barn.count("strawberry") == quiet_before + 1,
+		"the quiet strawberry is his to take, and kept")
+	_ok(bool(NpcFarm.bear_state().get("sneak_owed", false)),
+		"...and the bear now owes one wink for next visit")
+	_ok(NpcFarm.friendship() == 1,
+		"no star for mischief -- the friendship count does not move")
+	await _tap(bear.call("_bed_centre", sneak))
+	_ok(Barn.count("strawberry") == quiet_before + 1,
+		"once per growth cycle: a second tap takes nothing more")
+
+	# Seven taps landed above. With touch<->mouse emulation on, one physical
 	# tap arrives as BOTH event families; if the screen answered both, this
-	# would read ten, and every guard upstream would be silently eating a
-	# double it should never have been fed.
-	_ok(int(bear.get("presses")) == 5,
-		"five taps were dispatched exactly five times, not ten")
+	# would read fourteen, and every guard upstream would be silently eating
+	# a double it should never have been fed.
+	_ok(int(bear.get("presses")) == 7,
+		"seven taps were dispatched exactly seven times, not fourteen")
 
 	bear.queue_free()
 	await get_tree().process_frame

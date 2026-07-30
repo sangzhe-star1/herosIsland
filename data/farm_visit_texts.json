@@ -14,6 +14,11 @@
       {
         "icon": "star",
         "key": "garden.visit_star"
+      },
+      {
+        "icon": "strawberry",
+        "key": "garden.visit_shared_back",
+        "count_field": "shared_back"
       }
     ],
     "visited_lines": [

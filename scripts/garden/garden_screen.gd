@@ -290,6 +290,7 @@ func _rebuild() -> void:
 		_world.camera_moved.connect(_follow_the_camera)
 		_world.stroke_swept.connect(_on_stroke_swept)
 		_world.stroke_ended.connect(_on_stroke_ended)
+		_world.grass_pressed.connect(_poke_decoration)
 	else:
 		_world.refresh(_plots())
 	_draw_decorations()
@@ -1339,7 +1340,45 @@ func _draw_decorations() -> void:
 		var fy := clampf(float(entry.get("y", 300.0)) / 720.0, 0.0, 1.0)
 		art.position = Vector2(fx * (world.x - size), fy * (world.y - size))
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# 三期阶段 3：家具活了一点。围着自己的中心一点点呼吸式起伏，
+		# 周期各自错开——一排同拍点头的家具是布景，不是院子。
+		# （先进树再上发条：create_tween 只认树上的节点。）
+		art.pivot_offset = art.size * 0.5
 		layer.add_child(art)
+		Juice.idle_bob(art, 2.0, 2.6 + 0.37 * float(layer.get_child_count()))
+
+
+## 三期阶段 3：家具会答话，但永远排在最后。
+##
+## 这里接的是世界的 grass_pressed——地块、建筑、石头都没认领的那种
+## 点击。所以"家具从不吞掉给地里的手指"这条红线原样成立：装饰的
+## mouse_filter 还是 IGNORE，它从不接输入，只是剩下的点击落在它身上
+## 时，它答应一声。挤压回弹加一下歪头，首页 poke 的语言；只动
+## scale/rotation，不进存档，不算玩法。
+func _poke_decoration(at: Vector2) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var layer: Node = _world.get_node_or_null("Decorations")
+	if layer == null:
+		return
+	var spot: Vector2 = _world.camera.screen_to_world(at)
+	for child in layer.get_children():
+		if not (child is Control):
+			continue
+		var art := child as Control
+		if not Rect2(art.position, art.size).has_point(spot):
+			continue
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		Juice.pop(art, 0.16)
+		if Juice.motion_enabled():
+			var t := art.create_tween()
+			t.tween_property(art, "rotation", 0.13, 0.11)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			t.tween_property(art, "rotation", -0.09, 0.15)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			t.tween_property(art, "rotation", 0.0, 0.13)\
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		return
 
 
 func _barn(view: Vector2) -> void:

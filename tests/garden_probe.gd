@@ -85,6 +85,7 @@ func _ready() -> void:
 	# --- 阶段 4: the bear, the shared strawberry, and the visitor board ---
 	_the_bears_farm_is_arithmetic_and_kindness()
 	_the_bear_drops_by_but_never_in_front_of_him()
+	_the_quiet_strawberry_is_answered_with_grace()
 	_the_regular_gets_his_milestones_once()
 	_the_kitchen_cooks_knowledge_and_feeds_a_friend()
 	_two_tablets_agree_about_the_bear()
@@ -1404,6 +1405,69 @@ func _the_bear_drops_by_but_never_in_front_of_him() -> void:
 	_ok(int((log[0] as Dictionary).get("at", 0))
 		== later + 100 + Farm.VISIT_LOG_KEPT + 4,
 		"...keeping the newest at the top")
+
+
+## 三期阶段 3：悄悄摘一颗，答的是温柔。没有星的那颗一个周期只有一颗；
+## 摘了不发星、不挨说；小熊下次来访什么都没说、悄悄多分一颗，眨这一次
+## 眼就把账清了——settle 跑两遍也只眨一次。真正的里程碑句永远让在前面。
+func _the_quiet_strawberry_is_answered_with_grace() -> void:
+	_fresh_save()
+	var period := NpcFarm.share_period()
+	var now := period * 7 + 55
+
+	# 一个周期一颗，和分享星同一套算术，但不看 help_owed 的脸色。
+	_ok(NpcFarm.can_sneak(now), "a fresh save has the quiet one standing ripe")
+	NpcFarm.record_pick(now)
+	_ok(NpcFarm.can_sneak(now),
+		"grace is unconditional -- owing the watering does not close the "
+		+ "quiet bed")
+	NpcFarm.record_sneak(now)
+	_ok(bool(NpcFarm.bear_state().get("sneak_owed", false)),
+		"the sneak writes the wink into the save")
+	_ok(not NpcFarm.can_sneak(now), "one per cycle: this one is spent")
+	_ok(NpcFarm.can_sneak(now + period), "the next cycle grows another")
+
+	# 下次来访：多一颗草莓、一句琥珀色的话，眨一次眼就清账。
+	NpcFarm.record_help()                         # friendship 1, door open
+	NpcFarm.maybe_visit(now)                      # 起表，不算来访
+	var berries := Barn.count("strawberry")
+	var entry: Dictionary = NpcFarm.maybe_visit(now + period)
+	_ok(not entry.is_empty(), "after his rhythm, the bear comes")
+	_ok(int(entry.get("shared_back", 0)) == 1,
+		"the visit carries the one extra strawberry")
+	_ok(str(entry.get("milestone_key", "")) == "garden.visit_shared_back",
+		"...and its one amber line says he said nothing and shared")
+	_ok(Barn.count("strawberry") == berries + 1,
+		"the extra strawberry really lands in the barn")
+	_ok(not bool(NpcFarm.bear_state().get("sneak_owed", false)),
+		"the wink is winked -- the flag clears with the berry")
+
+	# 再来一次访问周期：没有新的悄悄摘，就没有第二颗。
+	var entry2: Dictionary = NpcFarm.maybe_visit(now + period * 2)
+	_ok(not entry2.is_empty() and not entry2.has("shared_back"),
+		"a visit with nothing owed brings no extra berry and tells no tale")
+	_ok(Barn.count("strawberry") == berries + 1,
+		"...and the barn agrees")
+
+	# 撞上真里程碑的那次：里程碑的句子赢，草莓照给。
+	# （前面已经来了 2 次：把账本拨到差一次就到第 3 次的门口。）
+	NpcFarm.record_sneak(now + period * 2 + 5)
+	var before_milestone := Barn.count("strawberry")
+	var entry3: Dictionary = NpcFarm.maybe_visit(now + period * 3)
+	_ok(str(entry3.get("milestone_key", "")) == "garden.visit_friend_3",
+		"a real milestone outranks the wink's line")
+	_ok(int(entry3.get("shared_back", 0)) == 1
+			and Barn.count("strawberry") == before_milestone + 1,
+		"...but the extra strawberry still arrives, told by its icon")
+
+	# 存档往返：欠着的眨眼过夜也还在。
+	NpcFarm.record_sneak(now + period * 3 + 5)
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_ok(bool(NpcFarm.bear_state().get("sneak_owed", false)),
+		"an owed wink survives the game closing")
+	_ok(not NpcFarm.can_sneak(now + period * 3 + 6),
+		"...and so does the spent cycle")
 
 
 ## 常客里程碑：第三次来访带一句话和一块木板，只带一次，存档也记得。

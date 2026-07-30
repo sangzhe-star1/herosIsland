@@ -225,6 +225,8 @@ func _press(at: Vector2) -> void:
 	var plot: Dictionary = _plots[index]
 	if bool(plot.get("share", false)):
 		_pick_the_shared_one(index)
+	elif bool(plot.get("sneak", false)):
+		_sneak_the_quiet_one(index)
 	elif bool(plot.get("help_target", false)):
 		_water_for_the_bear(index)
 	else:
@@ -275,6 +277,43 @@ func _pick_the_shared_one(index: int) -> void:
 
 	AudioManager.say("bear_thirsty")
 	_point_at_thirsty()
+
+
+## 悄悄摘一颗。The bed with ripe strawberries and NO star: taking one is
+## allowed, quiet, and unremarked -- no sound of celebration, no voice line,
+## the bear does not turn around. The answer comes later, on his next visit,
+## as one extra strawberry and one amber line ("小熊什么都没说，悄悄多分了
+## 你一颗草莓"). Once per growth cycle, same clock as the share; written
+## down first, like every pick, so a tablet closed mid-flight still knows.
+func _sneak_the_quiet_one(index: int) -> void:
+	var now := GameClock.now_unix()
+	if not NpcFarm.can_sneak(now):
+		# Still growing back: the bed shrugs, same as any bed of the bear's.
+		Juice.nudge(_bed_views[index], 8.0)
+		return
+	NpcFarm.record_sneak(now)
+	var farm_def: Dictionary = GameData.get_npc_farm("bear")
+	Barn.store_harvest(str(farm_def.get("share_crop", "strawberry")), 1)
+	preload("res://scripts/garden/recipe_manager.gd").check_barn()
+	SaveManager.save_game()
+
+	# A rustle, not a fanfare. The berry flies to his basket like the shared
+	# one -- what a child DID is never hidden from him -- but nobody says a
+	# word, which is the whole texture of the moment.
+	AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+	var art := UiKit.picture("strawberry", 56.0)
+	if art != null:
+		art.position = _bed_centre(index) - Vector2(28, 28)
+		add_child(art)
+		if Juice.motion_enabled():
+			var t := art.create_tween()
+			t.tween_property(art, "position", _basket_at - Vector2(28, 28), 0.5)\
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			t.tween_callback(art.queue_free)
+		else:
+			art.queue_free()
+	_plots = NpcFarm.bear_beds(now)
+	(_bed_views[index] as Node2D).call("refresh", _plots[index], true)
 
 
 func _water_for_the_bear(index: int) -> void:

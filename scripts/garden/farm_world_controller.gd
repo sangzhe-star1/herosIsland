@@ -43,6 +43,12 @@ signal camera_moved()
 ## the finger did, and the finger really did cross that bed again.
 signal stroke_swept(index: int)
 signal stroke_ended()
+## A tap nothing above claimed -- not a bed, not a building, not the stones.
+## Glass coordinates. The screen uses it to let the FURNITURE answer last:
+## decorations may only ever receive the taps nobody else was asked for,
+## which is what keeps "furniture never swallows a tap meant for a plot"
+## literally true.
+signal grass_pressed(at: Vector2)
 
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
@@ -608,7 +614,7 @@ func press_at(at: Vector2) -> void:
 		_settle()
 		expansion_pressed.emit(slot)
 		return
-	_grass_tap()
+	_grass_tap(at)
 
 
 ## Which bed is under this point on the glass, or -1.
@@ -672,7 +678,8 @@ func facility_under(at: Vector2) -> String:
 ## tapping a bed twice -- which he does constantly -- and yanking the camera
 ## home in the middle of that would be the farm answering a question he did not
 ## ask.
-func _grass_tap() -> void:
+func _grass_tap(at: Vector2) -> void:
+	grass_pressed.emit(at)
 	if _clock - _last_grass_tap <= DOUBLE_TAP:
 		_last_grass_tap = -10.0
 		go_home()

@@ -31,7 +31,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 256
+const CHECKS_EXPECTED := 268
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -475,6 +475,50 @@ func _the_decorating_door_and_its_furniture() -> void:
 					"a decoration accepts input -- furniture must never "
 					+ "swallow a tap meant for a plot")
 		_ok(shown == 3, "saved 3 decorations, the farm shows %d" % shown)
+
+	# 三期阶段 3：家具会答话，但排在最后。一件摆在 0 号地正中的家具，
+	# 点下去必须还是地在答（翻土）、家具一动不动；一件摆在空草地上的，
+	# 点下去它才答应（歪头回弹）。红线原文——家具从不吞掉给地里的
+	# 手指——两头都被按过才算数。
+	var world = _garden.get("_world")
+	SaveManager.set_creation("garden", [
+		{"icon": "heart", "x": 259.0, "y": 255.0, "size": 84.0},
+		{"icon": "flag", "x": 477.0, "y": 377.0, "size": 84.0},
+	])
+	var plots := _plots()
+	plots[0]["state"] = Farm.EMPTY
+	plots[0]["crop_id"] = ""
+	SaveManager.save_game()
+	world.call("go_home")
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	layer = _find_named(_garden, "Decorations")
+	_ok(layer != null and layer.get_child_count() == 2,
+		"two pieces of furniture stand for the poke test")
+	# 数的是世界的 grass_pressed：家具只可能从这里被问到。地认领的
+	# 点击必须一次都没流到草地上——这是红线的可观测形状。
+	# （翻土会触发重建、家具节点会换新，所以断言不抓旧节点，抓信号。）
+	var grass_taps := [0]
+	world.grass_pressed.connect(func(_at: Vector2): grass_taps[0] += 1)
+	await _tap(_bed(0))
+	_ok(str(_plots()[0].get("state", "")) == Farm.TILLED,
+		"a tap on the bed a decoration covers still turns the earth")
+	_ok(grass_taps[0] == 0,
+		"...and that tap was never offered to the furniture")
+	layer = _find_named(_garden, "Decorations")
+	_ok(layer != null and layer.get_child_count() == 2,
+		"the till's rebuild set the furniture back up")
+	if layer != null and layer.get_child_count() == 2:
+		var open_air := layer.get_child(1) as Control
+		var spot: Vector2 = world.camera.world_to_screen(
+			open_air.position + open_air.size * 0.5)
+		await _tap(spot)
+		await get_tree().create_timer(0.12).timeout
+		_ok(grass_taps[0] == 1,
+			"a tap nothing else claimed is offered to the grass exactly once")
+		_ok(absf(open_air.rotation) > 0.001,
+			"...and the furniture answers it with a wiggle")
 
 	# And the hero base's shelf is exactly as it was.
 	var base_before: Array = SaveManager.get_creation("base")
