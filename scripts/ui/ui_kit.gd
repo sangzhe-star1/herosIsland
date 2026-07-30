@@ -10,6 +10,23 @@ extends RefCounted
 ##  - nothing depends on the child being able to read
 ##  - no flashing; all motion is slow and low-contrast
 
+# --- the type scale and the radius family -------------------------------
+#
+# Four sizes, each at least 1.3x the next, and every word in the shell
+# screens wears one of them. A fifth size is not a style decision, it is a
+# typo with confidence -- before this table the shells had nineteen.
+const TYPE_DISPLAY := 52   # one per screen: the greeting, the moment
+const TYPE_TITLE := 36     # section heads and button words
+const TYPE_BODY := 26      # sentences, prices, counts
+const TYPE_CAPTION := 20   # the small print, usually for the adult
+
+# One radius family. RADIUS for buttons and big panels, _CARD for cards and
+# tiles, _CHIP for small chips and progress tracks, _INNER for the fill that
+# sits 4px inside a track (nested corner = outer minus inset).
+const RADIUS_CARD := 22
+const RADIUS_CHIP := 16
+const RADIUS_INNER := 12
+
 const TOUCH_MIN := Vector2(220, 120)
 const RADIUS := 30
 const EDGE := 8          # thickness of a button's raised bottom edge
@@ -84,7 +101,7 @@ static func card(fill: Color = Palette.SURFACE) -> PanelContainer:
 static func track_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.10, 0.14, 0.24, 0.30)
-	style.set_corner_radius_all(15)
+	style.set_corner_radius_all(RADIUS_CHIP)
 	style.set_content_margin_all(5)
 	return style
 
@@ -92,7 +109,7 @@ static func track_style() -> StyleBoxFlat:
 static func fill_style(color: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
-	style.set_corner_radius_all(11)
+	style.set_corner_radius_all(RADIUS_INNER)
 	return style
 
 
@@ -185,7 +202,7 @@ static func big_button(text: String, color: Color = Palette.BLUE) -> Button:
 	b.text = text
 	b.custom_minimum_size = TOUCH_MIN
 	b.focus_mode = Control.FOCUS_NONE
-	b.add_theme_font_size_override("font_size", 38)
+	b.add_theme_font_size_override("font_size", TYPE_TITLE)
 	b.add_theme_color_override("font_color", Palette.ON_COLOR)
 	b.add_theme_color_override("font_hover_color", Palette.ON_COLOR)
 	b.add_theme_color_override("font_pressed_color", Palette.ON_COLOR)
@@ -196,10 +213,14 @@ static func big_button(text: String, color: Color = Palette.BLUE) -> Button:
 	b.add_theme_stylebox_override("pressed", _raised(color.darkened(0.06), 2))
 	b.add_theme_stylebox_override("disabled", _raised(Palette.MUTED, 3))
 
-	# Every press earns a little bounce on release, on top of the squash the
-	# styleboxes already do. Feedback at the finger, always.
+	# Every press earns a little bounce and a little sound, on top of the
+	# squash the styleboxes already do. Feedback at the finger, always -- and
+	# because the sfx player is a single voice, a button whose handler plays
+	# its own louder sound simply replaces this one mid-pop.
 	b.resized.connect(func(): b.pivot_offset = b.size / 2.0)
-	b.pressed.connect(func(): Juice.pop(b, 0.06))
+	b.pressed.connect(func():
+		Juice.pop(b, 0.06)
+		AudioManager.play_sfx("res://assets/audio/pop.ogg"))
 	return b
 
 
@@ -267,7 +288,7 @@ static func icon_button(text: String, icon_name: String,
 		color: Color = Palette.BLUE, box: Vector2 = Vector2(300, 210)) -> Button:
 	var b := big_button(text, color)
 	b.custom_minimum_size = box
-	b.add_theme_font_size_override("font_size", 30)
+	b.add_theme_font_size_override("font_size", TYPE_BODY)
 
 	var icon: Control = picture(icon_name, box.x * 0.40)
 	if icon == null:
@@ -311,14 +332,14 @@ static func breathe(control: Control, amount: float = 0.03, period: float = 0.9)
 static func back_button(target: Callable) -> Button:
 	var b := big_button("<", Palette.SLATE)
 	b.custom_minimum_size = Vector2(112, 96)
-	b.add_theme_font_size_override("font_size", 40)
+	b.add_theme_font_size_override("font_size", TYPE_TITLE)
 	b.pressed.connect(target)
 	return b
 
 
 # --- text ---------------------------------------------------------------
 
-static func title(text: String, size: int = 60, color: Color = Palette.INK) -> Label:
+static func title(text: String, size: int = TYPE_DISPLAY, color: Color = Palette.INK) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
@@ -328,7 +349,7 @@ static func title(text: String, size: int = 60, color: Color = Palette.INK) -> L
 
 
 ## Title over artwork or a dark background, where a plain label would be lost.
-static func title_on_art(text: String, size: int = 60) -> Label:
+static func title_on_art(text: String, size: int = TYPE_DISPLAY) -> Label:
 	var l := title(text, size, Palette.ON_COLOR)
 	return on_art(l, 10)
 
@@ -656,7 +677,7 @@ static func light_out_card(parent: Node, potions: int, on_potion: Callable,
 			hearts.add_child(heart)
 	column.add_child(hearts)
 
-	column.add_child(UiKit.title(I18n.t("battle.out_of_light"), 40))
+	column.add_child(UiKit.title(I18n.t("battle.out_of_light"), TYPE_TITLE))
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -674,7 +695,7 @@ static func light_out_card(parent: Node, potions: int, on_potion: Callable,
 		)
 		row.add_child(potion)
 	else:
-		column.add_child(UiKit.title(I18n.t("battle.buy_potions"), 22, Palette.INK_SOFT))
+		column.add_child(UiKit.title(I18n.t("battle.buy_potions"), TYPE_CAPTION, Palette.INK_SOFT))
 
 	var finish := UiKit.icon_button(I18n.t("battle.finish_here"), "flag",
 		Palette.ORANGE, Vector2(250, 210))

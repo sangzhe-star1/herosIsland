@@ -100,7 +100,7 @@ func confirm(item_id: String) -> void:
 	card.add_child(pad)
 
 	_thumb(card, Vector2(box.x * 0.5, 40.0), 132.0, entry)
-	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 40)
+	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), UiKit.TYPE_TITLE)
 	name_label.add_theme_color_override("font_color", Color(0.14, 0.21, 0.34))
 	name_label.position = Vector2(0, 178)
 	name_label.size = Vector2(box.x, 50)
@@ -127,7 +127,7 @@ func _star_button(text: String, colour: Color, box: Vector2) -> Button:
 	b.focus_mode = Control.FOCUS_NONE
 	var style := StyleBoxFlat.new()
 	style.bg_color = colour
-	style.set_corner_radius_all(26)
+	style.set_corner_radius_all(UiKit.RADIUS)
 	style.border_width_bottom = 8
 	style.border_color = Palette.edge(colour)
 	var down: StyleBoxFlat = style.duplicate()
@@ -143,12 +143,13 @@ func _star_button(text: String, colour: Color, box: Vector2) -> Button:
 		Color(1.0, 0.90, 0.42), 0.95)
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 34)
+	label.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.position = Vector2(box.x * 0.5 - 6.0, box.y * 0.5 - 24.0)
 	label.size = Vector2(96, 48)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(label)
+	b.pressed.connect(func(): AudioManager.play_sfx("res://assets/audio/pop.ogg"))
 	return b
 
 
@@ -209,7 +210,7 @@ func offer(goods: Dictionary) -> void:
 		card.add_child(picture)
 
 	if str(goods.get("name_key", "")) != "":
-		var name_label := UiKit.title(I18n.t(str(goods["name_key"])), 40)
+		var name_label := UiKit.title(I18n.t(str(goods["name_key"])), UiKit.TYPE_TITLE)
 		name_label.add_theme_color_override("font_color", Color(0.14, 0.21, 0.34))
 		name_label.position = Vector2(0, 178)
 		name_label.size = Vector2(box.x, 50)
@@ -260,7 +261,7 @@ func _celebrate_offered(goods: Dictionary) -> void:
 	# and a potion he paid for is not a gift. Same reason the green button says
 	# 继续 rather than 继续搭配 -- the generic sheet may only borrow words that
 	# are true anywhere.
-	var line := UiKit.title(I18n.t("shop.bought"), 36)
+	var line := UiKit.title(I18n.t("shop.bought"), UiKit.TYPE_TITLE)
 	line.add_theme_color_override("font_color", Color(0.16, 0.24, 0.38))
 	line.position = Vector2(0, 244)
 	line.size = Vector2(box.x, 48)
@@ -307,14 +308,14 @@ func _three_numbers(card: Control, pad: Node2D, box: Vector2,
 			Color(1.0, 0.83, 0.30), 0.9)
 		var n := Label.new()
 		n.text = str(cols[i][1])
-		n.add_theme_font_size_override("font_size", 34)
+		n.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 		n.add_theme_color_override("font_color", cols[i][2])
 		n.position = Vector2(x - 14.0, 238.0)
 		n.size = Vector2(90, 44)
 		card.add_child(n)
 		var t := Label.new()
 		t.text = str(cols[i][0])
-		t.add_theme_font_size_override("font_size", 19)
+		t.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 		t.add_theme_color_override("font_color", Color(0.56, 0.62, 0.74))
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		t.position = Vector2(x - 70.0, 286.0)
@@ -362,7 +363,7 @@ func _celebrate(item_id: String) -> void:
 		gift.texture = frames[0]
 	card.add_child(gift)
 
-	var line := UiKit.title(I18n.t("house.bought"), 36)
+	var line := UiKit.title(I18n.t("house.bought"), UiKit.TYPE_TITLE)
 	line.add_theme_color_override("font_color", Color(0.16, 0.24, 0.38))
 	line.position = Vector2(0, 296)
 	line.size = Vector2(box.x, 48)
@@ -429,7 +430,7 @@ func _short(price: int, have: int, wish_item_id: String) -> void:
 
 	var lines := ["house.almost_1", "house.almost_2", "house.almost_3"]
 	var pick: int = 0 if have * 3 < price else (1 if have * 4 >= price * 3 else 2)
-	var head := UiKit.title(I18n.t(lines[pick]), 38)
+	var head := UiKit.title(I18n.t(lines[pick]), UiKit.TYPE_TITLE)
 	head.add_theme_color_override("font_color", Color(0.20, 0.30, 0.46))
 	head.position = Vector2(0, 34)
 	head.size = Vector2(box.x, 52)
@@ -451,7 +452,7 @@ func _short(price: int, have: int, wish_item_id: String) -> void:
 			Color(1.0, 0.83, 0.30) if i == 0 else Color(0.72, 0.78, 0.88), 0.9)
 	var counts := Label.new()
 	counts.text = "%d / %d" % [have, price]
-	counts.add_theme_font_size_override("font_size", 26)
+	counts.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	counts.add_theme_color_override("font_color", Color(0.34, 0.44, 0.60))
 	counts.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	counts.position = Vector2(0, 162)

@@ -967,6 +967,48 @@ for path in glob.glob("scripts/**/*.gd", recursive=True):
                       f"_input/_unhandled_input -- the Control eats the "
                       f"press, so nothing is ever touchable")
 
+# --- 3i. the shell screens wear the type scale, and only the type scale
+#
+# UiKit declares four sizes (52/36/26/20, each >=1.3x the next). Before the
+# table the shell screens used NINETEEN -- 16,17,18,19,21,22,23,24,25,28,
+# 30,32,34,38,40,44,46,48,56 -- most of them one accident apart, which is the
+# single most common way a screen looks wrong without anyone being able to
+# say why. A fifth size is not a style decision; it is a typo with confidence.
+#
+# Levels and the garden keep their own gameplay-fitted sizes for now; this
+# covers the screens a child navigates between them.
+TYPE_SCALE = {"52", "36", "26", "20"}
+SHELL = glob.glob("scripts/ui/*.gd") + glob.glob("scripts/shop/*.gd")
+for path in SHELL:
+    for i, line in enumerate(open(path).read().split("\n"), 1):
+        code = line.split("#", 1)[0]
+        for m in re.finditer(r'"font_size",\s*(\d+)\s*\)', code):
+            if m.group(1) not in TYPE_SCALE:
+                errors.append(f"{path}:{i}: font size {m.group(1)} is not on the "
+                              f"type scale (52/36/26/20) -- use a UiKit.TYPE_* "
+                              f"constant")
+        for m in re.finditer(r'\btitle(?:_on_art)?\(.*?,\s*(\d+)\s*[,)]', code):
+            if m.group(1) not in TYPE_SCALE:
+                errors.append(f"{path}:{i}: UiKit.title size {m.group(1)} is not "
+                              f"on the type scale (52/36/26/20)")
+
+# --- 3j. one radius family in the shells
+#
+# RADIUS(30) for buttons and panels, RADIUS_CARD(22) for cards and tiles,
+# RADIUS_CHIP(16) for chips and tracks, RADIUS_INNER(12) for a fill nested
+# 4px inside a track. Fourteen different radii used to live here. Computed
+# radii (a capsule's height/2) pass -- only bare literals are held to the
+# family.
+RADII = {"30", "22", "16", "12"}
+for path in SHELL:
+    for i, line in enumerate(open(path).read().split("\n"), 1):
+        code = line.split("#", 1)[0]
+        for m in re.finditer(r'set_corner_radius_all\(\s*(\d+)\s*\)', code):
+            if m.group(1) not in RADII:
+                errors.append(f"{path}:{i}: corner radius {m.group(1)} is outside "
+                              f"the family (30/22/16/12) -- use a UiKit.RADIUS_* "
+                              f"constant, or compute a capsule from its height")
+
 # --- 3a4. the screen is not always 1280x720
 #
 # `stretch/aspect` is "expand", so the viewport is 1280 wide everywhere and

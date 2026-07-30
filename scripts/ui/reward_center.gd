@@ -38,7 +38,7 @@ func _album_shelf() -> Control:
 	box.add_theme_constant_override("separation", 8)
 
 	var heading := UiKit.title("%s   %d / %d" % [
-		I18n.t("album.title"), Album.met_count(), Album.total()], 32)
+		I18n.t("album.title"), Album.met_count(), Album.total()], UiKit.TYPE_TITLE)
 	heading.add_theme_color_override("font_color", Color(0.16, 0.26, 0.42))
 	box.add_child(heading)
 
@@ -92,7 +92,7 @@ func _album_card(entry: Dictionary) -> Control:
 
 	var name_label := Label.new()
 	name_label.text = I18n.t(str(entry.get("name_key", ""))) if known else "???"
-	name_label.add_theme_font_size_override("font_size", 21)
+	name_label.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	name_label.add_theme_color_override("font_color",
 		Color(0.16, 0.22, 0.34) if known else Color(0.55, 0.60, 0.70))
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -104,7 +104,7 @@ func _album_card(entry: Dictionary) -> Control:
 	var where := Label.new()
 	where.text = I18n.t(str(entry.get("where_key", ""))) if known \
 		else I18n.t("album.not_yet")
-	where.add_theme_font_size_override("font_size", 16)
+	where.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	where.add_theme_color_override("font_color",
 		Color(0.38, 0.50, 0.68) if known else Color(0.62, 0.67, 0.76))
 	where.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -116,14 +116,24 @@ func _album_card(entry: Dictionary) -> Control:
 	# each monster's move, its weakness and a sentence about how it behaves,
 	# and none of that fits on a 126 px card -- but it is the part that turns a
 	# shelf of stickers into a book worth opening twice.
+	var hit := Button.new()
+	hit.flat = true
+	hit.focus_mode = Control.FOCUS_NONE
+	hit.position = Vector2.ZERO
+	hit.size = CARD
+	face.add_child(hit)
 	if known:
-		var hit := Button.new()
-		hit.flat = true
-		hit.focus_mode = Control.FOCUS_NONE
-		hit.position = Vector2.ZERO
-		hit.size = CARD
-		hit.pressed.connect(func(): _open_page(entry))
-		face.add_child(hit)
+		hit.pressed.connect(func():
+			AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
+			_open_page(entry))
+	else:
+		# A card he has not earned still ANSWERS: it shakes its head and
+		# stays shut. It used to carry no button at all, and a tap fell
+		# through to the sparkle catcher -- which at six reads as "this
+		# shelf is a photograph". "Not yet" is information; silence is not.
+		hit.pressed.connect(func():
+			Juice.nudge(face)
+			AudioManager.play_sfx("res://assets/audio/pop.ogg"))
 	return face
 
 
@@ -181,7 +191,7 @@ func _open_page(entry: Dictionary) -> void:
 
 	page.add_child(_beast(entry, true, 172.0, PAGE.y - 54.0, PAGE.y - 130.0))
 
-	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 44)
+	var name_label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), UiKit.TYPE_TITLE)
 	name_label.add_theme_color_override("font_color", Color(0.14, 0.20, 0.32))
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name_label.position = Vector2(330, 34)
@@ -199,14 +209,14 @@ func _open_page(entry: Dictionary) -> void:
 	for row in rows:
 		var tag := Label.new()
 		tag.text = str(row[0])
-		tag.add_theme_font_size_override("font_size", 21)
+		tag.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 		tag.add_theme_color_override("font_color", Color(0.52, 0.60, 0.74))
 		tag.position = Vector2(330, y)
 		tag.size = Vector2(96, 30)
 		page.add_child(tag)
 		var val := Label.new()
 		val.text = str(row[1])
-		val.add_theme_font_size_override("font_size", 25)
+		val.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 		val.add_theme_color_override("font_color", Color(0.16, 0.24, 0.38))
 		val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		val.position = Vector2(432, y - 2)
@@ -216,7 +226,7 @@ func _open_page(entry: Dictionary) -> void:
 
 	var about := Label.new()
 	about.text = I18n.t(str(entry.get("about_key", "")))
-	about.add_theme_font_size_override("font_size", 23)
+	about.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	about.add_theme_color_override("font_color", Color(0.30, 0.38, 0.52))
 	about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	about.position = Vector2(330, y + 6)
@@ -257,7 +267,7 @@ func _ready() -> void:
 
 	var header := HBoxContainer.new()
 	header.add_child(UiKit.back_button(func(): SceneManager.goto_home()))
-	var title := UiKit.title(I18n.t("rewards.title"), 52)
+	var title := UiKit.title(I18n.t("rewards.title"), UiKit.TYPE_DISPLAY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	# The treasure chest is now a DOOR: it opens the star shop. It sits where
@@ -268,7 +278,7 @@ func _ready() -> void:
 	shop.focus_mode = Control.FOCUS_NONE
 	var shop_style := StyleBoxFlat.new()
 	shop_style.bg_color = Palette.ORANGE
-	shop_style.set_corner_radius_all(26)
+	shop_style.set_corner_radius_all(UiKit.RADIUS)
 	shop_style.border_width_bottom = 8
 	shop_style.border_color = Palette.edge(Palette.ORANGE)
 	var shop_pressed: StyleBoxFlat = shop_style.duplicate()
@@ -285,12 +295,13 @@ func _ready() -> void:
 		shop_row.add_child(chest)
 	var shop_label := Label.new()
 	shop_label.text = I18n.t("shop.title")
-	shop_label.add_theme_font_size_override("font_size", 30)
+	shop_label.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	shop_label.add_theme_color_override("font_color", Color.WHITE)
 	shop_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	shop_row.add_child(shop_label)
 	shop.add_child(shop_row)
 	shop.pressed.connect(func():
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		SceneManager.goto_scene("res://scenes/shop/ItemShop.tscn"))
 	header.add_child(shop)
 	root.add_child(header)
@@ -321,7 +332,7 @@ func _ready() -> void:
 	if coin_icon != null:
 		treasure_row.add_child(coin_icon)
 	_coins_title = UiKit.title(
-		"%s: %d" % [I18n.t("rewards.coins"), Coins.balance()], 40)
+		"%s: %d" % [I18n.t("rewards.coins"), Coins.balance()], UiKit.TYPE_TITLE)
 	treasure_row.add_child(_coins_title)
 	var star_icon: Control = UiKit.picture("star", 52)
 	if star_icon != null:
@@ -329,7 +340,7 @@ func _ready() -> void:
 		spacer.custom_minimum_size = Vector2(28, 0)
 		treasure_row.add_child(spacer)
 		treasure_row.add_child(star_icon)
-		treasure_row.add_child(UiKit.title("%d" % SaveManager.total_stars(), 40))
+		treasure_row.add_child(UiKit.title("%d" % SaveManager.total_stars(), UiKit.TYPE_TITLE))
 	treasure_card.add_child(treasure_row)
 	list.add_child(treasure_card)
 
@@ -348,12 +359,12 @@ func _ready() -> void:
 	# whole reason to come back to this screen.
 	var badge_head := HBoxContainer.new()
 	badge_head.add_theme_constant_override("separation", 10)
-	var badge_title := UiKit.title(I18n.t("rewards.badges"), 40)
+	var badge_title := UiKit.title(I18n.t("rewards.badges"), UiKit.TYPE_TITLE)
 	badge_head.add_child(badge_title)
 	var head_medal: Control = UiKit.picture("medal", 40)
 	if head_medal != null:
 		badge_head.add_child(head_medal)
-	var count := UiKit.title("%d / %d" % [owned.size(), all_badges.size()], 36,
+	var count := UiKit.title("%d / %d" % [owned.size(), all_badges.size()], UiKit.TYPE_TITLE,
 		Palette.INK_SOFT)
 	badge_head.add_child(count)
 	badge_box.add_child(badge_head)
@@ -380,7 +391,7 @@ func _ready() -> void:
 	sticker_box.add_theme_constant_override("separation", 12)
 	sticker_card.add_child(sticker_box)
 
-	var sticker_title := UiKit.title(I18n.t("rewards.stickers"), 40)
+	var sticker_title := UiKit.title(I18n.t("rewards.stickers"), UiKit.TYPE_TITLE)
 	sticker_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	sticker_box.add_child(sticker_title)
 
@@ -398,7 +409,7 @@ func _ready() -> void:
 	growth_box.add_theme_constant_override("separation", 12)
 	growth_card.add_child(growth_box)
 
-	var growth_title := UiKit.title(I18n.t("rewards.growth"), 40)
+	var growth_title := UiKit.title(I18n.t("rewards.growth"), UiKit.TYPE_TITLE)
 	growth_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	growth_box.add_child(growth_title)
 
@@ -417,7 +428,7 @@ func _ready() -> void:
 		name_label.text = I18n.t(attribute.get("name_key", ""))
 		name_label.custom_minimum_size = Vector2(230, 0)
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		name_label.add_theme_font_size_override("font_size", 32)
+		name_label.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 		line.add_child(name_label)
 
 		var bar := ProgressBar.new()
@@ -452,7 +463,7 @@ func _build_badge(badge_id: String, entry: Dictionary, earned: bool) -> Control:
 	tile.tooltip_text = RewardManager.badge_name(badge_id)
 	var flat := StyleBoxFlat.new()
 	flat.bg_color = Color(1, 1, 1, 0.0)
-	flat.set_corner_radius_all(20)
+	flat.set_corner_radius_all(UiKit.RADIUS_CARD)
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		tile.add_theme_stylebox_override(state, flat)
 
@@ -484,7 +495,7 @@ func _build_badge(badge_id: String, entry: Dictionary, earned: bool) -> Control:
 	# material teaches a word.
 	var caption := Label.new()
 	caption.text = RewardManager.badge_name(badge_id) if earned else ""
-	caption.add_theme_font_size_override("font_size", 21)
+	caption.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	caption.add_theme_color_override("font_color", Palette.INK)
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -564,7 +575,7 @@ func _build_sticker(sticker: Dictionary) -> Control:
 	tile.custom_minimum_size = Vector2(150, 150)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(1, 1, 1, 0.0) if owned else Color(0.55, 0.58, 0.66, 0.18)
-	style.set_corner_radius_all(22)
+	style.set_corner_radius_all(UiKit.RADIUS_CARD)
 	for state in ["normal", "hover", "pressed", "disabled"]:
 		tile.add_theme_stylebox_override(state, style)
 
@@ -583,7 +594,7 @@ func _build_sticker(sticker: Dictionary) -> Control:
 			price.add_child(coin)
 		var amount := Label.new()
 		amount.text = str(cost)
-		amount.add_theme_font_size_override("font_size", 24)
+		amount.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 		amount.add_theme_color_override("font_color", Palette.INK)
 		price.add_child(amount)
 		price.position = Vector2(48, 112)

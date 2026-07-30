@@ -27,6 +27,7 @@ func _ready() -> void:
 	print("\n=== map probe ===")
 	_plant_an_old_save()
 	await _open_the_map()
+	await _a_locked_stone_keeps_its_face()
 	await _opens_where_he_left_off()
 	await _press_every_first_level()
 
@@ -34,6 +35,72 @@ func _ready() -> void:
 		print("FAIL  %s" % f)
 	print("MAP PROBE %s\n" % ("PASSED" if _out.is_empty() else "FAILED"))
 	get_tree().quit(1 if _out.size() > 0 else 0)
+
+
+## A locked level is a promise, not a redaction.
+##
+## The playtest complaint the markers were built on was "the icons are all the
+## same, I don't know what's inside" -- and replacing every locked stone's
+## picture with the same yellow padlock had quietly reintroduced it for every
+## level a child had not reached yet. The stone must keep its (dimmed) type
+## picture, wear the lock as a corner badge, and ANSWER a tap with a shake
+## instead of opening or going dead: a disabled button that eats the press and
+## says nothing is, to a six-year-old, a broken screen.
+func _a_locked_stone_keeps_its_face() -> void:
+	# A fresh save, so most of the island is locked.
+	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
+	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
+	SaveManager.load_game()
+	var map: Node = load("res://scenes/map/WorldMap.tscn").instantiate()
+	add_child(map)
+	for i in range(6):
+		await get_tree().process_frame
+
+	var checked := 0
+	var scene_before: Node = get_tree().current_scene
+	for stone in _stones_in(map):
+		if not (stone as Button).disabled:
+			continue
+		checked += 1
+		var lock: Node = stone.get_node_or_null("LockBadge")
+		_ok(lock != null, "a locked stone has no lock badge in its corner")
+		var veil: Node = stone.get_node_or_null("LockedAnswer")
+		_ok(veil != null, "a locked stone has no answer to a tap -- disabled "
+			+ "buttons eat the press and say nothing")
+		var dimmed := false
+		for child in stone.get_children():
+			if child is Control and child.name != "LockBadge" \
+					and child.name != "LockedAnswer" \
+					and (child as Control).modulate.a < 0.8:
+				dimmed = true
+		_ok(dimmed, "a locked stone shows no dimmed type picture -- five locks "
+			+ "in a row are five identical stones again")
+		if veil != null:
+			# The answer must never be a door. Push a press through the
+			# veil's own handler and assert nothing navigated.
+			var press := InputEventScreenTouch.new()
+			press.pressed = true
+			press.position = Vector2(10, 10)
+			veil.emit_signal("gui_input", press)
+			await get_tree().process_frame
+			_ok(get_tree().current_scene == scene_before,
+				"tapping a locked stone opened something")
+		if checked >= 3:
+			break
+	print("  locked stones checked: %d (badge + dimmed face + answered tap)" % checked)
+	_ok(checked > 0, "a fresh save had no locked stones to check -- this "
+		+ "probe tested nothing")
+	map.queue_free()
+	await get_tree().process_frame
+
+
+func _stones_in(node: Node) -> Array:
+	var out: Array = []
+	for child in node.get_children():
+		if child is Button and (child as Control).custom_minimum_size.x >= 140.0:
+			out.append(child)
+		out.append_array(_stones_in(child))
+	return out
 
 
 ## The save a child who has been playing since spring actually has: stars and

@@ -51,12 +51,12 @@ func _build_gate() -> void:
 		lock_row.add_child(lock)
 		card_box.add_child(lock_row)
 
-	card_box.add_child(UiKit.title(I18n.t("parent.question") % [_a, _b], 44))
+	card_box.add_child(UiKit.title(I18n.t("parent.question") % [_a, _b], UiKit.TYPE_TITLE))
 
 	_answer = LineEdit.new()
 	_answer.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_answer.custom_minimum_size = Vector2(280, 80)
-	_answer.add_theme_font_size_override("font_size", 40)
+	_answer.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	_answer.add_theme_color_override("font_color", Palette.INK)
 	_answer.add_theme_color_override("caret_color", Palette.INK)
 	var field := StyleBoxFlat.new()
@@ -74,7 +74,7 @@ func _build_gate() -> void:
 	card_box.add_child(center)
 	_answer.text_submitted.connect(func(_t): _check())
 
-	_feedback = UiKit.title("", 30)
+	_feedback = UiKit.title("", UiKit.TYPE_BODY)
 	_feedback.add_theme_color_override("font_color", Palette.RED)
 	card_box.add_child(_feedback)
 
@@ -92,9 +92,13 @@ func _build_gate() -> void:
 
 func _check() -> void:
 	if _answer.text.strip_edges().is_valid_int() and int(_answer.text) == _a + _b:
+		AudioManager.play_sfx("res://assets/audio/door.ogg")
 		_gate.queue_free()
 		_build_content()
 	else:
+		# A sound aimed at the adult mid-typo, not at a child who guessed:
+		# the gentle hint chime, never an error buzz.
+		AudioManager.play_sfx("res://assets/audio/hint.ogg")
 		_feedback.text = I18n.t("parent.wrong")
 		_answer.text = ""
 
@@ -106,7 +110,7 @@ func _build_content() -> void:
 
 	var header := HBoxContainer.new()
 	header.add_child(UiKit.back_button(func(): SceneManager.goto_home()))
-	var title := UiKit.title(I18n.t("parent.title"), 48)
+	var title := UiKit.title(I18n.t("parent.title"), UiKit.TYPE_DISPLAY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	root.add_child(header)
@@ -164,11 +168,11 @@ func _add_row(parent: Control, label: String, value: String) -> void:
 	var l := Label.new()
 	l.text = label
 	l.custom_minimum_size = Vector2(460, 0)
-	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	row.add_child(l)
 	var v := Label.new()
 	v.text = value
-	v.add_theme_font_size_override("font_size", 30)
+	v.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	row.add_child(v)
 	parent.add_child(row)
 
@@ -179,12 +183,12 @@ func _add_row(parent: Control, label: String, value: String) -> void:
 func _build_backup_section(list: Control) -> void:
 	var title := Label.new()
 	title.text = I18n.t("parent.backup_title")
-	title.add_theme_font_size_override("font_size", 30)
+	title.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	list.add_child(title)
 
 	var hint := Label.new()
 	hint.text = I18n.t("parent.backup_hint")
-	hint.add_theme_font_size_override("font_size", 22)
+	hint.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	hint.add_theme_color_override("font_color", Palette.INK_SOFT)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	list.add_child(hint)
@@ -200,7 +204,7 @@ func _build_backup_section(list: Control) -> void:
 	list.add_child(row)
 
 	_backup_status = Label.new()
-	_backup_status.add_theme_font_size_override("font_size", 22)
+	_backup_status.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	_backup_status.add_theme_color_override("font_color", Palette.INK_SOFT)
 	_backup_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	list.add_child(_backup_status)
@@ -243,11 +247,11 @@ func _build_difficulty_row() -> Control:
 	var l := Label.new()
 	l.text = I18n.t("parent.difficulty")
 	l.custom_minimum_size = Vector2(460, 0)
-	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	row.add_child(l)
 
 	var picker := OptionButton.new()
-	picker.add_theme_font_size_override("font_size", 28)
+	picker.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	var names := ["parent.diff_gentle", "parent.diff_normal", "parent.diff_brave"]
 	for i in range(names.size()):
 		picker.add_item(I18n.t(names[i]), i)
@@ -263,11 +267,11 @@ func _build_language_row() -> Control:
 	var l := Label.new()
 	l.text = I18n.t("parent.language")
 	l.custom_minimum_size = Vector2(460, 0)
-	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	row.add_child(l)
 
 	var picker := OptionButton.new()
-	picker.add_theme_font_size_override("font_size", 28)
+	picker.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	var locales: Array = I18n.available_locales()
 	for i in range(locales.size()):
 		picker.add_item(str(locales[i]).to_upper(), i)
@@ -289,7 +293,7 @@ func _build_motion_row() -> Control:
 	var l := Label.new()
 	l.text = I18n.t("parent.reduce_motion")
 	l.custom_minimum_size = Vector2(460, 0)
-	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	row.add_child(l)
 
 	var toggle := CheckButton.new()
@@ -315,7 +319,7 @@ func _build_unlock_row() -> Control:
 	var l := Label.new()
 	l.text = I18n.t("parent.test_unlock")
 	l.custom_minimum_size = Vector2(460, 0)
-	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	row.add_child(l)
 
 	var toggle := CheckButton.new()
@@ -326,7 +330,7 @@ func _build_unlock_row() -> Control:
 
 	var note := Label.new()
 	note.text = I18n.t("parent.test_unlock_note")
-	note.add_theme_font_size_override("font_size", 22)
+	note.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	note.add_theme_color_override("font_color", Palette.MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size = Vector2(700, 0)
@@ -349,7 +353,7 @@ func _build_limit_row() -> Control:
 	var l := Label.new()
 	l.text = I18n.t("parent.daily_limit")
 	l.custom_minimum_size = Vector2(460, 0)
-	l.add_theme_font_size_override("font_size", 30)
+	l.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	row.add_child(l)
 
 	var spin := SpinBox.new()

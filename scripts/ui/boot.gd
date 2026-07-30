@@ -60,7 +60,7 @@ func _ready() -> void:
 	hero.entrance(420.0, 0.35)
 	print("[boot] 4 hero ok")
 
-	var t := UiKit.title_on_art(I18n.t("app.title"), 72)
+	var t := UiKit.title_on_art(I18n.t("app.title"), UiKit.TYPE_DISPLAY)
 	box.add_child(t)
 	# The title pops in and the hero's light flares once: the game says hello.
 	if Juice.motion_enabled():
@@ -73,7 +73,7 @@ func _ready() -> void:
 		, CONNECT_ONE_SHOT)
 
 
-	_prompt = UiKit.on_art(UiKit.title(I18n.t("boot.tap_to_start"), 40, Color(0.86, 0.93, 1.0)))
+	_prompt = UiKit.on_art(UiKit.title(I18n.t("boot.tap_to_start"), UiKit.TYPE_TITLE, Color(0.86, 0.93, 1.0)))
 	box.add_child(_prompt)
 
 	# Slow breathing pulse, not a flash.

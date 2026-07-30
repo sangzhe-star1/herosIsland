@@ -122,7 +122,7 @@ func _build() -> void:
 	add_child(veil)
 
 	var lesson: Dictionary = LESSONS[_world]
-	var title := UiKit.title_on_art(I18n.t(str(lesson["title"])), 48)
+	var title := UiKit.title_on_art(I18n.t(str(lesson["title"])), UiKit.TYPE_DISPLAY)
 	title.position = Vector2(240, 40)
 	title.size = Vector2(800, 60)
 	add_child(title)
@@ -137,7 +137,7 @@ func _build() -> void:
 	add_child(_stage)
 
 	_caption = Label.new()
-	_caption.add_theme_font_size_override("font_size", 40)
+	_caption.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	_caption.add_theme_color_override("font_color", Palette.ON_COLOR)
 	UiKit.on_art(_caption)
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -489,7 +489,7 @@ func _question(at: Node2D, where: Vector2) -> void:
 	Shapes.fill(at, Shapes.circle_points(where, 44.0, 20), Color(0.98, 0.99, 1.0), 0.0)
 	var mark := Label.new()
 	mark.text = "?"
-	mark.add_theme_font_size_override("font_size", 56)
+	mark.add_theme_font_size_override("font_size", UiKit.TYPE_DISPLAY)
 	mark.add_theme_color_override("font_color", Color(0.24, 0.40, 0.68))
 	mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mark.position = where + Vector2(-44, -42)

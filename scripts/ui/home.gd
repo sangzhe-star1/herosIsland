@@ -65,9 +65,9 @@ const PARENT_HOLD_SECONDS := 3.0
 
 # Type scale: four sizes, each at least 1.3x the next. Anything outside this
 # list is a fifth size nobody asked for.
-const TYPE_GREETING := 56
-const TYPE_TREASURE := 30
-const TYPE_HINT := 20
+const TYPE_GREETING := UiKit.TYPE_DISPLAY
+const TYPE_TREASURE := UiKit.TYPE_BODY
+const TYPE_HINT := UiKit.TYPE_CAPTION
 
 var _hold_time := 0.0
 var _holding := false
@@ -385,7 +385,9 @@ func _card(text_key: String, icon_name: String, color: Color, primary: bool) -> 
 	# button_down/button_up have no such gap, and Godot's own de-duplication
 	# means they fire once per finger. The position comes from the mouse, which
 	# follows the finger on a touchscreen through the reverse emulation.
-	card.button_down.connect(func(): _card_push(card, card.get_local_mouse_position().x))
+	card.button_down.connect(func():
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		_card_push(card, card.get_local_mouse_position().x))
 	card.button_up.connect(func(): _card_settle(card))
 	return card
 
@@ -919,9 +921,9 @@ func _show_break_message() -> void:
 		moon_row.add_child(moon)
 		column.add_child(moon_row)
 
-	column.add_child(UiKit.title(I18n.t("limit.title"), 46))
+	column.add_child(UiKit.title(I18n.t("limit.title"), UiKit.TYPE_TITLE))
 
-	var body := UiKit.title(I18n.t("limit.body"), 30, Palette.INK_SOFT)
+	var body := UiKit.title(I18n.t("limit.body"), UiKit.TYPE_BODY, Palette.INK_SOFT)
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.custom_minimum_size = Vector2(680, 0)
 	column.add_child(body)

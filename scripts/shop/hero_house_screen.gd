@@ -93,7 +93,7 @@ func _build_header(view: Vector2) -> void:
 	_back.position = Vector2(24, 18)
 	add_child(_back)
 
-	var title := UiKit.title_on_art(I18n.t("house.title"), 44)
+	var title := UiKit.title_on_art(I18n.t("house.title"), UiKit.TYPE_TITLE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	title.position = Vector2(168, 12)
 	title.size = Vector2(560, 52)
@@ -101,7 +101,7 @@ func _build_header(view: Vector2) -> void:
 
 	var sub := Label.new()
 	sub.text = I18n.t("house.sub")
-	sub.add_theme_font_size_override("font_size", 24)
+	sub.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	UiKit.on_art(sub, 6)
 	sub.add_theme_color_override("font_color", Color(1, 1, 1, 0.94))
@@ -128,7 +128,7 @@ func _build_header(view: Vector2) -> void:
 	Shapes.lit(pad, Shapes.star_points(Vector2(44, 42), 24.0, 0.44, 5),
 		Color(1.0, 0.83, 0.30), 0.95)
 	_coin_label = Label.new()
-	_coin_label.add_theme_font_size_override("font_size", 36)
+	_coin_label.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	_coin_label.add_theme_color_override("font_color", Color(0.22, 0.32, 0.48))
 	_coin_label.position = Vector2(78, 20)
 	_coin_label.size = Vector2(126, 46)
@@ -163,7 +163,9 @@ func _build_tabs(view: Vector2) -> void:
 		b.position = Vector2(14.0 + float(i % 2) * (chip_w + 7.0),
 			top + float(i / 2) * step)
 		b.size = Vector2(chip_w, minf(step - 7.0, 108.0))
-		b.pressed.connect(func(): _open(slot))
+		b.pressed.connect(func():
+			AudioManager.play_sfx("res://assets/audio/pop.ogg")
+			_open(slot))
 		add_child(b)
 		_tabs[slot] = b
 		_paint_tab(slot, slot == _category)
@@ -198,7 +200,7 @@ func _paint_tab(slot: String, chosen: bool) -> void:
 		b.add_child(icon)
 	var label := Label.new()
 	label.text = I18n.t(_cat_key(slot))
-	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	label.add_theme_color_override("font_color",
 		Color(0.16, 0.24, 0.38) if chosen else Color(0.44, 0.52, 0.64))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -355,7 +357,7 @@ func _build_preset_row() -> void:
 		child.queue_free()
 	var head := Label.new()
 	head.text = I18n.t("house.presets")
-	head.add_theme_font_size_override("font_size", 22)
+	head.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	UiKit.on_art(head, 5)
 	head.add_theme_color_override("font_color", Color.WHITE)
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -380,7 +382,7 @@ func _build_preset_row() -> void:
 			Color(1, 1, 1, 0.94) if full else Color(1, 1, 1, 0.66), 0.0)
 		var mark := Label.new()
 		mark.text = str(i + 1) if full else "+"
-		mark.add_theme_font_size_override("font_size", 30)
+		mark.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 		mark.add_theme_color_override("font_color",
 			Color(0.22, 0.34, 0.52) if full else Color(0.56, 0.64, 0.76))
 		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -389,11 +391,15 @@ func _build_preset_row() -> void:
 		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		b.add_child(mark)
 
+	# One protagonist on this side of the room. Purple, blue and green in a
+	# stack was three buttons shouting over each other -- and two of them are
+	# housekeeping. 魔法搭配 keeps its colour; undo and restore go quiet.
 	for spec in [
-			["house.magic", Palette.PURPLE, Callable(self, "_magic"), "spark"],
-			["house.undo", Palette.BLUE, Callable(self, "_undo"), "retry"],
-			["house.restore", Palette.GREEN, Callable(self, "_restore"), "home"]]:
-		var b := _side_button(I18n.t(str(spec[0])), spec[1], str(spec[3]))
+			["house.magic", Palette.PURPLE, Callable(self, "_magic"), "spark", true],
+			["house.undo", Palette.SLATE, Callable(self, "_undo"), "retry", false],
+			["house.restore", Palette.SLATE, Callable(self, "_restore"), "home", false]]:
+		var b := _side_button(I18n.t(str(spec[0])), spec[1], str(spec[3]),
+			bool(spec[4]))
 		b.pressed.connect(spec[2])
 		_preset_row.add_child(b)
 
@@ -404,11 +410,23 @@ func _build_preset_row() -> void:
 ## memorising positions. A sparkle, a turn-back arrow and a little house are
 ## three things he can tell apart the first time he sees them, and the words
 ## stay for the day he starts reading them.
-func _side_button(text: String, colour: Color, icon_name: String) -> Button:
+func _side_button(text: String, colour: Color, icon_name: String,
+		loud: bool = true) -> Button:
 	var box := Vector2(196, 68)
 	var b := UiKit.big_button(text, colour)
 	b.custom_minimum_size = box
-	b.add_theme_font_size_override("font_size", 28)
+	b.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
+	if not loud:
+		# The quiet version: a warm white chip with ink words, same raised
+		# physics, no colour. Housekeeping should be findable, not loud.
+		for state in ["normal", "hover", "pressed"]:
+			var quiet: StyleBox = b.get_theme_stylebox(state)
+			if quiet is StyleBoxFlat:
+				(quiet as StyleBoxFlat).bg_color = Color(1.0, 0.99, 0.96, 0.92)
+				(quiet as StyleBoxFlat).border_color = Color(0.72, 0.74, 0.78)
+		b.add_theme_color_override("font_color", Palette.INK)
+		b.add_theme_color_override("font_hover_color", Palette.INK)
+		b.add_theme_color_override("font_pressed_color", Palette.INK)
 	var icon: Control = UiKit.picture(icon_name, 40.0)
 	if icon == null:
 		return b
@@ -501,12 +519,12 @@ func _fill_puppy_note() -> void:
 	note.add_child(pad)
 	Shapes.fill(pad, Shapes.rounded_rect(Vector2(2, 2),
 		Vector2(616, _shelf_h - 22.0), 26.0), Color(1, 1, 1, 0.97), 0.0)
-	var line := UiKit.title(I18n.t("house.dog_no_clothes"), 32)
+	var line := UiKit.title(I18n.t("house.dog_no_clothes"), UiKit.TYPE_TITLE)
 	line.add_theme_color_override("font_color", Color(0.18, 0.26, 0.40))
 	line.position = Vector2(0, 22)
 	line.size = Vector2(616, 44)
 	note.add_child(line)
-	var more := UiKit.title(I18n.t("house.dog_pals"), 26)
+	var more := UiKit.title(I18n.t("house.dog_pals"), UiKit.TYPE_BODY)
 	more.add_theme_color_override("font_color", Color(0.36, 0.52, 0.74))
 	more.position = Vector2(0, 70)
 	more.size = Vector2(616, 36)
@@ -580,7 +598,7 @@ func _fill_sets() -> void:
 			b.add_child(pic)
 		var label := Label.new()
 		label.text = I18n.t(_set_key(set_id))
-		label.add_theme_font_size_override("font_size", 22)
+		label.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 		label.add_theme_color_override("font_color", Color(0.15, 0.22, 0.34))
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.position = Vector2(4, Card.ART_H)
@@ -593,7 +611,7 @@ func _fill_sets() -> void:
 				Color(1.0, 0.86, 0.34), 0.9)
 			var today := Label.new()
 			today.text = I18n.t("house.today")
-			today.add_theme_font_size_override("font_size", 17)
+			today.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 			today.add_theme_color_override("font_color", Color(0.86, 0.60, 0.10))
 			today.position = Vector2(9, 3)
 			today.size = Vector2(120, 22)
@@ -602,7 +620,7 @@ func _fill_sets() -> void:
 
 		var count := Label.new()
 		count.text = "%d / %d" % [progress[0], progress[1]]
-		count.add_theme_font_size_override("font_size", 22)
+		count.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 		count.add_theme_color_override("font_color",
 			Color(0.24, 0.60, 0.36) if progress[0] == progress[1]
 			else Color(0.46, 0.54, 0.68))
@@ -716,7 +734,7 @@ func _show_tray(item_id: String) -> void:
 	_tray.add_child(pad)
 	Shapes.fill(pad, Shapes.rounded_rect(Vector2.ZERO, _tray.size, 26.0),
 		Color(1, 1, 1, 0.94), 0.0)
-	var ask := UiKit.title(I18n.t("house.like"), 34)
+	var ask := UiKit.title(I18n.t("house.like"), UiKit.TYPE_TITLE)
 	ask.add_theme_color_override("font_color", Color(0.18, 0.26, 0.40))
 	ask.position = Vector2(0, 16)
 	ask.size = Vector2(_tray.size.x, 44)
@@ -756,7 +774,7 @@ func _tray_button(text: String, colour: Color, icon_name: String,
 		box: Vector2) -> Button:
 	var b := UiKit.big_button(text, colour)
 	b.custom_minimum_size = box
-	b.add_theme_font_size_override("font_size", 32)
+	b.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	var icon: Control = UiKit.picture(icon_name, 46.0)
 	if icon == null:
 		return b
@@ -795,7 +813,7 @@ func _card_held(item_id: String) -> void:
 	_buying._panel(Vector2(520, 520))
 	var card: Control = _buying._layer.get_child(1)
 	_buying._thumb(card, Vector2(260, 60), 300.0, entry)
-	var label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), 40)
+	var label := UiKit.title(I18n.t(str(entry.get("name_key", ""))), UiKit.TYPE_TITLE)
 	label.add_theme_color_override("font_color", Color(0.15, 0.22, 0.34))
 	label.position = Vector2(0, 388)
 	label.size = Vector2(520, 52)
@@ -960,7 +978,7 @@ func _first_visit_gift() -> void:
 	AudioManager.play_sfx("res://assets/audio/chest_open.ogg")
 	if _stage != null and is_instance_valid(_stage):
 		_stage.call("show_off")
-	var line := UiKit.title_on_art(I18n.t("house.gift"), 40)
+	var line := UiKit.title_on_art(I18n.t("house.gift"), UiKit.TYPE_TITLE)
 	line.position = Vector2(get_viewport_rect().size.x * 0.5 - 300.0, 112)
 	line.size = Vector2(600, 52)
 	add_child(line)

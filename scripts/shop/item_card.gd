@@ -184,7 +184,7 @@ static func _shadow_material() -> ShaderMaterial:
 func _label() -> void:
 	var name_label := Label.new()
 	name_label.text = I18n.t(str(entry.get("name_key", "")))
-	name_label.add_theme_font_size_override("font_size", 20)
+	name_label.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	name_label.add_theme_color_override("font_color",
 		Color(0.58, 0.63, 0.72) if _state == Shop.State.LOCKED
 		else Color(0.15, 0.22, 0.34))
@@ -232,7 +232,7 @@ func _price(pad: Node2D, y: float) -> void:
 		14.0, 0.44, 5), Color(1.0, 0.83, 0.30), 0.9)
 	var label := Label.new()
 	label.text = str(price)
-	label.add_theme_font_size_override("font_size", 26)
+	label.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	label.add_theme_color_override("font_color", Color(0.24, 0.34, 0.50))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	label.position = Vector2(BOX.x * 0.5 - 12.0, y)
@@ -291,7 +291,7 @@ func _number(value: int, at: Vector2) -> void:
 		return
 	var label := Label.new()
 	label.text = str(value)
-	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	label.add_theme_color_override("font_color", Color(0.42, 0.50, 0.64))
 	label.position = at - Vector2(6, 16)
 	label.size = Vector2(56, 32)

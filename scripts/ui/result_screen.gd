@@ -41,7 +41,7 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 24)
 	add_child(box)
 
-	var heading := UiKit.title_on_art(I18n.t("result.title"), 64)
+	var heading := UiKit.title_on_art(I18n.t("result.title"), UiKit.TYPE_DISPLAY)
 	box.add_child(heading)
 
 	var row := UiKit.star_row(stars, 3, 96)
@@ -61,7 +61,7 @@ func _ready() -> void:
 		praise_key = "result.great"
 	elif stars == 2:
 		praise_key = "result.good"
-	var praise := UiKit.title(I18n.t(praise_key), 44)
+	var praise := UiKit.title(I18n.t(praise_key), UiKit.TYPE_TITLE)
 	praise.add_theme_color_override("font_color", Color(0.82, 0.92, 1.0))
 	box.add_child(praise)
 
@@ -72,7 +72,7 @@ func _ready() -> void:
 		var coin_icon: Control = UiKit.picture("coin", 42)
 		if coin_icon != null:
 			coin_row.add_child(coin_icon)
-		var coins := UiKit.title(I18n.t("result.coins") % RewardManager.last_coins_earned, 34)
+		var coins := UiKit.title(I18n.t("result.coins") % RewardManager.last_coins_earned, UiKit.TYPE_TITLE)
 		coins.add_theme_color_override("font_color", Palette.STAR_ON)
 		coin_row.add_child(coins)
 		box.add_child(coin_row)
@@ -94,7 +94,7 @@ func _ready() -> void:
 		var spark: Control = UiKit.picture("spark", 34)
 		if spark != null:
 			xp_row.add_child(spark)
-		var xp_label := UiKit.title("+%d" % RewardManager.last_xp_earned, 28, Color(0.75, 0.88, 1.0))
+		var xp_label := UiKit.title("+%d" % RewardManager.last_xp_earned, UiKit.TYPE_BODY, Color(0.75, 0.88, 1.0))
 		xp_row.add_child(xp_label)
 		box.add_child(xp_row)
 
@@ -103,7 +103,6 @@ func _ready() -> void:
 			I18n.t("result.level_up") % SaveManager.hero_level(), 46)
 		level_up.add_theme_color_override("font_color", Palette.STAR_ON)
 		box.add_child(level_up)
-		UiKit.breathe(level_up, 0.05, 0.8)
 		AudioManager.play_sfx("res://assets/audio/star.ogg")
 
 	var buttons := HBoxContainer.new()
@@ -128,12 +127,14 @@ func _ready() -> void:
 		lesson.pressed.connect(func():
 			SceneManager.goto_scene("res://scenes/ui/MiniLesson.tscn"))
 		buttons.add_child(lesson)
-		UiKit.breathe(lesson, 0.04, 0.85)
 	if next_id != "":
 		var next_button := UiKit.big_button(I18n.t("result.next"), Palette.GREEN)
 		next_button.custom_minimum_size = Vector2(260, 120)
 		next_button.pressed.connect(func(): GameManager.start_level(next_id))
 		buttons.add_child(next_button)
+		# The ONE breathing thing on this screen. It used to share the pulse
+		# with the level-up chip and the lesson button -- three things saying
+		# "press me" at once, which is none of them saying it.
 		UiKit.breathe(next_button, 0.035, 0.9)
 
 	var again := UiKit.big_button(I18n.t("common.again"),
@@ -146,7 +147,7 @@ func _ready() -> void:
 	buttons.add_child(to_map)
 
 	if next_id == "":
-		var all_done := UiKit.title_on_art(I18n.t("result.all_done"), 30)
+		var all_done := UiKit.title_on_art(I18n.t("result.all_done"), UiKit.TYPE_BODY)
 		box.add_child(all_done)
 
 	# Every few levels, the game suggests a break -- and does nothing else
@@ -192,7 +193,7 @@ func _fly_coins_to_chip(from_node: Control, earned: int) -> void:
 	var chip := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.07, 0.13, 0.26, 0.85)
-	style.set_corner_radius_all(26)
+	style.set_corner_radius_all(UiKit.RADIUS_CARD)
 	style.set_content_margin_all(10)
 	style.content_margin_left = 18
 	style.content_margin_right = 18
@@ -202,7 +203,7 @@ func _fly_coins_to_chip(from_node: Control, earned: int) -> void:
 	var chip_icon: Control = UiKit.picture("coin", 40)
 	if chip_icon != null:
 		chip_row.add_child(chip_icon)
-	var chip_label := UiKit.title("%d" % old_total, 30, Palette.ON_COLOR)
+	var chip_label := UiKit.title("%d" % old_total, UiKit.TYPE_BODY, Palette.ON_COLOR)
 	chip_row.add_child(chip_label)
 	chip.add_child(chip_row)
 	add_child(chip)
@@ -314,7 +315,7 @@ func _rest_note() -> Control:
 		"rest.well_played"].find(key)
 	if spoken >= 0:
 		AudioManager.say("rest_%d" % (spoken + 1))
-	var words := UiKit.title(I18n.t(key), 30)
+	var words := UiKit.title(I18n.t(key), UiKit.TYPE_BODY)
 	words.add_theme_color_override("font_color", Color(0.80, 0.90, 1.0))
 	row.add_child(words)
 	if Juice.motion_enabled():

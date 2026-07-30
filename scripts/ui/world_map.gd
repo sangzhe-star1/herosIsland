@@ -25,7 +25,11 @@ var _left_arrow: Button
 var _right_arrow: Button
 var _page := 0
 var _frontier_page := -1
+var _breathed: Dictionary = {}
 var _drag_from := Vector2(-1, -1)
+var _strip_start := 0.0
+var _dragging := false
+var _page_tween: Tween
 
 
 func _ready() -> void:
@@ -137,12 +141,12 @@ func _add_header() -> void:
 		flag.z_index = 25
 		var note := Label.new()
 		note.text = I18n.t("map.test_unlock")
-		note.add_theme_font_size_override("font_size", 22)
+		note.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 		note.add_theme_color_override("font_color", Palette.STAR_ON)
 		flag.add_child(note)
 		bar.add_child(flag)
 
-	var title := UiKit.title_on_art(I18n.t("map.title"), 48)
+	var title := UiKit.title_on_art(I18n.t("map.title"), UiKit.TYPE_DISPLAY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_child(title)
@@ -154,7 +158,7 @@ func _add_header() -> void:
 	tally_row.add_child(UiKit.star(true, 38))
 	var count := Label.new()
 	count.text = str(SaveManager.total_stars())
-	count.add_theme_font_size_override("font_size", 34)
+	count.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	tally_row.add_child(count)
 	tally.add_child(tally_row)
@@ -202,11 +206,15 @@ func _add_header() -> void:
 ## One big arrow on each edge. Mid-height, round, and colour-ringed like the
 ## trail's control pad -- the same button language everywhere.
 func _add_arrows() -> void:
+	# Mid-sky on the REAL screen. 296 was mid-sky on a 720-tall screen and
+	# nowhere in particular on the 960-tall one a tablet provides.
+	var view: Vector2 = get_viewport_rect().size
+	var at_y: float = view.y * 0.41
 	_left_arrow = _arrow_button(false)
-	_left_arrow.position = Vector2(16, 296)
+	_left_arrow.position = Vector2(16, at_y)
 	add_child(_left_arrow)
 	_right_arrow = _arrow_button(true)
-	_right_arrow.position = Vector2(PAGE_W - 16.0 - 112.0, 296)
+	_right_arrow.position = Vector2(view.x - 16.0 - 112.0, at_y)
 	add_child(_right_arrow)
 
 
@@ -215,16 +223,26 @@ func _arrow_button(forward: bool) -> Button:
 	var size := 112.0
 	b.custom_minimum_size = Vector2(size, size)
 	b.focus_mode = Control.FOCUS_NONE
+	# The same button language as everything else: a raised disc whose
+	# bottom edge is its thickness, squashing when pressed. It used to be a
+	# navy disc in a yellow ring -- a third button style on a screen that
+	# already had two, and the only colour-ringed control in the game.
+	var face := Color(0.13, 0.22, 0.42)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.09, 0.15, 0.30, 0.90)
+	style.bg_color = face
 	style.set_corner_radius_all(int(size / 2.0))
-	style.border_width_bottom = 6
-	style.border_width_top = 5
-	style.border_width_left = 5
-	style.border_width_right = 5
-	style.border_color = Color(1.0, 0.86, 0.40)
-	for state in ["normal", "hover", "pressed", "disabled"]:
-		b.add_theme_stylebox_override(state, style)
+	style.border_width_bottom = 8
+	style.border_color = Palette.edge(face)
+	style.shadow_color = Color(0.0, 0.08, 0.20, 0.22)
+	style.shadow_size = 8
+	style.shadow_offset = Vector2(0, 5)
+	var pressed_style: StyleBoxFlat = style.duplicate()
+	pressed_style.border_width_bottom = 3
+	pressed_style.bg_color = face.darkened(0.06)
+	b.add_theme_stylebox_override("normal", style)
+	b.add_theme_stylebox_override("hover", style)
+	b.add_theme_stylebox_override("pressed", pressed_style)
+	b.add_theme_stylebox_override("disabled", style)
 	var icon := Control.new()
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(icon)
@@ -293,32 +311,64 @@ func _refresh_paging() -> void:
 
 func _go_page(index: int) -> void:
 	var target: int = clampi(index, 0, _worlds.size() - 1)
-	if target == _page:
-		return
-	_page = target
-	_refresh_paging()
+	if target != _page:
+		_page = target
+		_refresh_paging()
+		# The sound belongs to the PAGE TURNING, not to the finger -- a swipe
+		# that was not big enough snaps back silently.
+		AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
+	_settle_to(_page)
+
+
+## Slide the strip to a page's resting place, from wherever it is now --
+## which, mid-swipe, is wherever the finger left it.
+func _settle_to(page: int) -> void:
+	if _page_tween != null and _page_tween.is_valid():
+		_page_tween.kill()
 	if not Juice.motion_enabled():
-		_strip.position.x = -PAGE_W * float(_page)
+		_strip.position.x = -PAGE_W * float(page)
 		return
-	var t := create_tween()
-	t.tween_property(_strip, "position:x", -PAGE_W * float(_page), 0.42)\
+	_page_tween = create_tween()
+	_page_tween.tween_property(_strip, "position:x", -PAGE_W * float(page), 0.38)\
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
-## Swipes: anywhere a marker or button does not swallow the touch, a sideways
-## drag of a finger-width turns the page. The arrows remain the primary way --
-## this is for the child who tries the gesture the tablet taught them.
+## Swipes: anywhere a marker or button does not swallow the touch, the strip
+## FOLLOWS the finger -- with a rubber band past the first and last island --
+## and settles on release. A page that only moves after the finger has left
+## is a slideshow; a page that comes along is a thing being held. The arrows
+## remain the primary way; this is for the child who tries the gesture the
+## tablet taught them.
 func _gui_input(event: InputEvent) -> void:
 	# One press, one release, through the shared rule -- the hand-rolled
 	# version handled mouse AND touch, and with touch emulation on that made
 	# every drag turn two pages.
 	if UiKit.is_press(event):
+		_dragging = true
 		_drag_from = _event_position(event)
-	elif UiKit.is_release(event) and _drag_from.x >= 0.0:
+		_strip_start = _strip.position.x
+		if _page_tween != null and _page_tween.is_valid():
+			_page_tween.kill()
+	elif event is InputEventScreenDrag and _dragging:
+		var dx: float = (event as InputEventScreenDrag).position.x - _drag_from.x
+		var target: float = _strip_start + dx
+		# The rubber band: past either end the strip comes along at a third
+		# of the finger's speed, so the edge feels like an edge instead of a
+		# wall -- and instead of a lie that there is more island that way.
+		var last: float = -PAGE_W * float(_worlds.size() - 1)
+		if target > 0.0:
+			target *= 0.32
+		elif target < last:
+			target = last + (target - last) * 0.32
+		_strip.position.x = target
+	elif UiKit.is_release(event) and _dragging:
+		_dragging = false
 		var dx: float = _event_position(event).x - _drag_from.x
 		_drag_from = Vector2(-1, -1)
 		if absf(dx) >= SWIPE:
 			_go_page(_page + (1 if dx < 0.0 else -1))
+		else:
+			_settle_to(_page)
 
 
 func _event_position(event: InputEvent) -> Vector2:
@@ -378,7 +428,7 @@ func _add_region_banner(page: Control, island: IslandMap, world: Dictionary,
 
 	var name_label := Label.new()
 	name_label.text = I18n.t(str(world.get("name_key", "")))
-	name_label.add_theme_font_size_override("font_size", 30)
+	name_label.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(name_label)
@@ -389,7 +439,7 @@ func _add_region_banner(page: Control, island: IslandMap, world: Dictionary,
 	row.add_child(UiKit.star(earned > 0, 30))
 	var tally := Label.new()
 	tally.text = "%d / %d" % [earned, possible]
-	tally.add_theme_font_size_override("font_size", 24)
+	tally.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	tally.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(tally)
 	column.add_child(row)
@@ -474,7 +524,12 @@ func _build_marker(level: Dictionary, world_index: int) -> Control:
 	if completed:
 		face = Palette.GREEN
 	if not playable:
-		icon_name = "lock"
+		# The stone goes grey but KEEPS its picture, dimmed, with a small
+		# lock in the corner. Replacing the picture with a lock was how five
+		# locked stones in a row became identical -- the exact complaint
+		# ("the icons are all the same") this marker system was built to fix,
+		# reintroduced for every level a child had not reached yet. What is
+		# behind a door is most interesting before it opens.
 		face = Palette.MUTED
 
 	var button := _stone_button(icon_name, face, playable)
@@ -482,8 +537,12 @@ func _build_marker(level: Dictionary, world_index: int) -> Control:
 		button.pressed.connect(func(): GameManager.start_level(level_id))
 		if not completed:
 			# The frontier -- playable but not yet cleared -- breathes gently:
-			# "this one is next". Its island is the page the map opens on.
-			UiKit.breathe(button, 0.035, 1.0)
+			# "this one is next". ONE per page: with the parent's unlock-all
+			# switch on, every stone used to breathe at once, and eight
+			# things saying "press me" is none of them saying it.
+			if not _breathed.has(world_index):
+				_breathed[world_index] = true
+				UiKit.breathe(button, 0.035, 1.0)
 			if _frontier_page < 0:
 				_frontier_page = world_index
 	column.add_child(button)
@@ -496,7 +555,7 @@ func _build_marker(level: Dictionary, world_index: int) -> Control:
 			label.text += "  %d" % (rank + 1)
 	if not implemented:
 		label.text = I18n.t("common.coming_soon")
-	label.add_theme_font_size_override("font_size", 21)
+	label.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	label.add_theme_color_override("font_color", Palette.ON_COLOR)
 	label.add_theme_color_override("font_outline_color", Color(0.06, 0.14, 0.10, 0.85))
 	label.add_theme_constant_override("outline_size", 7)
@@ -525,13 +584,14 @@ func _stone_button(icon_name: String, face: Color, playable: bool) -> Button:
 
 	# A raised disc with the same "thick bottom edge that squashes on press"
 	# physics as every other button in the game.
+	# Bottom edge only. The stones used to wear a border on all four sides
+	# AND the shadow -- belt, braces and a rope. The bottom edge is the
+	# thickness that squashes on press, same as every button in the game;
+	# the other three sides said nothing.
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = face
 	normal.set_corner_radius_all(int(MARKER * 0.5))
 	normal.border_width_bottom = 9
-	normal.border_width_left = 5
-	normal.border_width_right = 5
-	normal.border_width_top = 5
 	normal.border_color = Palette.edge(face)
 	normal.shadow_color = Color(0.0, 0.08, 0.20, 0.28)
 	normal.shadow_size = 10
@@ -556,8 +616,34 @@ func _stone_button(icon_name: String, face: Color, playable: bool) -> Button:
 	if icon != null:
 		icon.position = Vector2(MARKER * 0.22, MARKER * 0.20)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if not playable:
+			icon.modulate = Color(1, 1, 1, 0.45)
 		b.add_child(icon)
 	b.resized.connect(func(): b.pivot_offset = b.size / 2.0)
 	if playable:
-		b.pressed.connect(func(): Juice.pop(b, 0.08))
+		b.pressed.connect(func():
+			Juice.pop(b, 0.08)
+			AudioManager.play_sfx("res://assets/audio/pop.ogg"))
+	else:
+		# The lock rides the corner, the same place the home cards keep
+		# their marks, so "locked" reads as a STATE of the level rather
+		# than as its identity.
+		var lock: Control = UiKit.picture("lock", 44.0)
+		if lock != null:
+			lock.name = "LockBadge"
+			lock.position = Vector2(MARKER - 48.0, 2.0)
+			lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			b.add_child(lock)
+		# A disabled button eats the tap and says nothing, and at six a tap
+		# that does NOTHING is the screen being broken. The veil catches it:
+		# the stone shakes its head, quietly. It answers; it never opens.
+		var veil := Control.new()
+		veil.name = "LockedAnswer"
+		veil.set_anchors_preset(Control.PRESET_FULL_RECT)
+		veil.mouse_filter = Control.MOUSE_FILTER_STOP
+		b.add_child(veil)
+		veil.gui_input.connect(func(event: InputEvent):
+			if UiKit.is_press(event):
+				Juice.nudge(b)
+				AudioManager.play_sfx("res://assets/audio/pop.ogg"))
 	return b

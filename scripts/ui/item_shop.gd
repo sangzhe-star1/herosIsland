@@ -41,7 +41,7 @@ func _ready() -> void:
 	var header := HBoxContainer.new()
 	header.add_child(UiKit.back_button(func():
 		SceneManager.goto_scene("res://scenes/reward/RewardCenter.tscn")))
-	var title := UiKit.title(I18n.t("shop.title"), 52)
+	var title := UiKit.title(I18n.t("shop.title"), UiKit.TYPE_DISPLAY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 
@@ -51,14 +51,14 @@ func _ready() -> void:
 	purse_row.add_theme_constant_override("separation", 8)
 	purse_row.add_child(UiKit.picture("star_coin", 40))
 	_balance_label = Label.new()
-	_balance_label.add_theme_font_size_override("font_size", 36)
+	_balance_label.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	_balance_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	purse_row.add_child(_balance_label)
 	purse.add_child(purse_row)
 	header.add_child(purse)
 	root.add_child(header)
 
-	var hint := UiKit.title(I18n.t("shop.hint"), 26, Palette.INK_SOFT)
+	var hint := UiKit.title(I18n.t("shop.hint"), UiKit.TYPE_BODY, Palette.INK_SOFT)
 	root.add_child(hint)
 
 	var center := CenterContainer.new()
@@ -91,13 +91,13 @@ func _build_card(item: Dictionary) -> PanelContainer:
 		art.position = Vector2(56, 8)
 		inner.add_child(art)
 
-	var name_label := UiKit.title(I18n.t(str(item.get("name_key", ""))), 32)
+	var name_label := UiKit.title(I18n.t(str(item.get("name_key", ""))), UiKit.TYPE_TITLE)
 	name_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	name_label.offset_top = 160
 	name_label.offset_bottom = 200
 	inner.add_child(name_label)
 
-	var desc := UiKit.title(I18n.t(str(item.get("desc_key", ""))), 21, Palette.INK_SOFT)
+	var desc := UiKit.title(I18n.t(str(item.get("desc_key", ""))), UiKit.TYPE_CAPTION, Palette.INK_SOFT)
 	desc.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	desc.offset_top = 200
 	desc.offset_bottom = 252
@@ -115,13 +115,13 @@ func _build_card(item: Dictionary) -> PanelContainer:
 	price_row.add_child(UiKit.picture("star_coin", 36))
 	var price_label := Label.new()
 	price_label.text = str(price)
-	price_label.add_theme_font_size_override("font_size", 32)
+	price_label.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	price_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	price_row.add_child(price_label)
 	inner.add_child(price_row)
 
 	var count := Label.new()
-	count.add_theme_font_size_override("font_size", 26)
+	count.add_theme_font_size_override("font_size", UiKit.TYPE_CAPTION)
 	count.add_theme_color_override("font_color", Palette.INK_SOFT)
 	count.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	count.offset_top = 302
