@@ -16,6 +16,26 @@ extends LevelManager
 
 const Picker := preload("res://scripts/shared/variant_picker.gd")
 
+## Which shelf in the save this room's work goes on.
+##
+## It was the string "base", written directly into get_creation() and
+## set_creation() -- fine while exactly one level used this template, and a
+## data-loss trap the moment a second one did: two rooms sharing one key means
+## decorating the garden SAVES OVER the hero base, and a child loses an
+## afternoon's work by playing a different room. The key now comes from the
+## level's own config (canvas_id, falling back to the level id, falling
+## back to "base" so a malformed save of the original room never strands its
+## stickers). 菜园二期的装饰系统就指着这一行活下来。
+var _canvas_key := "base"
+
+
+func _canvas_id() -> String:
+	var config: Dictionary = level_data.get("config", {})
+	var key := str(config.get("canvas_id", ""))
+	if key == "":
+		key = str(level_data.get("id", ""))
+	return key if key != "" else "base"
+
 ## What can be placed. Deliberately a mixed bag: some of it heroic, some of it
 ## silly, none of it "correct".
 const STICKERS := [
@@ -117,7 +137,8 @@ func _paint_base() -> void:
 # --- what the child put there --------------------------------------------------
 
 func _restore() -> void:
-	var saved: Array = SaveManager.get_creation("base")
+	_canvas_key = _canvas_id()
+	var saved: Array = SaveManager.get_creation(_canvas_key)
 	for entry in saved:
 		var spec := {
 			"icon": str(entry.get("icon", "star")),
@@ -126,7 +147,7 @@ func _restore() -> void:
 		}
 		_placed.append(spec)
 		_draw_sticker(spec)
-	_light = int(SaveManager.get_setting("base_light", 0))
+	_light = int(SaveManager.get_setting(_canvas_key + "_light", 0))
 	_paint_base()
 
 
@@ -149,8 +170,8 @@ func _remember() -> void:
 	for spec in _placed:
 		out.append({"icon": str(spec["icon"]), "x": (spec["at"] as Vector2).x,
 			"y": (spec["at"] as Vector2).y, "size": float(spec["size"])})
-	SaveManager.set_creation("base", out)
-	SaveManager.set_setting("base_light", _light)
+	SaveManager.set_creation(_canvas_key, out)
+	SaveManager.set_setting(_canvas_key + "_light", _light)
 	if _saved_note != null and is_instance_valid(_saved_note):
 		_saved_note.modulate.a = 1.0
 		var t := _saved_note.create_tween()

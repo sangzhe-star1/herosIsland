@@ -31,6 +31,7 @@ const TRAY_FIRST := Vector2(88.0, 664.0)
 func _ready() -> void:
 	print("=== studio probe ===")
 	var out: Array[String] = []
+	out.append_array(_two_rooms_two_shelves())
 	# A Mac (16:9) and an iPad (4:3). "expand" gives the second one a taller
 	# viewport, which is the whole reason this runs twice.
 	out.append_array(await _drag_on_a("Mac", Vector2i(1280, 720)))
@@ -40,6 +41,37 @@ func _ready() -> void:
 		print("  FAIL: ", f)
 	print("STUDIO PROBE %s" % ("PASSED" if out.is_empty() else "FAILED"))
 	get_tree().quit(0 if out.is_empty() else 1)
+
+
+## Two creative rooms must write to two different shelves.
+##
+## The canvas key was the literal "base" for as long as exactly one room used
+## the template. The moment 菜园二期 adds a second one, a shared key means
+## decorating the garden SAVES OVER the hero base -- a child loses an
+## afternoon of stickers by playing a different room. The key now comes from
+## the level (config canvas_id, else the level id), and this holds it there.
+func _two_rooms_two_shelves() -> Array[String]:
+	var out: Array[String] = []
+	var cp: Node = load("res://scripts/minigames/creative_play.gd").new()
+	cp.level_data = {"id": "hero_studio", "config": {"canvas_id": "base"}}
+	if str(cp.call("_canvas_id")) != "base":
+		out.append("hero_studio must keep the shelf named 'base' -- renaming "
+			+ "it orphans every sticker already saved there")
+	cp.level_data = {"id": "garden_room", "config": {}}
+	if str(cp.call("_canvas_id")) != "garden_room":
+		out.append("a room with no canvas_id should shelve under its level id, "
+			+ "got '%s'" % cp.call("_canvas_id"))
+	cp.free()
+
+	SaveManager.set_creation("base", [{"icon": "star", "x": 1.0, "y": 2.0}])
+	SaveManager.set_creation("garden_room", [{"icon": "sprout", "x": 3.0, "y": 4.0}])
+	var kept: Array = SaveManager.get_creation("base")
+	if kept.size() != 1 or str(kept[0].get("icon", "")) != "star":
+		out.append("saving the second room's work overwrote the first room's "
+			+ "shelf -- the exact data loss the per-room key exists to prevent")
+	SaveManager.set_creation("garden_room", [])
+	print("  two rooms, two shelves: %s" % ("ok" if out.is_empty() else "BROKEN"))
+	return out
 
 
 func _drag_on_a(label: String, window_px: Vector2i) -> Array[String]:

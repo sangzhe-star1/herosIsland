@@ -587,6 +587,25 @@ for path in gd:
                 f"through purchase_manager.offer(), or argue the new flow into "
                 f"SPEND_MAY by name")
 
+# --- 5u. the creative canvas never hardcodes its shelf
+#
+# creative_play saves the child's work under a key. That key was the literal
+# string "base" for as long as exactly one level used the template -- and the
+# moment a second one does (菜园二期的装饰就是), two rooms sharing one key
+# means decorating the garden saves over the hero base. The key must come
+# through _canvas_id() (level config / level id), never as a literal in the
+# get_creation/set_creation call itself.
+for path in gd:
+    if not path.endswith("creative_play.gd"):
+        continue
+    for i, line in enumerate(open(path).read().split("\n"), 1):
+        code = line.split("#", 1)[0]
+        if re.search(r'(get_creation|set_creation)\s*\(\s*"', code):
+            errors.append(
+                f"{path}:{i}: calls get/set_creation with a literal key -- "
+                f"two rooms sharing one shelf is how a child's afternoon "
+                f"gets saved over. Use _canvas_id()")
+
 # --- 5q. the crops have to be growable
 #
 # A stage that takes zero seconds finishes the instant it starts, which reads

@@ -952,7 +952,8 @@
       "badge": ""
     },
     "config": {
-      "instruction_key": "creative.instruction"
+      "instruction_key": "creative.instruction",
+      "canvas_id": "base"
     }
   },
   {
