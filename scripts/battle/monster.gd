@@ -71,6 +71,25 @@ func build(monster_config: Dictionary) -> void:
 	_h = float(config.get("height", 300.0))
 	_w = _h * float(config.get("width", 0.82))
 
+	# Every monster stands on a pool of shadow, drawn first so it sits under
+	# the body. It earns its keep twice: it plants the creature ON the ground
+	# instead of floating in front of it, and for the painted monsters --
+	# illustrated in a different style than the drawn world -- it is the one
+	# shared prop that makes the two styles read as standing in the same
+	# place. The hero has one; the monster not having one was half of why the
+	# duel looked like two games pasted together.
+	var shadow := Polygon2D.new()
+	shadow.name = "GroundShadow"
+	var oval := PackedVector2Array()
+	for i in range(20):
+		var a: float = TAU * float(i) / 20.0
+		oval.append(Vector2(cos(a) * _w * 0.46, 6.0 + sin(a) * _w * 0.10))
+	shadow.polygon = oval
+	# Ink-blue like every other shadow in this world, not "darker grass" --
+	# the first cut used a green-black at 18% and vanished into the lawn.
+	shadow.color = Color(0.09, 0.13, 0.24, 0.26)
+	_rig.add_child(shadow)
+
 	# A painted monster lives at assets/characters/monsters/<id>.png, feet at
 	# the bottom edge. It keeps every animation below except the ones that move
 	# a face -- a picture has no eyelids.
@@ -91,6 +110,14 @@ func _build_textured(tex: Texture2D) -> void:
 	sprite.position = Vector2(0, -height * 0.5)
 	if bool(config.get("silhouette", false)):
 		sprite.material = _silhouette_material()
+	else:
+		# A whisper of the scene's cool daylight over the illustration.
+		# The painted monsters arrive saturated to the teeth from a renderer
+		# that never saw this island's sky; multiplying a few percent of
+		# blue-grey in is not a disguise, but it takes the "sticker pasted
+		# on a photo" edge off. The drawn monsters skip it -- they were
+		# born under this light.
+		sprite.modulate = Color(0.95, 0.96, 1.0)
 	_rig.add_child(sprite)
 
 

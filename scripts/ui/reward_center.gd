@@ -321,14 +321,22 @@ func _ready() -> void:
 	# the badges off the bottom of the screen -- the same trap the result
 	# screen fell into: a column that grows with content, in a space that does
 	# not.
-	list.add_child(_album_shelf())
+	#
+	# And FIRST only once there is something in it. A brand-new save used to
+	# open this screen onto fifteen grey silhouettes saying 还没遇到 -- a wall
+	# of "you have nothing" as the very first thing on a page called 我的奖励.
+	# The silhouettes are a promise worth keeping, so the shelf stays; it just
+	# waits below the things he HAS until the first monster is met.
+	var shelf := _album_shelf()
+	if Album.met_count() > 0:
+		list.add_child(shelf)
 
 	# --- treasure card ---------------------------------------------------
 	var treasure_card := UiKit.card()
 	treasure_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var treasure_row := HBoxContainer.new()
 	treasure_row.add_theme_constant_override("separation", 14)
-	var coin_icon: Control = UiKit.picture("coin", 52)
+	var coin_icon: Control = UiKit.picture("star_coin", 52)
 	if coin_icon != null:
 		treasure_row.add_child(coin_icon)
 	_coins_title = UiKit.title(
@@ -412,6 +420,9 @@ func _ready() -> void:
 	var growth_title := UiKit.title(I18n.t("rewards.growth"), UiKit.TYPE_TITLE)
 	growth_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	growth_box.add_child(growth_title)
+
+	if Album.met_count() == 0:
+		list.add_child(shelf)
 
 	for attribute in GameData.rewards.get("growth_attributes", []):
 		var id: String = attribute.get("id", "")
@@ -589,7 +600,7 @@ func _build_sticker(sticker: Dictionary) -> Control:
 		var price := HBoxContainer.new()
 		price.add_theme_constant_override("separation", 4)
 		price.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var coin: Control = UiKit.picture("coin", 30)
+		var coin: Control = UiKit.picture("star_coin", 30)
 		if coin != null:
 			price.add_child(coin)
 		var amount := Label.new()

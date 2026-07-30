@@ -135,12 +135,12 @@ func _star_button(text: String, colour: Color, box: Vector2) -> Button:
 	b.add_theme_stylebox_override("normal", style)
 	b.add_theme_stylebox_override("hover", style)
 	b.add_theme_stylebox_override("pressed", down)
-	var row := Node2D.new()
-	row.position = Vector2(box.x * 0.5 - 34.0, box.y * 0.5)
-	row.z_index = 1
-	b.add_child(row)
-	Shapes.lit(row, Shapes.star_points(Vector2.ZERO, 19.0, 0.44, 5),
-		Color(1.0, 0.90, 0.42), 0.95)
+	var coin: Control = UiKit.picture("star_coin", 38)
+	if coin != null:
+		coin.position = Vector2(box.x * 0.5 - 53.0, box.y * 0.5 - 19.0)
+		coin.z_index = 1
+		coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(coin)
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
@@ -304,8 +304,11 @@ func _three_numbers(card: Control, pad: Node2D, box: Vector2,
 	]
 	for i in range(cols.size()):
 		var x: float = box.x * (0.22 + 0.28 * float(i))
-		Shapes.lit(pad, Shapes.star_points(Vector2(x - 34.0, 258.0), 15.0, 0.44, 5),
-			Color(1.0, 0.83, 0.30), 0.9)
+		var coin: Control = UiKit.picture("star_coin", 30)
+		if coin != null:
+			coin.position = Vector2(x - 49.0, 243.0)
+			coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(coin)
 		var n := Label.new()
 		n.text = str(cols[i][1])
 		n.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
@@ -447,9 +450,12 @@ func _short(price: int, have: int, wish_item_id: String) -> void:
 		Vector2(maxf(540.0 * share, 34.0), 34.0), 17.0),
 		Color(1.0, 0.80, 0.30), 0.9)
 	for i in range(2):
-		Shapes.lit(pad, Shapes.star_points(
-			Vector2(box.x * 0.5 - 292.0 + float(i) * 584.0, 133.0), 16.0, 0.44, 5),
-			Color(1.0, 0.83, 0.30) if i == 0 else Color(0.72, 0.78, 0.88), 0.9)
+		var end_coin: Control = UiKit.picture("star_coin", 32)
+		if end_coin != null:
+			end_coin.position = Vector2(box.x * 0.5 - 308.0 + float(i) * 584.0, 117.0)
+			end_coin.modulate = Color(1, 1, 1, 1.0) if i == 0 else Color(1, 1, 1, 0.45)
+			end_coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(end_coin)
 	var counts := Label.new()
 	counts.text = "%d / %d" % [have, price]
 	counts.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)

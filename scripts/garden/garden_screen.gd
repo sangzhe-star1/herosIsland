@@ -189,6 +189,26 @@ var _beds_looked_like := ""
 
 
 ## A room, not a level: nothing here completes and nothing here is scored.
+## Overrides LevelManager. Every other level quits to the world map; the
+## garden walks next door instead -- 验收单第 16 条的原文是"菜园能正常返回
+## 英雄基地"，首期为了和其余关卡一致先回了地图并记为偏差，2026-07-29
+## Zane 拍板按原文来。去哪个房间是菜园这关自己的数据（levels.json 里
+## star_garden.config.exit_room），代码不点任何房间的名。没配或配错时
+## 走基类的路回世界地图——孩子永远出得去。
+func quit_level() -> void:
+	if _finished:
+		return
+	var exit_room := str(GameData.get_level(str(GameManager.current_level_id))\
+		.get("config", {}).get("exit_room", ""))
+	if exit_room == "" or GameData.get_level(exit_room).is_empty():
+		super.quit_level()
+		return
+	_finished = true
+	result.quit_early = true
+	result.duration_seconds = _elapsed
+	GameManager.start_level(exit_room)
+
+
 func auto_complete_on_target() -> bool:
 	return false
 

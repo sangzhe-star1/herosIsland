@@ -125,8 +125,14 @@ func _build_header(view: Vector2) -> void:
 	purse.add_child(pad)
 	Shapes.fill(pad, Shapes.rounded_rect(Vector2.ZERO, Vector2(220, 84), 26.0),
 		Color(1, 1, 1, 0.90), 0.0)
-	Shapes.lit(pad, Shapes.star_points(Vector2(44, 42), 24.0, 0.44, 5),
-		Color(1.0, 0.83, 0.30), 0.95)
+	# The coin, not the star: this purse holds 星星币. The plain star is the
+	# score, and the purse wearing it was the confusion the whole currency
+	# split exists to prevent.
+	var purse_coin: Control = UiKit.picture("star_coin", 46)
+	if purse_coin != null:
+		purse_coin.position = Vector2(22, 19)
+		purse_coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		purse.add_child(purse_coin)
 	_coin_label = Label.new()
 	_coin_label.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	_coin_label.add_theme_color_override("font_color", Color(0.22, 0.32, 0.48))

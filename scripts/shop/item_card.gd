@@ -226,10 +226,16 @@ func _footer(pad: Node2D) -> void:
 			Color(1.0, 0.86, 0.34), 0.9)
 
 
+## Money wears the COIN, everywhere. The plain star is the score a level
+## pays and can never be spent; drawing prices with that same star was
+## quietly telling a child the opposite of the game's first promise.
 func _price(pad: Node2D, y: float) -> void:
 	var price := int(entry.get("price", 0))
-	Shapes.lit(pad, Shapes.star_points(Vector2(BOX.x * 0.5 - 30.0, y + 15.0),
-		14.0, 0.44, 5), Color(1.0, 0.83, 0.30), 0.9)
+	var coin: Control = UiKit.picture("star_coin", 30)
+	if coin != null:
+		coin.position = Vector2(BOX.x * 0.5 - 45.0, y)
+		coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(coin)
 	var label := Label.new()
 	label.text = str(price)
 	label.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)

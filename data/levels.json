@@ -967,7 +967,9 @@
       "coins": 0,
       "badge": ""
     },
-    "config": {}
+    "config": {
+      "exit_room": "hero_studio"
+    }
   },
   {
     "id": "harvest_01",
@@ -1338,7 +1340,9 @@
         {
           "id": "gift",
           "icon": "basket",
-          "accepts_tags": ["golden"],
+          "accepts_tags": [
+            "golden"
+          ],
           "sample": "res://assets/crops/golden_carrot.png"
         }
       ],
@@ -1470,7 +1474,9 @@
         {
           "id": "gift",
           "icon": "basket",
-          "accepts_tags": ["golden"],
+          "accepts_tags": [
+            "golden"
+          ],
           "sample": "res://assets/crops/golden_carrot.png"
         }
       ],

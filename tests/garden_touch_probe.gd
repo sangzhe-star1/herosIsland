@@ -375,12 +375,25 @@ func _there_is_a_way_out() -> void:
 			and back.global_position.y + back.size.y < view.y,
 		"...and it is on the screen he is holding")
 	# Wired to something. Not pressed here on purpose: pressing it changes the
-	# scene, which would take this probe out of the tree mid-run. Where it goes
-	# is LevelManager.quit_level(), shared with all thirty-four levels and
-	# walked by map_probe -- what is garden-specific is only that the button is
-	# there and connected.
+	# scene, which would take this probe out of the tree mid-run.
 	_ok(back.pressed.get_connections().size() > 0,
 		"...and pressing it does something")
+
+	# And it leads HOME, by data. 验收单第 16 条按原文落地（2026-07-29
+	# Zane 拍板）：出口写在 star_garden.config.exit_room 里，必须指向一个
+	# 真实存在、场景也真的在的房间。指错了代码会安静地退回世界地图——
+	# 孩子出得去，但验收就名存实亡了，所以这里盯着数据本身。
+	var exit_room := str(GameData.get_level("star_garden")\
+		.get("config", {}).get("exit_room", ""))
+	_ok(exit_room != "", "star_garden has no exit_room -- acceptance #16 says "
+		+ "the garden goes home to 英雄基地, and nothing says where home is")
+	if exit_room != "":
+		var room := GameData.get_level(exit_room)
+		_ok(not room.is_empty() and bool(room.get("room", false)),
+			"exit_room '%s' is not a room the game knows" % exit_room)
+		var scene := GameData.get_minigame_scene(str(room.get("game_type", "")))
+		_ok(scene != "" and ResourceLoader.exists(scene),
+			"exit_room '%s' has no scene to arrive in" % exit_room)
 	await get_tree().process_frame
 
 

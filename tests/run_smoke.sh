@@ -374,6 +374,18 @@ fi
 no_script_errors "$MAP_OUT" "Map Probe"
 rm -f "$MAP_OUT"
 
+# The parent gate: right answer opens, wrong answer refuses and says so, no
+# LineEdit (= no OS keyboard over the game), every key thumb-sized.
+GATE_OUT=$(mktemp)
+"$GODOT" --headless --path . res://tests/ParentGateProbe.tscn 2>&1 | tee "$GATE_OUT"
+if ! grep -q "PARENT GATE PROBE PASSED" "$GATE_OUT"; then
+  rm -f "$GATE_OUT"
+  echo "Parent gate probe failed."
+  exit 1
+fi
+no_script_errors "$GATE_OUT" "Parent Gate Probe"
+rm -f "$GATE_OUT"
+
 echo
 echo "Running adventure probe..."
 ADV_OUT=$(mktemp)

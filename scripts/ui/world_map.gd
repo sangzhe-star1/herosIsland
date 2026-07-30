@@ -171,8 +171,15 @@ func _add_header() -> void:
 	# It lives in the row rather than floating below, because the first cut
 	# hung it off the bottom edge of the card and dropped a second icon on
 	# top of the star.
+	# Not drawn at all until there is 5% to show. An empty ring next to the
+	# star count read as some kind of target or speaker icon -- a shape that
+	# closes is only a shape that closes once it has visibly started.
 	var share: float = SaveManager.island_completion()
+	if share < 0.05:
+		bar.add_child(tally)
+		return
 	var dial := Control.new()
+	dial.name = "ProgressDial"
 	dial.custom_minimum_size = Vector2(58, 58)
 	dial.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var ring := Node2D.new()

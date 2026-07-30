@@ -4,7 +4,8 @@ extends Control
 
 var _gate: VBoxContainer
 var _content: Control
-var _answer: LineEdit
+var _answer: Label
+var _typed := ""
 var _feedback: Label
 var _a := 0
 var _b := 0
@@ -38,14 +39,14 @@ func _build_gate() -> void:
 	var card := UiKit.card()
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var card_box := VBoxContainer.new()
-	card_box.add_theme_constant_override("separation", 18)
+	card_box.add_theme_constant_override("separation", 12)
 	card_box.custom_minimum_size = Vector2(560, 0)
 	card.add_child(card_box)
 	var card_holder := CenterContainer.new()
 	card_holder.add_child(card)
 	_gate.add_child(card_holder)
 
-	var lock: Control = UiKit.picture("lock", 84)
+	var lock: Control = UiKit.picture("lock", 60)
 	if lock != null:
 		var lock_row := CenterContainer.new()
 		lock_row.add_child(lock)
@@ -53,45 +54,110 @@ func _build_gate() -> void:
 
 	card_box.add_child(UiKit.title(I18n.t("parent.question") % [_a, _b], UiKit.TYPE_TITLE))
 
-	_answer = LineEdit.new()
-	_answer.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_answer.custom_minimum_size = Vector2(280, 80)
+	# The answer, shown, and a numpad the game draws itself. A LineEdit here
+	# summoned the OS keyboard -- half the tablet screen of system UI sliding
+	# over a children's game, and the one screen transition in the product
+	# that Godot did not draw. Ten digits is not a keyboard's job.
+	_answer = Label.new()
+	_answer.custom_minimum_size = Vector2(280, 52)
+	_answer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_answer.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_answer.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
 	_answer.add_theme_color_override("font_color", Palette.INK)
-	_answer.add_theme_color_override("caret_color", Palette.INK)
+	var well := PanelContainer.new()
 	var field := StyleBoxFlat.new()
 	field.bg_color = Palette.SURFACE_SUNK
-	field.set_corner_radius_all(16)
-	field.set_content_margin_all(12)
-	field.border_width_bottom = 4
-	field.border_color = Palette.MUTED
-	_answer.add_theme_stylebox_override("normal", field)
-	var focused: StyleBoxFlat = field.duplicate()
-	focused.border_color = Palette.BLUE
-	_answer.add_theme_stylebox_override("focus", focused)
-	var center := CenterContainer.new()
-	center.add_child(_answer)
-	card_box.add_child(center)
-	_answer.text_submitted.connect(func(_t): _check())
+	field.set_corner_radius_all(UiKit.RADIUS_CHIP)
+	field.set_content_margin_all(8)
+	well.add_theme_stylebox_override("panel", field)
+	well.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	well.add_child(_answer)
+	card_box.add_child(well)
 
 	_feedback = UiKit.title("", UiKit.TYPE_BODY)
 	_feedback.add_theme_color_override("font_color", Palette.RED)
 	card_box.add_child(_feedback)
 
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 24)
-	var ok := UiKit.big_button(I18n.t("common.continue"))
-	ok.pressed.connect(_check)
-	row.add_child(ok)
+	var pad_holder := CenterContainer.new()
+	var pad := GridContainer.new()
+	pad.columns = 3
+	pad.add_theme_constant_override("h_separation", 10)
+	pad.add_theme_constant_override("v_separation", 10)
+	pad_holder.add_child(pad)
+	card_box.add_child(pad_holder)
+	for n in range(1, 10):
+		pad.add_child(_key(str(n)))
+	pad.add_child(_key("del"))
+	pad.add_child(_key("0"))
+	pad.add_child(_key("ok"))
+
 	var back := UiKit.big_button(I18n.t("common.back"), Palette.SLATE)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	back.custom_minimum_size = Vector2(200, 64)
 	back.pressed.connect(func(): SceneManager.goto_home())
-	row.add_child(back)
-	card_box.add_child(row)
+	card_box.add_child(back)
+
+
+## One key of the gate's numpad. Digits are quiet ink-on-white chips; the
+## check key is the one green thing, because it is the one that means go.
+func _key(what: String) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(104, 60)
+	b.focus_mode = Control.FOCUS_NONE
+	var face := Palette.GREEN if what == "ok" else Color(1.0, 0.99, 0.96)
+	var style := StyleBoxFlat.new()
+	style.bg_color = face
+	style.set_corner_radius_all(UiKit.RADIUS_CHIP)
+	style.border_width_bottom = 6
+	style.border_color = Palette.edge(face) if what == "ok" \
+		else Color(0.78, 0.80, 0.84)
+	var down: StyleBoxFlat = style.duplicate()
+	down.border_width_bottom = 2
+	b.add_theme_stylebox_override("normal", style)
+	b.add_theme_stylebox_override("hover", style)
+	b.add_theme_stylebox_override("pressed", down)
+	match what:
+		"ok":
+			var tick: Control = UiKit.picture("check", 36)
+			if tick != null:
+				tick.position = Vector2(34, 12)
+				tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				b.add_child(tick)
+			b.pressed.connect(_check)
+		"del":
+			var word := Label.new()
+			word.text = "\u232b"
+			word.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
+			word.add_theme_color_override("font_color", Palette.INK_SOFT)
+			word.set_anchors_preset(Control.PRESET_FULL_RECT)
+			word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			b.add_child(word)
+			b.pressed.connect(func():
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+				_typed = _typed.substr(0, maxi(_typed.length() - 1, 0))
+				_answer.text = _typed)
+		_:
+			var digit := Label.new()
+			digit.text = what
+			digit.add_theme_font_size_override("font_size", UiKit.TYPE_TITLE)
+			digit.add_theme_color_override("font_color", Palette.INK)
+			digit.set_anchors_preset(Control.PRESET_FULL_RECT)
+			digit.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			digit.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			digit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			b.add_child(digit)
+			b.pressed.connect(func():
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+				if _typed.length() < 3:
+					_typed += what
+					_answer.text = _typed)
+	return b
 
 
 func _check() -> void:
-	if _answer.text.strip_edges().is_valid_int() and int(_answer.text) == _a + _b:
+	if _typed.is_valid_int() and int(_typed) == _a + _b:
 		AudioManager.play_sfx("res://assets/audio/door.ogg")
 		_gate.queue_free()
 		_build_content()
@@ -100,6 +166,7 @@ func _check() -> void:
 		# the gentle hint chime, never an error buzz.
 		AudioManager.play_sfx("res://assets/audio/hint.ogg")
 		_feedback.text = I18n.t("parent.wrong")
+		_typed = ""
 		_answer.text = ""
 
 
