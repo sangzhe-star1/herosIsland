@@ -751,7 +751,10 @@
         "recipe.tomato_stew": "Tomato Stew",
         "recipe.corn_chowder": "Corn Chowder",
         "recipe.rainbow_salad": "Rainbow Salad",
-        "recipe.harvest_platter": "Harvest Platter"
+        "recipe.harvest_platter": "Harvest Platter",
+        "garden.visit_friend_3": "A third visit! The bear leaves a plank as thanks.",
+        "garden.visit_friend_6": "The bear thinks of your garden often -- this time he brought star coins.",
+        "garden.visit_friend_10": "Ten visits! An old friend hauls in two planks for the barn."
     },
     "zh": {
         "adventure.again": "再来一次，你可以的！",
@@ -1505,6 +1508,9 @@
         "recipe.tomato_stew": "番茄浓汤",
         "recipe.corn_chowder": "玉米浓汤",
         "recipe.rainbow_salad": "彩虹沙拉",
-        "recipe.harvest_platter": "丰收大拼盘"
+        "recipe.harvest_platter": "丰收大拼盘",
+        "garden.visit_friend_3": "第三次来做客！小熊留下一块木板当谢礼。",
+        "garden.visit_friend_6": "小熊常想着你的菜园，这次带来了星星币。",
+        "garden.visit_friend_10": "第十次啦！老朋友搬来两块木板帮你扩仓库。"
     }
 }

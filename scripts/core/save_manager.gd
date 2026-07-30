@@ -1323,7 +1323,7 @@ func _merge_farm(theirs: Dictionary) -> void:
 					int(tf[store_key][crop_id]))
 			farm[store_key] = pile
 
-		for list_key in ["unlocked_crops", "unlocked_recipes", "decorations",
+		for list_key in ["unlocked_crops", "unlocked_recipes",
 				"completed_missions"]:
 			var mine: Array = farm.get(list_key, [])
 			for entry in tf.get(list_key, []):

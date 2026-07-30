@@ -308,6 +308,23 @@ for f in glob.glob("data/*.json"):
     if f.endswith("strings.json"):
         continue
     collect_keys(json.load(open(f)), used)
+
+# The two visitor files name their lines with a BARE "key" field (not *_key);
+# rule 5x checks what those lines say, this keeps them off the orphan list.
+def _bare_line_keys(node, out):
+    if isinstance(node, dict):
+        for k, v in node.items():
+            if k == "key" and isinstance(v, str) and v:
+                out.add(v)
+            else:
+                _bare_line_keys(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            _bare_line_keys(v, out)
+
+for f in ("data/farm_visit_texts.json", "data/farm_visitors.json"):
+    if os.path.exists(f):
+        _bare_line_keys(json.load(open(f)), used)
 for k in sorted(used):
     if k not in en:
         errors.append(f"strings.json: missing en key '{k}'")
@@ -1903,6 +1920,31 @@ if os.path.exists("data/farm_visit_texts.json") and os.path.exists("data/strings
             if _icon and _icon not in _icon_names:
                 errors.append(f"farm_visit_texts.json: '{_who}' asks for icon "
                               f"'{_icon}', which icon_library cannot draw")
+    # The regulars' milestones ride the same rule: their lines must exist in
+    # both languages and their keepsake icons must be drawable. Positivity is
+    # already covered below -- milestone keys live under garden.visit_*.
+    if os.path.exists("data/farm_visitors.json"):
+        _stones = json.load(open("data/farm_visitors.json"))
+        for _who, _list in _stones.items():
+            if not isinstance(_list, list):
+                continue
+            for _stone in _list:
+                _key = str(_stone.get("key", ""))
+                for lang in ("en", "zh"):
+                    if _key and _key not in _strings.get(lang, {}):
+                        errors.append(f"farm_visitors.json: '{_who}' names "
+                                      f"'{_key}', which strings.json has no "
+                                      f"{lang} line for")
+                _icon = str(_stone.get("icon", ""))
+                _icon_names = set(re.findall(r'"(\w+)"',
+                    re.search(r'const NAMES := \[(.*?)\n\]',
+                              open("scripts/ui/icon_library.gd").read(),
+                              re.S).group(1)))
+                if _icon and _icon not in _icon_names:
+                    errors.append(f"farm_visitors.json: '{_who}' asks for "
+                                  f"icon '{_icon}', which icon_library "
+                                  f"cannot draw")
+
     # The bear's own spoken/board lines ride the same rule: everything under
     # garden.visit_* and garden.bear_* is a visitor talking.
     for lang in ("en", "zh"):

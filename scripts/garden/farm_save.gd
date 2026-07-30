@@ -172,7 +172,6 @@ static func default_farm() -> Dictionary:
 		"harvest_basket": {},
 		"unlocked_crops": [],         # filled by the migration from crops.json
 		"unlocked_recipes": [],
-		"decorations": [],
 		"completed_missions": [],
 		"npc_friendship": {},         # npc_id -> a small number that only rises
 		# The two clock anchors. last_seen_at is where growth was settled to;

@@ -51,6 +51,7 @@ var npc_farms: Dictionary = {}
 ## Which lines a visitor's log entry is told with. The words themselves live
 ## in strings.json; this file only says which icon goes with which line.
 var farm_visit_texts: Dictionary = {}
+var farm_visitor_milestones: Dictionary = {}
 ## The dog's numbers: speed, height, how far from a bed it sits.
 var farm_dog: Dictionary = {}
 ## The farm's five levels: where each threshold sits and what each of the
@@ -91,6 +92,7 @@ func _ready() -> void:
 	farm_market_prices = _load_json("res://data/farm_market_prices.json", {})
 	npc_farms = _load_json("res://data/npc_farms.json", {})
 	farm_visit_texts = _load_json("res://data/farm_visit_texts.json", {})
+	farm_visitor_milestones = _load_json("res://data/farm_visitors.json", {})
 	farm_dog = _load_json("res://data/farm_dog.json", {})
 	farm_levels = _load_json("res://data/farm_levels.json", {})
 	farm_expansions = _load_json("res://data/farm_expansions.json", {})

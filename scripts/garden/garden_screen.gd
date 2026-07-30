@@ -2059,20 +2059,34 @@ func _visit_panel(view: Vector2) -> void:
 			if art != null:
 				art.position = Vector2(x, card.position.y + 12.0)
 				_play.add_child(art)
-			if count_field != "":
+			# On a milestone entry the counts stand aside: the friendship
+			# line is long, it runs right under this column, and "x1" over
+			# the middle of a sentence reads as noise over news.
+			if count_field != "" and not entry.has("milestone_key"):
 				var many := UiKit.title("x%d" % count, 22)
 				many.position = Vector2(x + 6.0, card.position.y + 54.0)
 				many.size = Vector2(52, 26)
 				_play.add_child(many)
 			x += 74.0
 
-		# The footnote: the first template line's sentence, small and grey.
-		if not lines.is_empty():
-			var said := I18n.t(str((lines[0] as Dictionary).get("key", "")))
-			var note := UiKit.title(said, 18, Color(0.55, 0.51, 0.44))
+		# The footnote: the milestone's sentence when this visit carried one
+		# -- an old friend's Nth call is the more interesting story -- and
+		# the first template line's otherwise. Small, grey, one line.
+		var note_key := str(entry.get("milestone_key", ""))
+		if note_key == "" and not lines.is_empty():
+			note_key = str((lines[0] as Dictionary).get("key", ""))
+		if note_key != "":
+			var note := UiKit.title(I18n.t(note_key), 18,
+				Color(0.72, 0.52, 0.28) if entry.has("milestone_key")
+				else Color(0.55, 0.51, 0.44))
 			note.position = card.position + Vector2(100.0, 62.0)
 			note.size = Vector2(wide - 190.0, 24)
 			_play.add_child(note)
+		if entry.has("milestone_icon"):
+			var keepsake := UiKit.picture(str(entry.get("milestone_icon", "heart")), 40.0)
+			if keepsake != null:
+				keepsake.position = Vector2(x, card.position.y + 12.0)
+				_play.add_child(keepsake)
 		y += 104.0
 
 

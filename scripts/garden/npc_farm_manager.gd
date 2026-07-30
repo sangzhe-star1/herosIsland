@@ -32,6 +32,8 @@ extends RefCounted
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const Coins := preload("res://scripts/shop/currency_manager.gd")
 
 ## How long after a visit the bear next drops by the child's farm. His own
 ## pace: the share crop's growth time, so the two rhythms feel like one
@@ -195,5 +197,50 @@ static func maybe_visit(now: int) -> Dictionary:
 	farm["npc"] = npc
 
 	var entry := {"who": "bear", "watered": watered, "star": 1, "at": now}
+	_grant_milestone("bear", entry)
 	Farm.remember_visit(farm, entry)
 	return entry
+
+
+## 常客里程碑：第 N 次来访多说一句、留一份小礼物。
+##
+## Runs in the SAME place the visit is counted, because a milestone is a fact
+## about that count and nowhere else. Claims are written to the top-level
+## farm_visitors ledger before the gift is granted, so a settle that runs
+## twice -- which offline settles love to do -- can never pay twice. The gift
+## itself goes through the same doors everything else uses: planks into the
+## hut's inventory, coins through Coins.earn. Nothing here can be missed
+## forever, either: milestones are checked with `<=`, so a count that jumped
+## past one (or data added after the visits happened) still pays on the next
+## visit.
+static func _grant_milestone(who: String, entry: Dictionary) -> void:
+	# 记的是"来了几次"，不是友谊星——摘果和帮忙也发星，混着数会让
+	# "第三次来做客"提前到第一次。常客账本自己数自己。
+	var ledger: Dictionary = SaveManager.data.get("farm_visitors", {})
+	var mine: Dictionary = ledger.get(who, {}) if ledger.get(who) is Dictionary \
+		else {}
+	var visits := int(mine.get("visits", 0)) + 1
+	mine["visits"] = visits
+	var done: Array = mine.get("claimed", [])
+	for milestone in GameData.farm_visitor_milestones.get(who, []):
+		var mid := str(milestone.get("id", ""))
+		if mid == "" or mid in done:
+			continue
+		if visits < int(milestone.get("at_visits", 0)):
+			continue
+		done = done.duplicate()
+		done.append(mid)
+		mine["claimed"] = done
+		ledger[who] = mine
+		SaveManager.data["farm_visitors"] = ledger
+		var gift: Dictionary = milestone.get("gift", {})
+		if int(gift.get("plank", 0)) > 0:
+			Barn.put("plank", int(gift.get("plank", 0)), "inventory")
+		if int(gift.get("coins", 0)) > 0:
+			Coins.earn(int(gift.get("coins", 0)), "visitor_milestone")
+		entry["milestone_key"] = str(milestone.get("key", ""))
+		entry["milestone_icon"] = str(milestone.get("icon", "heart"))
+		return
+	mine["claimed"] = done
+	ledger[who] = mine
+	SaveManager.data["farm_visitors"] = ledger

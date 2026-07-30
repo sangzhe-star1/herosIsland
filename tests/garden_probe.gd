@@ -84,6 +84,7 @@ func _ready() -> void:
 	# --- 阶段 4: the bear, the shared strawberry, and the visitor board ---
 	_the_bears_farm_is_arithmetic_and_kindness()
 	_the_bear_drops_by_but_never_in_front_of_him()
+	_the_regular_gets_his_milestones_once()
 	_two_tablets_agree_about_the_bear()
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
@@ -1360,6 +1361,53 @@ func _the_bear_drops_by_but_never_in_front_of_him() -> void:
 	_ok(int((log[0] as Dictionary).get("at", 0))
 		== later + 100 + Farm.VISIT_LOG_KEPT + 4,
 		"...keeping the newest at the top")
+
+
+## 常客里程碑：第三次来访带一句话和一块木板，只带一次，存档也记得。
+func _the_regular_gets_his_milestones_once() -> void:
+	_fresh_save()
+	GameClock.set_test_now(1_700_000_000, 0)
+	var now := GameClock.now_unix()
+	NpcFarm.record_pick(now)
+	NpcFarm.record_help()
+	var period := NpcFarm.visit_period()
+	NpcFarm.maybe_visit(now)          # 起表，不算来访
+
+	var planks_before := Barn.count("plank", "inventory")
+	var entries: Array = []
+	for i in range(3):
+		var entry: Dictionary = NpcFarm.maybe_visit(now + period * (i + 1))
+		_ok(not entry.is_empty(), "visit %d should happen" % (i + 1))
+		entries.append(entry)
+
+	_ok(not (entries[0] as Dictionary).has("milestone_key")
+			and not (entries[1] as Dictionary).has("milestone_key"),
+		"a milestone arrived before the third VISIT -- the regulars' ledger "
+		+ "counts visits, never friendship stars (picking and helping pay "
+		+ "stars too, and mixing them made 'third visit' arrive on the first)")
+	_ok(str((entries[2] as Dictionary).get("milestone_key", "")) \
+			== "garden.visit_friend_3",
+		"the third visit should carry the friendship line")
+	_ok(Barn.count("plank", "inventory") == planks_before + 1,
+		"the third meeting leaves exactly one plank (%d -> %d)"
+		% [planks_before, Barn.count("plank", "inventory")])
+	var regular: Dictionary = SaveManager.data.get("farm_visitors", {})\
+		.get("bear", {})
+	_ok(int(regular.get("visits", 0)) == 3,
+		"the regulars' ledger counts %s visits, not 3" % regular.get("visits"))
+	_ok("visits_3" in (regular.get("claimed", []) as Array),
+		"the claim ledger did not record visits_3")
+
+	# 再来两次也不再发第一块木板；存档往返后账本还在。
+	var planks_after := Barn.count("plank", "inventory")
+	NpcFarm.maybe_visit(now + period * 4)
+	_ok(Barn.count("plank", "inventory") == planks_after,
+		"a later visit paid the same milestone again")
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_ok("visits_3" in ((SaveManager.data.get("farm_visitors", {})
+			.get("bear", {}) as Dictionary).get("claimed", []) as Array),
+		"the milestone claim vanished across a save round-trip")
 
 
 ## Two tablets, one bear. The merge must never un-make a promise, un-pick a

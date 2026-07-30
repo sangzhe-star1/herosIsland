@@ -1,0 +1,26 @@
+{
+  "_comment": "常客里程碑：同一位朋友来到第 N 次，多说一句话、留一份小礼物。gift 只有两种：plank 进小屋库存（三块换大仓库），coins 走 Coins.earn。已领过的记在存档顶层 farm_visitors[npc] 里，永不重发。",
+  "bear": [
+    {
+      "id": "visits_3",
+      "at_visits": 3,
+      "icon": "heart",
+      "key": "garden.visit_friend_3",
+      "gift": {"plank": 1}
+    },
+    {
+      "id": "visits_6",
+      "at_visits": 6,
+      "icon": "star_coin",
+      "key": "garden.visit_friend_6",
+      "gift": {"coins": 15}
+    },
+    {
+      "id": "visits_10",
+      "at_visits": 10,
+      "icon": "crown",
+      "key": "garden.visit_friend_10",
+      "gift": {"plank": 2}
+    }
+  ]
+}
