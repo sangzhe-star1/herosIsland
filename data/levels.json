@@ -1020,24 +1020,25 @@
     "game_type": "monster_duel",
     "difficulty": 1,
     "target": {
-      "correct": 14
+      "correct": 22
     },
     "reward": {
       "coins": 14,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.5,
+      "beam_cooldown": 1.35,
       "shield_cooldown": 5.4,
       "ult_needed": 4,
-      "goo_interval": 6.5,
+      "goo_interval": 5.8,
       "monster": {
         "id": "stone_cub",
         "scale": 0.9
       },
       "instruction_key": "duel.instruction",
       "exit_to": "home"
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_02",
@@ -1047,24 +1048,25 @@
     "game_type": "monster_duel",
     "difficulty": 2,
     "target": {
-      "correct": 16
+      "correct": 26
     },
     "reward": {
       "coins": 16,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.44,
+      "beam_cooldown": 1.4,
       "shield_cooldown": 5.34,
       "ult_needed": 4,
-      "goo_interval": 6.3,
+      "goo_interval": 5.74,
       "monster": {
         "id": "light_bug",
         "scale": 0.945
       },
       "instruction_key": "duel.instruction",
       "exit_to": "home"
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_03",
@@ -1074,24 +1076,25 @@
     "game_type": "monster_duel",
     "difficulty": 2,
     "target": {
-      "correct": 18
+      "correct": 30
     },
     "reward": {
       "coins": 16,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.38,
+      "beam_cooldown": 1.44,
       "shield_cooldown": 5.28,
       "ult_needed": 4,
-      "goo_interval": 6.1,
+      "goo_interval": 5.68,
       "monster": {
         "id": "moon_lizard",
         "scale": 0.99
       },
       "instruction_key": "duel.instruction",
       "exit_to": "home"
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_04",
@@ -1101,17 +1104,17 @@
     "game_type": "monster_duel",
     "difficulty": 2,
     "target": {
-      "correct": 14
+      "correct": 34
     },
     "reward": {
       "coins": 16,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.32,
+      "beam_cooldown": 1.49,
       "shield_cooldown": 5.22,
       "ult_needed": 5,
-      "goo_interval": 5.9,
+      "goo_interval": 5.62,
       "monster": {
         "id": "twin_horn",
         "scale": 1.035
@@ -1125,7 +1128,8 @@
           "interrupt"
         ]
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_05",
@@ -1135,17 +1139,17 @@
     "game_type": "monster_duel",
     "difficulty": 2,
     "target": {
-      "correct": 15
+      "correct": 38
     },
     "reward": {
       "coins": 16,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.26,
+      "beam_cooldown": 1.53,
       "shield_cooldown": 5.16,
       "ult_needed": 5,
-      "goo_interval": 5.7,
+      "goo_interval": 5.56,
       "monster": {
         "id": "rock_horn",
         "scale": 1.08
@@ -1158,7 +1162,8 @@
           "interrupt"
         ]
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_06",
@@ -1168,14 +1173,14 @@
     "game_type": "monster_duel",
     "difficulty": 2,
     "target": {
-      "correct": 16
+      "correct": 42
     },
     "reward": {
       "coins": 16,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.2,
+      "beam_cooldown": 1.58,
       "shield_cooldown": 5.1,
       "ult_needed": 5,
       "goo_interval": 5.5,
@@ -1190,7 +1195,8 @@
           "dodge"
         ]
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_07",
@@ -1200,17 +1206,17 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 18
+      "correct": 46
     },
     "reward": {
       "coins": 18,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.14,
+      "beam_cooldown": 1.62,
       "shield_cooldown": 5.04,
       "ult_needed": 6,
-      "goo_interval": 5.3,
+      "goo_interval": 5.44,
       "monster": {
         "id": "drill_armor",
         "scale": 1.17
@@ -1223,7 +1229,8 @@
           "block"
         ]
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_08",
@@ -1233,30 +1240,31 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 19
+      "correct": 50
     },
     "reward": {
       "coins": 18,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.08,
+      "beam_cooldown": 1.67,
       "shield_cooldown": 4.98,
       "ult_needed": 6,
-      "goo_interval": 5.1,
+      "goo_interval": 5.38,
       "monster": {
         "id": "flame_tail",
         "scale": 1.215
       },
       "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 9.0,
+      "roar_interval": 8.5,
       "armor": {
         "opens_on": [
           "interrupt"
         ]
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_09",
@@ -1266,30 +1274,31 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 21
+      "correct": 54
     },
     "reward": {
       "coins": 18,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 1.02,
+      "beam_cooldown": 1.71,
       "shield_cooldown": 4.92,
       "ult_needed": 6,
-      "goo_interval": 4.9,
+      "goo_interval": 5.32,
       "monster": {
         "id": "red_wing",
         "scale": 1.26
       },
       "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 8.75,
+      "roar_interval": 8.28,
       "armor": {
         "opens_on": [
           "dodge"
         ]
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_10",
@@ -1299,30 +1308,31 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 22
+      "correct": 58
     },
     "reward": {
       "coins": 18,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 0.96,
+      "beam_cooldown": 1.76,
       "shield_cooldown": 4.86,
       "ult_needed": 7,
-      "goo_interval": 4.7,
+      "goo_interval": 5.26,
       "monster": {
         "id": "steel_spine",
         "scale": 1.305
       },
       "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 8.5,
+      "roar_interval": 8.06,
       "armor": {
         "opens_on": [
           "block"
         ]
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_11",
@@ -1332,24 +1342,24 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 23
+      "correct": 62
     },
     "reward": {
       "coins": 18,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 0.9,
+      "beam_cooldown": 1.8,
       "shield_cooldown": 4.8,
       "ult_needed": 7,
-      "goo_interval": 4.5,
+      "goo_interval": 5.2,
       "monster": {
         "id": "crystal_armor",
         "scale": 1.35
       },
       "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 8.25,
+      "roar_interval": 7.84,
       "armor": {
         "opens_on": [
           "block",
@@ -1357,7 +1367,8 @@
         ],
         "blocks_first": 2
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_12",
@@ -1367,30 +1378,31 @@
     "game_type": "monster_duel",
     "difficulty": 4,
     "target": {
-      "correct": 25
+      "correct": 66
     },
     "reward": {
       "coins": 20,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 0.84,
+      "beam_cooldown": 1.85,
       "shield_cooldown": 4.74,
       "ult_needed": 7,
-      "goo_interval": 4.3,
+      "goo_interval": 5.14,
       "monster": {
         "id": "blue_wing_armor",
         "scale": 1.395
       },
       "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 8.0,
+      "roar_interval": 7.62,
       "armor": {
         "opens_on": [
           "interrupt"
         ]
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_13",
@@ -1400,31 +1412,32 @@
     "game_type": "monster_duel",
     "difficulty": 4,
     "target": {
-      "correct": 26
+      "correct": 70
     },
     "reward": {
       "coins": 20,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 0.78,
+      "beam_cooldown": 1.89,
       "shield_cooldown": 4.68,
       "ult_needed": 8,
-      "goo_interval": 4.1,
+      "goo_interval": 5.08,
       "monster": {
         "id": "blaze_claw",
         "scale": 1.44
       },
       "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 7.75,
+      "roar_interval": 7.4,
       "armor": {
         "opens_on": [
           "block"
         ],
         "blocks_first": 2
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_14",
@@ -1434,24 +1447,24 @@
     "game_type": "monster_duel",
     "difficulty": 5,
     "target": {
-      "correct": 28
+      "correct": 74
     },
     "reward": {
       "coins": 22,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 0.72,
+      "beam_cooldown": 1.94,
       "shield_cooldown": 4.62,
       "ult_needed": 8,
-      "goo_interval": 3.9,
+      "goo_interval": 5.02,
       "monster": {
         "id": "thunder_wyvern",
         "scale": 1.485
       },
       "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 7.5,
+      "roar_interval": 7.18,
       "armor": {
         "opens_on": [
           "block",
@@ -1459,7 +1472,8 @@
         ],
         "blocks_first": 1
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "battle_15",
@@ -1469,31 +1483,32 @@
     "game_type": "monster_duel",
     "difficulty": 5,
     "target": {
-      "correct": 29
+      "correct": 78
     },
     "reward": {
       "coins": 22,
       "badge": ""
     },
     "config": {
-      "beam_cooldown": 0.66,
+      "beam_cooldown": 1.98,
       "shield_cooldown": 4.56,
       "ult_needed": 8,
-      "goo_interval": 3.7,
+      "goo_interval": 4.96,
       "monster": {
         "id": "shadow_wing",
         "scale": 1.53
       },
       "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 7.25,
+      "roar_interval": 6.96,
       "armor": {
         "opens_on": [
           "interrupt"
         ],
         "blocks_first": 1
       }
-    }
+    },
+    "challenge": true
   },
   {
     "id": "harvest_01",

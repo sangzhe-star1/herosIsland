@@ -150,7 +150,7 @@ const CHARGED_AT := 0.8
 ## and the album turns into a hint book: read the card, know the fight.
 ## `armor.opens_on` is a list, so one monster is opened by dodging and another
 ## only by blocking, from data, with no branch in here naming a monster.
-const OPENING := 2.6
+const OPENING := 1.8
 ## What a hit is worth while the monster is wide open. The reward for reading
 ## it right has to be big enough to feel, or a child goes back to mashing.
 const OPENING_BONUS := 2
@@ -1027,7 +1027,7 @@ func fire_beam_skill(charged: bool = false) -> bool:
 	var target: Vector2 = _monster.position + Vector2(randf_range(-40, 40), -190.0 * _monster.scale.x + randf_range(-40, 40))
 	_draw_beam(_hero.core_position(), target, 2.0 if charged else 1.0)
 	_impact(target)
-	_land_hit(1)
+	_land_hit(1, true, charged)
 	AudioManager.play_sfx("res://assets/audio/beam.ogg")
 	Juice.pop(_beam_button, 0.16)
 	if charged:
@@ -1150,12 +1150,32 @@ func _ult_burst() -> void:
 
 ## charges=false for the ult's own hits: a special move must not pay for
 ## the next special move, or the button never stops glowing.
-func _land_hit(amount: int, charges: bool = true) -> void:
+func _land_hit(amount: int, charges: bool = true, charged: bool = false) -> void:
 	# Armoured and not yet opened: the shot lands and does nothing. It has to
 	# LOOK like it did nothing on purpose -- a clink, a spark off the shell, the
 	# monster unbothered -- because a hit that silently fails to count is the
 	# same bug report as a button that does nothing.
 	if is_armored_now():
+		# 三种结果，都看得出来:
+		#   点一下   -> 叮，0     壳挡住了
+		#   按住蓄满 -> 1         磨得动，但慢
+		#   破绽期   -> 2         正路
+		#
+		# The middle rung is what stops this being a pass/fail gate. Measured
+		# without it, the two ends broke in opposite directions: a monster
+		# opened by interrupting (free, always available) died in 37 seconds,
+		# and one opened only by blocking -- behind a 5 second shield cooldown
+		# -- took 210. A child who has not yet read the tell has to still be
+		# moving forward, or the fight is a wall; a child who HAS read it has
+		# to be moving much faster, or reading it was pointless.
+		if charged:
+			_monster.call("flinch")
+			if charges:
+				_ult_charge = mini(_ult_charge + 1, _ult_needed)
+			score_correct()
+			_update_meter()
+			_check_phase()
+			return
 		_clink()
 		if charges:
 			# The special move still fills. Whacking away at a shell is not
