@@ -1092,7 +1092,8 @@
         "scale": 0.99
       },
       "instruction_key": "duel.instruction",
-      "exit_to": "home"
+      "exit_to": "home",
+      "goo_volley": 2
     },
     "challenge": true
   },
@@ -1161,7 +1162,8 @@
           "dodge",
           "interrupt"
         ]
-      }
+      },
+      "goo_volley": 2
     },
     "challenge": true
   },
@@ -1194,7 +1196,8 @@
         "opens_on": [
           "dodge"
         ]
-      }
+      },
+      "lights": 4
     },
     "challenge": true
   },
@@ -1228,7 +1231,9 @@
           "interrupt",
           "block"
         ]
-      }
+      },
+      "goo_volley": 2,
+      "shield_duration": 2.2
     },
     "challenge": true
   },
@@ -1262,7 +1267,8 @@
         "opens_on": [
           "interrupt"
         ]
-      }
+      },
+      "goo_volley": 3
     },
     "challenge": true
   },
@@ -1296,7 +1302,9 @@
         "opens_on": [
           "dodge"
         ]
-      }
+      },
+      "lights": 4,
+      "goo_volley": 2
     },
     "challenge": true
   },
@@ -1330,7 +1338,8 @@
         "opens_on": [
           "block"
         ]
-      }
+      },
+      "shield_duration": 2.2
     },
     "challenge": true
   },
@@ -1366,7 +1375,9 @@
           "interrupt"
         ],
         "blocks_first": 2
-      }
+      },
+      "goo_volley": 2,
+      "shield_duration": 2.4
     },
     "challenge": true
   },
@@ -1378,7 +1389,7 @@
     "game_type": "monster_duel",
     "difficulty": 4,
     "target": {
-      "correct": 66
+      "correct": 75
     },
     "reward": {
       "coins": 20,
@@ -1400,7 +1411,8 @@
         "opens_on": [
           "interrupt"
         ]
-      }
+      },
+      "lights": 2
     },
     "challenge": true
   },
@@ -1412,7 +1424,7 @@
     "game_type": "monster_duel",
     "difficulty": 4,
     "target": {
-      "correct": 70
+      "correct": 80
     },
     "reward": {
       "coins": 20,
@@ -1435,7 +1447,9 @@
           "block"
         ],
         "blocks_first": 2
-      }
+      },
+      "shield_duration": 1.9,
+      "goo_volley": 2
     },
     "challenge": true
   },
@@ -1447,7 +1461,7 @@
     "game_type": "monster_duel",
     "difficulty": 5,
     "target": {
-      "correct": 74
+      "correct": 85
     },
     "reward": {
       "coins": 22,
@@ -1471,7 +1485,9 @@
           "interrupt"
         ],
         "blocks_first": 1
-      }
+      },
+      "goo_volley": 3,
+      "shield_duration": 2.2
     },
     "challenge": true
   },
@@ -1483,7 +1499,7 @@
     "game_type": "monster_duel",
     "difficulty": 5,
     "target": {
-      "correct": 78
+      "correct": 89
     },
     "reward": {
       "coins": 22,
@@ -1506,7 +1522,9 @@
           "interrupt"
         ],
         "blocks_first": 1
-      }
+      },
+      "lights": 2,
+      "goo_volley": 3
     },
     "challenge": true
   },

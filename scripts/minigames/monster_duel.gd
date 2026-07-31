@@ -113,6 +113,10 @@ var _light_pips: Array[Control] = []
 ## Which skill currently wears the accent ring. "" until the wheel is built.
 var _accent_on := ""
 var _light_left := LIGHT_PIPS
+## 这一关有几格光。LIGHT_PIPS 只是默认值了。
+var _light_max := LIGHT_PIPS
+## 一次飞几颗泥球。会玩的孩子拍一颗是反射，拍三颗是决定先拍哪一颗。
+var _goo_volley := 1
 var _threats: Array = []          # goo and roar nodes in flight
 var _taught_swat := false         # the "tap the goo" line, shown once
 
@@ -154,6 +158,8 @@ const OPENING := 1.8
 ## What a hit is worth while the monster is wide open. The reward for reading
 ## it right has to be big enough to feel, or a child goes back to mashing.
 const OPENING_BONUS := 2
+## 每种答法值多少个窗口。见 _open_up。
+const OPENING_SCALE := {"block": 1.25, "dodge": 1.0, "interrupt": 0.6}
 
 var _armored := false
 var _opens_on: Array = []
@@ -197,6 +203,15 @@ func setup_level() -> void:
 	_goo_interval = float(config.get("goo_interval", 5.0))
 	_roar_interval = float(config.get("roar_interval", 0.0))
 	_ult_type = str(config.get("ult", "barrage"))
+	# 每关自己的手感，不再是三个写死的常量。
+	#
+	# 难度以前只能变"程度"——同一场仗，数字大一点。这三个让它能变"种类"：
+	# 一场只有两格光的仗要小心，一场护盾只撑 1.8 秒的仗要掐时机，一场一次
+	# 飞三颗泥球的仗要一直动手。同样的三个答案，问法不一样。
+	_light_max = clampi(int(config.get("lights", LIGHT_PIPS)), 1, 5)
+	_light_left = _light_max
+	_shield_duration = clampf(float(config.get("shield_duration", 2.8)), 1.0, 5.0)
+	_goo_volley = clampi(int(config.get("goo_volley", 1)), 1, 3)
 	var armor: Dictionary = config.get("armor", {})
 	_armored = not armor.is_empty()
 	_opens_on = armor.get("opens_on", ["dodge", "block", "interrupt"])
@@ -749,7 +764,7 @@ func _build_light_bar() -> void:
 	row.add_theme_constant_override("separation", int(GAP))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(row)
-	for i in range(LIGHT_PIPS):
+	for i in range(_light_max):
 		var pip := Control.new()
 		pip.custom_minimum_size = Vector2(46, 46)
 		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -803,7 +818,7 @@ func _out_of_light() -> void:
 			get_tree().paused = false
 			if not SaveManager.use_item("heart_potion"):
 				return
-			_light_left = LIGHT_PIPS
+			_light_left = _light_max
 			_refresh_light_bar()
 			_hero.power_up()
 			Juice.burst(_play_area, _hero.position + Vector2(0, -160.0), 18)
@@ -1185,7 +1200,11 @@ func _land_hit(amount: int, charges: bool = true, charged: bool = false) -> void
 			if ult_ready():
 				UiKit.breathe(_ult_button, 0.06, 0.6)
 		return
-	if wide_open():
+	# 破绽期的双倍是给「读懂了它，抓住那扇窗」的奖励，不是给「刚好这一秒放了
+	# 大招」的。必杀本身已经是 3 点，再乘 2 就是 6，而它每八次命中就能放一次
+	# ——量下来最后一只怪兽 78 点血 41 秒结束，大半是这么没的。
+	# ult 走的是 charges=false 那条路，所以这一行只影响真正用手打出去的那一下。
+	if wide_open() and charges:
 		amount *= OPENING_BONUS
 	_monster.call("flinch")
 	if charges:
@@ -1231,7 +1250,13 @@ func _open_up(why: String) -> void:
 		return
 	if not _opens_on.has(why):
 		return
-	_open_until = _clock + OPENING
+	# 越难的答法，窗口越大。
+	#
+	# 三种答法的代价差得很远，而奖励原来是一样的：挡要付一次 5 秒的护盾冷却，
+	# 躲要在 0.9 秒里点中一个标记，而打断——孩子本来就一直握着光线键，所以每
+	# 一次起手都自动是一次破绽，等于不要钱。量出来的结果正是这样：只能打断的
+	# 那几只，血最厚却打得最快。
+	_open_until = _clock + OPENING * float(OPENING_SCALE.get(why, 1.0))
 	AudioManager.play_sfx("res://assets/audio/power_on.ogg")
 	_monster.call("flinch")
 	Juice.shockwave(_play_area, _monster.position + Vector2(0, -60.0), 150.0,
@@ -1325,7 +1350,16 @@ func _fire_telegraphed() -> void:
 		AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
 		return
 	if kind == "goo":
-		_monster_attack_goo()
+		# 一次几颗，随机而不是固定 —— 固定的数量两场之后就背下来了。
+		var many: int = 1 if _goo_volley <= 1 else randi_range(1, _goo_volley)
+		for i in range(many):
+			var wait: float = 0.22 * float(i)
+			if wait <= 0.0:
+				_monster_attack_goo()
+				continue
+			get_tree().create_timer(wait).timeout.connect(func():
+				if is_inside_tree() and not _won and not _finished:
+					_monster_attack_goo())
 	elif kind == "roar":
 		_monster_attack_roar()
 
@@ -1569,7 +1603,7 @@ func complete_level() -> void:
 		_won = true
 		result.reached_goal = true
 		result.found_hidden = _used_ult
-		result.clean_run = _light_left >= LIGHT_PIPS
+		result.clean_run = _light_left >= _light_max
 		_instruction.text = I18n.t("battle.bye")
 		# Into the 图鉴. Beaten, not merely met -- a card he won is worth more
 		# than one he was handed for turning up.
