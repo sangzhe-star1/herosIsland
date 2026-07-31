@@ -27,6 +27,8 @@ extends LevelManager
 const Album := preload("res://scripts/reward/monster_album.gd")
 const Fit := preload("res://scripts/shared/screen_fit.gd")
 const Stroke := preload("res://scripts/shared/stroke_reader.gd")
+## 招式册。模板不认识任何一招的名字 —— 它只会问册子。见 attack_book.gd。
+const Book := preload("res://scripts/battle/attack_book.gd")
 
 ## Where the two of them stand, written against the 1280x720 the art was drawn
 ## at. Nothing reads these directly any more -- everything goes through
@@ -119,8 +121,6 @@ var _light_max := LIGHT_PIPS
 ## 一次飞几颗泥球。会玩的孩子拍一颗是反射，拍三颗是决定先拍哪一颗。
 var _goo_volley := 1
 var _threats: Array = []          # goo and roar nodes in flight
-var _taught_swat := false         # the "tap the goo" line, shown once
-var _taught_minions := false      # the "tap the little ones" line, shown once
 
 ## --- holding the beam ---
 var _charging := false
@@ -208,12 +208,15 @@ var _enraged := false
 ##   breath  吐息，一道持续的光  答法：挡（或躲开起手）
 ##   summon  召两只小怪          答法：拍 —— 拍的是源头，不是飞过来的东西
 ##
-## 没配 attacks 的关卡得到 ["goo"]，行为和 5B 之前逐帧一致 —— 岛上那六场
+## 没配 attacks 的关卡得到那一招声明自己是基本招的，行为和 5B 之前逐帧
+## 一致 —— 岛上那六场
 ## boss 战走的就是这条默认路，它们的时长基准线因此一个字都不用重画。
-var _attacks: Array = ["goo"]
+var _attacks: Array = []
 ## 发怒之后欠一记大的（硬直）。record 在 _check_phase，兑现在 _process ——
 ## 因为发怒可能发生在一次起手进行中，而两个预警叠在一起孩子一个都答不了。
 var _heavy_owed := false
+## 走第二条更慢计时器的那一招。角色由招式自己声明，数据可以盖掉。
+var _heavy_kind := ""
 
 ## --- the wind-up ---
 ##
@@ -231,6 +234,8 @@ var _heavy_owed := false
 ##   躲  press the dodge mark that appears on the ground -- the hero rolls
 ##   打断 let go of a full charge -- the attack never happens
 const TELEGRAPH := 0.9
+## 发怒之后那记大的，窗口拉多宽。更疼的对价是更多的反应时间。
+const HEAVY_SPAN := 1.7
 var _telegraph_left := 0.0
 var _telegraph_kind := ""
 var _dodge_mark: Button
@@ -263,9 +268,14 @@ func setup_level() -> void:
 	_armored = not armor.is_empty()
 	_opens_on = armor.get("opens_on", ["dodge", "block", "interrupt"])
 	_guard_left = int(armor.get("blocks_first", 0))
-	var listed: Array = config.get("attacks", [])
-	if not listed.is_empty():
-		_attacks = listed
+	# 招式表从数据来；数据没说，就问册子要那一招声明了自己是"基本招"的。
+	# 模板里一个招式名字都不出现 —— 见 attack_book.role()。
+	_attacks = config.get("attacks", [])
+	if _attacks.is_empty():
+		var basic := Book.role("basic")
+		_attacks = [basic] if basic != "" else []
+	# 第二条更慢的计时器那一路，同样按角色要，同样可以被数据盖掉。
+	_heavy_kind = str(config.get("attack_heavy", Book.role("heavy")))
 
 	# Difficulty: goo comes sooner, the beam rests longer, and the ult costs
 	# more to charge -- the shield and the swat matter more at every step.
@@ -990,7 +1000,7 @@ func _process(delta: float) -> void:
 	# 所以那里只记账，这里兑现。
 	if _heavy_owed and _telegraph_left <= 0.0:
 		_heavy_owed = false
-		_begin_telegraph(str(_attacks[0]), TELEGRAPH * 1.7)
+		_begin_telegraph(str(_attacks[0]), TELEGRAPH * HEAVY_SPAN)
 		return
 
 	if _goo_interval > 0.0:
@@ -1003,7 +1013,8 @@ func _process(delta: float) -> void:
 		_roar_timer -= delta
 		if _roar_timer <= 0.0:
 			_roar_timer = _roar_interval * randf_range(0.9, 1.3)
-			_begin_telegraph("roar")
+			if _heavy_kind != "":
+				_begin_telegraph(_heavy_kind)
 
 
 ## 招式表：两笔画，没有一个字。
@@ -1510,7 +1521,7 @@ func _check_phase() -> void:
 	if _roar_interval > 0.0:
 		_roar_interval = maxf(_roar_interval * 0.75, 4.0)
 	# 硬直：发怒之后憋一记大的，预警窗口拉长 1.7 倍。只发生在带真招式表的
-	# 关（列表长度 > 1）—— 岛上那六场走默认 ["goo"]，永远见不到它，
+	# 关（列表长度 > 1）—— 岛上那六场走默认的单招表，永远见不到它，
 	# 它们的时长基准线因此原封不动。
 	if _attacks.size() > 1:
 		_heavy_owed = true
@@ -1521,13 +1532,19 @@ func _check_phase() -> void:
 # --- the wind-up --------------------------------------------------------
 
 ## Announce it, then do it. See the note on TELEGRAPH.
-func _begin_telegraph(kind: String, span: float = TELEGRAPH) -> void:
+func _begin_telegraph(kind: String, span: float = 0.0) -> void:
 	if _telegraph_left > 0.0 or _won or _finished:
 		return
 	_telegraph_kind = kind
-	# span 只在硬直那一记上比默认长：它更疼的对价是更宽的应对窗口 ——
-	# 变强的是怪兽，变难的从来不是孩子的手。
-	_telegraph_left = span
+	# 窗口有多宽，问那一招自己 —— 两只一起来的召唤要看清有几只在哪儿，所以
+	# 它声明了 1.3 倍。更疼的招给更宽的窗口：变强的是怪兽，变难的从来不是
+	# 孩子的手。硬直那一记由调用方直接给 span，压过招式自己的声明。
+	if span > 0.0:
+		_telegraph_left = span
+	else:
+		var attack = Book.get_attack(kind)
+		var scale: float = float(attack.telegraph_scale()) if attack != null else 1.0
+		_telegraph_left = TELEGRAPH * scale
 	_dodged = false
 	_monster.call("puff_up")
 	AudioManager.play_sfx("res://assets/audio/warn.ogg")
@@ -1552,25 +1569,15 @@ func _fire_telegraphed() -> void:
 	if _dodged:
 		AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
 		return
-	if kind == "goo":
-		# 一次几颗，随机而不是固定 —— 固定的数量两场之后就背下来了。
-		var many: int = 1 if _goo_volley <= 1 else randi_range(1, _goo_volley)
-		for i in range(many):
-			var wait: float = 0.22 * float(i)
-			if wait <= 0.0:
-				_monster_attack_goo()
-				continue
-			get_tree().create_timer(wait).timeout.connect(func():
-				if is_inside_tree() and not _won and not _finished:
-					_monster_attack_goo())
-	elif kind == "roar":
-		_monster_attack_roar()
-	elif kind == "rush":
-		_monster_attack_rush()
-	elif kind == "breath":
-		_monster_attack_breath()
-	elif kind == "summon":
-		_monster_attack_summon()
+	# 一招一个文件，模板只负责问册子。这里曾经是五个 elif 和五个
+	# `_monster_attack_*`，第六招要改三处。现在改零处 —— 见 attack_book.gd。
+	var attack = Book.get_attack(kind)
+	if attack == null:
+		# 数据里写错一个名字，结果是"这一次它没出手"，一眼看得见；
+		# 而不是悄悄换成另一招，那种错永远查不出来。
+		push_warning("monster_duel: 招式册里没有 %s" % kind)
+		return
+	attack.fire(self)
 
 
 func _pick_attack() -> String:
@@ -1643,149 +1650,85 @@ func _contact_hero() -> void:
 	_lose_light()
 
 
-## 冲撞：整只怪兽冲过来，再退回去。屏幕上最大的东西朝你来 —— 这是三招里
-## 读起来最不用教的一招，所以它排在大多数招式表的前面。
-func _monster_attack_rush() -> void:
-	if _monster == null or not is_instance_valid(_monster):
+# --- arena：招式唯一许可的接口 -------------------------------------------
+#
+# 每一招都住在 scripts/battle/attacks/ 下面，拿到的是这个对决本身，但只许调
+# 下面这一节。前缀 arena_ 是契约的可见形式：在这边它们聚成一节，在 attack.gd
+# 那边它们是一张白名单。一记攻击伸手去摸 _light_left 这种内部状态，是下一个人
+# 改不动这两个文件的开始。
+#
+# 每一个都短得像转发，而这正是它们值钱的地方 —— 内部怎么改，招式不用跟着改。
+
+func arena_play_area() -> Control:
+	return _play_area
+
+
+func arena_monster() -> Node2D:
+	return _monster
+
+
+func arena_monster_at() -> Vector2:
+	return _monster_pos
+
+
+func arena_hero_at() -> Vector2:
+	return _hero_pos
+
+
+## 这一场还在打吗。招式的延时回调全都要先问一句 —— 一个在结算画面上飞出来的
+## 泥球，是这类定时器最典型的漏网。
+func arena_alive() -> bool:
+	return is_inside_tree() and not _won and not _finished
+
+
+func arena_volley() -> int:
+	return _goo_volley
+
+
+func arena_add_threat(node: Control) -> void:
+	_threats.append(node)
+
+
+func arena_swat(node: Control) -> void:
+	_swat_goo(node)
+
+
+func arena_arrives(node: Control) -> void:
+	_threat_arrives(node)
+
+
+func arena_contact_hero() -> void:
+	_contact_hero()
+
+
+func arena_after(seconds: float) -> SceneTreeTimer:
+	return get_tree().create_timer(seconds)
+
+
+func arena_tween() -> Tween:
+	return create_tween()
+
+
+## 第一次遇到这招时说一句，只说一次，三秒后还原。
+##
+## flag 由招式自己给（"swat" / "minions"），旗子存在这边 —— 招式是无状态的
+## 单例，一场打完换下一场，教学该重新算，而招式自己记不住"这是新的一场"。
+var _taught: Dictionary = {}
+
+func arena_teach_once(flag: String, key: String) -> void:
+	if bool(_taught.get(flag, false)):
 		return
-	var home: Vector2 = _monster_pos
-	var strike := Vector2(_hero_pos.x + 150.0, _monster_pos.y)
-	AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
-	Juice.dust(_play_area, home, 8)
-	Juice.speed_lines(_play_area, home + Vector2(60, -130),
-		Vector2.LEFT, Color(1, 1, 1, 0.5), 4)
-	var t := create_tween()
-	t.tween_property(_monster, "position", strike, 0.42)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	t.tween_callback(_contact_hero)
-	t.tween_interval(0.18)
-	t.tween_property(_monster, "position", home, 0.5)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-
-## 吐息：从嘴里喷一道持续的光。颜色和吼声的环同一家 —— 怪兽的攻击共用一种
-## 紫，孩子扫一眼就知道"这是它的，不是我的"。
-func _monster_attack_breath() -> void:
-	if _monster == null or not is_instance_valid(_monster):
+	_taught[flag] = true
+	if _instruction == null or not is_instance_valid(_instruction):
 		return
-	var from: Vector2 = _monster.position + Vector2(-70, -180.0 * _monster.scale.x)
-	var to: Vector2 = _hero_pos + Vector2(40, -110)
-	AudioManager.play_sfx("res://assets/audio/monster_roar.ogg")
-	var breath := Node2D.new()
-	_play_area.add_child(breath)
-	Shapes.fill(breath, Shapes.taper(from, to, 9.0, 30.0),
-		Color(0.8, 0.55, 0.95, 0.8), 0.0)
-	var t := create_tween()
-	t.tween_interval(0.3)
-	t.tween_callback(_contact_hero)
-	t.tween_property(breath, "modulate:a", 0.0, 0.35)
-	t.tween_callback(breath.queue_free)
-
-
-## 召小怪：两只小的落在半路上，各自蹲一拍，然后扑过来。拍的是**源头**——
-## 和拍泥球同一个动作，问的却是另一个问题：两只，先拍哪一只。
-func _monster_attack_summon() -> void:
-	if not _taught_minions:
-		_taught_minions = true
-		_instruction.text = I18n.t("duel.minions")
-		var back := get_tree().create_timer(3.0)
-		back.timeout.connect(func():
-			if is_instance_valid(_instruction) and not _won and not _finished:
-				_instruction.text = I18n.t("duel.instruction"))
-	for i in range(2):
-		var size := Vector2(72, 72)
-		var minion := Button.new()
-		minion.custom_minimum_size = size
-		minion.size = size
-		minion.pivot_offset = size / 2.0
-		minion.focus_mode = Control.FOCUS_NONE
-		# 按下即中，和泥球同一个理由：它会动，抬手判定对动目标必脱靶。
-		minion.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.62, 0.45, 0.85, 0.95)
-		style.set_corner_radius_all(int(size.x / 2.0))
-		style.border_width_bottom = 5
-		style.border_color = Color(0.45, 0.32, 0.65)
-		for state in ["normal", "hover", "pressed", "disabled"]:
-			minion.add_theme_stylebox_override(state, style)
-		var face: Control = UiKit.picture("monster", 46.0)
-		if face != null:
-			face.position = Vector2(13, 10)
-			face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			minion.add_child(face)
-		var ground_x: float = lerpf(_hero_pos.x, _monster_pos.x,
-			0.42 + 0.2 * float(i))
-		minion.position = Vector2(ground_x - size.x / 2.0,
-			_monster_pos.y - size.y + 6.0)
-		minion.pressed.connect(_swat_goo.bind(minion))
-		UiKit.breathe(minion, 0.06, 0.6)
-		_play_area.add_child(minion)
-		_threats.append(minion)
-		AudioManager.play_sfx("res://assets/audio/pop.ogg")
-		# 蹲一拍再扑：拍窗口错开，先近后远，选择真实存在。
-		var pounce := get_tree().create_timer(1.6 + 0.5 * float(i))
-		pounce.timeout.connect(func():
-			if not is_instance_valid(minion) or _won or _finished:
-				return
-			var t := create_tween()
-			t.tween_property(minion, "position",
-				_hero_pos + Vector2(-20, -140) - size / 2.0, 0.55)\
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-			t.tween_callback(func(): _threat_arrives(minion)))
+	_instruction.text = I18n.t(key)
+	var back := get_tree().create_timer(3.0)
+	back.timeout.connect(func():
+		if is_instance_valid(_instruction) and not _won and not _finished:
+			_instruction.text = I18n.t("duel.instruction"))
 
 
 # --- the attacks themselves ---------------------------------------------
-
-func _monster_attack_goo() -> void:
-	_monster.call("puff_up")
-	if not _taught_swat:
-		_taught_swat = true
-		_instruction.text = I18n.t("duel.swat")
-		var back := get_tree().create_timer(3.0)
-		back.timeout.connect(func():
-			if is_instance_valid(_instruction) and not _won and not _finished:
-				_instruction.text = I18n.t("duel.instruction")
-		)
-	# The goo is a BUTTON now: it can be swatted out of the air. Until the
-	# light bar could actually run out, ignoring goo was free and the shield
-	# was a curiosity; now that it ends the level, a child needs a defence
-	# more discoverable than a skill on a cooldown. Tapping the thing flying
-	# at you is the most discoverable defence there is.
-	var goo := Button.new()
-	var goo_size := Vector2(96, 96)
-	goo.custom_minimum_size = goo_size
-	goo.size = goo_size
-	goo.pivot_offset = goo_size / 2.0
-	goo.focus_mode = Control.FOCUS_NONE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.55, 0.78, 0.42, 0.95)
-	style.set_corner_radius_all(int(goo_size.x / 2.0))
-	style.border_width_bottom = 5
-	style.border_color = Color(0.40, 0.62, 0.30)
-	for state in ["normal", "hover", "pressed", "disabled"]:
-		goo.add_theme_stylebox_override(state, style)
-	# Press, not release. A Button fires on RELEASE by default, so the finger
-	# had to go down AND come up on the same 96px target -- while that target
-	# is 2.4 seconds into a parabola. It slides out from under him and the swat
-	# misses. The three skill keys beside it have always fired on press (they
-	# read raw gui_input); the one thing on this screen that MOVES was the one
-	# thing wired to release.
-	goo.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
-	goo.pressed.connect(_swat_goo.bind(goo))
-	# And it has to say it can be hit. The only teaching is one line of text,
-	# once, for three seconds (_taught_swat) -- which a child who cannot read
-	# never receives at all. A thing that pulses is a thing you touch.
-	UiKit.breathe(goo, 0.05, 0.7)
-	var from: Vector2 = _monster.position + Vector2(-40, -240 * _monster.scale.x)
-	goo.position = from - goo_size / 2.0
-	_play_area.add_child(goo)
-	_threats.append(goo)
-
-	var to := _hero_pos + Vector2(0, -50)
-	var t := create_tween()
-	t.tween_method(_goo_step.bind(goo, from, to), 0.0, 1.0, 2.4)
-	t.tween_callback(func(): _threat_arrives(goo))
-
 
 ## Swatted: it bursts where it is and nothing is lost. No score -- defending
 ## is its own reward, and scoring it would inflate the level's target.
@@ -1796,35 +1739,6 @@ func _swat_goo(goo: Control) -> void:
 	Juice.burst(_play_area, goo.position + goo.size / 2.0, 12)
 	AudioManager.play_sfx("res://assets/audio/correct.ogg")
 	goo.queue_free()
-
-
-func _goo_step(k: float, goo: Control, from: Vector2, to: Vector2) -> void:
-	if not is_instance_valid(goo):
-		return
-	var x: float = lerpf(from.x, to.x, k)
-	var y: float = lerpf(from.y, to.y, k) - sin(k * PI) * 170.0
-	goo.position = Vector2(x, y) - goo.size / 2.0
-
-
-func _monster_attack_roar() -> void:
-	_monster.call("puff_up")
-	AudioManager.play_sfx("res://assets/audio/try_again.ogg")
-	var ring := TextureRect.new()
-	ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ring.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	if ResourceLoader.exists(RING_ART):
-		ring.texture = load(RING_ART)
-	elif ResourceLoader.exists(SMOKE_ART):
-		ring.texture = load(SMOKE_ART)
-	ring.size = Vector2(170, 170)
-	ring.position = _monster.position + Vector2(-140, -260)
-	ring.modulate = Color(0.8, 0.55, 0.95, 0.8)
-	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(ring)
-	_threats.append(ring)
-	var t := create_tween()
-	t.tween_property(ring, "position:x", _hero_pos.x - 85.0, 2.6)
-	t.tween_callback(func(): _threat_arrives(ring))
 
 
 ## A threat reaches the hero. Shield up: it bounces back and COUNTS (+1).

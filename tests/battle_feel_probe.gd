@@ -21,11 +21,13 @@ extends Node
 const DUEL := "res://scenes/minigames/monster_duel/MonsterDuel.tscn"
 ## 图鉴，用来拿全部怪兽的名字 —— 见"模板不认识任何一只怪兽"那一节。
 const Album := preload("res://scripts/reward/monster_album.gd")
+## 招式册 —— 5C 之后招式不再是模板上的方法。
+const Book := preload("res://scripts/battle/attack_book.gd")
 
 var _failures: Array[String] = []
 var _asked := 0
 ## 少一条就说明有一节被静默跳过了。见 garden_touch_probe 的同名常量。
-const CHECKS_EXPECTED := 42
+const CHECKS_EXPECTED := 50
 
 
 func _ok(condition: bool, description: String) -> void:
@@ -42,6 +44,7 @@ func _ready() -> void:
 	await _the_card_tells_the_truth()
 	await _a_stroke_is_a_shortcut_not_a_toll()
 	await _the_monster_learned_new_moves()
+	_the_book_is_the_only_list()
 
 	if _asked < CHECKS_EXPECTED:
 		_failures.append("这个探针只问了 %d 个问题，本该至少 %d 个 —— "
@@ -63,7 +66,9 @@ func _a_moving_target_can_be_hit() -> void:
 		await get_tree().process_frame
 
 	# 让它扔一颗，而不是等 goo_interval 到点——等待会把探针的时长变成运气。
-	duel.call("_monster_attack_goo")
+	# 直接问招式册要那一招，而不是调一个模板上的方法 —— 5C 之后模板上已经
+	# 没有 _monster_attack_goo 了，招式住在 scripts/battle/attacks/ 下面。
+	Book.get_attack("goo").fire(duel)
 	await get_tree().process_frame
 	await get_tree().process_frame
 
@@ -399,7 +404,7 @@ func _the_monster_learned_new_moves() -> void:
 	for i in 20:
 		await get_tree().process_frame
 	var before: int = (brood.get("_threats") as Array).size()
-	brood.call("_monster_attack_summon")
+	Book.get_attack("summon").fire(brood)
 	await get_tree().process_frame
 	var minions: Array = []
 	for threat in (brood.get("_threats") as Array):
@@ -442,3 +447,55 @@ func _the_monster_learned_new_moves() -> void:
 		"岛上的 boss 也憋了硬直 —— 那六场的基准线被悄悄改掉了")
 	island.queue_free()
 	await get_tree().process_frame
+
+
+## 招式册是唯一的清单。
+##
+## 5C 把五个 if/elif 和五个 `_monster_attack_*` 换成了"一招一个文件"。这一节
+## 守的是那次重构的全部价值：只要模板重新认识某一招的名字，或者册子退回成一份
+## 手写清单，加第六招就又要改三处 —— 而这个项目已经被"第二处"咬过两次（首页
+## 卡片数写死成 3，tablet_probe 自己也写死成 3）。
+func _the_book_is_the_only_list() -> void:
+	var known: Array = Book.ids()
+	_ok(known.size() >= 5,
+		"招式册只认识 %d 招 —— 目录扫空了，怪兽会安静地不出手" % known.size())
+
+	# 扫到的 == 目录里的文件数。导出包里 .gd 可能变成 .gdc 或跟一个 .remap，
+	# 一个在编辑器里满员、在真机上空掉的注册表没人会报上来。
+	_ok(known.size() == Book.files_on_disk(),
+		"目录里有 %d 个文件，册子只认出 %d 招 —— 有文件没被扫进来"
+		% [Book.files_on_disk(), known.size()])
+
+	# 模板不许再认识任何一招的名字。
+	var src := FileAccess.get_file_as_string(
+		"res://scripts/minigames/monster_duel.gd")
+	var named: Array = []
+	for id in known:
+		# 注释里提一句也不行：一旦放过注释，`if kind == "rush"` 就永远差一个
+		# grep 的例外。和"模板不许点怪兽名字"那条同一个规矩。
+		if src.contains('"%s"' % id):
+			named.append(id)
+	_ok(named.is_empty(),
+		"模板里点了招式的名字：%s —— 第六招就又要改三处了" % str(named))
+
+	# 每一招都真的实现了接口，而不是继承了基类就算数。
+	for id in known:
+		var attack = Book.get_attack(id)
+		_ok(attack != null and attack.has_method("fire") \
+				and attack.has_method("answered_by"),
+			"%s 没有实现招式接口" % id)
+
+	# 数据里写的每一个名字，册子都得认识。写错一个名字应该在这里红，
+	# 而不是在孩子面前变成"这一次它没出手"。
+	var missing: Array = []
+	for entry in GameData.get_levels_for_mode("battle"):
+		for id in (entry.get("config", {}) as Dictionary).get("attacks", []):
+			if Book.get_attack(str(id)) == null and not missing.has(id):
+				missing.append(id)
+	_ok(missing.is_empty(),
+		"关卡数据里写了册子不认识的招：%s" % str(missing))
+
+	# 写错一个名字要安静地什么都不做，不能炸 —— 也不能悄悄换成另一招。
+	_ok(Book.get_attack("nonexistent_move") == null,
+		"招式册对一个不存在的名字给了东西 —— 数据写错会变成「它换了一招」，"
+		+ "那种错永远查不出来")
