@@ -1408,11 +1408,25 @@ func _land_hit(amount: int, charges: bool = true, charged: bool = false) -> void
 	# 大招」的。必杀本身已经是 3 点，再乘 2 就是 6，而它每八次命中就能放一次
 	# ——量下来最后一只怪兽 78 点血 41 秒结束，大半是这么没的。
 	# ult 走的是 charges=false 那条路，所以这一行只影响真正用手打出去的那一下。
+	# 破绽期的双倍付在伤害上，不付在必杀条上。
+	#
+	# 原来这两样一起翻倍：读懂了它，这一下既算两下伤害、又给必杀条充两格。
+	# 两个奖励叠在一起复利，最后一只怪兽 89 点血还是被压到四十来秒，而大半
+	# 是必杀吞掉的。
+	#
+	# 查了一圈现成的做法，守望先锋的经济写得最明白：伤害打在"已经被削弱的
+	# 那一层"上只给一半充能，而且必杀自己造成的伤害完全不充能——一记大招
+	# 绝不许喂自己。同一条道理：破绽是奖励，不是复利。
+	#
+	# 但方向不是"把必杀调贵"。同一批资料里另一句同样要紧：一次用得不那么好的
+	# 大招，也远好过一次永远没用出来的大招。屏幕上最好看的东西，六岁孩子必须
+	# 常常见到——所以价钱不动，只掐掉复利。
+	var meter: int = amount
 	if wide_open() and charges:
 		amount *= OPENING_BONUS
 	_monster.call("flinch")
 	if charges:
-		_ult_charge = mini(_ult_charge + amount, _ult_needed)
+		_ult_charge = mini(_ult_charge + meter, _ult_needed)
 		if ult_ready():
 			UiKit.breathe(_ult_button, 0.06, 0.6)
 	for i in range(amount):

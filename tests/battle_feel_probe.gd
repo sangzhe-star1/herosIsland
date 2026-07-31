@@ -27,7 +27,7 @@ const Book := preload("res://scripts/battle/attack_book.gd")
 var _failures: Array[String] = []
 var _asked := 0
 ## 少一条就说明有一节被静默跳过了。见 garden_touch_probe 的同名常量。
-const CHECKS_EXPECTED := 50
+const CHECKS_EXPECTED := 51
 
 
 func _ok(condition: bool, description: String) -> void:
@@ -222,6 +222,21 @@ func _the_card_tells_the_truth() -> void:
 	var gained: int = int((duel.get("result") as LevelResult).correct) - before
 	_ok(gained >= 2,
 		"破绽期一击只值 %d 分 —— 读懂了它的打法和乱按一样划算，那就没人会去读" % gained)
+
+	# 破绽期的双倍付在伤害上，不付在必杀条上 —— 两个奖励一起翻倍会复利，
+	# 而屏幕上最贵的那个奖励不该越滚越快。守望先锋的经济是同一条：打在已经
+	# 被削弱的那一层上只给一半充能。
+	duel.set("_ult_charge", 0)
+	duel.set("_open_until", float(duel.get("_clock")) + 5.0)
+	duel.set("_beam_ready_at", 0.0)
+	before = int((duel.get("result") as LevelResult).correct)
+	duel.call("fire_beam_skill")
+	await get_tree().process_frame
+	var dealt: int = int((duel.get("result") as LevelResult).correct) - before
+	var charged_by: int = int(duel.get("_ult_charge"))
+	_ok(dealt > charged_by,
+		"破绽期一击伤害 %d、必杀条也涨了 %d —— 两个奖励一起翻倍会复利，"
+		% [dealt, charged_by] + "必杀会把整场仗吞掉")
 
 	# 破绽会关上：它是一扇窗，不是一个开关。
 	duel.set("_open_until", 0.0)
