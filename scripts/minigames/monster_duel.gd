@@ -120,6 +120,7 @@ var _light_max := LIGHT_PIPS
 var _goo_volley := 1
 var _threats: Array = []          # goo and roar nodes in flight
 var _taught_swat := false         # the "tap the goo" line, shown once
+var _taught_minions := false      # the "tap the little ones" line, shown once
 
 ## --- holding the beam ---
 var _charging := false
@@ -196,6 +197,24 @@ var _guard_left := 0            # blocks still owed before it can be opened
 var _weak_spot: Control
 var _enraged := false
 
+## --- 怪兽的招式表 ---
+##
+## 5B. 怪兽原来只有两招：扔泥球、吼一声，而且写死在两个计时器里。现在每一关
+## 从数据带一张招式表（config.attacks），计时器到点从表里随机抽一招。新招一共
+## 三个，每一个都对应一个**已有的**答法 —— 不引入新答法，是因为丰富度该来自
+## "同样的三个答案，问法不一样"，而不是让孩子学第四个动作：
+##
+##   rush    冲撞，横穿场地      答法：躲（或万能的挡）
+##   breath  吐息，一道持续的光  答法：挡（或躲开起手）
+##   summon  召两只小怪          答法：拍 —— 拍的是源头，不是飞过来的东西
+##
+## 没配 attacks 的关卡得到 ["goo"]，行为和 5B 之前逐帧一致 —— 岛上那六场
+## boss 战走的就是这条默认路，它们的时长基准线因此一个字都不用重画。
+var _attacks: Array = ["goo"]
+## 发怒之后欠一记大的（硬直）。record 在 _check_phase，兑现在 _process ——
+## 因为发怒可能发生在一次起手进行中，而两个预警叠在一起孩子一个都答不了。
+var _heavy_owed := false
+
 ## --- the wind-up ---
 ##
 ## The monster used to attack out of nowhere. The roar in particular could not
@@ -244,6 +263,9 @@ func setup_level() -> void:
 	_armored = not armor.is_empty()
 	_opens_on = armor.get("opens_on", ["dodge", "block", "interrupt"])
 	_guard_left = int(armor.get("blocks_first", 0))
+	var listed: Array = config.get("attacks", [])
+	if not listed.is_empty():
+		_attacks = listed
 
 	# Difficulty: goo comes sooner, the beam rests longer, and the ult costs
 	# more to charge -- the shield and the swat matter more at every step.
@@ -964,11 +986,18 @@ func _process(delta: float) -> void:
 			_fire_telegraphed()
 		return
 
+	# 欠着的硬直先还：发怒那一刻如果正有一次起手在跑，两个预警会叠在一起，
+	# 所以那里只记账，这里兑现。
+	if _heavy_owed and _telegraph_left <= 0.0:
+		_heavy_owed = false
+		_begin_telegraph(str(_attacks[0]), TELEGRAPH * 1.7)
+		return
+
 	if _goo_interval > 0.0:
 		_goo_timer -= delta
 		if _goo_timer <= 0.0:
 			_goo_timer = _goo_interval * randf_range(0.85, 1.3)
-			_begin_telegraph("goo")
+			_begin_telegraph(_pick_attack())
 			return
 	if _roar_interval > 0.0:
 		_roar_timer -= delta
@@ -1408,7 +1437,10 @@ func _open_up(why: String) -> void:
 		return
 	if _guard_left > 0:
 		# Some monsters have to be blocked a few times before the shell cracks
-		# at all -- 举盾挡住三次攻击, straight off blaze_claw's card.
+		# at all -- 举盾挡住三次攻击, straight off that monster's own card.
+		# (Not named here: battle_feel_probe greps this file for every album id,
+		# so that nobody can ever write `if _monster_id == ...` -- and a comment
+		# is not worth an exception hole in that check.)
 		_guard_left -= 1
 		_clink()
 		return
@@ -1477,6 +1509,11 @@ func _check_phase() -> void:
 		_goo_interval = maxf(_goo_interval * 0.75, 2.0)
 	if _roar_interval > 0.0:
 		_roar_interval = maxf(_roar_interval * 0.75, 4.0)
+	# 硬直：发怒之后憋一记大的，预警窗口拉长 1.7 倍。只发生在带真招式表的
+	# 关（列表长度 > 1）—— 岛上那六场走默认 ["goo"]，永远见不到它，
+	# 它们的时长基准线因此原封不动。
+	if _attacks.size() > 1:
+		_heavy_owed = true
 
 
 # --- the monster fights back --------------------------------------------
@@ -1484,11 +1521,13 @@ func _check_phase() -> void:
 # --- the wind-up --------------------------------------------------------
 
 ## Announce it, then do it. See the note on TELEGRAPH.
-func _begin_telegraph(kind: String) -> void:
+func _begin_telegraph(kind: String, span: float = TELEGRAPH) -> void:
 	if _telegraph_left > 0.0 or _won or _finished:
 		return
 	_telegraph_kind = kind
-	_telegraph_left = TELEGRAPH
+	# span 只在硬直那一记上比默认长：它更疼的对价是更宽的应对窗口 ——
+	# 变强的是怪兽，变难的从来不是孩子的手。
+	_telegraph_left = span
 	_dodged = false
 	_monster.call("puff_up")
 	AudioManager.play_sfx("res://assets/audio/warn.ogg")
@@ -1526,6 +1565,16 @@ func _fire_telegraphed() -> void:
 					_monster_attack_goo())
 	elif kind == "roar":
 		_monster_attack_roar()
+	elif kind == "rush":
+		_monster_attack_rush()
+	elif kind == "breath":
+		_monster_attack_breath()
+	elif kind == "summon":
+		_monster_attack_summon()
+
+
+func _pick_attack() -> String:
+	return str(_attacks[randi() % _attacks.size()])
 
 
 ## Where to jump to, drawn on the ground where his thumb already is.
@@ -1575,6 +1624,114 @@ func _dodge() -> void:
 	Juice.speed_lines(_play_area, _hero_pos + Vector2(0, -90),
 		Vector2.LEFT, Color(1, 1, 1, 0.55), 3)
 	AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
+
+
+## 一记攻击真的碰到英雄。挡着：弹开、算他一下、能开壳的开壳。没挡：软软的
+## 一声、掉一格光、光线键多歇 0.7 秒。和泥球到站的结算刻意同一套 —— 三种
+## 新招不引入第四种结果。
+func _contact_hero() -> void:
+	if _won or _finished:
+		return
+	if shield_active():
+		_open_up("block")
+		AudioManager.play_sfx("res://assets/audio/correct.ogg")
+		_impact(_hero_pos + Vector2(20, -120))
+		_land_hit(1)
+		return
+	_splat(_hero_pos + Vector2(0, -90))
+	_beam_ready_at = maxf(_beam_ready_at, _clock) + 0.7
+	_lose_light()
+
+
+## 冲撞：整只怪兽冲过来，再退回去。屏幕上最大的东西朝你来 —— 这是三招里
+## 读起来最不用教的一招，所以它排在大多数招式表的前面。
+func _monster_attack_rush() -> void:
+	if _monster == null or not is_instance_valid(_monster):
+		return
+	var home: Vector2 = _monster_pos
+	var strike := Vector2(_hero_pos.x + 150.0, _monster_pos.y)
+	AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
+	Juice.dust(_play_area, home, 8)
+	Juice.speed_lines(_play_area, home + Vector2(60, -130),
+		Vector2.LEFT, Color(1, 1, 1, 0.5), 4)
+	var t := create_tween()
+	t.tween_property(_monster, "position", strike, 0.42)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.tween_callback(_contact_hero)
+	t.tween_interval(0.18)
+	t.tween_property(_monster, "position", home, 0.5)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
+## 吐息：从嘴里喷一道持续的光。颜色和吼声的环同一家 —— 怪兽的攻击共用一种
+## 紫，孩子扫一眼就知道"这是它的，不是我的"。
+func _monster_attack_breath() -> void:
+	if _monster == null or not is_instance_valid(_monster):
+		return
+	var from: Vector2 = _monster.position + Vector2(-70, -180.0 * _monster.scale.x)
+	var to: Vector2 = _hero_pos + Vector2(40, -110)
+	AudioManager.play_sfx("res://assets/audio/monster_roar.ogg")
+	var breath := Node2D.new()
+	_play_area.add_child(breath)
+	Shapes.fill(breath, Shapes.taper(from, to, 9.0, 30.0),
+		Color(0.8, 0.55, 0.95, 0.8), 0.0)
+	var t := create_tween()
+	t.tween_interval(0.3)
+	t.tween_callback(_contact_hero)
+	t.tween_property(breath, "modulate:a", 0.0, 0.35)
+	t.tween_callback(breath.queue_free)
+
+
+## 召小怪：两只小的落在半路上，各自蹲一拍，然后扑过来。拍的是**源头**——
+## 和拍泥球同一个动作，问的却是另一个问题：两只，先拍哪一只。
+func _monster_attack_summon() -> void:
+	if not _taught_minions:
+		_taught_minions = true
+		_instruction.text = I18n.t("duel.minions")
+		var back := get_tree().create_timer(3.0)
+		back.timeout.connect(func():
+			if is_instance_valid(_instruction) and not _won and not _finished:
+				_instruction.text = I18n.t("duel.instruction"))
+	for i in range(2):
+		var size := Vector2(72, 72)
+		var minion := Button.new()
+		minion.custom_minimum_size = size
+		minion.size = size
+		minion.pivot_offset = size / 2.0
+		minion.focus_mode = Control.FOCUS_NONE
+		# 按下即中，和泥球同一个理由：它会动，抬手判定对动目标必脱靶。
+		minion.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.62, 0.45, 0.85, 0.95)
+		style.set_corner_radius_all(int(size.x / 2.0))
+		style.border_width_bottom = 5
+		style.border_color = Color(0.45, 0.32, 0.65)
+		for state in ["normal", "hover", "pressed", "disabled"]:
+			minion.add_theme_stylebox_override(state, style)
+		var face: Control = UiKit.picture("monster", 46.0)
+		if face != null:
+			face.position = Vector2(13, 10)
+			face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			minion.add_child(face)
+		var ground_x: float = lerpf(_hero_pos.x, _monster_pos.x,
+			0.42 + 0.2 * float(i))
+		minion.position = Vector2(ground_x - size.x / 2.0,
+			_monster_pos.y - size.y + 6.0)
+		minion.pressed.connect(_swat_goo.bind(minion))
+		UiKit.breathe(minion, 0.06, 0.6)
+		_play_area.add_child(minion)
+		_threats.append(minion)
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		# 蹲一拍再扑：拍窗口错开，先近后远，选择真实存在。
+		var pounce := get_tree().create_timer(1.6 + 0.5 * float(i))
+		pounce.timeout.connect(func():
+			if not is_instance_valid(minion) or _won or _finished:
+				return
+			var t := create_tween()
+			t.tween_property(minion, "position",
+				_hero_pos + Vector2(-20, -140) - size / 2.0, 0.55)\
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			t.tween_callback(func(): _threat_arrives(minion)))
 
 
 # --- the attacks themselves ---------------------------------------------

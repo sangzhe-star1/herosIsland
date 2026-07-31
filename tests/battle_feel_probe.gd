@@ -19,11 +19,13 @@ extends Node
 ##      score_mistake() 说一次、弹卡再说一次。三层都没写错，所以修在 AudioManager。
 
 const DUEL := "res://scenes/minigames/monster_duel/MonsterDuel.tscn"
+## 图鉴，用来拿全部怪兽的名字 —— 见"模板不认识任何一只怪兽"那一节。
+const Album := preload("res://scripts/reward/monster_album.gd")
 
 var _failures: Array[String] = []
 var _asked := 0
 ## 少一条就说明有一节被静默跳过了。见 garden_touch_probe 的同名常量。
-const CHECKS_EXPECTED := 29
+const CHECKS_EXPECTED := 42
 
 
 func _ok(condition: bool, description: String) -> void:
@@ -39,6 +41,7 @@ func _ready() -> void:
 	await _one_event_makes_one_sound()
 	await _the_card_tells_the_truth()
 	await _a_stroke_is_a_shortcut_not_a_toll()
+	await _the_monster_learned_new_moves()
 
 	if _asked < CHECKS_EXPECTED:
 		_failures.append("这个探针只问了 %d 个问题，本该至少 %d 个 —— "
@@ -334,3 +337,108 @@ func _all(root: Node) -> Array:
 	for c in root.get_children():
 		out.append_array(_all(c))
 	return out
+
+
+## 5B：怪兽的新招，逐条问。
+##
+## 三条保证：招式表从数据来（模板里不许出现任何一只怪兽的名字）；每一记攻击
+## 无论哪种，挡了就是挡了、没挡就掉一格光——不引入第四种结果；岛上那六场
+## boss 战永远走默认 ["goo"]，见不到新招，时长基准线原封不动。
+func _the_monster_learned_new_moves() -> void:
+	# 模板不认识任何一只怪兽。十五场不同的仗全部来自数据 —— 一旦有人写下
+	# `if _monster_id == "shadow_wing"`，第十六只怪兽就再也进不来了。
+	var src := FileAccess.get_file_as_string(
+		"res://scripts/minigames/monster_duel.gd")
+	var named: Array = []
+	for entry in Album.all():
+		var id := str(entry.get("id", ""))
+		if id != "" and src.contains(id):
+			named.append(id)
+	_ok(named.is_empty(),
+		"模板里点了怪兽的名字：%s —— 招式表必须全部来自数据" % str(named))
+
+	# 数据的形状：教学关干净，最后一关全会，岛上的仗不受影响。
+	_ok(not (GameData.get_level("battle_01").get("config", {}) as Dictionary)\
+		.has("attacks"), "battle_01 配了招式表 —— 教学关得先教基本循环")
+	var last: Array = (GameData.get_level("battle_15").get("config", {})
+		as Dictionary).get("attacks", [])
+	_ok(last.size() >= 3,
+		"最后一只怪兽只会 %d 招 —— 它得是他见过最会打的" % last.size())
+	_ok(not (GameData.get_level("sunny_park_06").get("config", {}) as Dictionary)\
+		.has("attacks"),
+		"岛上的 boss 战配了招式表 —— 那六场的时长基准线会被悄悄改掉")
+
+	# 碰到英雄只有两种结果：挡了 = 弹开算一下；没挡 = 掉一格光。
+	# 在没壳的 battle_01 上验，护甲会把"算一下"变成"叮"，那是另一条断言的事。
+	GameManager.current_level_id = "battle_01"
+	var duel: Node = load(DUEL).instantiate()
+	add_child(duel)
+	for i in 20:
+		await get_tree().process_frame
+	duel.call("activate_shield")
+	var hits: int = int((duel.get("result") as LevelResult).correct)
+	var light: int = int(duel.get("_light_left"))
+	duel.call("_contact_hero")
+	await get_tree().process_frame
+	_ok(int((duel.get("result") as LevelResult).correct) == hits + 1,
+		"挡下一记攻击没有算他一下 —— 挡本来是这套战斗里设计最好的一处")
+	_ok(int(duel.get("_light_left")) == light,
+		"挡着还掉了光 —— 护盾就没有意义了")
+	duel.set("_shield_until", 0.0)
+	duel.call("_contact_hero")
+	await get_tree().process_frame
+	_ok(int(duel.get("_light_left")) == light - 1,
+		"没挡也不掉光 —— 攻击就没有分量了")
+	duel.queue_free()
+	await get_tree().process_frame
+
+	# 召出来的小怪：按下即中、六岁的拇指按得中。
+	GameManager.current_level_id = "battle_11"
+	var brood: Node = load(DUEL).instantiate()
+	add_child(brood)
+	for i in 20:
+		await get_tree().process_frame
+	var before: int = (brood.get("_threats") as Array).size()
+	brood.call("_monster_attack_summon")
+	await get_tree().process_frame
+	var minions: Array = []
+	for threat in (brood.get("_threats") as Array):
+		if threat is Button and not minions.has(threat):
+			minions.append(threat)
+	_ok(minions.size() - before == 2,
+		"召唤没有召出两只小怪（多了 %d 只）" % (minions.size() - before))
+	var fine := true
+	for m in minions:
+		if (m as Button).action_mode != BaseButton.ACTION_MODE_BUTTON_PRESS \
+				or (m as Control).size.x < 60.0:
+			fine = false
+	_ok(fine, "小怪要么抬手才判定、要么比六岁的拇指还小")
+	brood.queue_free()
+	await get_tree().process_frame
+
+	# 硬直：发怒之后欠一记大的 —— 但只在带真招式表的关。
+	GameManager.current_level_id = "battle_04"
+	var angry: Node = load(DUEL).instantiate()
+	add_child(angry)
+	for i in 20:
+		await get_tree().process_frame
+	var need: int = angry.call("target_value", "correct", 8)
+	(angry.get("result") as LevelResult).correct = int(need * 0.6)
+	angry.call("_check_phase")
+	_ok(bool(angry.get("_heavy_owed")) or float(angry.get("_telegraph_left")) > 0.0,
+		"发怒之后没有憋那记大的 —— 第二阶段就只是数字变密，没有一个能记住的瞬间")
+	angry.queue_free()
+	await get_tree().process_frame
+
+	GameManager.current_level_id = "sunny_park_06"
+	var island: Node = load(DUEL).instantiate()
+	add_child(island)
+	for i in 20:
+		await get_tree().process_frame
+	need = island.call("target_value", "correct", 8)
+	(island.get("result") as LevelResult).correct = int(need * 0.6)
+	island.call("_check_phase")
+	_ok(not bool(island.get("_heavy_owed")),
+		"岛上的 boss 也憋了硬直 —— 那六场的基准线被悄悄改掉了")
+	island.queue_free()
+	await get_tree().process_frame

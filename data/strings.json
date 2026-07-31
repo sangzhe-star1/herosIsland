@@ -785,7 +785,8 @@
     "home.battle": "Light Warrior",
     "battle.all_met": "You have met them all!",
     "duel.now": "Now! Hit it!",
-    "duel.armored": "It has a shell! Dodge first, then hit!"
+    "duel.armored": "It has a shell! Dodge first, then hit!",
+    "duel.minions": "Little monsters! Tap them!"
   },
   "zh": {
     "adventure.again": "再来一次，你可以的！",
@@ -1573,6 +1574,7 @@
     "home.battle": "光之战士",
     "battle.all_met": "全部见过了！",
     "duel.now": "就是现在！打它！",
-    "duel.armored": "它有壳！先躲开它，再打！"
+    "duel.armored": "它有壳！先躲开它，再打！",
+    "duel.minions": "小怪兽出来了！点它们！"
   }
 }

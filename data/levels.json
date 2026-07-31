@@ -1128,7 +1128,11 @@
           "block",
           "interrupt"
         ]
-      }
+      },
+      "attacks": [
+        "goo",
+        "rush"
+      ]
     },
     "challenge": true
   },
@@ -1163,7 +1167,11 @@
           "interrupt"
         ]
       },
-      "goo_volley": 2
+      "goo_volley": 2,
+      "attacks": [
+        "goo",
+        "rush"
+      ]
     },
     "challenge": true
   },
@@ -1197,7 +1205,11 @@
           "dodge"
         ]
       },
-      "lights": 4
+      "lights": 4,
+      "attacks": [
+        "rush",
+        "goo"
+      ]
     },
     "challenge": true
   },
@@ -1233,7 +1245,11 @@
         ]
       },
       "goo_volley": 2,
-      "shield_duration": 2.2
+      "shield_duration": 2.2,
+      "attacks": [
+        "rush",
+        "goo"
+      ]
     },
     "challenge": true
   },
@@ -1268,7 +1284,11 @@
           "interrupt"
         ]
       },
-      "goo_volley": 3
+      "goo_volley": 3,
+      "attacks": [
+        "breath",
+        "goo"
+      ]
     },
     "challenge": true
   },
@@ -1304,7 +1324,11 @@
         ]
       },
       "lights": 4,
-      "goo_volley": 2
+      "goo_volley": 2,
+      "attacks": [
+        "rush",
+        "goo"
+      ]
     },
     "challenge": true
   },
@@ -1339,7 +1363,11 @@
           "block"
         ]
       },
-      "shield_duration": 2.2
+      "shield_duration": 2.2,
+      "attacks": [
+        "breath",
+        "goo"
+      ]
     },
     "challenge": true
   },
@@ -1377,7 +1405,11 @@
         "blocks_first": 2
       },
       "goo_volley": 2,
-      "shield_duration": 2.4
+      "shield_duration": 2.4,
+      "attacks": [
+        "summon",
+        "goo"
+      ]
     },
     "challenge": true
   },
@@ -1412,7 +1444,11 @@
           "interrupt"
         ]
       },
-      "lights": 2
+      "lights": 2,
+      "attacks": [
+        "rush",
+        "breath"
+      ]
     },
     "challenge": true
   },
@@ -1449,7 +1485,11 @@
         "blocks_first": 2
       },
       "shield_duration": 1.9,
-      "goo_volley": 2
+      "goo_volley": 2,
+      "attacks": [
+        "breath",
+        "rush"
+      ]
     },
     "challenge": true
   },
@@ -1487,7 +1527,12 @@
         "blocks_first": 1
       },
       "goo_volley": 3,
-      "shield_duration": 2.2
+      "shield_duration": 2.2,
+      "attacks": [
+        "breath",
+        "summon",
+        "goo"
+      ]
     },
     "challenge": true
   },
@@ -1524,7 +1569,13 @@
         "blocks_first": 1
       },
       "lights": 2,
-      "goo_volley": 3
+      "goo_volley": 3,
+      "attacks": [
+        "summon",
+        "breath",
+        "rush",
+        "goo"
+      ]
     },
     "challenge": true
   },
