@@ -1101,7 +1101,7 @@
     "game_type": "monster_duel",
     "difficulty": 2,
     "target": {
-      "correct": 20
+      "correct": 14
     },
     "reward": {
       "coins": 16,
@@ -1116,8 +1116,15 @@
         "id": "twin_horn",
         "scale": 1.035
       },
-      "instruction_key": "duel.instruction",
-      "exit_to": "home"
+      "instruction_key": "duel.armored",
+      "exit_to": "home",
+      "armor": {
+        "opens_on": [
+          "dodge",
+          "block",
+          "interrupt"
+        ]
+      }
     }
   },
   {
@@ -1128,7 +1135,7 @@
     "game_type": "monster_duel",
     "difficulty": 2,
     "target": {
-      "correct": 22
+      "correct": 15
     },
     "reward": {
       "coins": 16,
@@ -1143,8 +1150,14 @@
         "id": "rock_horn",
         "scale": 1.08
       },
-      "instruction_key": "duel.instruction",
-      "exit_to": "home"
+      "instruction_key": "duel.armored",
+      "exit_to": "home",
+      "armor": {
+        "opens_on": [
+          "dodge",
+          "interrupt"
+        ]
+      }
     }
   },
   {
@@ -1155,7 +1168,7 @@
     "game_type": "monster_duel",
     "difficulty": 2,
     "target": {
-      "correct": 24
+      "correct": 16
     },
     "reward": {
       "coins": 16,
@@ -1170,8 +1183,13 @@
         "id": "sand_fist",
         "scale": 1.125
       },
-      "instruction_key": "duel.instruction",
-      "exit_to": "home"
+      "instruction_key": "duel.armored",
+      "exit_to": "home",
+      "armor": {
+        "opens_on": [
+          "dodge"
+        ]
+      }
     }
   },
   {
@@ -1182,7 +1200,7 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 26
+      "correct": 18
     },
     "reward": {
       "coins": 18,
@@ -1197,8 +1215,14 @@
         "id": "drill_armor",
         "scale": 1.17
       },
-      "instruction_key": "duel.instruction",
-      "exit_to": "home"
+      "instruction_key": "duel.armored",
+      "exit_to": "home",
+      "armor": {
+        "opens_on": [
+          "interrupt",
+          "block"
+        ]
+      }
     }
   },
   {
@@ -1209,7 +1233,7 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 28
+      "correct": 19
     },
     "reward": {
       "coins": 18,
@@ -1224,9 +1248,14 @@
         "id": "flame_tail",
         "scale": 1.215
       },
-      "instruction_key": "duel.instruction",
+      "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 9.0
+      "roar_interval": 9.0,
+      "armor": {
+        "opens_on": [
+          "interrupt"
+        ]
+      }
     }
   },
   {
@@ -1237,7 +1266,7 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 30
+      "correct": 21
     },
     "reward": {
       "coins": 18,
@@ -1252,9 +1281,14 @@
         "id": "red_wing",
         "scale": 1.26
       },
-      "instruction_key": "duel.instruction",
+      "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 8.75
+      "roar_interval": 8.75,
+      "armor": {
+        "opens_on": [
+          "dodge"
+        ]
+      }
     }
   },
   {
@@ -1265,7 +1299,7 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 32
+      "correct": 22
     },
     "reward": {
       "coins": 18,
@@ -1280,9 +1314,14 @@
         "id": "steel_spine",
         "scale": 1.305
       },
-      "instruction_key": "duel.instruction",
+      "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 8.5
+      "roar_interval": 8.5,
+      "armor": {
+        "opens_on": [
+          "block"
+        ]
+      }
     }
   },
   {
@@ -1293,7 +1332,7 @@
     "game_type": "monster_duel",
     "difficulty": 3,
     "target": {
-      "correct": 34
+      "correct": 23
     },
     "reward": {
       "coins": 18,
@@ -1308,9 +1347,16 @@
         "id": "crystal_armor",
         "scale": 1.35
       },
-      "instruction_key": "duel.instruction",
+      "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 8.25
+      "roar_interval": 8.25,
+      "armor": {
+        "opens_on": [
+          "block",
+          "interrupt"
+        ],
+        "blocks_first": 2
+      }
     }
   },
   {
@@ -1321,7 +1367,7 @@
     "game_type": "monster_duel",
     "difficulty": 4,
     "target": {
-      "correct": 36
+      "correct": 25
     },
     "reward": {
       "coins": 20,
@@ -1336,9 +1382,14 @@
         "id": "blue_wing_armor",
         "scale": 1.395
       },
-      "instruction_key": "duel.instruction",
+      "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 8.0
+      "roar_interval": 8.0,
+      "armor": {
+        "opens_on": [
+          "interrupt"
+        ]
+      }
     }
   },
   {
@@ -1349,7 +1400,7 @@
     "game_type": "monster_duel",
     "difficulty": 4,
     "target": {
-      "correct": 38
+      "correct": 26
     },
     "reward": {
       "coins": 20,
@@ -1364,9 +1415,15 @@
         "id": "blaze_claw",
         "scale": 1.44
       },
-      "instruction_key": "duel.instruction",
+      "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 7.75
+      "roar_interval": 7.75,
+      "armor": {
+        "opens_on": [
+          "block"
+        ],
+        "blocks_first": 2
+      }
     }
   },
   {
@@ -1377,7 +1434,7 @@
     "game_type": "monster_duel",
     "difficulty": 5,
     "target": {
-      "correct": 40
+      "correct": 28
     },
     "reward": {
       "coins": 22,
@@ -1392,9 +1449,16 @@
         "id": "thunder_wyvern",
         "scale": 1.485
       },
-      "instruction_key": "duel.instruction",
+      "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 7.5
+      "roar_interval": 7.5,
+      "armor": {
+        "opens_on": [
+          "block",
+          "interrupt"
+        ],
+        "blocks_first": 1
+      }
     }
   },
   {
@@ -1405,7 +1469,7 @@
     "game_type": "monster_duel",
     "difficulty": 5,
     "target": {
-      "correct": 42
+      "correct": 29
     },
     "reward": {
       "coins": 22,
@@ -1420,9 +1484,15 @@
         "id": "shadow_wing",
         "scale": 1.53
       },
-      "instruction_key": "duel.instruction",
+      "instruction_key": "duel.armored",
       "exit_to": "home",
-      "roar_interval": 7.25
+      "roar_interval": 7.25,
+      "armor": {
+        "opens_on": [
+          "interrupt"
+        ],
+        "blocks_first": 1
+      }
     }
   },
   {

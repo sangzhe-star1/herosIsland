@@ -124,6 +124,44 @@ var _charge_ring: Line2D
 ## child must never lose the whole thing to that.
 const CHARGED_AT := 0.8
 
+## --- 护甲与破绽 ---
+##
+## 让写好的弱点在战斗里成真.
+##
+## Every one of the fifteen monsters in monsters.json already carries a
+## weakness_key, and every one of them names a real tactic -- "跳跃躲开后攻击
+## 背部", "火焰熄灭时攻击", "使用护盾挡住震动". All fifteen were written,
+## translated, and printed in the album as a sentence the FIGHT never kept:
+## whatever the card said, the answer on screen was the same button forty-four
+## times. That is the "太少、不够丰富" the playtester's father reported, and the
+## design for fixing it has been sitting in the data the whole time.
+##
+## The mechanic, kept to ONE new idea rather than fifteen (the boss-design
+## literature is unanimous that variety should come from re-parameterising an
+## attack, not from bolting on new systems):
+##
+##   an armoured monster does not take damage from an ordinary beam. The shot
+##   lands, it clinks, the monster is unbothered. What opens it is the thing
+##   its card names -- dodging the wind-up, blocking it, or interrupting with a
+##   full charge -- and for a few seconds after that it is wide open and every
+##   hit counts double.
+##
+## So the loop stops being "press beam" and becomes "watch, answer, punish",
+## and the album turns into a hint book: read the card, know the fight.
+## `armor.opens_on` is a list, so one monster is opened by dodging and another
+## only by blocking, from data, with no branch in here naming a monster.
+const OPENING := 2.6
+## What a hit is worth while the monster is wide open. The reward for reading
+## it right has to be big enough to feel, or a child goes back to mashing.
+const OPENING_BONUS := 2
+
+var _armored := false
+var _opens_on: Array = []
+var _open_until := 0.0
+var _guard_left := 0            # blocks still owed before it can be opened
+var _weak_spot: Control
+var _enraged := false
+
 ## --- the wind-up ---
 ##
 ## The monster used to attack out of nowhere. The roar in particular could not
@@ -159,6 +197,10 @@ func setup_level() -> void:
 	_goo_interval = float(config.get("goo_interval", 5.0))
 	_roar_interval = float(config.get("roar_interval", 0.0))
 	_ult_type = str(config.get("ult", "barrage"))
+	var armor: Dictionary = config.get("armor", {})
+	_armored = not armor.is_empty()
+	_opens_on = armor.get("opens_on", ["dodge", "block", "interrupt"])
+	_guard_left = int(armor.get("blocks_first", 0))
 
 	# Difficulty: goo comes sooner, the beam rests longer, and the ult costs
 	# more to charge -- the shield and the swat matter more at every step.
@@ -849,6 +891,10 @@ func _process(delta: float) -> void:
 	if not _started or _won:
 		return
 	_tick_charge()
+	if _weak_spot != null and not wide_open():
+		_clear_weak_spot()
+		if not _won:
+			_instruction.text = I18n.t("duel.instruction")
 
 	# The wind-up runs its own clock. Nothing else is scheduled while it does:
 	# two attacks announced at once is two warnings a six-year-old has to tell
@@ -944,6 +990,7 @@ func _charged_extras(target: Vector2) -> void:
 	# Whatever it was winding up, it is not doing it now.
 	if _telegraph_left > 0.0:
 		_cancel_telegraph()
+		_open_up("interrupt")
 		_monster.call("flinch")
 	# And anything already in the air comes down with it.
 	for threat in _threats.duplicate():
@@ -1104,6 +1151,22 @@ func _ult_burst() -> void:
 ## charges=false for the ult's own hits: a special move must not pay for
 ## the next special move, or the button never stops glowing.
 func _land_hit(amount: int, charges: bool = true) -> void:
+	# Armoured and not yet opened: the shot lands and does nothing. It has to
+	# LOOK like it did nothing on purpose -- a clink, a spark off the shell, the
+	# monster unbothered -- because a hit that silently fails to count is the
+	# same bug report as a button that does nothing.
+	if is_armored_now():
+		_clink()
+		if charges:
+			# The special move still fills. Whacking away at a shell is not
+			# wasted, it is just slow, and a child who cannot yet read the tell
+			# still gets somewhere by trying.
+			_ult_charge = mini(_ult_charge + 1, _ult_needed)
+			if ult_ready():
+				UiKit.breathe(_ult_button, 0.06, 0.6)
+		return
+	if wide_open():
+		amount *= OPENING_BONUS
 	_monster.call("flinch")
 	if charges:
 		_ult_charge = mini(_ult_charge + amount, _ult_needed)
@@ -1112,6 +1175,99 @@ func _land_hit(amount: int, charges: bool = true) -> void:
 	for i in range(amount):
 		score_correct()
 	_update_meter()
+	_check_phase()
+
+
+## Armoured right now: it has armour, and the opening is not running.
+func is_armored_now() -> bool:
+	return _armored and not wide_open()
+
+
+func wide_open() -> bool:
+	return _clock < _open_until
+
+
+## The shot that bounced. Deliberately NOT the try_again sound -- the child did
+## nothing wrong, the monster is just wearing a shell.
+func _clink() -> void:
+	AudioManager.play_sfx("res://assets/audio/machine.ogg")
+	var at: Vector2 = _monster.position + Vector2(-40, -190.0 * _monster.scale.x)
+	Juice.burst(_play_area, at, 5)
+	if Juice.motion_enabled():
+		Juice.nudge(_monster, 8.0)
+
+
+## The monster is open. Everything that can say so, says so at once: it drops
+## its guard, a bright spot appears on it, the sound rises, and the beam does
+## double until the window closes.
+func _open_up(why: String) -> void:
+	if not _armored or wide_open():
+		return
+	if _guard_left > 0:
+		# Some monsters have to be blocked a few times before the shell cracks
+		# at all -- 举盾挡住三次攻击, straight off blaze_claw's card.
+		_guard_left -= 1
+		_clink()
+		return
+	if not _opens_on.has(why):
+		return
+	_open_until = _clock + OPENING
+	AudioManager.play_sfx("res://assets/audio/power_on.ogg")
+	_monster.call("flinch")
+	Juice.shockwave(_play_area, _monster.position + Vector2(0, -60.0), 150.0,
+		Color(1.0, 0.92, 0.6))
+	_show_weak_spot()
+	_instruction.text = I18n.t("duel.now")
+
+
+## A bright ring on the monster while it is open, so "hit it NOW" is a picture
+## and not a word. Removed by the same clock that closes the window.
+func _show_weak_spot() -> void:
+	_clear_weak_spot()
+	var mark := Control.new()
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark.position = _monster.position + Vector2(0, -200.0 * _monster.scale.x)
+	mark.z_index = 6
+	_play_area.add_child(mark)
+	var ring := Line2D.new()
+	ring.points = Shapes.circle_points(Vector2.ZERO, 78.0, 30)
+	ring.closed = true
+	ring.width = 9.0
+	ring.default_color = Color(1.0, 0.92, 0.45)
+	ring.antialiased = true
+	mark.add_child(ring)
+	_weak_spot = mark
+	if Juice.motion_enabled():
+		var t := mark.create_tween().set_loops()
+		t.tween_property(mark, "scale", Vector2(1.12, 1.12), 0.35)
+		t.tween_property(mark, "scale", Vector2.ONE, 0.35)
+
+
+func _clear_weak_spot() -> void:
+	if _weak_spot != null and is_instance_valid(_weak_spot):
+		_weak_spot.queue_free()
+	_weak_spot = null
+
+
+## Half health: it gets cross. One escalation, not four -- the boss-design
+## reading is consistent that a second phase is what makes a fight feel like it
+## has an arc, and that more than a couple stops being legible.
+func _check_phase() -> void:
+	if _enraged or _won:
+		return
+	var need: int = maxi(target_value("correct", 8), 1)
+	if float(result.correct) / float(need) < 0.5:
+		return
+	_enraged = true
+	_monster.call("puff_up")
+	AudioManager.play_sfx("res://assets/audio/monster_roar.ogg")
+	Juice.shockwave(_play_area, _monster.position + Vector2(0, -60.0), 220.0,
+		Color(1.0, 0.7, 0.5))
+	# Busier, never faster-fingered: the same answers, asked more often.
+	if _goo_interval > 0.0:
+		_goo_interval = maxf(_goo_interval * 0.75, 2.0)
+	if _roar_interval > 0.0:
+		_roar_interval = maxf(_roar_interval * 0.75, 4.0)
 
 
 # --- the monster fights back --------------------------------------------
@@ -1195,6 +1351,7 @@ func _dodge() -> void:
 		return
 	_dodged = true
 	_clear_dodge_mark()
+	_open_up("dodge")
 	_hero.roll(150.0, 0.45)
 	Juice.dust(_play_area, _hero_pos, 8)
 	Juice.speed_lines(_play_area, _hero_pos + Vector2(0, -90),
@@ -1304,6 +1461,7 @@ func _threat_arrives(threat: Control) -> void:
 	if not is_instance_valid(threat):
 		return
 	if shield_active():
+		_open_up("block")
 		AudioManager.play_sfx("res://assets/audio/correct.ogg")
 		var back_to: Vector2 = _monster.position + Vector2(0, -190 * _monster.scale.x)
 		var t := create_tween()

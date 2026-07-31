@@ -23,7 +23,7 @@ const DUEL := "res://scenes/minigames/monster_duel/MonsterDuel.tscn"
 var _failures: Array[String] = []
 var _asked := 0
 ## 少一条就说明有一节被静默跳过了。见 garden_touch_probe 的同名常量。
-const CHECKS_EXPECTED := 11
+const CHECKS_EXPECTED := 19
 
 
 func _ok(condition: bool, description: String) -> void:
@@ -37,6 +37,7 @@ func _ready() -> void:
 	await _a_moving_target_can_be_hit()
 	await _a_press_that_cannot_fire_still_answers()
 	await _one_event_makes_one_sound()
+	await _the_card_tells_the_truth()
 
 	if _asked < CHECKS_EXPECTED:
 		_failures.append("这个探针只问了 %d 个问题，本该至少 %d 个 —— "
@@ -166,3 +167,62 @@ func _threats(duel: Node) -> Array:
 
 func _threat_count(duel: Node) -> int:
 	return _threats(duel).size()
+
+
+## 卡片上写的打法，战斗里得是真的。
+##
+## Every monster carries a weakness_key naming a real tactic, and for a long
+## time the album printed it while the fight ignored it: whatever the card
+## said, the answer was the beam button. These check the three things that
+## have to hold for the card to mean anything.
+func _the_card_tells_the_truth() -> void:
+	# battle_10 是钢脊兽：卡片写"使用护盾挡住震动"，所以它只该被"挡"打开。
+	GameManager.current_level_id = "battle_10"
+	var duel: Node = load(DUEL).instantiate()
+	add_child(duel)
+	for i in 20:
+		await get_tree().process_frame
+
+	_ok(bool(duel.call("is_armored_now")),
+		"battle_10 的怪兽卡片上写着有壳，开局却是软的")
+
+	# 有壳的时候，普通光线不该扣血 —— 但也不能静悄悄，那和按钮坏了没区别。
+	var before: int = int((duel.get("result") as LevelResult).correct)
+	var sounds: int = int(AudioManager.sfx_plays)
+	duel.set("_beam_ready_at", 0.0)
+	duel.call("fire_beam_skill")
+	await get_tree().process_frame
+	_ok(int((duel.get("result") as LevelResult).correct) == before,
+		"壳还在，普通光线却已经扣血了 —— 那壳就只是个装饰")
+	_ok(AudioManager.sfx_plays > sounds,
+		"打在壳上一点声音都没有 —— 一次没有回应的命中和坏掉的按钮读起来一样")
+
+	# 卡片说"挡"，那"躲"就不该管用 —— 否则十五张卡说的是同一件事。
+	duel.call("_open_up", "dodge")
+	_ok(not bool(duel.call("wide_open")),
+		"卡片写的是用护盾挡，结果躲一下也能破壳 —— 那弱点就没有意义了")
+	duel.call("_open_up", "block")
+	_ok(bool(duel.call("wide_open")),
+		"按卡片写的挡住了，壳却没开")
+
+	# 破绽期打中要真的更疼，不然读懂了也没奖励，孩子会回去乱按。
+	before = int((duel.get("result") as LevelResult).correct)
+	duel.set("_beam_ready_at", 0.0)
+	duel.call("fire_beam_skill")
+	await get_tree().process_frame
+	var gained: int = int((duel.get("result") as LevelResult).correct) - before
+	_ok(gained >= 2,
+		"破绽期一击只值 %d 分 —— 读懂了它的打法和乱按一样划算，那就没人会去读" % gained)
+
+	# 破绽会关上：它是一扇窗，不是一个开关。
+	duel.set("_open_until", 0.0)
+	_ok(not bool(duel.call("wide_open")), "破绽窗口不会关")
+
+	duel.queue_free()
+	await get_tree().process_frame
+
+	# 前三只不该有壳：新玩法要先教基本循环，第一关就上壳是把人挡在门外。
+	for easy in ["battle_01", "battle_02", "battle_03"]:
+		var lvl: Dictionary = GameData.get_level(easy)
+		_ok(not (lvl.get("config", {}) as Dictionary).has("armor"),
+			"%s 就上了护甲 —— 头几关得先把点、挡、躲教会" % easy)
