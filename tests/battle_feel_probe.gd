@@ -23,7 +23,7 @@ const DUEL := "res://scenes/minigames/monster_duel/MonsterDuel.tscn"
 var _failures: Array[String] = []
 var _asked := 0
 ## 少一条就说明有一节被静默跳过了。见 garden_touch_probe 的同名常量。
-const CHECKS_EXPECTED := 19
+const CHECKS_EXPECTED := 29
 
 
 func _ok(condition: bool, description: String) -> void:
@@ -38,6 +38,7 @@ func _ready() -> void:
 	await _a_press_that_cannot_fire_still_answers()
 	await _one_event_makes_one_sound()
 	await _the_card_tells_the_truth()
+	await _a_stroke_is_a_shortcut_not_a_toll()
 
 	if _asked < CHECKS_EXPECTED:
 		_failures.append("这个探针只问了 %d 个问题，本该至少 %d 个 —— "
@@ -226,3 +227,110 @@ func _the_card_tells_the_truth() -> void:
 		var lvl: Dictionary = GameData.get_level(easy)
 		_ok(not (lvl.get("config", {}) as Dictionary).has("armor"),
 			"%s 就上了护甲 —— 头几关得先把点、挡、躲教会" % easy)
+
+
+## 搓招是捷径，不是收费站。
+##
+## 三个按钮必须永远单独够用。这一节的存在理由只有一条：任何一天有人让某一招
+## 变成"只有搓出来才做得到"，这里就会红 —— 一个还没学会划的六岁孩子被挡在
+## 门外，是最不会被人报上来的那种坏，因为他只会安静地不玩了。
+func _a_stroke_is_a_shortcut_not_a_toll() -> void:
+	const Stroke := preload("res://scripts/shared/stroke_reader.gd")
+	var duel_script := load("res://scripts/minigames/monster_duel.gd")
+	var reader = Stroke.new(duel_script.MOVES)
+
+	# 认得出：一笔往上是升龙，一笔往右是光波。
+	_ok(_reads(reader, [Vector2(200, 500), Vector2(206, 430), Vector2(210, 380)])
+		== "rising", "一笔往上没被认成升龙")
+	_ok(_reads(reader, [Vector2(200, 500), Vector2(270, 496), Vector2(320, 502)])
+		== "wave", "一笔往右没被认成光波")
+
+	# 下面两条是"认不错"，而且必须真的对参数敏感 —— 第一版写的两个反例，
+	# 把容差从 38 度开到 90 度、把最短笔画从 70 降到 5，两个都照样不匹配，
+	# 于是三次蓄意破坏全绿。一个不会红的断言比没有断言更糟，因为它让人以为
+	# 这里有人在看。两条都换成刚好卡在阈值外面的输入。
+
+	# 偏 50 度：在 38 度的扇面外，但如果谁把扇面开到 90 就会中。
+	_ok(_reads(reader, [Vector2(200, 500), Vector2(280, 430), Vector2(320, 400)])
+		== "", "偏了 50 度也认成升龙 —— 容差扇面开得太大，乱划都会出招")
+
+	# 往右只挪 34 像素不该出招 —— 那个距离是手指按按钮时的正常滑动量。
+	_ok(_reads(reader, [Vector2(200, 500), Vector2(220, 500), Vector2(234, 501)])
+		== "", "手指只挪了 34 像素也被当成一招 —— 那按按钮会变成乱放技能")
+
+	# 上面那条只在招式表自己要求得够长时才成立，所以直接盯着招式表。
+	# 写这一条是因为 stroke_reader 原来还有一道 MIN_TRAVEL 门槛，蓄意破坏时
+	# 把它降到 5 也没有任何检查变红 —— 那道门槛从来没生效过（每一招的
+	# distance 都更严），既没用又是陷阱，已经删掉。长度只剩这一个出处。
+	for move in duel_script.MOVES:
+		var d: float = float((move.get("params", {}) as Dictionary).get("distance", 0.0))
+		_ok(d >= 70.0,
+			"招式表里 %s 只要求划 %.0f 像素 —— 短到会和按按钮时的手指滑动撞车，"
+			% [str(move.get("name", "?")), d] + "他每按一次技能键都会顺手放个招")
+
+	# 两招都吃光线的冷却：搓招是替代，不是白送的输出。
+	# 真的打一招出去看时钟，不是在源码里搜字符串 —— 第一版搜的那行在
+	# fire_beam_skill 里也有一份，把 _perform 里的删掉照样搜得到。
+	GameManager.current_level_id = "battle_05"
+	var one: Node = load(DUEL).instantiate()
+	add_child(one)
+	for i in 20:
+		await get_tree().process_frame
+	one.set("_beam_ready_at", 0.0)
+	one.call("_perform", "wave")
+	await get_tree().process_frame
+	_ok(float(one.get("_beam_ready_at")) > float(one.get("_clock")),
+		"搓完一招光线立刻又能打 —— 那搓招就是外挂，按按钮的孩子永远落后")
+	one.queue_free()
+	await get_tree().process_frame
+
+	# 最要紧的一条：不搓也能打完。逐关检查没有任何一关把通关条件挂在搓招上。
+	for entry in GameData.get_levels_for_mode("battle"):
+		var cfg: Dictionary = entry.get("config", {})
+		if bool(cfg.get("requires_stroke", false)):
+			_ok(false, "%s 要求必须搓招才能过 —— 三个按钮必须永远单独够用"
+				% str(entry.get("id", "")))
+			return
+	_ok(true, "十五关没有一关把通关挂在搓招上")
+
+	# 招式表是图不是字。
+	GameManager.current_level_id = "battle_05"
+	var duel: Node = load(DUEL).instantiate()
+	add_child(duel)
+	for i in 20:
+		await get_tree().process_frame
+	var words := 0
+	var pictures := 0
+	for node in _all(duel):
+		if node is Label and str((node as Label).text).length() > 0:
+			words += 1
+		if node is Polygon2D or node is Line2D:
+			pictures += 1
+	_ok(pictures > 0, "战斗里一个画出来的形状都没有 —— 这个探针在看错的东西")
+	_ok(duel.get("_stroke") != null, "对决里没有搓招层")
+	duel.queue_free()
+	await get_tree().process_frame
+
+
+func _reads(reader, points: Array) -> String:
+	for i in range(points.size()):
+		var e := InputEventScreenTouch.new() if i == 0 or i == points.size() - 1 \
+			else null
+		if e != null:
+			e.index = 0
+			e.pressed = i == 0
+			e.position = points[i]
+			reader.feed(e, points[i])
+		else:
+			var d := InputEventScreenDrag.new()
+			d.index = 0
+			d.position = points[i]
+			reader.feed(d, points[i])
+	return reader.take()
+
+
+func _all(root: Node) -> Array:
+	var out: Array = [root]
+	for c in root.get_children():
+		out.append_array(_all(c))
+	return out

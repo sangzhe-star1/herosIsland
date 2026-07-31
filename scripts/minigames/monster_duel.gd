@@ -26,6 +26,7 @@ extends LevelManager
 ## game grey rather than one screen.
 const Album := preload("res://scripts/reward/monster_album.gd")
 const Fit := preload("res://scripts/shared/screen_fit.gd")
+const Stroke := preload("res://scripts/shared/stroke_reader.gd")
 
 ## Where the two of them stand, written against the 1280x720 the art was drawn
 ## at. Nothing reads these directly any more -- everything goes through
@@ -127,6 +128,33 @@ var _charge_ring: Line2D
 ## Charged enough to interrupt. Not 1.0: a finger lifts a frame early, and a
 ## child must never lose the whole thing to that.
 const CHARGED_AT := 0.8
+
+## --- 搓招 ---
+##
+## 三个按钮是保底路径，手势是进阶层。不搓也能打完整关，搓了快得多、好看得多 ——
+## 和这个项目一贯的做法一致：点也能玩，按住更好，搓招最好。一个六岁孩子在学会
+## 搓招之前不该被挡在门外，所以这里没有任何一件事是只有搓招才做得到的。
+##
+## 两招，都用菜园那套识别器（scripts/harvest/gesture.gd），因为战斗里的手感必须
+## 和他每天拔萝卜是同一套：
+##
+##   ↑ 上划  升龙光拳  一下顶上去 = 一次打断 + 一次命中
+##   → 前划  光波      推出去 = 一次命中 + 路上的泥球一起带走
+##
+## 两招都走同一个 _beam_ready_at，所以它们是光线的**替代**而不是白送的输出：
+## 快在一个动作顶两个动作，不快在打得更多。
+const MOVES := [
+	{"name": "rising", "kind": "drag",
+		"params": {"direction_x": 0.0, "direction_y": -1.0,
+			"distance": 90.0, "angle": 38.0}},
+	{"name": "wave", "kind": "drag",
+		"params": {"direction_x": 1.0, "direction_y": 0.0,
+			"distance": 90.0, "angle": 32.0}},
+]
+
+var _stroke                     # Stroke.new(MOVES)
+var _stroke_field: Control
+var _trail: Line2D
 
 ## --- 护甲与破绽 ---
 ##
@@ -260,6 +288,21 @@ func _build_scene(config: Dictionary) -> void:
 
 	build_world(_play_area, 0.0)
 
+	# 搓招层，铺在最底下。所有按钮都在它之后 add_child，所以按钮照常吃自己的
+	# 点击 —— 手势只接管"空地上划的那一笔"。
+	_stroke = Stroke.new(MOVES)
+	_stroke_field = Control.new()
+	_stroke_field.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_stroke_field.mouse_filter = Control.MOUSE_FILTER_STOP
+	_stroke_field.gui_input.connect(_on_stroke_input)
+	_play_area.add_child(_stroke_field)
+	_trail = Line2D.new()
+	_trail.width = 12.0
+	_trail.default_color = Color(1.0, 0.93, 0.55, 0.75)
+	_trail.antialiased = true
+	_trail.z_index = 8
+	_play_area.add_child(_trail)
+
 	# The play area is in the tree now, so it can be asked how big the screen
 	# really is. Everything placed after this line is placed on THAT screen.
 	_hero_pos = Fit.at(_play_area, HERO_POS)
@@ -314,6 +357,7 @@ func _build_scene(config: Dictionary) -> void:
 	_build_meter()
 	_build_light_bar()
 	_build_skill_wheel()
+	_build_move_card()
 
 
 # --- 一个节奏 ------------------------------------------------------------
@@ -931,6 +975,126 @@ func _process(delta: float) -> void:
 		if _roar_timer <= 0.0:
 			_roar_timer = _roar_interval * randf_range(0.9, 1.3)
 			_begin_telegraph("roar")
+
+
+## 招式表：两笔画，没有一个字。
+##
+## 六岁不识字，所以"怎么搓"只能是一张图 —— 一支箭头往上，一支箭头往右，各自
+## 旁边一个小图标说明打出去是什么。贴在左边中间，离拇指区远，因为它是拿来看的
+## 不是拿来按的；`mouse_filter = IGNORE` 让它永远不会把一笔画吃掉。
+func _build_move_card() -> void:
+	var card := Control.new()
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.position = Vector2(MARGIN, MARGIN + 96.0 + GAP * 3.0)
+	card.size = Vector2(96, 168)
+	_play_area.add_child(card)
+
+	var plate := Node2D.new()
+	card.add_child(plate)
+	Shapes.fill(plate, Shapes.rounded_rect(Vector2.ZERO, card.size, 24.0),
+		Color(0.06, 0.09, 0.20, 0.34), 0.0)
+
+	# 上划 = 升龙，前划 = 光波。箭头用 Shapes.taper 画，和全岛所有笔画同一只手。
+	var rows := [
+		{"to": Vector2(0, -1), "icon": "power"},
+		{"to": Vector2(1, 0), "icon": "spark"},
+	]
+	for i in range(rows.size()):
+		var row: Dictionary = rows[i]
+		var mid := Vector2(card.size.x * 0.5, 46.0 + 78.0 * float(i))
+		var dir: Vector2 = row["to"]
+		var arm := Node2D.new()
+		card.add_child(arm)
+		# 笔画本身：从细到粗，粗的那头是终点，方向自己说清楚。
+		Shapes.fill(arm, Shapes.taper(mid - dir * 26.0, mid + dir * 24.0,
+			5.0, 14.0), Color(1.0, 0.93, 0.55), 0.0)
+		# 箭头尖
+		var tip: Vector2 = mid + dir * 30.0
+		var side: Vector2 = dir.orthogonal() * 13.0
+		Shapes.fill(arm, PackedVector2Array([tip, tip - dir * 16.0 + side,
+			tip - dir * 16.0 - side]), Color(1.0, 0.93, 0.55), 0.0)
+		var icon: Control = UiKit.picture(str(row["icon"]), 30.0)
+		if icon != null:
+			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			icon.position = mid + Vector2(-15.0, 22.0)
+			card.add_child(icon)
+
+
+# --- 搓招 -----------------------------------------------------------------
+
+func _on_stroke_input(event: InputEvent) -> void:
+	if not _started or _won or _finished:
+		return
+	_stroke.feed(event, _event_at(event))
+	_paint_trail()
+	var move: String = _stroke.take()
+	if move != "":
+		_perform(move)
+
+
+## 事件落在战斗坐标系的哪里。gui_input 给的是相对控件的位置，而这个控件是
+## 满屏的，所以两者相同 —— 写出来是因为下一个把它挪进容器的人会踩到。
+func _event_at(event: InputEvent) -> Vector2:
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).position
+	if event is InputEventScreenDrag:
+		return (event as InputEventScreenDrag).position
+	if event is InputEventMouseButton:
+		return (event as InputEventMouseButton).position
+	if event is InputEventMouseMotion:
+		return (event as InputEventMouseMotion).position
+	return Vector2.ZERO
+
+
+## 手指画到哪儿就画到哪儿。看见自己的那一笔，是"我搓出来的"和"游戏替我决定了"
+## 之间的全部区别 —— 而且划歪了也看得见，这是他自己能学会的唯一途径。
+func _paint_trail() -> void:
+	if _trail == null or not is_instance_valid(_trail):
+		return
+	if not Juice.motion_enabled():
+		return
+	_trail.points = _stroke.trail()
+
+
+## 一招打出去。
+##
+## 两招都吃 _beam_ready_at，所以搓招是光线的替代而不是外挂：一个动作顶两个
+## 动作，而不是多一份输出。冷却中搓招走 _refuse，和按钮完全一样 —— 同一个
+## 限制，同一个回答。
+func _perform(move: String) -> void:
+	if _clock < _beam_ready_at:
+		_refuse("beam")
+		return
+	_beam_ready_at = _clock + _beam_cooldown
+	_hero.brace()
+	_hero.power_up()
+	var target: Vector2 = _monster.position \
+		+ Vector2(0, -190.0 * _monster.scale.x)
+	match move:
+		"rising":
+			# 升龙：顶上去。算一次打断，所以有壳的怪兽会被它开出破绽 ——
+			# 这正是"搓招更快"的地方：蓄满一次要一整个冷却，这一下是立刻的。
+			_hero.jump(90.0, 0.42)
+			Juice.speed_lines(_play_area, _hero_pos + Vector2(0, -120),
+				Vector2.UP, Color(1, 0.95, 0.7, 0.7), 4)
+			_draw_beam(_hero.core_position(), target, 1.6)
+			_impact(target)
+			AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+			if _telegraph_left > 0.0:
+				_cancel_telegraph()
+				_open_up("interrupt")
+			_land_hit(1, true, true)
+		"wave":
+			# 光波：推出去，路上的泥球一起带走。一个动作替掉"一颗一颗拍"。
+			_draw_beam(_hero.core_position(), target, 2.2)
+			_impact(target)
+			Juice.shockwave(_play_area, target, 170.0, Color(1.0, 0.94, 0.72))
+			AudioManager.play_sfx("res://assets/audio/beam.ogg")
+			for threat in _threats.duplicate():
+				if threat is Button and is_instance_valid(threat):
+					_swat_goo(threat)
+			_land_hit(1, true, true)
+	_flash_ring("beam")
 
 
 # --- skills -------------------------------------------------------------
