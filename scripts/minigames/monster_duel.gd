@@ -29,6 +29,8 @@ const Fit := preload("res://scripts/shared/screen_fit.gd")
 const Stroke := preload("res://scripts/shared/stroke_reader.gd")
 ## 招式册。模板不认识任何一招的名字 —— 它只会问册子。见 attack_book.gd。
 const Book := preload("res://scripts/battle/attack_book.gd")
+## 英雄的搓招册。和怪兽那本同一个形状 —— 模板不认识任何一招的名字。
+const Moves := preload("res://scripts/battle/move_book.gd")
 
 ## Where the two of them stand, written against the 1280x720 the art was drawn
 ## at. Nothing reads these directly any more -- everything goes through
@@ -144,14 +146,13 @@ const CHARGED_AT := 0.8
 ##
 ## 两招都走同一个 _beam_ready_at，所以它们是光线的**替代**而不是白送的输出：
 ## 快在一个动作顶两个动作，不快在打得更多。
-const MOVES := [
-	{"name": "rising", "kind": "drag",
-		"params": {"direction_x": 0.0, "direction_y": -1.0,
-			"distance": 90.0, "angle": 38.0}},
-	{"name": "wave", "kind": "drag",
-		"params": {"direction_x": 1.0, "direction_y": 0.0,
-			"distance": 90.0, "angle": 32.0}},
-]
+## 招式表从册子来，不再是这里的一份常量。
+##
+## 原来这是一个写死的数组，加第三招要改四处：数组、_perform 里的 match、
+## 招式表卡片上手画的箭头、还有卡片的高度。5C 在怪兽那边治过同一个毛病，
+## 英雄这边当时留了一半。现在也没了 —— 加一招是且只是往 moves/ 放一个文件。
+static func gesture_table() -> Array:
+	return Moves.gesture_table()
 
 var _stroke                     # Stroke.new(MOVES)
 var _stroke_field: Control
@@ -322,7 +323,7 @@ func _build_scene(config: Dictionary) -> void:
 
 	# 搓招层，铺在最底下。所有按钮都在它之后 add_child，所以按钮照常吃自己的
 	# 点击 —— 手势只接管"空地上划的那一笔"。
-	_stroke = Stroke.new(MOVES)
+	_stroke = Stroke.new(Moves.gesture_table())
 	_stroke_field = Control.new()
 	_stroke_field.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_stroke_field.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1017,16 +1018,23 @@ func _process(delta: float) -> void:
 				_begin_telegraph(_heavy_kind)
 
 
-## 招式表：两笔画，没有一个字。
+## 招式表：卡片上画的就是手指要走的路。
 ##
-## 六岁不识字，所以"怎么搓"只能是一张图 —— 一支箭头往上，一支箭头往右，各自
-## 旁边一个小图标说明打出去是什么。贴在左边中间，离拇指区远，因为它是拿来看的
-## 不是拿来按的；`mouse_filter = IGNORE` 让它永远不会把一笔画吃掉。
+## 六岁不识字，这张卡是他唯一的说明书 —— 所以它不能是文字，也不该是谁手画上去
+## 的示意箭头。每一行的那一笔直接来自招式自己的 card_stroke()，也就是识别器
+## 认的那个形状本身。加一招，卡片自己长出一行；改一招的手势，卡片跟着变。
+##
+## 贴在左边中间，离拇指区远：它是拿来看的不是拿来按的。mouse_filter 是 IGNORE，
+## 所以它永远不会把一笔画吃掉 —— 一张挡住输入的说明书是最坏的一种说明书。
 func _build_move_card() -> void:
+	var moves: Array = Moves.ids()
+	if moves.is_empty():
+		return
+	var row_h := 78.0
 	var card := Control.new()
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.position = Vector2(MARGIN, MARGIN + 96.0 + GAP * 3.0)
-	card.size = Vector2(96, 168)
+	card.size = Vector2(96, row_h * float(moves.size()) + GAP)
 	_play_area.add_child(card)
 
 	var plate := Node2D.new()
@@ -1034,30 +1042,42 @@ func _build_move_card() -> void:
 	Shapes.fill(plate, Shapes.rounded_rect(Vector2.ZERO, card.size, 24.0),
 		Color(0.06, 0.09, 0.20, 0.34), 0.0)
 
-	# 上划 = 升龙，前划 = 光波。箭头用 Shapes.taper 画，和全岛所有笔画同一只手。
-	var rows := [
-		{"to": Vector2(0, -1), "icon": "power"},
-		{"to": Vector2(1, 0), "icon": "spark"},
-	]
-	for i in range(rows.size()):
-		var row: Dictionary = rows[i]
-		var mid := Vector2(card.size.x * 0.5, 46.0 + 78.0 * float(i))
-		var dir: Vector2 = row["to"]
-		var arm := Node2D.new()
-		card.add_child(arm)
-		# 笔画本身：从细到粗，粗的那头是终点，方向自己说清楚。
-		Shapes.fill(arm, Shapes.taper(mid - dir * 26.0, mid + dir * 24.0,
-			5.0, 14.0), Color(1.0, 0.93, 0.55), 0.0)
-		# 箭头尖
-		var tip: Vector2 = mid + dir * 30.0
-		var side: Vector2 = dir.orthogonal() * 13.0
-		Shapes.fill(arm, PackedVector2Array([tip, tip - dir * 16.0 + side,
-			tip - dir * 16.0 - side]), Color(1.0, 0.93, 0.55), 0.0)
-		var icon: Control = UiKit.picture(str(row["icon"]), 30.0)
+	for i in range(moves.size()):
+		var move = Moves.get_move(str(moves[i]))
+		if move == null:
+			continue
+		var mid := Vector2(card.size.x * 0.5, GAP * 0.5 + row_h * (float(i) + 0.5))
+		_draw_card_stroke(card, mid, move.card_stroke())
+		var icon: Control = UiKit.picture(str(move.card_icon()), 26.0)
 		if icon != null:
 			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			icon.position = mid + Vector2(-15.0, 22.0)
+			icon.position = mid + Vector2(-13.0, 16.0)
 			card.add_child(icon)
+
+
+## 一笔画。-1..1 的点放大到 22 像素半径，从细到粗 —— 粗的那头是终点，
+## 所以"往哪个方向走"不用箭头也说得清；圈和折线本来也画不了箭头。
+func _draw_card_stroke(card: Control, mid: Vector2, stroke: Array) -> void:
+	if stroke.size() < 2:
+		return
+	var reach := 22.0
+	var line := Line2D.new()
+	var pts := PackedVector2Array()
+	for p in stroke:
+		pts.append(mid + (p as Vector2) * reach)
+	line.points = pts
+	line.width = 5.0
+	line.default_color = Color(1.0, 0.93, 0.55)
+	line.antialiased = true
+	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+	line.joint_mode = Line2D.LINE_JOINT_ROUND
+	# 终点上一个圆点：一笔从哪儿收尾，比一个箭头尖更好画也更好认。
+	card.add_child(line)
+	var tip := Node2D.new()
+	card.add_child(tip)
+	Shapes.fill(tip, Shapes.circle_points(pts[pts.size() - 1], 7.0, 14),
+		Color(1.0, 0.97, 0.78), 0.0)
 
 
 # --- 搓招 -----------------------------------------------------------------
@@ -1105,35 +1125,16 @@ func _perform(move: String) -> void:
 	if _clock < _beam_ready_at:
 		_refuse("beam")
 		return
+	var made = Moves.get_move(move)
+	if made == null:
+		push_warning("monster_duel: 搓招册里没有 %s" % move)
+		return
+	# 搓招和光线共用一个冷却：它是替代，不是外挂。一个动作顶两个动作，
+	# 而不是多一份输出。
 	_beam_ready_at = _clock + _beam_cooldown
 	_hero.brace()
 	_hero.power_up()
-	var target: Vector2 = _monster.position \
-		+ Vector2(0, -190.0 * _monster.scale.x)
-	match move:
-		"rising":
-			# 升龙：顶上去。算一次打断，所以有壳的怪兽会被它开出破绽 ——
-			# 这正是"搓招更快"的地方：蓄满一次要一整个冷却，这一下是立刻的。
-			_hero.jump(90.0, 0.42)
-			Juice.speed_lines(_play_area, _hero_pos + Vector2(0, -120),
-				Vector2.UP, Color(1, 0.95, 0.7, 0.7), 4)
-			_draw_beam(_hero.core_position(), target, 1.6)
-			_impact(target)
-			AudioManager.play_sfx("res://assets/audio/power_up.ogg")
-			if _telegraph_left > 0.0:
-				_cancel_telegraph()
-				_open_up("interrupt")
-			_land_hit(1, true, true)
-		"wave":
-			# 光波：推出去，路上的泥球一起带走。一个动作替掉"一颗一颗拍"。
-			_draw_beam(_hero.core_position(), target, 2.2)
-			_impact(target)
-			Juice.shockwave(_play_area, target, 170.0, Color(1.0, 0.94, 0.72))
-			AudioManager.play_sfx("res://assets/audio/beam.ogg")
-			for threat in _threats.duplicate():
-				if threat is Button and is_instance_valid(threat):
-					_swat_goo(threat)
-			_land_hit(1, true, true)
+	made.perform(self)
 	_flash_ring("beam")
 
 
@@ -1266,6 +1267,15 @@ func activate_shield() -> bool:
 	_flash_ring("shield")
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
 
+	_raise_bubble()
+	return true
+
+
+## 那个泡泡本身。抽出来是因为现在有两个东西会立起它：护罩键，和画圈那一招 ——
+## 两份画法就是两种"我被保护着"的样子，而这是屏幕上最不该有歧义的一件事。
+func _raise_bubble() -> void:
+	if _shield_bubble != null and is_instance_valid(_shield_bubble):
+		return
 	# A drawn bubble: a filled dome with a bright rim, so "I am protected right
 	# now" is unmistakable at a glance.
 	_shield_bubble = Control.new()
@@ -1285,7 +1295,6 @@ func activate_shield() -> bool:
 		var t := _shield_bubble.create_tween().set_loops()
 		t.tween_property(_shield_bubble, "modulate:a", 0.4, 0.5)
 		t.tween_property(_shield_bubble, "modulate:a", 0.65, 0.5)
-	return true
 
 
 func shield_active() -> bool:
@@ -1713,6 +1722,61 @@ func arena_arrives(node: Control) -> void:
 
 func arena_contact_hero() -> void:
 	_contact_hero()
+
+
+## --- 搓招用到的几个 ---
+
+func arena_hero() -> SkinnedCharacter:
+	return _hero
+
+
+## 这一招该打在哪儿。怪兽身上那个高度，所有搓招共用一个准星。
+func arena_aim() -> Vector2:
+	if _monster == null or not is_instance_valid(_monster):
+		return _hero_pos
+	return _monster.position + Vector2(0, -190.0 * _monster.scale.x)
+
+
+func arena_beam(to: Vector2, fat: float = 1.0) -> void:
+	_draw_beam(_hero.core_position(), to, fat)
+
+
+func arena_impact(at: Vector2) -> void:
+	_impact(at)
+
+
+func arena_land(amount: int, charged: bool = false) -> void:
+	_land_hit(amount, true, charged)
+
+
+## 正在起手就打断它，顺便按"打断"这条路开壳。没在起手就什么都不做 ——
+## 招式不需要自己判断时机对不对。
+func arena_interrupt() -> void:
+	if _telegraph_left <= 0.0:
+		return
+	_cancel_telegraph()
+	_open_up("interrupt")
+
+
+## 把已经开着的破绽再撑开一截。没开就不动 —— 撑开一扇不存在的窗没有意义，
+## 而"顺手把壳打开"是打断该做的事，不是这里。
+func arena_stretch_opening(seconds: float) -> void:
+	if wide_open():
+		_open_until += seconds
+
+
+## 场上飞的东西一次收拾干净。
+func arena_sweep_threats() -> void:
+	for threat in _threats.duplicate():
+		if threat is Button and is_instance_valid(threat):
+			_swat_goo(threat)
+
+
+## 一小段护罩，不吃护罩键自己的冷却 —— 它是应急，不是替代。
+func arena_shelter(seconds: float) -> void:
+	_shield_until = maxf(_shield_until, _clock + seconds)
+	if _shield_bubble == null or not is_instance_valid(_shield_bubble):
+		_raise_bubble()
 
 
 func arena_after(seconds: float) -> SceneTreeTimer:

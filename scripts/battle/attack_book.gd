@@ -22,6 +22,8 @@ extends RefCounted
 ## 而且 battle_feel_probe 有一条断言盯着"册子里的招数 == 目录里的文件数"——
 ## 一个在编辑器里满员、在真机上空掉的注册表，是那种没人会报上来的坏：怪兽
 ## 只是安静地不出手了。
+const Books := preload("res://scripts/battle/script_book.gd")
+
 const DIR := "res://scripts/battle/attacks"
 
 ## id -> attack 实例。第一次问的时候建好，之后一直用同一批 —— 攻击是无状态的
@@ -35,29 +37,7 @@ static func _scan() -> void:
 	if _scanned:
 		return
 	_scanned = true
-	var dir := DirAccess.open(DIR)
-	if dir == null:
-		push_warning("attack_book: 打不开 %s —— 怪兽会一招都不会" % DIR)
-		return
-	for file in dir.get_files():
-		var name := file
-		# 导出后的三种样子，都还原成源码路径。
-		for suffix in [".remap", ".gdc"]:
-			if name.ends_with(suffix):
-				name = name.trim_suffix(suffix)
-				if not name.ends_with(".gd"):
-					name += ".gd"
-		if not name.ends_with(".gd"):
-			continue
-		var script: Script = load("%s/%s" % [DIR, name])
-		if script == null:
-			push_warning("attack_book: %s 载不进来" % name)
-			continue
-		var attack = script.new()
-		var id: String = str(attack.id())
-		if id == "":
-			continue
-		_book[id] = attack
+	_book = Books.scan(DIR)
 
 
 ## 一招，没有就 null —— 而不是随便给一招。数据里写错一个名字，结果应该是
@@ -87,14 +67,6 @@ static func ids() -> Array:
 	return out
 
 
-## 目录里到底有几个 .gd。给探针比对用 —— 见文件头"导出包里也得扫得到"。
+## 目录里到底有几个脚本。给探针比对用 —— 见 script_book.gd 文件头。
 static func files_on_disk() -> int:
-	var dir := DirAccess.open(DIR)
-	if dir == null:
-		return 0
-	var n := 0
-	for file in dir.get_files():
-		if file.ends_with(".gd") or file.ends_with(".gdc") \
-				or file.ends_with(".gd.remap"):
-			n += 1
-	return n
+	return Books.count(DIR)

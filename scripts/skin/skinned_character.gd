@@ -568,6 +568,20 @@ func _show_cheer_texture(hold_seconds: float = 1.5) -> void:
 ## silence -- which is the one thing those two call sites have a comment
 ## promising never to do. A press that produces nothing reads as a broken
 ## game, and a six-year-old does not press a third time.
+## 原地转一圈。HeroArt 和 PuppyArt 都有，包装层没有 —— 和 pulse_core 一模一样
+## 的洞，一模一样的原因：方法在 art 上，而关卡拿到的是这一层。
+##
+## 这次是画圈那一招（scripts/battle/moves/cyclone.gd）踩到的，而且踩得比
+## pulse_core 更响：GDScript 调不到方法会抛错并**中断当前函数**，所以那一招
+## 后半段的清场和护罩全都没跑 —— 孩子画了一个圈，屏幕上什么都没发生。
+## 探针当时只在验注册表和卡片，没有验"每一招真的做了事"，所以是截图抓到的。
+func spin(turns: float = 1.0, duration: float = 0.5) -> void:
+	if _art != null and is_instance_valid(_art):
+		_art.spin(turns, duration)
+	if _pup != null and is_instance_valid(_pup):
+		_pup.spin(turns, duration)
+
+
 func pulse_core(times: int = 1) -> void:
 	if _art != null and is_instance_valid(_art):
 		_art.pulse_core(times)

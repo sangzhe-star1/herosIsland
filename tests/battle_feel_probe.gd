@@ -23,11 +23,13 @@ const DUEL := "res://scenes/minigames/monster_duel/MonsterDuel.tscn"
 const Album := preload("res://scripts/reward/monster_album.gd")
 ## 招式册 —— 5C 之后招式不再是模板上的方法。
 const Book := preload("res://scripts/battle/attack_book.gd")
+## 英雄搓招册 —— 和怪兽那本同一个形状。
+const Moves := preload("res://scripts/battle/move_book.gd")
 
 var _failures: Array[String] = []
 var _asked := 0
 ## 少一条就说明有一节被静默跳过了。见 garden_touch_probe 的同名常量。
-const CHECKS_EXPECTED := 51
+const CHECKS_EXPECTED := 64
 
 
 func _ok(condition: bool, description: String) -> void:
@@ -45,6 +47,8 @@ func _ready() -> void:
 	await _a_stroke_is_a_shortcut_not_a_toll()
 	await _the_monster_learned_new_moves()
 	_the_book_is_the_only_list()
+	await _the_move_card_draws_itself()
+	await _every_move_actually_does_something()
 
 	if _asked < CHECKS_EXPECTED:
 		_failures.append("这个探针只问了 %d 个问题，本该至少 %d 个 —— "
@@ -260,7 +264,7 @@ func _the_card_tells_the_truth() -> void:
 func _a_stroke_is_a_shortcut_not_a_toll() -> void:
 	const Stroke := preload("res://scripts/shared/stroke_reader.gd")
 	var duel_script := load("res://scripts/minigames/monster_duel.gd")
-	var reader = Stroke.new(duel_script.MOVES)
+	var reader = Stroke.new(Moves.gesture_table())
 
 	# 认得出：一笔往上是升龙，一笔往右是光波。
 	_ok(_reads(reader, [Vector2(200, 500), Vector2(206, 430), Vector2(210, 380)])
@@ -285,11 +289,38 @@ func _a_stroke_is_a_shortcut_not_a_toll() -> void:
 	# 写这一条是因为 stroke_reader 原来还有一道 MIN_TRAVEL 门槛，蓄意破坏时
 	# 把它降到 5 也没有任何检查变红 —— 那道门槛从来没生效过（每一招的
 	# distance 都更严），既没用又是陷阱，已经删掉。长度只剩这一个出处。
-	for move in duel_script.MOVES:
-		var d: float = float((move.get("params", {}) as Dictionary).get("distance", 0.0))
-		_ok(d >= 70.0,
-			"招式表里 %s 只要求划 %.0f 像素 —— 短到会和按按钮时的手指滑动撞车，"
-			% [str(move.get("name", "?")), d] + "他每按一次技能键都会顺手放个招")
+	# 每一招都得"大到不会被手滑触发"，而每种手势衡量大小的参数不一样。
+	#
+	# 第一版这里只看 drag 的 distance，于是画圈和折线两招一加进来就红了 ——
+	# 它们根本没有 distance。写死一种手势的检查，正是这一整轮在拆的那种东西；
+	# 所以这里按识别器分别问，而不是把门槛放宽到能过。
+	for move in Moves.gesture_table():
+		var name := str(move.get("name", "?"))
+		var kind := str(move.get("kind", ""))
+		var params: Dictionary = move.get("params", {})
+		match kind:
+			"drag":
+				var d: float = float(params.get("distance", 0.0))
+				_ok(d >= 70.0,
+					"%s 只要求划 %.0f 像素 —— 短到会和按按钮时的手指滑动撞车"
+					% [name, d])
+			"twist":
+				# 半圈以上。绕着一个点转过 180 度不是手滑能做到的。
+				var turn: float = float(params.get("turn", 0.0))
+				_ok(turn >= 180.0,
+					"%s 只要求转过 %.0f 度 —— 不到半圈，按按钮划一下就中了"
+					% [name, turn])
+			"sweep":
+				# 来回三次，每一程至少 40 像素。
+				var turns: int = int(params.get("turns", 0))
+				var leg: float = float(params.get("leg", 0.0))
+				_ok(turns >= 3 and leg >= 40.0,
+					"%s 只要求来回 %d 次、每程 %.0f 像素 —— 太容易撞上"
+					% [name, turns, leg])
+			_:
+				_ok(false, "%s 用了一种这条检查还没覆盖的手势：%s —— "
+					% [name, kind] + "新手势要在这里补一条尺寸下限，"
+					+ "否则它是唯一一个没人守着会不会被手滑触发的招")
 
 	# 两招都吃光线的冷却：搓招是替代，不是白送的输出。
 	# 真的打一招出去看时钟，不是在源码里搜字符串 —— 第一版搜的那行在
@@ -514,3 +545,94 @@ func _the_book_is_the_only_list() -> void:
 	_ok(Book.get_attack("nonexistent_move") == null,
 		"招式册对一个不存在的名字给了东西 —— 数据写错会变成「它换了一招」，"
 		+ "那种错永远查不出来")
+
+
+## 招式表卡片自己长出来。
+##
+## 5D 之前，加第三招要改四处：一份 const MOVES 数组、_perform 里的 match、
+## 卡片上手画的两支箭头、还有卡片的高度。这一节守的是那四处变成零处。
+func _the_move_card_draws_itself() -> void:
+	var known: Array = Moves.ids()
+	_ok(known.size() >= 4,
+		"搓招册只认识 %d 招 —— 目录扫空了" % known.size())
+	_ok(known.size() == Moves.files_on_disk(),
+		"moves/ 里有 %d 个文件，册子只认出 %d 招" % [Moves.files_on_disk(), known.size()])
+
+	# 模板不许再点任何一招的名字。
+	var src := FileAccess.get_file_as_string(
+		"res://scripts/minigames/monster_duel.gd")
+	var named: Array = []
+	for id in known:
+		if src.contains('"%s"' % id):
+			named.append(id)
+	_ok(named.is_empty(),
+		"模板里点了搓招的名字：%s —— 第五招就又要改好几处了" % str(named))
+
+	# 每一招都得自报手势和那一笔，否则卡片上会缺一行而没人发现。
+	var thin: Array = []
+	for id in known:
+		var move = Moves.get_move(id)
+		if (move.gesture() as Dictionary).is_empty() \
+				or (move.card_stroke() as Array).size() < 2:
+			thin.append(id)
+	_ok(thin.is_empty(),
+		"这些招没给手势或没给卡片上那一笔：%s —— 孩子看不到怎么搓" % str(thin))
+
+	# 卡片上的行数 == 册子里的招数。手画的箭头正是这样和真招式走散的。
+	GameManager.current_level_id = "battle_05"
+	var duel: Node = load(DUEL).instantiate()
+	add_child(duel)
+	for i in 20:
+		await get_tree().process_frame
+	var strokes := 0
+	for node in _all(duel):
+		if node is Line2D and (node as Line2D).points.size() >= 2 \
+				and (node as Line2D).width < 8.0:
+			strokes += 1
+	_ok(strokes >= known.size(),
+		"招式表上只画了 %d 笔，册子里有 %d 招 —— 卡片和真招式走散了"
+		% [strokes, known.size()])
+	duel.queue_free()
+	await get_tree().process_frame
+
+
+## 每一招都得真的做点什么。
+##
+## 这一节是被漏掉一次换来的。画圈那一招调了 SkinnedCharacter.spin()，而那个
+## 方法只存在于 HeroArt 上 —— GDScript 调不到会抛错并**中断当前函数**，所以那
+## 一招后半段的清场和护罩全没跑：孩子画了一个圈，屏幕上什么都没发生。上面两节
+## 验的是注册表和卡片，两条都绿，因为它们问的是"这一招登记了吗"，不是"这一招
+## 管用吗"。这个探针开篇写的问题是"手指动了，游戏答了吗"，这一节把它补回搓招上。
+func _every_move_actually_does_something() -> void:
+	for id in Moves.ids():
+		GameManager.current_level_id = "battle_11"
+		var duel: Node = load(DUEL).instantiate()
+		add_child(duel)
+		for i in 20:
+			await get_tree().process_frame
+		# 场上放两个飞行物，好让"清场"这类招也有东西可动。
+		Book.get_attack("summon").fire(duel)
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		var hits: int = int((duel.get("result") as LevelResult).correct)
+		var flying: int = (duel.get("_threats") as Array).size()
+		var guarded: bool = bool(duel.call("shield_active"))
+		var ready_at: float = float(duel.get("_beam_ready_at"))
+
+		duel.set("_beam_ready_at", 0.0)
+		duel.call("_perform", id)
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		var moved: bool = int((duel.get("result") as LevelResult).correct) > hits \
+			or (duel.get("_threats") as Array).size() < flying \
+			or bool(duel.call("shield_active")) != guarded
+		_ok(moved,
+			"画完 %s，命中没变、场上没少东西、护罩也没起来 —— " % id
+			+ "一招看起来登记好了、卡片上也画着，打出去却什么都没发生")
+		# 而且它得付冷却，不然搓招是外挂。
+		_ok(float(duel.get("_beam_ready_at")) > 0.0,
+			"%s 没有付光线的冷却" % id)
+		duel.queue_free()
+		await get_tree().process_frame
