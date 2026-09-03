@@ -49,6 +49,17 @@ signal stroke_ended()
 ## which is what keeps "furniture never swallows a tap meant for a plot"
 ## literally true.
 signal grass_pressed(at: Vector2)
+## A drag that began on a bed the screen says wants a pull: the finger is
+## trying that crop's move. `offset` is how far it has travelled from the
+## press, in glass pixels -- the bed leans with it while the drag lasts.
+signal gesture_moved(index: int, offset: Vector2)
+## That drag ended. `track` is every glass point from press to release,
+## `centre` is the bed's centre on the glass, `net` is last-minus-first. The
+## SCREEN judges the move against the crop's recogniser and owns both outcomes
+## -- pick it, or rule "that was a pan after all" -- because which crops ask
+## for which move is catalogue knowledge, not world knowledge.
+signal gesture_finished(index: int, track: PackedVector2Array, centre: Vector2,
+	net: Vector2)
 
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
@@ -89,6 +100,14 @@ var blockers: Array = []
 ## what keeps "I can always move the picture" true with any tool in hand.
 var brush_armed := false
 
+## The screen's answer to "does this bed want a pull?" -- ripe, a move the
+## catalogue knows, not mid-harvest. A Callable, not a copied list, because
+## ripeness changes under the screen's feet (taps, brushes, the clock) and a
+## list would go stale between refreshes; asked fresh at the moment a finger
+## lands. Never set, or set empty, and no bed ever claims a drag: the world is
+## exactly the pre-gesture farm it always was.
+var gesture_bed_check := Callable()
+
 var _ground: Node2D
 var _buildings: Node2D
 var _beds: Array = []          # PlotView, one per bed in the save
@@ -112,6 +131,13 @@ var _finger_last := Vector2.ZERO
 var _travelled := 0.0
 ## True from a brush press on a bed until that finger lifts.
 var _stroke := false
+## True from a bare-hand press on a pullable bed until that finger lifts. While
+## it lasts the drag is the crop's move, not a pan: the camera holds still, the
+## way it holds still for a stroke.
+var _gesture := false
+var _gesture_bed := -1
+var _gesture_centre := Vector2.ZERO
+var _track := PackedVector2Array()
 var _last_grass_tap := -10.0
 var _clock := 0.0
 
@@ -536,11 +562,20 @@ func _down(at: Vector2) -> bool:
 	_finger_last = at
 	_travelled = 0.0
 	_stroke = false
+	_gesture = false
+	_track = PackedVector2Array()
 	if brush_armed:
 		var bed := bed_under(at)
 		if bed >= 0:
 			_stroke = true
 			stroke_swept.emit(bed)
+	elif gesture_bed_check.is_valid():
+		var bed := bed_under(at)
+		if bed >= 0 and bool(gesture_bed_check.call(bed)):
+			_gesture = true
+			_gesture_bed = bed
+			_gesture_centre = bed_screen_position(bed)
+			_track.append(at)
 	return true
 
 
@@ -549,6 +584,25 @@ func _down(at: Vector2) -> bool:
 ## throw away the toolbar under his finger and the combo he is counting.
 func stroking() -> bool:
 	return _stroke
+
+
+## The screen looked at a finished pull and ruled "that was a pan after all".
+## Catch the world up by the NET distance the finger travelled -- one jump, not
+## a replay of the drag. A replay would wiggle the camera through every waggle
+## of a failed shake, and a camera that dances reads as broken.
+func pan_by(by: Vector2) -> void:
+	if by == Vector2.ZERO:
+		return
+	camera.pan(by)
+	_settle()
+
+
+## The plant under a pulling finger leans with it. Pure forwarding: the world
+## never decides what a lean means, only which bed it landed on.
+func gesture_lean(index: int, offset: Vector2) -> void:
+	if index < 0 or index >= _beds.size():
+		return
+	(_beds[index] as PlotView).lean(offset)
 
 
 func add_blocker(node: Control) -> void:
@@ -568,6 +622,15 @@ func _blocked(at: Vector2) -> bool:
 func _moved(at: Vector2) -> void:
 	if _finger == -1:
 		return
+	if _gesture:
+		# A pull never pans -- the ground must sit still while the crop comes
+		# loose, exactly as it does under a stroke. Travel keeps counting so
+		# _up can still tell a pull from a press that wobbled.
+		_travelled += _finger_last.distance_to(at)
+		_track.append(at)
+		gesture_moved.emit(_gesture_bed, at - _finger_from)
+		_finger_last = at
+		return
 	if _stroke:
 		# A stroke never pans. One report per event is enough -- the events
 		# arrive far closer together than beds do, so a sweep cannot jump
@@ -585,6 +648,22 @@ func _moved(at: Vector2) -> void:
 
 
 func _up(at: Vector2) -> void:
+	if _gesture:
+		_gesture = false
+		# The finger left, whatever the verdict: settle the plant first, so the
+		# tap-that-wobbled path -- which never reaches the screen's finish
+		# handler -- cannot leave a bed leaning at nothing.
+		gesture_moved.emit(_gesture_bed, Vector2.ZERO)
+		if _travelled > FarmCamera.TAP_SLOP:
+			# A real pull attempt, however clumsy: the screen judges it.
+			var net := Vector2.ZERO
+			if _track.size() >= 2:
+				net = _track[_track.size() - 1] - _track[0]
+			gesture_finished.emit(_gesture_bed, _track, _gesture_centre, net)
+		else:
+			press_at(at)          # a press on the bed that wobbled, not a pull
+		_track = PackedVector2Array()
+		return
 	if _stroke:
 		_stroke = false
 		stroke_ended.emit()
@@ -613,6 +692,12 @@ func press_at(at: Vector2) -> void:
 		camera.look_at(Layout.plot_at(slot))
 		_settle()
 		expansion_pressed.emit(slot)
+		return
+	# The dog, last of the claimable things and first of the nothing-happens
+	# ones: a hand on his head is a greeting the world answers itself, with no
+	# save and no signal, because there is no state anywhere to change.
+	if _dog != null and is_instance_valid(_dog) and _dog.pet_at(at, camera):
+		_dog.pet()
 		return
 	_grass_tap(at)
 

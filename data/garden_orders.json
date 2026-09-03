@@ -135,5 +135,100 @@
     },
     "unlock_condition": "level:5",
     "completion_transaction_key": "farm_order_bear_orchard_basket"
+  },
+  {
+    "id": "daily_carrot_basket",
+    "customer_id": "bear",
+    "customer_icon": "teddy",
+    "name_key": "npc.bear",
+    "requirements": {
+      "carrot": 3
+    },
+    "rewards": {
+      "coins": 12
+    },
+    "unlock_condition": "",
+    "recurring": true,
+    "completion_transaction_key": "farm_order_daily_carrot_basket"
+  },
+  {
+    "id": "daily_berry_box",
+    "customer_id": "puppy",
+    "customer_icon": "paw",
+    "name_key": "npc.puppy",
+    "requirements": {
+      "strawberry": 2,
+      "tomato": 1
+    },
+    "rewards": {
+      "coins": 26
+    },
+    "unlock_condition": "",
+    "recurring": true,
+    "completion_transaction_key": "farm_order_daily_berry_box"
+  },
+  {
+    "id": "daily_pea_run",
+    "customer_id": "robot",
+    "customer_icon": "robot",
+    "name_key": "npc.robot",
+    "requirements": {
+      "peas": 3,
+      "carrot": 2
+    },
+    "rewards": {
+      "coins": 24
+    },
+    "unlock_condition": "level:3",
+    "recurring": true,
+    "completion_transaction_key": "farm_order_daily_pea_run"
+  },
+  {
+    "id": "daily_greens_box",
+    "customer_id": "puppy",
+    "customer_icon": "paw",
+    "name_key": "npc.puppy",
+    "requirements": {
+      "broccoli": 2,
+      "wheat": 2
+    },
+    "rewards": {
+      "coins": 34
+    },
+    "unlock_condition": "level:3",
+    "recurring": true,
+    "completion_transaction_key": "farm_order_daily_greens_box"
+  },
+  {
+    "id": "daily_melon_run",
+    "customer_id": "robot",
+    "customer_icon": "robot",
+    "name_key": "npc.robot",
+    "requirements": {
+      "watermelon": 1,
+      "grape": 2
+    },
+    "rewards": {
+      "coins": 58
+    },
+    "unlock_condition": "level:5",
+    "recurring": true,
+    "completion_transaction_key": "farm_order_daily_melon_run"
+  },
+  {
+    "id": "daily_orchard_basket",
+    "customer_id": "bear",
+    "customer_icon": "teddy",
+    "name_key": "npc.bear",
+    "requirements": {
+      "apple": 2,
+      "orange": 2
+    },
+    "rewards": {
+      "coins": 78
+    },
+    "unlock_condition": "level:5",
+    "recurring": true,
+    "completion_transaction_key": "farm_order_daily_orchard_basket"
   }
 ]

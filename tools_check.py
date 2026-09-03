@@ -763,6 +763,33 @@ if os.path.exists("data/garden_orders.json"):
             errors.append(f"garden_orders.json: order '{oid}' asks for icon "
                           f"'{icon}', which IconLibrary cannot draw")
 
+# --- 5u. the day's little jobs have to be findable, fillable and worth it
+if os.path.exists("data/garden_dailies.json"):
+    dailies = json.load(open("data/garden_dailies.json"))
+    seen_tasks = set()
+    for task in dailies:
+        tid = str(task.get("id", ""))
+        if tid == "":
+            errors.append("garden_dailies.json: a daily task with no id")
+            continue
+        if tid in seen_tasks:
+            errors.append(f"garden_dailies.json: duplicate daily id '{tid}' "
+                          f"-- progress is recorded by id, so two tasks "
+                          f"sharing one would fill each other")
+        seen_tasks.add(tid)
+        if not isinstance(task.get("target", 0), int) \
+                or int(task.get("target", 0)) <= 0:
+            errors.append(f"garden_dailies.json: task '{tid}' has target "
+                          f"{task.get('target')!r}")
+        if int(task.get("coins", 0)) <= 0:
+            errors.append(f"garden_dailies.json: task '{tid}' pays nothing")
+        if str(task.get("name_key", "")) == "":
+            errors.append(f"garden_dailies.json: task '{tid}' has no name_key")
+        icon = str(task.get("icon", ""))
+        if icon != "" and icon not in order_icon_names:
+            errors.append(f"garden_dailies.json: task '{tid}' icon '{icon}' "
+                          f"is not drawable")
+
 # --- 5o. a level that is not on the island has to say where its exit goes
 #
 # quit_level() falls back to the world map, which is the right answer for the

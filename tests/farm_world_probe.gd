@@ -40,7 +40,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 675
+const CHECKS_EXPECTED := 683
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -870,6 +870,16 @@ func _redraw() -> void:
 	await get_tree().process_frame
 
 
+func _find_named(node: Node, wanted: String) -> Node:
+	if node.name == wanted:
+		return node
+	for child in node.get_children():
+		var hit := _find_named(child, wanted)
+		if hit != null:
+			return hit
+	return null
+
+
 ## Scrub back and forth across one bed, in ONE stroke. What a child does when
 ## scrubbing is satisfying, which it is.
 func _scrub(centre: Vector2, reach: float) -> void:
@@ -1024,6 +1034,16 @@ func _one_stroke_never_pays_twice() -> void:
 
 	var yield_count := maxi(int(GameData.get_crop("strawberry")
 		.get("harvest_amount", 1)), 1)
+	var flight: Node = _find_named(_garden, "HarvestFlight_strawberry")
+	_ok(flight != null, "brush harvesting keeps the strawberry visible while it flies")
+	if flight != null:
+		_ok(str(flight.get_meta("crop_id", "")) == "strawberry",
+			"the brush flight keeps the crop after the bed resets")
+		_ok(int(flight.get_meta("amount", 0)) == yield_count,
+			"the brush flight keeps the crop's real harvest amount")
+	var yield_label: Node = _find_named(_garden, "HarvestYield")
+	_ok(yield_label is Label and str((yield_label as Label).text) == "x%d" % yield_count,
+		"a brush harvest says the real yield, not one picked bed")
 	_ok(Barn.count("strawberry") == yield_count,
 		"three passes of one stroke fill the barn exactly once (%d, not %d)"
 			% [yield_count, Barn.count("strawberry")])

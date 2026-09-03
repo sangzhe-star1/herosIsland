@@ -13,8 +13,10 @@ extends Node
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 
 const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
 const NOON := 1_699_963_200
@@ -31,7 +33,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 352
+const CHECKS_EXPECTED := 544
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -88,12 +90,21 @@ func _run_on_a(window: Vector2i) -> void:
 	await _a_harvest_is_paid_for_once()
 	await _handing_an_order_over_pays_once()
 	await _the_lesson_happens_once_in_a_childhood()
+	await _a_resumed_garden_redraws_settled_beds()
 	await _a_break_is_offered_not_pushed()
 	await _there_is_a_way_out()
 	await _the_decorating_door_and_its_furniture()
 	await _the_bear_teaches_once_and_it_sticks()
 	await _the_kitchen_asks_before_ingredients_leave()
 	await _fourteen_seeds_take_turns()
+	await _the_next_step_and_barn_shortcut_are_honest()
+	await _a_ripe_bed_comes_out_when_pulled()
+	await _the_garden_moves_while_he_watches()
+	await _the_board_never_runs_dry()
+	await _the_market_shows_what_things_are_worth()
+	await _gold_shines_and_the_dog_says_hello()
+	await _the_day_has_its_own_little_jobs()
+	await _the_challenge_door_shows_what_is_next()
 
 	_close()
 
@@ -282,6 +293,19 @@ func _tapping_a_ripe_bed_fills_the_barn() -> void:
 		"still turned over, so the next seed can go straight in")
 	_ok(not Farm.is_ready(_plots()[3]),
 		"and nothing left to pick")
+	var flight: Node = _find_named(_garden, "HarvestFlight_strawberry")
+	_ok(flight != null, "tap harvesting keeps the strawberry visible while it flies")
+	if flight != null:
+		_ok(str(flight.get_meta("crop_id", "")) == "strawberry",
+			"the flight remembers the crop after the bed is reset")
+		_ok(int(flight.get_meta("amount", 0)) == expected,
+			"the flight remembers the crop's real harvest amount")
+	var yield_label: Node = _find_named(_garden, "HarvestYield")
+	_ok(yield_label is Label and str((yield_label as Label).text) == "x%d" % expected,
+		"tap harvesting says the real yield, not one picked bed")
+	await get_tree().create_timer(0.5).timeout
+	_ok(_find_named(_garden, "HarvestFlight_strawberry") == null,
+		"the short harvest flight cleans itself up")
 
 	# Tapping the empty bed again must not pay a second time.
 	await _tap(_bed(3))
@@ -293,6 +317,53 @@ func _tapping_a_ripe_bed_fills_the_barn() -> void:
 	var paid: Array = SaveManager.data["farm"].get("paid_harvests", [])
 	_ok("farm_harvest_plot_4_7" in paid,
 		"the harvest is recorded against the bed and the planting it came from")
+
+
+## The app settles the save on resume. The world stays in place, so this asks
+## whether its existing PlotView redraws instead of showing the old seed.
+func _a_resumed_garden_redraws_settled_beds() -> void:
+	var now := GameClock.now_unix()
+	var plots := _plots()
+	var plot: Dictionary = plots[0]
+	plot["state"] = Farm.SEEDED
+	plot["crop_id"] = "carrot"
+	plot["growth_stage"] = 0
+	plot["growth_progress"] = 0.0
+	plot["water_level"] = 1.0
+	plot["care_event"] = ""
+	plot["care_completed"] = false
+	plot["growth_override_seconds"] = 0
+	plot["planted_at"] = now
+	plot["last_updated_at"] = now
+	plots[0] = plot
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["plots"] = plots
+	farm["last_seen_at"] = now
+	farm["clock_high_water"] = now
+	SaveManager.data["farm"] = farm
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var world: Node = _garden.get("_world")
+	var beds: Array = world.get("_beds")
+	var bed: Node = beds[0]
+	var before := str(bed.get("_looked_like"))
+	GameClock.advance_test(5 * 60)
+	GameManager._notification(NOTIFICATION_APPLICATION_RESUMED)
+	for i in range(3):
+		await get_tree().process_frame
+
+	var grown: Dictionary = _plots()[0]
+	var after := str(bed.get("_looked_like"))
+	_ok(int(grown.get("growth_stage", 0)) > 0
+			or float(grown.get("growth_progress", 0.0)) > 0.0,
+		"resume settles the planted crop before the garden continues")
+	_ok(after != before,
+		"resume redraws the existing bed instead of leaving the old seed picture")
+	_ok(after == str(bed.call("_fingerprint", grown)),
+		"the resumed bed fingerprint matches the newly settled save")
 
 
 ## The harvest is paid for ONCE, proved the three ways it can be asked twice.
@@ -776,15 +847,18 @@ func _fourteen_seeds_take_turns() -> void:
 	var all_l3 := ["bear_carrots", "robot_supply", "puppy_berries",
 		"robot_wheat_run", "bear_pumpkin_treat", "puppy_pea_picnic"]
 	board = _garden.call("_orders_for_board", all_l3)
-	# 不只数张数：3 级农场干完了 3 级的活，板上必须是回执，不许有
-	# 5 级的活提前挂出来——只数 size 的话，等级门被拆了这里照样绿。
-	var receipts_only := board.size() == 3
+	# 不只数张数：3 级农场干完了 3 级的活，板上不许有 5 级的活提前挂
+	# 出来——只数 size 的话，等级门被拆了这里照样绿。故事单谢完之后，
+	# 板上的活是本级别的周期单（看板永远有活干，这是周期单的职责）；
+	# 回执只在故事单还没谢完的时候垫空位。
+	var no_future_work := board.size() == 3
 	for entry in board:
-		if not (str((entry as Dictionary).get("id", "")) in all_l3):
-			receipts_only = false
-	_ok(receipts_only,
-		"a level-3 board with nothing left to do shows receipts, "
-		+ "never level-5 work ahead of its level")
+		var gate := str((entry as Dictionary).get("unlock_condition", ""))
+		if gate.begins_with("level:") and int(gate.substr(6)) > 3:
+			no_future_work = false
+	_ok(no_future_work,
+		"a level-3 board with the story work done shows its own level's "
+		+ "recurring work, never level-5 work ahead of its level")
 	SaveManager.data["farm"]["farm_xp"] = 200
 	board = _garden.call("_orders_for_board", ["bear_carrots", "robot_supply",
 		"puppy_berries", "robot_wheat_run", "bear_pumpkin_treat",
@@ -800,6 +874,146 @@ func _fourteen_seeds_take_turns() -> void:
 	var cards: Array = []
 	_collect_order_cards(_garden, cards)
 	_ok(cards.size() == 3, "the drawn board holds exactly three cards")
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+
+## The added guidance is not a second quest system: when a ripe crop exists it
+## names that crop, leaves the bed uncovered, and the visible barn card really
+## opens the old barn panel. This is run through both screen shapes because the
+## ribbon belongs in the spare shelf lane and must never cover a target bed.
+func _the_next_step_and_barn_shortcut_are_honest() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["tutorial_completed"] = true
+	farm["farm_xp"] = 0
+	farm["unlocked_crops"] = ["carrot", "corn", "strawberry", "tomato"]
+	var plots: Array = []
+	for i in range(Farm.PLOT_COUNT):
+		plots.append(Farm.fresh_plot(i))
+	var ripe: Dictionary = plots[0]
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	ripe["growth_stage"] = 4
+	ripe["growth_progress"] = 1.0
+	ripe["plant_cycle_id"] = 17
+	plots[0] = ripe
+	farm["plots"] = plots
+	SaveManager.data["farm"] = farm
+	SaveManager.data["farm_orders"] = {"delivered": []}
+	SaveManager.data["farm"]["warehouse"] = {"carrot": 20}
+	_garden.set("_lesson_running", false)
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var task: Node = _find_named(_garden, "NextTask")
+	_ok(task is Button, "the garden gives one visible next step after the lesson")
+	var task_rect := Rect2()
+	if task is Button:
+		var ribbon := task as Button
+		task_rect = Rect2(ribbon.global_position, ribbon.size)
+		_ok(ribbon.visible and ribbon.size.x >= 240.0,
+			"the next-step card remains a readable, visible touch target")
+		_ok(str(ribbon.get_meta("kind", "")) == "harvest",
+			"a ripe crop wins the next-step ribbon")
+		_ok(int(ribbon.get_meta("plot_index", -1)) == 0,
+			"the ribbon names the same ripe plot the farm points at")
+		var half := _bed_box() * 0.5
+		var bed := Rect2(_bed(0) - half, half * 2.0)
+		_ok(not task_rect.intersects(bed),
+			"the next-step ribbon leaves its target crop tappable")
+		var shelf: Control = _garden.get("_shelf")
+		_ok(shelf != null and ribbon.get_index() > shelf.get_index(),
+			"the next-step ribbon sits above the shelf instead of behind it")
+		_ok(shelf != null and Rect2(shelf.global_position, shelf.size) \
+			.encloses(task_rect.grow(5.0)),
+			"the breathing next-step card stays inside the shelf")
+		var tools: Dictionary = _garden.get("_tool_buttons")
+		var basket_tool: Variant = tools.get("basket")
+		if basket_tool is Control:
+			_ok(not task_rect.grow(5.0).intersects(Rect2(
+				(basket_tool as Control).global_position,
+				(basket_tool as Control).size)),
+				"the next-step card leaves the harvest tool tappable")
+		var decor: Node = _find_named(_garden, "DecoDoor")
+		if decor is Control:
+			_ok(not task_rect.grow(5.0).intersects(Rect2((decor as Control).global_position,
+				(decor as Control).size)),
+				"the next-step card leaves the sticker-book door tappable")
+	# A ready crop is now gone; the already-full basket should be handed over
+	# before the screen asks for another planting turn.
+	plots = _plots()
+	plots[0]["state"] = Farm.TILLED
+	plots[0]["crop_id"] = ""
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	var delivery: Node = _find_named(_garden, "NextTask")
+	_ok(delivery is Button and str((delivery as Button).get_meta("kind", "")) == "deliver",
+		"a fillable order comes before asking for another planting turn")
+	var delivery_rect := Rect2((delivery as Control).global_position,
+		(delivery as Control).size) if delivery is Control else Rect2()
+	# This is the actual shelf press, not a direct call to the hint helper. The
+	# board begins outside the farm window, so the delivery ribbon must first
+	# reuse the FarmWorld camera and only then draw its existing finger. The
+	# child still has to open and hand over the physical order himself.
+	var world = _garden.get("_world")
+	var delivered_before_press: Array = SaveManager.data["farm_orders"]["delivered"].duplicate()
+	if delivery is Button and world != null:
+		var hints_before_press := _tutorial_count()
+		await _tap(delivery_rect.get_center())
+		var board_at: Vector2 = world.facility_screen_position("orders")
+		_ok(world.camera.inside(board_at),
+			"pressing the delivery ribbon brings the visitor board into the farm window")
+		_ok(_tutorial_count() == hints_before_press + 1,
+			"the delivery ribbon replays the existing finger after moving to the board")
+		_ok(SaveManager.data["farm_orders"]["delivered"] == delivered_before_press,
+			"pressing the delivery ribbon never hands the order over by itself")
+		await _tap(board_at)
+		_ok(bool(_garden.get("_orders_open")),
+			"the visible visitor board still opens its existing order panel after guidance")
+		_garden.call("_close_panels")
+		await get_tree().process_frame
+		_clear_tutorials()
+	else:
+		_ok(false, "a delivery ribbon can be pressed to find the visitor board")
+		_ok(false, "a delivery ribbon has a visible board target in the farm window")
+		_ok(false, "a delivery ribbon replays the order-board finger")
+		_ok(false, "a delivery ribbon leaves the order for the child to hand over")
+	var before_hints := _tutorial_count()
+	_garden.call("_show_the_move")
+	await get_tree().process_frame
+	_ok(_tutorial_count() == before_hints + 1,
+		"a fillable order is guided to the existing visitor board")
+	_clear_tutorials()
+	var delivered_before: Array = SaveManager.data["farm_orders"]["delivered"].duplicate()
+	_garden.call("_do_the_hard_part")
+	await get_tree().process_frame
+	_ok(SaveManager.data["farm_orders"]["delivered"] == delivered_before,
+		"the strongest delivery hint still leaves handing the order over to the child")
+	_clear_tutorials()
+
+	var barn: Node = _find_named(_garden, "BarnShortcut")
+	_ok(barn is Button and (barn as Button).pressed.get_connections().size() > 0,
+		"the visible barn count is a real shortcut to the existing barn panel")
+	# Opening the real board rebuilds the shelf and frees the old button; the
+	# rectangle recorded before the touch is the stable thing to compare here.
+	if barn is Control and delivery_rect.size != Vector2.ZERO:
+		_ok(not delivery_rect.grow(5.0).intersects(Rect2((barn as Control).global_position,
+			(barn as Control).size)),
+			"the rebuilt delivery card leaves the barn shortcut tappable")
+	var fill: Node = _find_named(_garden, "BarnCapacityFill")
+	_ok(fill is Control and (fill as Control).size.x > 0.0,
+		"the barn count also has a visible capacity fill")
+	if barn is Button:
+		(barn as Button).pressed.emit()
+		for i in range(3):
+			await get_tree().process_frame
+		_ok(bool(_garden.get("_barn_open")),
+			"pressing the shelf barn opens the existing barn panel")
 	_garden.call("_close_panels")
 	await get_tree().process_frame
 
@@ -828,6 +1042,20 @@ func _board_ids(board: Array) -> Array:
 	for order in board:
 		ids.append(str((order as Dictionary).get("id", "")))
 	return ids
+
+
+func _tutorial_count() -> int:
+	var found := 0
+	for child in (_garden.get("_play") as Node).get_children():
+		if child is Tutorial:
+			found += 1
+	return found
+
+
+func _clear_tutorials() -> void:
+	for child in (_garden.get("_play") as Node).get_children():
+		if child is Tutorial:
+			(child as Tutorial).skip()
 
 
 func _find_named(node: Node, wanted: String) -> Node:
@@ -1354,3 +1582,719 @@ func _every_control(root: Node) -> Array:
 			out.append(child)
 		i += 1
 	return out
+
+
+
+## Force a bed ripe, with a fresh planting id and an empty barn, the way every
+## other ripening in this probe does: through the save, then a rebuild. The
+## wait at the top is the harvest lock expiring -- 0.45 seconds of real time
+## during which the bed refuses hands, and a probe that forgets it tests a
+## lock instead of a gesture.
+func _ripen(index: int, crop_id: String, cycle: int) -> void:
+	await get_tree().create_timer(0.6).timeout
+	var plots := _plots()
+	plots[index]["crop_id"] = crop_id
+	plots[index]["growth_stage"] = 4
+	plots[index]["plant_cycle_id"] = cycle
+	plots[index]["state"] = Farm.READY
+	SaveManager.data["farm"]["paid_harvests"] = []
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+## Which horizontal direction still has world left to pan into, from where the
+## camera stands. The camera clamps at the world's edge, and the edge is close
+## enough to the opening view that "drag sideways and watch it move" needs the
+## answer ASKED, not assumed -- the same drag can be free on one screen shape
+## and pinned on the other.
+func _roomiest_side() -> float:
+	var cam = _camera()
+	var left := Layout.clamp_centre(
+		cam.centre - Vector2(160.0, 0.0) / maxf(cam.zoom, 0.05),
+		cam.window.size, cam.zoom)
+	return -1.0 if not is_equal_approx(left.x, cam.centre.x) else 1.0
+
+
+## The pull. A ripe bed, a bare hand, and the carrot's own move -- up.
+##
+## Through the REAL input pipeline, because the thing being tested is a
+## routing decision no handler-level poke can reach: a drag that STARTS on a
+## ripe bed belongs to the crop, not to the camera. Everything the farm used
+## to do with that drag -- pan, and only pan -- has to still be true for every
+## other bed and every other drag.
+func _a_ripe_bed_comes_out_when_pulled() -> void:
+	var world: Node = _garden.get("_world")
+	_ok(world.get("gesture_bed_check").is_valid(),
+		"the farm asks the screen which beds want a pull")
+	_camera().go_home()
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	# The move itself: press the bed, drag up 130px, let go. Up is the carrot's
+	# own direction (drag, cone 35 degrees, 90px minimum).
+	await _ripen(3, "carrot", 11)
+	await _finger(_bed(3), _bed(3) + Vector2(0.0, -130.0))
+	var barn: Dictionary = SaveManager.data["farm"].get("warehouse", {})
+	_ok(int(barn.get("carrot", 0)) == int(GameData.get_crop("carrot")
+			.get("harvest_amount", 0)),
+		"pulling a ripe carrot up out of its bed picks it")
+	_ok(str(_plots()[3].get("crop_id", "")) == "",
+		"and the bed is empty behind it")
+	_ok("farm_harvest_plot_4_11" in SaveManager.data["farm"]
+			.get("paid_harvests", []),
+		"the pulled harvest is paid for exactly once, like a tapped one")
+
+	# Too short to be a pull: not a harvest, and not silence either -- the
+	# camera catches up by what the finger did, so a pan that started on a
+	# carrot still pans.
+	await _ripen(3, "carrot", 12)
+	await _finger(_bed(3), _bed(3) + Vector2(0.0, -40.0))
+	barn = SaveManager.data["farm"].get("warehouse", {})
+	_ok(int(barn.get("carrot", 0)) == 0,
+		"a 40px tug is not a harvest -- the crop did not come loose")
+	_ok(str(_plots()[3].get("state", "")) == Farm.READY,
+		"and the bed is still holding its carrot")
+
+	# The wrong direction: sideways is a pan that happened to start on a
+	# carrot. The plant leans while it lasts, then settles, and nothing is
+	# picked and nothing is scolded.
+	await _ripen(3, "carrot", 13)
+	var side := _roomiest_side()
+	var before: Vector2 = _camera().centre
+	var down := InputEventScreenTouch.new()
+	down.index = 0
+	down.pressed = true
+	down.position = _glass(_bed(3))
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = _glass(_bed(3) + Vector2(130.0 * side, 0.0))
+	Input.parse_input_event(drag)
+	await get_tree().process_frame
+	var beds: Array = world.get("_beds")
+	var bed: Node = beds[3]
+	_ok(absf(float(bed.get("_lean_rot_to"))) > 0.0,
+		"a sideways drag leans the plant while the finger is down")
+	_ok(is_equal_approx(float(bed.get("_lean_lift_to")), 0.0),
+		"and only sideways -- the lift answers an upward pull")
+	_ok(is_equal_approx(_camera().centre.x, before.x),
+		"and the camera holds still while the finger holds the crop")
+	var up := InputEventScreenTouch.new()
+	up.index = 0
+	up.pressed = false
+	up.position = _glass(_bed(3) + Vector2(130.0 * side, 0.0))
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(is_equal_approx(float(bed.get("_lean_rot_to")), 0.0),
+		"the plant settles the moment the finger leaves")
+	barn = SaveManager.data["farm"].get("warehouse", {})
+	_ok(int(barn.get("carrot", 0)) == 0,
+		"a sideways drag picks nothing")
+	_ok(not is_equal_approx(_camera().centre.x, before.x),
+		"and the camera pans at the release -- a missed pull is still a pan")
+
+	# A bed that is NOT ripe never claims the drag at all. The proof that the
+	# pan is the LIVE one, not the gesture's catch-up jump, is that the camera
+	# has already moved while the finger is still down.
+	await _ripen(2, "corn", 21)
+	var plots := _plots()
+	plots[2]["state"] = Farm.GROWING
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	side = _roomiest_side()
+	before = _camera().centre
+	down = InputEventScreenTouch.new()
+	down.index = 0
+	down.pressed = true
+	down.position = _glass(_bed(2))
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+	drag = InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = _glass(_bed(2) + Vector2(130.0 * side, 0.0))
+	Input.parse_input_event(drag)
+	await get_tree().process_frame
+	_ok(not is_equal_approx(_camera().centre.x, before.x),
+		"a drag on a growing bed pans WHILE the finger moves, as it always did")
+	up = InputEventScreenTouch.new()
+	up.index = 0
+	up.pressed = false
+	up.position = _glass(_bed(2) + Vector2(130.0 * side, 0.0))
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(str(_plots()[2].get("state", "")) == Farm.GROWING,
+		"and the growing corn is still growing")
+	_ok(int(SaveManager.data["farm"].get("warehouse", {})
+			.get("corn", 0)) == 0,
+		"nothing was picked from it either")
+
+	# The tap still picks. The gesture may be the show, but "there is no wrong
+	# tap" is written above the whole screen and the routing change must not
+	# have cost it.
+	await _ripen(3, "carrot", 31)
+	await _tap(_bed(3))
+	_ok(int(SaveManager.data["farm"].get("warehouse", {})
+			.get("carrot", 0)) == int(GameData.get_crop("carrot")
+			.get("harvest_amount", 0)),
+		"a plain tap on a ripe bed still picks it")
+
+
+
+
+## The garden's quiet clock: every twenty seconds it re-asks the clock, so a
+## bed whose minute arrives mid-visit turns ripe IN FRONT of him instead of on
+## his next visit. Three rules here: growth that crosses a boundary rebuilds
+## the furniture; growth that only inches a plant taller redraws the bed but
+## never rebuilds over his head; and produce waiting by the barn's door slips
+## in on the same beat. Driven through the tick's own body, not the wallclock
+## timer -- a probe that waits twenty seconds per beat is a probe nobody runs.
+##
+## The crop is corn on purpose: its one job (weeds) is answered for this
+## planting and corn never thirsts, so the tick's growth is uninterrupted and
+## every timing below reads off the catalogue instead of off a wall clock.
+##
+## ATOMIC ON PURPOSE. Sections before this one close and reopen the garden
+## with the test clock cleared for a frame, and a real-time beat can write
+## real-wall-clock anchors in that gap -- anchors in the FUTURE of the test
+## clock freeze every settle after them. So the anchors are pinned and every
+## clock-step, tick and verdict below runs in ONE frame with no await for a
+## real-time beat to slip into; the rebuilds the beats queue are drained at
+## the two marked pauses, where every verdict is either already read or
+## interleaving-proof.
+func _the_garden_moves_while_he_watches() -> void:
+	var scene: Node = _garden
+	var world: Node = scene.get("_world")
+	# The clock comes first, and it is not paranoia: the lesson and break
+	# sections close and reopen the garden with the clock cleared for a frame,
+	# and nothing after them sets it again -- this is the one section that
+	# needs a KNOWN clock rather than a hand-crafted state, so it sets its own.
+	GameClock.set_test_now(NOON, 0)
+	var stages: Array = GameData.get_crop("corn").get("stage_seconds", [])
+	_ok(stages.size() >= 3, "corn has the stages the quiet tick needs to cross")
+	var plots := _plots()
+	plots[1]["state"] = Farm.GROWING
+	plots[1]["crop_id"] = "corn"
+	plots[1]["growth_stage"] = 1
+	plots[1]["growth_progress"] = 0.5
+	plots[1]["water_level"] = 1.0
+	plots[1]["care_event"] = ""
+	plots[1]["care_completed"] = true    # this cycle's weeds are pulled, so
+	# the one pause corn can ask for is already answered
+	plots[1]["growth_override_seconds"] = 0
+	plots[1]["planted_at"] = NOON - 600
+	plots[1]["last_updated_at"] = NOON - 600
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# Pin the anchors NOW, after the drains -- this and every clock-step below
+	# stay in one frame, so no real-time beat can move them again.
+	SaveManager.data["farm"]["last_seen_at"] = NOON
+	SaveManager.data["farm"]["clock_high_water"] = NOON
+	plots[1]["last_updated_at"] = NOON - 600
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+
+	# A beat with no time in it: nothing grows, and nothing is asked of the
+	# ribbon, the dog or the hints.
+	scene.call("_garden_tick_once")
+	_ok(int(_plots()[1].get("growth_stage", 0)) == 1,
+		"a quiet tick with no time in it grows nothing")
+	_ok(not bool(scene.get("_rebuild_queued")),
+		"and asks nothing of the furniture")
+
+	# The stage boundary crosses mid-visit: the bed moves, and the furniture
+	# moves with it -- "the corn is taller" is also a fact the ribbon says.
+	GameClock.set_test_now(NOON + int(float(stages[1]) * 0.6), 0)
+	scene.call("_garden_tick_once")
+	_ok(int(_plots()[1].get("growth_stage", 0)) == 2,
+		"a stage boundary that passes mid-visit crosses in front of him")
+	_ok(bool(scene.get("_rebuild_queued")),
+		"and the furniture rebuilds to say what it means")
+	await get_tree().process_frame
+	await get_tree().process_frame        # drain the beat's rebuild
+
+	# A few more seconds: the plant inches taller on its bed, and the
+	# furniture stays put. A rebuild for every inch would take a pointing
+	# finger down with it, twenty seconds at a time.
+	var beds: Array = world.get("_beds")
+	var looked_before: String = str(beds[1].get("_looked_like"))
+	GameClock.set_test_now(NOON + int(float(stages[1]) * 0.6) \
+		+ maxi(int(float(stages[2]) * 0.02), 5), 0)
+	scene.call("_garden_tick_once")
+	_ok(not bool(scene.get("_rebuild_queued")),
+		"a plant that only inched taller rebuilds no furniture")
+	_ok(str(beds[1].get("_looked_like")) != looked_before,
+		"but the bed itself was redrawn -- the inch is on screen")
+	await get_tree().process_frame
+	await get_tree().process_frame        # drain
+
+	# And the minute that matters: the corn ripens while he stands there,
+	# with one pop and one wave, and the screen points at it.
+	var total := 0
+	for s in stages:
+		total += int(s)
+	GameClock.set_test_now(NOON + total, 0)
+	scene.call("_garden_tick_once")
+	_ok(Farm.is_ready(_plots()[1]),
+		"a corn whose minute arrives mid-visit turns ripe in front of him")
+	_ok(bool(scene.get("_rebuild_queued")),
+		"and the screen says so -- the ribbon follows the ripeness")
+	await get_tree().process_frame
+	await get_tree().process_frame        # drain
+
+	# The same beat does the housekeeping: whatever has been waiting by the
+	# barn's door goes in when there is room, and the shelf count follows --
+	# even though not one bed has moved.
+	var before_count := int(Barn.count("carrot"))
+	Barn.put("carrot", 2, Barn.BASKET)
+	scene.call("_garden_tick_once")
+	_ok(int(Barn.count("carrot")) == before_count + 2,
+		"produce waiting by the door slips into the barn on the quiet tick")
+	_ok(bool(scene.get("_rebuild_queued")),
+		"and the shelf count on screen hears about it")
+	await get_tree().process_frame
+	await get_tree().process_frame        # let the last rebuild land
+
+
+## The board after the story. Every friend's order thanked, the farm grown up,
+## and the board STILL offering work -- recurring cards, delivered again and
+## again, paying again and again, never ticking grey. This is the loop the
+## whole farm rests on once the narrative runs out, so it gets the same
+## once-only scrutiny the story orders got.
+func _the_board_never_runs_dry() -> void:
+	var scene: Node = _garden
+	# Max the farm out: every story order delivered, every band showing, and
+	# every bed turned but empty -- so the ribbon's best advice is "deliver".
+	var story_ids: Array = []
+	for order in GameData.garden_orders:
+		if not bool(order.get("recurring", false)):
+			story_ids.append(str(order.get("id", "")))
+	var plots := _plots()
+	for i in range(plots.size()):
+		plots[i] = Farm.fresh_plot(i)
+		plots[i]["state"] = Farm.TILLED
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.data["farm"]["farm_xp"] = 200          # level 5: every band is on
+	SaveManager.data["farm_orders"] = {"delivered": story_ids}
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var board: Array = scene.call("_orders_for_board",
+		SaveManager.data["farm_orders"].get("delivered", []))
+	var recurring_on_board := 0
+	for entry in board:
+		if bool(entry.get("recurring", false)):
+			recurring_on_board += 1
+	_ok(recurring_on_board == 3,
+		"with every friend's order thanked, the board is three recurring cards")
+	_ok(board.size() == 3, "and the board is still full of work")
+
+	# One basket, exactly what the card asks: the delivery takes all of it,
+	# and the empty barn behind it is what makes the double-press honest.
+	var order: Dictionary = board[0]
+	var wants: Dictionary = order.get("requirements", {})
+	var price := int(order.get("rewards", {}).get("coins", 0))
+	for crop_id in wants.keys():
+		Barn.put(str(crop_id), int(wants[crop_id]))
+	SaveManager.save_game()
+
+	var before := Coins.balance()
+	scene.call("_deliver", order)
+	_ok(Coins.balance() == before + price,
+		"delivering a recurring order pays what the card promises")
+	_ok(not (str(order.get("id", ""))
+			in SaveManager.data["farm_orders"]["delivered"]),
+		"and it is never written down as done -- the card stays alive")
+	_ok(int(SaveManager.data["farm_orders"].get("counts", {})
+			.get(str(order.get("id", "")), 0)) == 1,
+		"the delivery is counted, once")
+
+	# Press it again on the same basket: the barn is empty now, so nothing is
+	# taken and nothing is paid -- the barn gate the story orders lean on.
+	scene.call("_deliver", order)
+	_ok(Coins.balance() == before + price,
+		"a second press on the same basket takes nothing and pays nothing")
+
+	# A real second delivery, from a real second basket, pays again.
+	for crop_id in wants.keys():
+		Barn.put(str(crop_id), int(wants[crop_id]))
+	SaveManager.save_game()
+	scene.call("_deliver", order)
+	_ok(Coins.balance() == before + price * 2,
+		"a real second delivery pays again -- the board is a loop, not a lamp")
+	_ok(int(SaveManager.data["farm_orders"].get("counts", {})
+			.get(str(order.get("id", "")), 0)) == 2,
+		"and the count says two")
+	_ok(not (str(order.get("id", ""))
+			in SaveManager.data["farm_orders"]["delivered"]),
+		"while the friends' own ledger stays untouched")
+
+	# One more basket, so the ribbon keeps its oldest instruction.
+	for crop_id in wants.keys():
+		Barn.put(str(crop_id), int(wants[crop_id]))
+	SaveManager.save_game()
+	var task: Dictionary = scene.call("_next_task")
+	_ok(str(task.get("kind", "")) == "deliver",
+		"the next step is still deliver when a recurring order can be filled")
+
+	# Grown-to, not greyed-out: a level 1 farm is offered no recurring work it
+	# cannot grow yet -- the late-band cards are simply not there.
+	SaveManager.data["farm"]["farm_xp"] = 0
+	SaveManager.save_game()
+	board = scene.call("_orders_for_board",
+		SaveManager.data["farm_orders"]["delivered"])
+	var gated := 0
+	for entry in board:
+		var gate := str(entry.get("unlock_condition", ""))
+		if gate.begins_with("level:") and int(gate.substr(6)) > 1:
+			gated += 1
+	_ok(gated == 0,
+		"a level 1 farm is offered no work it cannot grow yet")
+
+
+## The market, with numbers on it. The unit price -- what ONE of a crop is
+## worth -- sits on its chip, and the box he drags piles into grew a way to
+## take things back OUT, one at a time. "Sell three, keep nine" is the number
+## sense the whole barn-to-purse loop teaches, and a trapdoor that swallowed
+## whole piles taught none of it.
+func _the_market_shows_what_things_are_worth() -> void:
+	var scene: Node = _garden
+	# The barn arrives with whatever the sections before this one left in it;
+	# every number below is written against an exactly-twelve barn, so it is
+	# emptied first -- the same courtesy every other ripening here pays.
+	SaveManager.data["farm"]["warehouse"] = {}
+	Barn.put("carrot", 12)
+	SaveManager.save_game()
+	scene.call("_open_panel", "market")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(bool(_garden.get("_market_open")),
+		"the market did not open, so this proves nothing")
+
+	var unit := int(GameData.market_price("carrot"))
+	var price: Node = _find_named(scene, "UnitPrice_carrot")
+	_ok(price is Label and (price as Label).text == str(unit),
+		"the carrot chip says what ONE carrot is worth")
+
+	# The pile, dragged in: the box holds all twelve, exactly as it always
+	# did -- the steppers are an addition, not a replacement.
+	scene.call("_on_market_drop", {"key": "carrot"}, true, true)
+	await get_tree().process_frame
+	_ok(int(_garden.get("_market_sell").get("carrot", 0)) == 12,
+		"dragging the pile in offers the whole pile, as always")
+	var count: Node = _find_named(scene, "BoxCount_carrot")
+	_ok(count is Label and (count as Label).text == "x12",
+		"and the box says what it holds")
+
+	# One back out. The box counts down, and the shelf chip answers with what
+	# is still on the shelf -- the pair of numbers IS the decision.
+	var minus: Node = _find_named(scene, "BoxMinus_carrot")
+	_ok(minus is Button, "the box row has a way to take one back out")
+	if minus is Button:
+		(minus as Button).emit_signal("pressed")
+		await get_tree().process_frame
+	_ok(int(_garden.get("_market_sell")["carrot"]) == 11,
+		"one press takes one carrot back out")
+	for i in range(8):
+		(minus as Button).emit_signal("pressed")
+	await get_tree().process_frame
+	_ok(int(_garden.get("_market_sell")["carrot"]) == 3,
+		"and nine presses leave three in the box")
+	var shelf: Node = _find_named(scene, "PileCount_carrot")
+	_ok(shelf is Label and (shelf as Label).text == "x9",
+		"while the shelf chip says the nine that stayed home")
+
+	# Back in, one at a time, and never past the barn itself.
+	var plus: Node = _find_named(scene, "BoxPlus_carrot")
+	if plus is Button:
+		for i in range(2):
+			(plus as Button).emit_signal("pressed")
+		for i in range(20):
+			(plus as Button).emit_signal("pressed")
+	await get_tree().process_frame
+	_ok(int(_garden.get("_market_sell")["carrot"]) == 12,
+		"the plus stops at everything the barn holds")
+
+	# Down to nothing: the row leaves, the entry leaves, the shelf is whole.
+	if minus is Button:
+		for i in range(12):
+			(minus as Button).emit_signal("pressed")
+	await get_tree().process_frame
+	_ok(not _garden.get("_market_sell").has("carrot"),
+		"minus to zero empties the box for that crop")
+	_ok(_find_named(scene, "BoxMinus_carrot") == null,
+		"and the row leaves with it")
+	shelf = _find_named(scene, "PileCount_carrot")
+	_ok(shelf is Label and (shelf as Label).text == "x12",
+		"and the shelf chip is whole again")
+
+	# The whole point: box five, sell, and SEVEN are still his.
+	scene.call("_on_market_drop", {"key": "carrot"}, true, true)
+	minus = _find_named(scene, "BoxMinus_carrot")
+	if minus is Button:
+		for i in range(7):
+			(minus as Button).emit_signal("pressed")
+	await get_tree().process_frame
+	var purse_before := Coins.balance()
+	scene.call("_sell_pressed")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(Coins.balance() == purse_before + 5 * unit,
+		"selling a part of the pile pays exactly the boxed crop's worth")
+	_ok(Barn.count("carrot") == 7,
+		"and the seven he kept are still in the barn")
+	_ok(_garden.get("_market_sell").is_empty(),
+		"the box is empty after the sale, whatever it sold")
+	# The market STAYS open in real play, but a probe that leaves a 780x430
+	# sheet of blocker standing over the middle of the farm blocks every tap
+	# the sections after it make -- close it the way the child would.
+	scene.call("_close_panels")
+	await get_tree().process_frame
+
+
+## Gold, and the dog. Two rare treats, and the same question about both: does
+## the treat cost anything? Gold must celebrate without moving a single
+## number -- same yield, same purse -- and the dog must answer a hand on his
+## head without growing anything a child could forget to feed.
+func _gold_shines_and_the_dog_says_hello() -> void:
+	var scene: Node = _garden
+	# A golden carrot, forced rare-for-the-probe: ripe, golden, barn empty.
+	await get_tree().create_timer(0.6).timeout
+	var plots := _plots()
+	plots[3]["crop_id"] = "carrot"
+	plots[3]["growth_stage"] = 4
+	plots[3]["plant_cycle_id"] = 41
+	plots[3]["state"] = Farm.READY
+	plots[3]["golden"] = true
+	SaveManager.data["farm"]["paid_harvests"] = []
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var amount := int(GameData.get_crop("carrot").get("harvest_amount", 0))
+	var purse_before := Coins.balance()
+	await _tap(_bed(3))
+	var barn: Dictionary = SaveManager.data["farm"].get("warehouse", {})
+	_ok(int(barn.get("carrot", 0)) == amount,
+		"a golden carrot yields exactly what an ordinary one does -- gold is never a bonus")
+	_ok(Coins.balance() == purse_before,
+		"and the purse did not move either -- gold buys a celebration, not coins")
+	var flight: Node = _find_named(scene, "HarvestFlight_carrot")
+	_ok(flight != null and bool(flight.get_meta("golden", false)),
+		"the flight remembers it flew gold")
+	var fresh_golden: bool = bool(_plots()[3].get("golden", false))
+	_ok(not fresh_golden,
+		"the bed's gold leaves with the harvest, like the crop did")
+
+	# The roll that MAKES gold is a real chance, not a constant true: plant a
+	# batch of beds through the real planting path and expect mostly brown.
+	var golden_plantings := 0
+	var fresh := _plots()
+	for i in range(fresh.size()):
+		fresh[i] = Farm.fresh_plot(i)
+		fresh[i]["state"] = Farm.TILLED
+	SaveManager.data["farm"]["plots"] = fresh
+	SaveManager.save_game()
+	for i in range(fresh.size()):
+		scene.call("_plant_in", i, "carrot")
+	var planted: Array = _plots()
+	var always: bool = true
+	for plot in planted:
+		if not bool(plot.get("golden", false)):
+			always = false
+	_ok(not always,
+		"plantings do not all come up golden -- the roll rolls")
+	_ok(planted.all(func(p: Dictionary) -> bool: return p.has("golden")),
+		"and every planting carries the field, golden or not")
+
+	# The dog. A press on his head gets a reaction -- hearts, not a ledger.
+	var world: Node = scene.get("_world")
+	var dog: Node = world.get("_dog")
+	_ok(dog != null and is_instance_valid(dog), "the farm has its dog")
+	if dog != null and is_instance_valid(dog):
+		var cam = world.get("camera")
+		# Put the dog somewhere nothing else claims -- he follows beds and
+		# boards, and a press that lands on what he is STANDING BESIDE belongs
+		# to that thing, not to him. Walk east until the spot under him is
+		# bed-free and facility-free, park him there, then press his head.
+		var spot: Vector2 = dog.get("position")
+		for i in range(12):
+			var here: Vector2 = cam.call("world_to_screen", spot)
+			if world.call("bed_under", here) < 0 \
+					and world.call("facility_under", here) == "":
+				break
+			spot += Vector2(150.0, 0.0)
+		dog.set("position", spot)
+		dog.set("_target", spot)
+		await get_tree().process_frame
+		# press_at's contract, for direct calls, is the same space its own
+		# helpers answer in -- the viewport's. (Real input events arrive
+		# stretched; a direct call bypasses that pipeline, which is exactly
+		# why it must NOT pre-convert.)
+		var dog_screen: Vector2 = cam.call("world_to_screen",
+			spot + Vector2(0.0, -48.0))
+		world.call("press_at", dog_screen)
+		await get_tree().process_frame
+		_ok(bool(dog.get("_petting")),
+			"a press on the dog is answered with a wag")
+		_ok(_find_named(dog, "PetHeart") != null,
+			"and a heart or two, with nothing written down anywhere")
+	# Let the reaction end before the next section borrows the screen.
+	await get_tree().create_timer(1.2).timeout
+
+
+## The day's little jobs. The three verbs the farm teaches, tallied for one
+## day, claimed once, and rolled clean while he sleeps -- driven through the
+## real verbs (a tap-water, a real pick, a real delivery) because the tally
+## lives in the same actions the child performs.
+func _the_day_has_its_own_little_jobs() -> void:
+	var scene: Node = _garden
+	# A fresh day, clean tallies.
+	GameClock.set_test_now(NOON, 0)
+	SaveManager.data["farm"]["dailies"] = {"date": GameClock.now_date(),
+		"progress": {}, "claimed": []}
+	SaveManager.data["farm"]["paid_harvests"] = []
+	SaveManager.data["farm_orders"] = {"delivered": []}
+	SaveManager.save_game()
+
+	# Water: a thirsty bed, one tap, one tally.
+	var plots := _plots()
+	plots[0]["state"] = Farm.NEEDS_CARE
+	plots[0]["crop_id"] = "carrot"
+	plots[0]["care_event"] = "thirsty"
+	plots[0]["care_completed"] = false
+	plots[0]["growth_stage"] = 1
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _tap(_bed(0))
+	var dailies: Dictionary = SaveManager.data["farm"].get("dailies", {})
+	_ok(int(dailies.get("progress", {}).get("water", 0)) == 1,
+		"watering a thirsty bed fills today's water tally")
+	# The day asks for THREE waterings, and each bed is thirsty once per
+	# planting -- so two more beds get thirsty and two more taps go out.
+	plots = _plots()
+	for i in [1, 2]:
+		plots[i]["state"] = Farm.NEEDS_CARE
+		plots[i]["crop_id"] = "carrot"
+		plots[i]["care_event"] = "thirsty"
+		plots[i]["care_completed"] = false
+		plots[i]["growth_stage"] = 1
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# No paper over the farm: the sections before this one may have left a
+	# panel open, and a tap that lands on a blocked bed is a tap the farm
+	# never hears.
+	scene.call("_close_panels")
+	await get_tree().process_frame
+	await _tap(_bed(1))
+	await _tap(_bed(2))
+	dailies = SaveManager.data["farm"].get("dailies", {})
+	_ok(int(dailies.get("progress", {}).get("water", 0)) == 3,
+		"three waterings fill the tally to its target")
+
+	# Pick: a ripe carrot, one tap, three crops into the tally.
+	await _ripen(3, "carrot", 51)
+	await _tap(_bed(3))
+	dailies = SaveManager.data["farm"].get("dailies", {})
+	_ok(int(dailies.get("progress", {}).get("harvest", 0)) == 3,
+		"picking a bed counts its crops toward the harvest tally")
+
+	# Deliver: the bear's three carrots, handed over through the real path.
+	var order: Dictionary = GameData.garden_orders[0]
+	for crop_id in order.get("requirements", {}).keys():
+		Barn.put(str(crop_id), int(order["requirements"][crop_id]))
+	SaveManager.save_game()
+	scene.call("_deliver", order)
+	dailies = SaveManager.data["farm"].get("dailies", {})
+	_ok(int(dailies.get("progress", {}).get("deliver", 0)) == 1,
+		"handing an order over fills the delivery tally")
+
+	# Claim on the board, once. The second press meets a tick, not a purse.
+	Barn.put("carrot", 2)   # room is irrelevant; the tally is what gates
+	SaveManager.save_game()
+	scene.call("_open_panel", "orders")
+	await get_tree().process_frame
+	var job: Node = _find_named(scene, "DailyJob_water")
+	_ok(job is Button and not (job as Button).disabled,
+		"the finished water job lights up on the board")
+	var purse_before := Coins.balance()
+	if job is Button:
+		(job as Button).emit_signal("pressed")
+		await get_tree().process_frame
+		await get_tree().process_frame
+	_ok(Coins.balance() == purse_before
+			+ int(GameData.garden_dailies[0].get("coins", 0)),
+		"claiming the day's job pays what the card promised")
+	dailies = SaveManager.data["farm"].get("dailies", {})
+	_ok(Dailies.claimed(dailies, Dailies.task_by_id("water")),
+		"and the claim is written down for the rest of the day")
+	# The claim's rebuild threw the old card away; the way out is re-found,
+	# never reused -- a freed button is a fault, and a faulted section skips
+	# its own tail and still prints PASSED.
+	job = _find_named(scene, "DailyJob_water")
+	if job is Button and is_instance_valid(job):
+		(job as Button).emit_signal("pressed")
+		await get_tree().process_frame
+	_ok(Coins.balance() == purse_before
+			+ int(GameData.garden_dailies[0].get("coins", 0)),
+		"a second press on the same claim pays nothing again")
+
+	# Midnight rolls the list while nobody is looking: progress gone, claims
+	# gone, and the tallies restart from zero through the real progress path.
+	GameClock.set_test_now(NOON + 86400, 0)
+	scene.call("_daily_progress", "water")
+	dailies = SaveManager.data["farm"].get("dailies", {})
+	_ok(int(dailies.get("progress", {}).get("water", 0)) == 1,
+		"a new day rolls a clean list and starts counting again")
+	_ok(not Dailies.claimed(dailies, Dailies.task_by_id("water")),
+		"and yesterday's claims do not follow him into it")
+
+
+## The challenge door says what comes next, as a crop -- or a star.
+##
+## Runs last in its shape: finishing the whole shelf on purpose rewrites the
+## save, and nothing after it may inherit a played-in game. The next shape
+## starts fresh again.
+func _the_challenge_door_shows_what_is_next() -> void:
+	var door: Node = _find_named(_garden, "HarvestChallenge")
+	_ok(door != null, "the garden holds a door to the harvest challenge")
+	var preview: Node = _find_named(_garden, "ChallengeNext")
+	_ok(preview != null, "the door previews what comes next")
+	if preview == null:
+		return
+	_ok(str(preview.get_meta("shows")) == "carrot",
+		"a fresh garden previews the carrot first order (shows '%s')"
+			% str(preview.get_meta("shows")))
+	for level in GameData.get_levels_for_mode("harvest"):
+		SaveManager.record_level_result(str(level.get("id", "")), 1, 1.0)
+	# Stars land in the save; the screen only redraws when asked, like after
+	# any other action that changes what it shows.
+	_garden.call("_queue_rebuild")
+	for i in range(12):
+		await get_tree().process_frame
+	preview = _find_named(_garden, "ChallengeNext")
+	_ok(preview != null and str(preview.get_meta("shows")) == "star",
+		"a finished shelf previews a star instead")

@@ -13,9 +13,13 @@ extends Node2D
 ##
 ## Not a pet sim. No hunger, no injury, no leaving, no state on disk -- a dog
 ## that can be neglected is a lever for guilt, and this game does not pull
-## that one. And not an obstacle: he draws behind everything that matters, he
-## sits a full sit_gap away from any bed's centre, and no part of him ever
-## receives input. A dog you have to tap around is a dog in the way.
+## that one. And not an obstacle: he draws behind everything that matters and
+## he sits a full sit_gap away from any bed's centre. He receives exactly ONE
+## input, checked after everything that matters and before bare grass: a hand
+## on his head gets a wag and a couple of hearts, and nothing else -- no
+## counter, no gratitude meter, nothing a child can forget to do. A dog you
+## have to tap around is a dog in the way; a dog who answers a hello is a
+## friend.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
@@ -34,6 +38,9 @@ var _speed := 240.0
 var _sit_gap := 130.0
 var _kennel := Vector2.ZERO
 var _walking := false
+## True for the half second his cheer lasts. Not a MOOD, not a bond meter:
+## just the door that stops a second press restarting the same wag.
+var _petting := false
 
 
 func _ready() -> void:
@@ -105,6 +112,55 @@ func _dress() -> void:
 	Shapes.fill(_scarf, Shapes.rounded_rect(
 		Vector2(height * 0.04, height * 0.10), Vector2(height * 0.11, height * 0.20),
 		4.0), Color(0.83, 0.31, 0.27), 0.8)
+
+
+## Was this glass point ON the dog? He is small and he moves, so the reach is
+## his own height, read through the camera like every other reach on this
+## screen -- a radius in world units would shrink to nothing at the overview
+## zoom and grow to a bed-sized blob up close.
+func pet_at(at: Vector2, camera) -> bool:
+	if _pup == null or not is_instance_valid(_pup) or _petting:
+		return false
+	var height := maxf(48.0, float(GameData.farm_dog.get("height", 96)))
+	var core: Vector2 = camera.world_to_screen(
+		position + Vector2(0.0, -height * 0.5))
+	return at.distance_to(core) <= height * 0.55 * camera.zoom
+
+
+## A hand landed on him. He pops into a cheer for a beat -- hearts, a sound,
+## and NOTHING else: no counter, no gratitude meter, nothing written down.
+## Petting is a greeting, not a duty; mid-reaction presses land on a dog who
+## is already happy, and when it ends he goes back to whatever he was doing.
+func pet() -> void:
+	if _petting or not is_inside_tree():
+		return
+	_petting = true
+	var config: Dictionary = GameData.farm_dog
+	var seconds := maxf(0.4, float(config.get("pet_seconds", 0.9)))
+	AudioManager.play_sfx("res://assets/audio/pop.ogg")
+	if _pup != null and is_instance_valid(_pup):
+		_pup.set_pose(HeroArt.Pose.CHEER)
+	if Juice.motion_enabled():
+		var height := maxf(48.0, float(config.get("height", 96)))
+		for i in range(maxi(1, int(config.get("pet_hearts", 3)))):
+			var heart := UiKit.picture("heart", 30.0)
+			if heart == null:
+				continue
+			heart.name = "PetHeart"
+			heart.position = Vector2((float(i) - 1.0) * 28.0, -height * 0.95)
+			heart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(heart)
+			var t := heart.create_tween()
+			t.tween_property(heart, "position",
+				heart.position + Vector2(0.0, -46.0), seconds)				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			t.parallel().tween_property(heart, "modulate:a", 0.0, seconds)
+			t.tween_callback(heart.queue_free)
+	await get_tree().create_timer(seconds).timeout
+	_petting = false
+	if not is_inside_tree() or _walking:
+		return
+	if _pup != null and is_instance_valid(_pup):
+		_pup.set_pose(HeroArt.Pose.BEAM)
 
 
 func _process(delta: float) -> void:

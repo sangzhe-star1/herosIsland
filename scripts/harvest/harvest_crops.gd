@@ -21,3 +21,22 @@ static func get_crop(crop_id: String) -> Dictionary:
 
 static func exists(crop_id: String) -> bool:
 	return not get_crop(crop_id).is_empty()
+
+
+## The move this crop asks for, as the recogniser that can judge it.
+##
+##     Crops.gesture_for("carrot")  # {"recogniser": "drag", "gesture_params": {...}}
+##
+## The farm's beds read this so that pulling a carrot up in the GARDEN is the
+## same move pulling one up in 丰收行动 -- one catalogue, one grammar. Returns
+## {} for a crop the catalogue does not know, and the caller treats that as
+## "tap only": an unreadable gesture must never become an unreadable bed.
+static func gesture_for(crop_id: String) -> Dictionary:
+	var crop := get_crop(crop_id)
+	if crop.is_empty() or str(crop.get("recogniser", "")) == "":
+		return {}
+	return {
+		"harvest_gesture": str(crop.get("harvest_gesture", "")),
+		"recogniser": str(crop.get("recogniser", "")),
+		"gesture_params": crop.get("gesture_params", {}),
+	}

@@ -29,6 +29,7 @@ extends Node
 
 const Maturity := preload("res://scripts/harvest/maturity.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
+const Farm := preload("res://scripts/garden/farm_save.gd")
 
 const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
 
@@ -56,6 +57,12 @@ func _ready() -> void:
 	for shape in SHAPES:
 		_shape = "%dx%d" % [shape.x, shape.y]
 		await _run_on_a(shape)
+
+	# This one has no layout question, but it must travel through the real
+	# touch -> order -> SaveManager -> fresh scene path. Run it once so the
+	# two display shapes do not manufacture two unrelated save histories.
+	_shape = "checkpoint"
+	await _a_completed_delivery_survives_a_real_reload()
 
 	# The difficulty table is shape-independent; once is enough.
 	_shape = "difficulty"
@@ -85,15 +92,25 @@ func _run_on_a(window: Vector2i) -> void:
 
 	await _one_basket_needs_one_move()
 	await _every_gesture_reaches_the_hand()
+	await _the_lesson_starts_on_its_named_gesture()
 	await _the_baskets_are_telling_apart()
+	await _the_matching_basket_stays_marked_without_motion()
 	await _a_wrong_basket_costs_him_nothing()
 	await _only_the_starred_one_goes_in_the_gift_basket()
+	await _later_order_crops_wait_for_their_turn()
+	await _the_help_points_to_the_matching_basket()
 	await _unripe_is_refused_and_costs_nothing()
 	await _a_touch_on_nothing_while_holding_is_not_a_mistake()
 	await _the_third_hint_picks_it_but_does_not_choose()
 	await _clutter_is_moved_not_collected()
 	await _a_big_crop_is_easier_to_hit_than_a_small_one()
 	await _nothing_is_planted_closer_than_a_thumb()
+	await _the_streak_cheers_and_resets()
+	await _the_customer_watches_the_order()
+	await _one_finger_at_a_time()
+	await _the_landed_order_gets_its_check()
+	await _the_first_pick_teaches_the_loop()
+	await _the_order_hud_is_legible()
 
 
 # --- the harness ---------------------------------------------------------
@@ -245,6 +262,37 @@ func _the_late_levels_hold_their_shape() -> void:
 	_ok(has_almost, "harvest_02 should ask the almost-ready question -- "
 		+ "the fourth maturity step exists and no level uses it")
 
+	# The ninth level is the 2-basket line step: broccoli and wheat ride the
+	# veg basket on the grain tag, grape rides fruit, and the cut lesson
+	# starts on an actual cut. The tenth is the golden bounty: two orders,
+	# the starred carrot in the second, gift basket waiting with its rule.
+	var c9: Dictionary = GameData.get_level("harvest_09").get("config", {})
+	_ok(not c9.has("orders"),
+		"harvest_09 should be ONE order -- the line lesson before the bounty")
+	var ids9 := []
+	for t in c9.get("targets", []):
+		ids9.append(str(t.get("crop_id", "")))
+	_ok("grape" in ids9 and "wheat" in ids9,
+		"harvest_09 should field grape and wheat (%s)" % [ids9])
+	var grain_home := false
+	for basket in c9.get("baskets", []):
+		if "grain" in (basket.get("accepts_tags", []) as Array):
+			grain_home = true
+	_ok(grain_home, "wheat is on the field and no basket accepts grain -- "
+		+ "a crop that can be picked and never put down")
+	_ok(str(c9.get("teaches", "")) == "cut_cluster",
+		"harvest_09 should teach the cut it actually asks for")
+
+	var c10: Dictionary = GameData.get_level("harvest_10").get("config", {})
+	_ok((c10.get("orders", []) as Array).size() == 2,
+		"harvest_10 should carry TWO orders -- the step after the celebration")
+	var golden_late := false
+	for order in c10.get("orders", []):
+		for entry in (order as Dictionary).get("requirements", []):
+			if str(entry.get("crop_id", "")) == "golden_carrot":
+				golden_late = true
+	_ok(golden_late, "harvest_10 hides its starred carrot in a later order")
+
 
 func _open(level_id: String) -> void:
 	_fresh()
@@ -381,7 +429,7 @@ func _picked_total() -> int:
 func _find(recogniser: String = "", crop_id: String = "",
 		ripeness: String = Maturity.READY) -> Node2D:
 	for t in _targets():
-		if not is_instance_valid(t) or t.taken:
+		if not is_instance_valid(t) or t.taken or not t.visible:
 			continue
 		if recogniser != "" and str(t.crop.get("recogniser", "")) != recogniser:
 			continue
@@ -390,6 +438,20 @@ func _find(recogniser: String = "", crop_id: String = "",
 		if ripeness != "" and str(t.step) != ripeness:
 			continue
 		if "clutter" in t.crop.get("tags", []):
+			continue
+		return t
+	return null
+
+
+## Same lookup, but intentionally sees a future-order crop. It is used only to
+## prove that a touch cannot consume something which is not yet on the glass.
+func _find_any(crop_id: String, ripeness: String = "") -> Node2D:
+	for t in _targets():
+		if not is_instance_valid(t) or t.taken:
+			continue
+		if str(t.crop.get("id", "")) != crop_id:
+			continue
+		if ripeness != "" and str(t.step) != ripeness:
 			continue
 		return t
 	return null
@@ -431,6 +493,12 @@ func _every_gesture_reaches_the_hand() -> void:
 	for level_id in ["harvest_07", "harvest_05"]:
 		for recogniser in Gesture.ALL:
 			await _open(level_id)
+			# Carrot and pumpkin are the second delivery in L7. A realistic
+			# field hides them until that delivery starts, so the probe changes
+			# orders before asking the thumb to practise their drag.
+			if level_id == "harvest_07" and recogniser == Gesture.DRAG:
+				_level.set("_order_index", 1)
+				_level.call("_load_order")
 			var target := _find(recogniser)
 			if target == null:
 				await _close()
@@ -462,6 +530,16 @@ func _every_gesture_reaches_the_hand() -> void:
 			await _close()
 
 
+## L7 says "cut the stem". Its teaching hand must begin on the broccoli's
+## cut-stem gesture, rather than the first tomato in the layout.
+func _the_lesson_starts_on_its_named_gesture() -> void:
+	await _open("harvest_07")
+	var taught: Node2D = _level.call("_teaching_target", "cut_stem")
+	_ok(taught != null and str(taught.crop.get("harvest_gesture", "")) == "cut_stem",
+		"the cut-stem lesson starts on a crop that actually uses cut_stem")
+	await _close()
+
+
 ## Two baskets a finger cannot tell apart are one basket with two pictures.
 ##
 ## The same rule as the garden's beds and this template's own targets, and the
@@ -487,6 +565,68 @@ func _the_baskets_are_telling_apart() -> void:
 					"%s: baskets '%s' and '%s' are further apart than their reaches (%.0f vs %.0f)"
 						% [level_id, here.id, there.id, gap, here.radius + there.radius])
 		await _close()
+
+
+## Reduce-motion makes the page quieter, never less understandable. After a
+## real pick, the same shared destination resolver must leave exactly one
+## basket visibly marked even though the optional breathing tween is absent.
+func _the_matching_basket_stays_marked_without_motion() -> void:
+	await _open("harvest_02")
+	var was: Variant = SaveManager.get_setting("reduce_motion", false)
+	SaveManager.set_setting("reduce_motion", true)
+	var berry := _find(Gesture.TAP, "strawberry")
+	_ok(berry != null, "草莓红了吗 has a strawberry for the still target cue")
+	if berry == null:
+		SaveManager.set_setting("reduce_motion", was)
+		await _close()
+		return
+	await _stroke(_move_for(berry))
+	var held := _in_hand()
+	_ok(held != null, "the strawberry is held before its basket is marked")
+	if held == null:
+		SaveManager.set_setting("reduce_motion", was)
+		await _close()
+		return
+	var target: Node2D = _level.call("_destination_for", held)
+	_ok(target != null and target.id == "fruit",
+		"the shared target resolver chooses the fruit basket for the still cue")
+	if target == null:
+		SaveManager.set_setting("reduce_motion", was)
+		await _close()
+		return
+	var cue: Node2D = target.get("_waiting_cue")
+	var glow: Node2D = cue.get_node_or_null("WaitingGlow") if cue != null else null
+	var ring: Line2D = cue.get_node_or_null("TargetRing") if cue != null else null
+	_ok(cue != null and cue.visible and glow != null and glow.visible
+		and ring != null and ring.width >= 8.0,
+		"reduce-motion keeps a clear static glow and ring around the matching basket")
+	_ok(target.get("_pulse") == null
+		and target.scale.distance_to(Vector2.ONE) < 0.001,
+		"reduce-motion does not need the optional basket breathing tween")
+	for basket in _baskets():
+		if basket == target:
+			continue
+		var other_cue: Node2D = basket.get("_waiting_cue")
+		_ok(other_cue != null and not other_cue.visible,
+			"only the matching basket wears the static answer ring")
+	await get_tree().create_timer(0.65).timeout
+	_ok(target.scale.distance_to(Vector2.ONE) < 0.001,
+		"the low-motion answer remains still after time passes")
+	var wrong: Node2D = null
+	for basket in _baskets():
+		if basket != target:
+			wrong = basket
+			break
+	_ok(wrong != null, "the strawberry has a different basket to refuse")
+	if wrong != null:
+		await _tap(wrong.global_position)
+		_ok(cue.visible and _in_hand() == held,
+			"a wrong basket leaves the still target cue and held crop intact")
+	await _tap(target.global_position)
+	_ok(not cue.visible and _in_hand() == null,
+		"the static answer ring clears after the crop is put away")
+	SaveManager.set_setting("reduce_motion", was)
+	await _close()
 
 
 ## A wrong basket says no and gives it back. Nothing is ever lost.
@@ -524,7 +664,7 @@ func _a_wrong_basket_costs_him_nothing() -> void:
 ## right, because a basket with no tags takes everything. A child who tipped the
 ## whole field into it would have been correct every single time.
 func _only_the_starred_one_goes_in_the_gift_basket() -> void:
-	await _open("harvest_07")
+	await _open_at("harvest_07", 2)
 	var gift := _basket("gift")
 	_ok(gift != null, "多作物订单 has a gift basket")
 	if gift == null:
@@ -544,7 +684,10 @@ func _only_the_starred_one_goes_in_the_gift_basket() -> void:
 			if veg != null:
 				await _tap(veg.global_position)
 
-	# ...and the starred one is refused everywhere else.
+	# ...and the starred one is refused everywhere else. It belongs to the
+	# second delivery, so bring that delivery onto the field first.
+	_level.set("_order_index", 1)
+	_level.call("_load_order")
 	var golden := _find("", "golden_carrot", Maturity.GOLDEN)
 	if golden != null:
 		var before := _picked_total()
@@ -558,6 +701,257 @@ func _only_the_starred_one_goes_in_the_gift_basket() -> void:
 			await _tap(gift.global_position)
 			_ok(_picked_total() > before, "it goes in the gift basket")
 	await _close()
+
+
+## A future delivery must stay in the field until its own order arrives. This
+## is a real thumb path: before the fix, one early tomato made the second order
+## impossible because `_load_order()` cleared the count but not the picked crop.
+func _later_order_crops_wait_for_their_turn() -> void:
+	await _open("harvest_08")
+	var tomato := _find_any("tomato")
+	_ok(tomato != null, "丰收庆典 has tomatoes for its second order")
+	if tomato == null:
+		await _close()
+		return
+	var strip: Control = _level.get("_order_strip")
+	_ok(strip != null and strip.visible and strip.get_child_count() == 3,
+		"three deliveries get a visible three-step order route")
+	_ok(not tomato.visible, "a second-order tomato is not touchable during order one")
+	await _stroke(_move_for(tomato))
+	_ok(not tomato.taken and _picked_total() == 0,
+		"touching the hidden tomato does not consume or count it")
+
+	# Complete the first delivery through the same two-touch path a child uses.
+	await _fill_visible_delivery(["carrot", "strawberry"])
+
+	_ok(int(_level.get("_order_index")) == 1,
+		"filling the first delivery advances to the tomato order")
+	_ok(tomato.visible and not tomato.taken,
+		"the deferred tomato becomes available intact in its own order")
+	await _close()
+
+
+## The checkpoint is written after an order lands, never mid-order. Simulate
+## exactly the interruption it protects against: deliver order one, close the
+## scene, reload SaveManager, then open the level again. The garden snapshot is
+## deliberately non-empty and full so an accidental write is visible instead
+## of passing on a fresh, all-empty save.
+func _a_completed_delivery_survives_a_real_reload() -> void:
+	const TEST_NOW := 1_700_000_000
+	GameClock.set_test_now(TEST_NOW, 0)
+	_a_legacy_checkpoint_migrates_through_save_manager()
+	_fresh()
+
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["warehouse_cap"] = 3
+	farm["warehouse"] = {"carrot": 3}
+	farm["harvest_basket"] = {"strawberry": 2}
+	var plots: Array = farm["plots"]
+	# Growth settlement stamps every plot it visits. Give even the untouched
+	# beds the same fixed anchor so this checkpoint test detects challenge
+	# writes, not the garden's ordinary clock bookkeeping.
+	for i in range(plots.size()):
+		var stable: Dictionary = plots[i]
+		stable["last_updated_at"] = TEST_NOW
+		plots[i] = stable
+	var growing: Dictionary = plots[0]
+	growing["state"] = Farm.GROWING
+	growing["crop_id"] = "carrot"
+	growing["growth_stage"] = 1
+	growing["growth_progress"] = 0.25
+	growing["planted_at"] = TEST_NOW
+	growing["last_updated_at"] = TEST_NOW
+	plots[0] = growing
+	farm["plots"] = plots
+	SaveManager.data["farm"] = farm
+	SaveManager.data["farm_orders"] = {
+		"active": [], "delivered": ["bear_carrots"]}
+	SaveManager.save_game()
+	# Establish the same post-load baseline a child has before entering the
+	# challenge. Fixed time keeps ordinary garden growth out of this test.
+	SaveManager.load_game()
+	var garden_before := _garden_economy_snapshot()
+
+	await _open_saved("harvest_08")
+	await _fill_visible_delivery(["carrot", "strawberry"])
+	var delivered_before: Dictionary = _level.get("_delivered").duplicate(true)
+	_ok(int(_level.get("_order_index")) == 1,
+		"filling the first celebration delivery advances before the interruption")
+	var mark := SaveManager.get_harvest_checkpoint()
+	_ok(str(mark.get("level_id", "")) == "harvest_08"
+		and int(mark.get("order_index", -1)) == 1,
+		"the landed delivery writes its next-order checkpoint to challenge state")
+	_ok(not SaveManager.data["farm"].has("harvest_checkpoint"),
+		"the live daily farm never receives the challenge checkpoint")
+	_ok(_garden_economy_snapshot() == garden_before,
+		"playing a harvest challenge does not alter barn, spill basket, plots or orders")
+	await _close()
+
+	var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	_ok(raw is Dictionary and (raw as Dictionary).get("harvest_checkpoint", {}) is Dictionary,
+		"the checkpoint is on disk in the challenge branch")
+	if raw is Dictionary:
+		_ok(not (raw as Dictionary).get("farm", {}).has("harvest_checkpoint"),
+			"the on-disk daily farm stays free of challenge checkpoint data")
+
+	SaveManager.load_game()
+	_ok(_same_harvest_checkpoint(SaveManager.get_harvest_checkpoint(), mark),
+		"SaveManager reload keeps the next-order checkpoint")
+	_ok(_garden_economy_snapshot() == garden_before,
+		"SaveManager reload keeps daily barn, basket, plots and orders unchanged")
+
+	await _open_saved("harvest_08")
+	_ok(int(_level.get("_order_index")) == 1,
+		"re-entering the challenge resumes at its second delivery")
+	_ok((_level.get("_delivered") as Dictionary) == delivered_before,
+		"re-entering keeps only the earlier delivered crops, not a free current order")
+	var tomato := _find("", "tomato")
+	_ok(tomato != null and tomato.visible,
+		"the second delivery's tomato is available after the reload")
+	_ok(_garden_economy_snapshot() == garden_before,
+		"resuming the challenge still leaves all daily garden economy untouched")
+	await _close()
+
+	GameClock.clear_test_now()
+	_fresh()
+
+
+## The old build wrote this mark under `farm`. Exercise the public loader,
+## rather than only calling `_migrate`, so a real saved child can cross the
+## schema boundary before the new run below proves it keeps crossing reloads.
+func _a_legacy_checkpoint_migrates_through_save_manager() -> void:
+	_fresh()
+	var legacy_mark := {"level_id": "harvest_07", "order_index": 1,
+		"delivered": {"tomato": 3, "broccoli": 2}}
+	SaveManager.data.erase("harvest_checkpoint")
+	SaveManager.data["farm"]["harvest_checkpoint"] = legacy_mark.duplicate(true)
+	SaveManager.save_game()
+	SaveManager.load_game()
+	_ok(_same_harvest_checkpoint(
+		SaveManager.get_harvest_checkpoint(), legacy_mark),
+		"SaveManager.load_game migrates a legacy farm checkpoint")
+	_ok(not SaveManager.data["farm"].has("harvest_checkpoint"),
+		"legacy reload removes the checkpoint from the live daily farm")
+
+	# A normal write after migration must leave the file at the new ownership
+	# boundary too, so the next launch does not depend on the compatibility path.
+	SaveManager.save_game()
+	var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	_ok(raw is Dictionary and _same_harvest_checkpoint(
+		(raw as Dictionary).get("harvest_checkpoint", {}), legacy_mark),
+		"the migrated checkpoint is persisted in the challenge branch")
+	if raw is Dictionary:
+		_ok(not (raw as Dictionary).get("farm", {}).has("harvest_checkpoint"),
+			"the persisted daily farm has no legacy checkpoint field")
+
+
+## Open a level against the save the caller deliberately prepared. `_open()`
+## creates a new child save, which is useful elsewhere but would erase the
+## very checkpoint this regression is exercising.
+func _open_saved(level_id: String) -> void:
+	GameManager.current_level_id = level_id
+	_level = load(
+		"res://scenes/minigames/harvest_action/HarvestAction.tscn").instantiate()
+	add_child(_level)
+	for i in range(6):
+		await get_tree().process_frame
+
+
+func _garden_economy_snapshot() -> Dictionary:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	return {
+		"warehouse": (farm.get("warehouse", {}) as Dictionary).duplicate(true),
+		"harvest_basket": (farm.get("harvest_basket", {}) as Dictionary).duplicate(true),
+		"plots": (farm.get("plots", []) as Array).duplicate(true),
+		"orders": (SaveManager.data.get("farm_orders", {}) as Dictionary).duplicate(true),
+	}
+
+
+## JSON returns all numbers as floats, while the live checkpoint is made of
+## ints. Compare the actual checkpoint facts so an on-disk round trip is not
+## mistaken for a missing delivery merely because `1` became `1.0`.
+func _same_harvest_checkpoint(left: Dictionary, right: Dictionary) -> bool:
+	if str(left.get("level_id", "")) != str(right.get("level_id", "")):
+		return false
+	if int(left.get("order_index", -1)) != int(right.get("order_index", -1)):
+		return false
+	var left_done: Dictionary = left.get("delivered", {})
+	var right_done: Dictionary = right.get("delivered", {})
+	if left_done.size() != right_done.size():
+		return false
+	for crop_id in left_done.keys():
+		if int(left_done[crop_id]) != int(right_done.get(crop_id, -1)):
+			return false
+	return true
+
+
+## The real, two-touch child path for every crop in the current delivery.
+## Both the future-order and save/reload probes use it so neither gets a
+## convenient test-only way to land an order.
+func _fill_visible_delivery(crop_ids: Array) -> void:
+	for crop_id in crop_ids:
+		while true:
+			var current := _find("", str(crop_id))
+			if current == null:
+				break
+			await _stroke(_move_for(current))
+			var held := _in_hand()
+			_ok(held != null, "%s can be picked while its order is current" % crop_id)
+			if held == null:
+				break
+			var basket: Node2D = _level.call("_destination_for", held)
+			_ok(basket != null, "%s has a matching basket" % crop_id)
+			if basket == null:
+				break
+			await _tap(basket.global_position)
+
+
+## Help is part of the rule, not a decorative animation. Its destination must
+## be the exact basket the same resolver accepts for both ordinary and starred
+## crops.
+func _the_help_points_to_the_matching_basket() -> void:
+	await _open_at("harvest_07", 2)
+	var tomato := _find("", "tomato")
+	_ok(tomato != null, "多作物订单 starts with a tomato to sort")
+	if tomato == null:
+		await _close()
+		return
+	await _stroke(_move_for(tomato))
+	var held := _in_hand()
+	var veg: Node2D = _level.call("_destination_for", held)
+	_ok(veg != null and veg.id == "veg", "tomato help resolves to the vegetable basket")
+	if veg != null:
+		_assert_help_points_at(veg, "tomato")
+		await _tap(veg.global_position)
+
+	_level.set("_order_index", 1)
+	_level.call("_load_order")
+	var golden := _find("", "golden_carrot", Maturity.GOLDEN)
+	_ok(golden != null, "勇敢的第二单 shows its golden carrot")
+	if golden != null:
+		await _stroke(_move_for(golden))
+		var gift: Node2D = _level.call("_destination_for", _in_hand())
+		_ok(gift != null and gift.id == "gift",
+			"golden-carrot help resolves to the gift basket before ordinary tags")
+		if gift != null:
+			_assert_help_points_at(gift, "golden carrot")
+	await _close()
+
+
+func _assert_help_points_at(expected: Node2D, crop_name: String) -> void:
+	_level.call("_point_at_the_baskets")
+	var field: Node = _level.get("_field")
+	var guide: Node = field.get_child(field.get_child_count() - 1) \
+		if field != null and field.get_child_count() > 0 else null
+	var steps: Variant = guide.get("_steps") if guide != null else []
+	var pointed := Vector2.ZERO
+	if steps is Array and not steps.is_empty():
+		var step: Dictionary = steps[0]
+		pointed = step.get("then", Vector2.ZERO)
+	_ok(pointed.distance_to(expected.global_position) < 0.5,
+		"the help finger points %s at its matching basket" % crop_name)
+	if guide != null and guide.has_method("skip"):
+		guide.call("skip")
 
 
 ## An unripe one shakes its head, and that is all it does.
@@ -688,8 +1082,8 @@ func _a_big_crop_is_easier_to_hit_than_a_small_one() -> void:
 ## tablet has half as much again, so the shape that fails is always 16:9.
 func _nothing_is_planted_closer_than_a_thumb() -> void:
 	var floor_px := 92.0            # harvest_action.THUMB_APART
-	for n in range(1, 9):
-		var level_id := "harvest_%02d" % n
+	for level in GameData.get_levels_for_mode("harvest"):
+		var level_id := str(level.get("id", ""))
 		await _open(level_id)
 		var targets := _targets()
 		var closest := 1e9
@@ -726,4 +1120,225 @@ func _clutter_is_moved_not_collected() -> void:
 	await _stroke(_move_for(stone))
 	_ok(_picked_total() == 0, "a stone is never counted towards the order")
 	_ok(_in_hand() == null, "and it never ends up in his hand waiting for a basket")
+	await _close()
+
+
+## The first pick of a sorting run teaches the loop, once.
+##
+## The waiting ring on the right basket is the permanent visual answer, but a
+## ring alone does not say "now carry it there" the first time a child holds
+## something. So the first hold also speaks the two-basket line and points the
+## Tutorial finger at the matching basket -- and the second hold does neither,
+## because help that narrates every strawberry is wallpaper.
+func _the_first_pick_teaches_the_loop() -> void:
+	await _open("harvest_02")
+	_ok(not bool(_level.get("_sort_hinted")), "nothing taught before the first pick")
+	var first := _find(Gesture.TAP, "strawberry")
+	_ok(first != null, "there is a strawberry for the first lesson")
+	if first == null:
+		await _close()
+		return
+	await _stroke(_move_for(first))
+	var held := _in_hand()
+	_ok(held != null, "the first strawberry comes off in his hand")
+	_ok(bool(_level.get("_sort_hinted")), "the first hold marks the loop taught")
+	# The demo makes way instead of stacking: still exactly one finger, and
+	# it is the pointer, not the lesson.
+	_ok(_guide_count() == 1,
+		"the first hold trades the demo for one pointer, not two fingers")
+	var want: Node2D = _level.call("_destination_for", held)
+	if want != null:
+		_assert_help_points_at(want, "first strawberry")
+		await _tap(want.global_position)
+	# Second pick: the ring still answers, the finger stays away.
+	var second := _find(Gesture.TAP, "strawberry")
+	if second == null:
+		await _close()
+		return
+	var guides_after_first := _guide_count()
+	await _stroke(_move_for(second))
+	_ok(_in_hand() != null, "a second strawberry still comes off in his hand")
+	_ok(_guide_count() == guides_after_first,
+		"the second hold teaches nothing new -- the ring is the answer now")
+	await _close()
+
+
+func _guide_count() -> int:
+	var field: Node = _level.get("_field")
+	if field == null:
+		return -1
+	return _live_guides().size()
+
+
+## The streak counts clean picks and forgets any refuse, silently.
+##
+## Three in a row is the small cheer, every fifth the big one -- the mapping
+## itself is asserted without a screen in harvest_probe. What is asked here,
+## with a thumb: the counter climbs on real picks and a single unripe tap
+## quiets it back to zero, with the pick uncounted and the crop still there.
+func _the_streak_cheers_and_resets() -> void:
+	await _open("harvest_01")
+	for want in [1, 2, 3]:
+		var carrot := _find(Gesture.DRAG, "carrot")
+		_ok(carrot != null, "there is a carrot for streak %d" % want)
+		if carrot == null:
+			await _close()
+			return
+		await _stroke(_move_for(carrot))
+		_ok(int(_level.get("_streak")) == want,
+			"pick %d in a row raises the streak to %d" % [want, want])
+	await _close()
+
+	await _open("harvest_02")
+	var berry := _find(Gesture.TAP, "strawberry")
+	_ok(berry != null, "there is a strawberry to start a streak")
+	if berry == null:
+		await _close()
+		return
+	await _stroke(_move_for(berry))
+	var held := _in_hand()
+	if held != null:
+		var basket: Node2D = _level.call("_destination_for", held)
+		await _tap(basket.global_position)
+	_ok(int(_level.get("_streak")) == 1,
+		"a sorted pick counts towards the streak too")
+	var green := _find(Gesture.TAP, "", Maturity.UNRIPE)
+	_ok(green != null, "there is an unripe one to refuse")
+	if green == null:
+		await _close()
+		return
+	await _stroke(_move_for(green))
+	_ok(int(_level.get("_streak")) == 0,
+		"one unripe tap quiets the streak back to zero")
+	_ok(_picked_total() == 1,
+		"and the refuse itself counts nothing and takes nothing back")
+	await _close()
+
+
+## An order from somebody has a face; an order from nobody does not.
+##
+## customer_icon is optional per level. A level naming one shows that face at
+## the head of the tally; a level naming none leaves the tally exactly where
+## it always sat, with nothing blank holding its place.
+func _the_customer_watches_the_order() -> void:
+	await _open("harvest_02")
+	_ok(_customer_face() != null,
+		"草莓红了吗 names a customer, so a face watches the order")
+	await _close()
+	await _open("harvest_05")
+	_ok(_customer_face() == null,
+		"果园摇一摇 names none, so the tally sits as it always did")
+	await _close()
+
+
+func _customer_face() -> Node:
+	var tally: Node = _level.get("_tally")
+	if tally == null:
+		return null
+	var row: Node = tally.get_parent()
+	if row == null:
+		return null
+	return row.get_node_or_null("OrderCustomer")
+
+
+## One finger on screen at a time, whatever the help is doing.
+##
+## The entry lesson demonstrates the gesture -- then the child picks faster
+## than the demo and the held crop ends up wearing its own lesson while a
+## second finger points at the basket. From that moment the demo is about the
+## half just finished, so taking in hand skips it, and the second level of
+## help while holding points at the baskets instead of demonstrating.
+func _one_finger_at_a_time() -> void:
+	await _open("harvest_02")
+	_ok(_live_guides().size() >= 1,
+		"the entry lesson demonstrates the move")
+	var berry := _find(Gesture.TAP, "strawberry")
+	_ok(berry != null, "there is a strawberry to pick mid-demo")
+	if berry == null:
+		await _close()
+		return
+	await _stroke(_move_for(berry))
+	var held := _in_hand()
+	_ok(held != null, "the strawberry comes off in his hand")
+	var guides := _live_guides()
+	_ok(guides.size() == 1,
+		"holding quiets the demo -- exactly one finger remains")
+	if held != null and guides.size() == 1:
+		var want: Node2D = _level.call("_destination_for", held)
+		_ok(_guide_then(guides[0]).distance_to(want.global_position) < 0.5,
+			"and it points at the matching basket, not the plant")
+	var before := _live_guides().size()
+	_level.call("_show_the_move")
+	for i in range(6):
+		await get_tree().process_frame
+	var after := _live_guides()
+	_ok(after.size() == before + 1,
+		"help while holding points instead of demonstrating")
+	if held != null and after.size() == before + 1:
+		var want2: Node2D = _level.call("_destination_for", held)
+		_ok(_guide_then(after[after.size() - 1]).distance_to(
+			want2.global_position) < 0.5,
+			"and that finger also answers which basket")
+	await _close()
+
+
+func _live_guides() -> Array:
+	var out: Array = []
+	var field: Node = _level.get("_field")
+	if field == null:
+		return out
+	for child in field.get_children():
+		if child.get("_steps") != null:
+			out.append(child)
+	return out
+
+
+func _guide_then(guide: Node) -> Vector2:
+	var steps: Array = guide.get("_steps")
+	if steps.is_empty():
+		return Vector2.INF
+	return steps[0].get("then", Vector2.INF)
+
+
+## A landed order is said once in pictures before the next one arrives.
+##
+## The fresh tally underneath is the permanent record; the big check that
+## pops and fades with it is the moment itself. The last order of a level
+## gets the result screen instead, so this is asked of a celebration middle.
+func _the_landed_order_gets_its_check() -> void:
+	await _open("harvest_08")
+	await _fill_visible_delivery(["carrot", "strawberry"])
+	_ok(int(_level.get("_order_index")) == 1,
+		"the first celebration delivery lands")
+	var hud: Node = _level.get("_hud")
+	var party: Node = hud.get_node_or_null("OrderDone") \
+		if hud != null else null
+	_ok(party != null, "the landed order gets its big check")
+	await _close()
+
+
+## The order HUD has to be readable from across the room, not just present.
+##
+## The tally used to be 62px pictures with 26pt counts and the multi-order
+## route 48x42 chips -- correct numbers a child could not see. This holds the
+## bigger sizes the redesign promises: 80px tally art, 32pt counts, 64x56
+## route chips.
+func _the_order_hud_is_legible() -> void:
+	await _open("harvest_07")
+	var tally: Control = _level.get("_tally")
+	_ok(tally != null, "多作物订单 shows what the order wants as pictures")
+	if tally != null:
+		for box in tally.get_children():
+			var art: Control = box.get_child(0) if box.get_child_count() > 0 else null
+			_ok(art != null and art.size.x >= 79.0,
+				"tally pictures are big enough to recognise (%.0f)" % (art.size.x if art != null else -1.0))
+			var count: Label = box.get_child(1) if box.get_child_count() > 1 else null
+			_ok(count != null and count.get_theme_font_size("font_size") >= 32,
+				"tally counts are big enough to read")
+	var strip: Control = _level.get("_order_strip")
+	_ok(strip != null and strip.visible, "two deliveries get a visible route")
+	if strip != null and strip.visible:
+		for chip in strip.get_children():
+			_ok((chip as Control).custom_minimum_size.x >= 64.0,
+				"route chips are big enough for a thumb")
 	await _close()

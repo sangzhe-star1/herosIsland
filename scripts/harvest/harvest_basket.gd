@@ -25,6 +25,10 @@ var accepts: Array = []
 var radius := 120.0
 
 var _label: Control
+## The answer is a visible place before it is a moving place. This ring stays
+## on with reduce-motion enabled; the gentle breathing below is only an extra
+## invitation for children who use motion.
+var _waiting_cue: Node2D
 ## The "something is waiting for you" pulse, kept so it can be stopped. A
 ## looping tween nobody holds on to runs until the node dies.
 var _pulse: Tween
@@ -38,6 +42,12 @@ func build(spec: Dictionary, size: float, reach: float = -1.0) -> void:
 	id = str(spec.get("id", "basket"))
 	accepts = spec.get("accepts_tags", [])
 	radius = float(spec.get("radius", reach if reach > 0.0 else size * 0.9))
+	_build_waiting_cue(size)
+
+	# Seated, not pasted: a contact shadow roots the basket to the meadow the
+	# same way the soil mounds root the crops. Added first so the art lands
+	# on top of it.
+	Shapes.ground_shadow(self, Vector2(0, size * 0.52), size * 1.05, 0.20)
 
 	var art: Control = UiKit.picture(str(spec.get("icon", "basket")), size)
 	if art != null:
@@ -49,15 +59,49 @@ func build(spec: Dictionary, size: float, reach: float = -1.0) -> void:
 	# A child who cannot read "fruit" can recognise a strawberry.
 	var sample := str(spec.get("sample", ""))
 	if sample != "":
+		# A cream disc behind the badge, the garden plot-badge way: a sample
+		# floating bare against the sky reads as another crop on the field,
+		# and one overlapping a target reads as sitting in the wrong basket.
+		var disc := Node2D.new()
+		disc.position = Vector2(-size * 0.65, -size * 0.23)
+		add_child(disc)
+		Shapes.lit(disc, Shapes.circle_points(Vector2.ZERO, size * 0.30, 26),
+			Color(1.0, 0.99, 0.94), 0.12)
 		var badge: Control = UiKit.picture(sample, size * 0.42)
 		if badge != null:
 			# Tucked against the basket's left shoulder rather than floating
 			# above it, where two stacked baskets put one sample on top of the
 			# other basket and it read as a berry sitting in the wrong one.
-			badge.position = Vector2(-size * 0.86, -size * 0.44)
+			badge.position = disc.position - Vector2(size * 0.21, size * 0.21)
 			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(badge)
 			_label = badge
+
+
+## A fixed yellow ring and warm halo say "this basket" without requiring a
+## child to notice a scale change. They are children of the basket, not a new
+## HUD or second destination rule; HarvestAction alone decides when this cue
+## is on through its shared `_basket_accepts` resolver.
+func _build_waiting_cue(size: float) -> void:
+	_waiting_cue = Node2D.new()
+	_waiting_cue.name = "WaitingCue"
+	_waiting_cue.z_index = -1
+	_waiting_cue.visible = false
+	add_child(_waiting_cue)
+
+	var glow := Shapes.glow(_waiting_cue, Vector2.ZERO, size * 0.72,
+		Palette.YELLOW, 5, 0.60)
+	glow.name = "WaitingGlow"
+
+	var ring := Line2D.new()
+	ring.name = "TargetRing"
+	ring.points = Shapes.oval_points(Vector2(0.0, size * 0.06),
+		Vector2(size * 0.56, size * 0.46), 28)
+	ring.closed = true
+	ring.width = maxf(size * 0.075, 8.0)
+	ring.default_color = Palette.YELLOW
+	ring.antialiased = true
+	_waiting_cue.add_child(ring)
 
 
 ## Would this crop belong here?
@@ -101,6 +145,10 @@ func waiting(on: bool) -> void:
 		_pulse.kill()
 		_pulse = null
 	scale = Vector2.ONE
+	if _waiting_cue != null and is_instance_valid(_waiting_cue):
+		_waiting_cue.visible = on
+	# The static cue is the actual answer. Breathing is deliberately optional:
+	# reduce-motion must make the screen calmer, not make its next step vanish.
 	if not on or not Juice.motion_enabled():
 		return
 	_pulse = create_tween().set_loops()

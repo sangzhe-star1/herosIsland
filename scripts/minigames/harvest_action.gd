@@ -38,8 +38,13 @@ const Picker := preload("res://scripts/shared/variant_picker.gd")
 
 ## Where the basket sits, against the design size. Bottom right, clear of the
 ## targets, in the corner a right thumb rests in.
+## (BASKET_AT is the old single-basket anchor; _build_baskets() now measures
+## the whole column against the soil, so this stays as a documented fallback.)
 const BASKET_AT := Vector2(1140, 600)
-const BASKET_SIZE := 132.0
+## The biggest a basket picture gets. The column divides the soil height by the
+## basket count, so three baskets still end up smaller than one -- smaller is
+## not the failure, indistinguishable is (see _build_baskets).
+const BASKET_SIZE := 150.0
 
 ## What a crop's reach is when harvest_crops.json does not say. Every crop in
 ## the catalogue does say, so this is only ever the answer for a crop_id that
@@ -67,6 +72,9 @@ var _targets: Array[Node2D] = []
 var _baskets: Array[Node2D] = []
 var _tally: HBoxContainer
 var _tally_pips: Array = []
+## A small, wordless route through a multi-order level. It deliberately lives
+## in the existing HUD rather than becoming a second order-board component.
+var _order_strip: HBoxContainer
 
 ## What has been picked THIS RUN. Never written to the barn.
 var _picked: Dictionary = {}        # crop_id -> how many
@@ -82,6 +90,13 @@ var _order_index := 0
 var _delivered: Dictionary = {}
 var _unripe_taps := 0
 var _helped := false
+## Consecutive successful picks with no refuse in between. Feeds NOTHING but
+## the cheer below: no star, no coin, no optional door. A miss only quiets the
+## celebration back down -- the gentle refuse voice is already the whole of
+## what a mistake says, and a number that punished would teach him to stop
+## guessing. There is deliberately no streak meter on screen for the same
+## reason: the escalating confetti IS the display.
+var _streak := 0
 ## Whether the order has been filled. LevelManager keeps its OWN `_finished`
 ## for "this level is over"; shadowing it is a parse error, and the two mean
 ## different things anyway -- the order can be full a moment before the level
@@ -92,11 +107,22 @@ var _order_done := false
 var _pointer := -1
 var _track := PackedVector2Array()
 var _holding: Node2D = null
+## The gesture-demo finger, if one is still playing. Kept so the moment a
+## crop comes off the plant it can be skipped: a demo is only ever about the
+## half of the move just finished, and two fingers about two halves of one
+## move is how the held crop ended up wearing its own lesson.
+var _demo: Tutorial = null
 
 ## What he has picked and not yet put away, in a level with more than one
 ## basket. One thing at a time, on purpose: two things in hand and a tap on a
 ## basket means "which one", and that is a question the screen cannot ask.
 var _in_hand: Node2D = null
+## Whether the first pick of this run already taught the sorting loop. The
+## waiting ring on the right basket is the permanent answer; the voice plus
+## the pointing finger happen exactly once per run, on the first hold, so the
+## help teaches and then gets out of the way. Reset in setup_level, so every
+## entry into the level teaches once no matter which order is current.
+var _sort_hinted := false
 
 
 ## Picking is the whole level; there is no separate goal to reach.
@@ -112,12 +138,12 @@ func setup_level() -> void:
 	_picker = Picker.for_level(str(level_data.get("id", "")))
 	_allowed = config.get("allowed_maturity", Maturity.PICKABLE)
 	_exceptions = config.get("exceptions", [])
+	_sort_hinted = false
 
 	_stage = build_world(self, 0.30)
 	_field = UiKit.play_area(self, true)
 	_field.gui_input.connect(_on_field_input)
 
-	_draw_bed()
 	_lay_out(config)
 	_build_hud(config)
 
@@ -203,6 +229,10 @@ func _lay_out(config: Dictionary) -> void:
 	var spots := _plan_positions(count, _bed(), _spread(config) * 2.0 + 20.0)
 	var next := 0
 
+	# The earth is drawn from the same spots the crops are planted on, so
+	# every mound below sits under exactly one crop.
+	_draw_bed(spots)
+
 	for entry in plan:
 		var crop: Dictionary = _tuned(entry["crop"])
 		var step: String = entry["step"]
@@ -255,8 +285,7 @@ func _tuned(crop: Dictionary) -> Dictionary:
 ## from another level restoring into this one would be worse than no checkpoint
 ## at all.
 func _restore_checkpoint() -> void:
-	var mark: Dictionary = SaveManager.data.get("farm", {}).get(
-		"harvest_checkpoint", {})
+	var mark := SaveManager.get_harvest_checkpoint()
 	if str(mark.get("level_id", "")) != str(level_data.get("id", "")):
 		return
 	_order_index = clampi(int(mark.get("order_index", 0)), 0, _orders.size() - 1)
@@ -270,22 +299,16 @@ func _restore_checkpoint() -> void:
 ## leave, come back and find it counted, which is a save system doing the
 ## level for him.
 func _save_checkpoint() -> void:
-	var farm: Dictionary = SaveManager.data.get("farm", {})
-	farm["harvest_checkpoint"] = {
+	SaveManager.set_harvest_checkpoint({
 		"level_id": str(level_data.get("id", "")),
 		"order_index": _order_index,
 		"delivered": _delivered.duplicate(),
-	}
-	SaveManager.save_game()
+	})
 
 
 ## Clear it -- the level is over, one way or the other.
 func _clear_checkpoint() -> void:
-	var farm: Dictionary = SaveManager.data.get("farm", {})
-	if str(farm.get("harvest_checkpoint", {}).get("level_id", "")) \
-			== str(level_data.get("id", "")):
-		farm["harvest_checkpoint"] = {}
-		SaveManager.save_game()
+	SaveManager.clear_harvest_checkpoint(str(level_data.get("id", "")))
 
 
 func _load_order() -> void:
@@ -304,6 +327,36 @@ func _load_order() -> void:
 	if difficulty() == BRAVE:
 		for entry in order.get("brave_extra", []):
 			_wanted[str(entry.get("crop_id", ""))] = int(entry.get("count", 1))
+	_refresh_order_targets()
+	_rebuild_order_strip()
+
+
+## Is this target allowed to answer a finger right now?
+##
+## The answer is shared by hit testing, the tutorial, and the field's visual
+## state. Keeping it here prevents a future order from becoming a hidden second
+## inventory: a crop must not disappear before the order that asks for it is on
+## screen.
+func _target_is_available_now(target: Node2D) -> bool:
+	if target == null or not is_instance_valid(target) or target.taken:
+		return false
+	if _is_clutter(target):
+		return true
+	if not Maturity.pickable(target.step, _allowed):
+		return true                         # visible decoys stay teachable
+	var crop_id := str(target.crop.get("id", ""))
+	return _wanted.has(crop_id) and int(_picked.get(crop_id, 0)) \
+		< int(_wanted[crop_id])
+
+
+## Multi-order fields are planted once for a stable layout, but only the crops
+## in the current order are on the glass. This removes the "pick it now, need it
+## later" trap and lets the top HUD honestly describe what can be touched.
+func _refresh_order_targets() -> void:
+	for target in _targets:
+		if not is_instance_valid(target) or target.taken:
+			continue
+		target.visible = _target_is_available_now(target)
 
 
 ## How far from the middle of a target a press still counts.
@@ -371,11 +424,13 @@ const CROP_HALF := 62.0
 ## grid could only get them 92px apart, exactly the floor, with the branches
 ## over the apple trees poking up out of the soil into the sky.
 ##
-## 0.44 is 60px more earth on a phone-shaped screen and nothing worse anywhere:
-## the horizon sits around 78% of the way down, so the field still starts below
-## the sky and runs towards the viewer, which is what a field looks like from
-## slightly above. A tablet had the room already and simply keeps it.
-const BED_TOP := 0.44
+## Was 0.44 next: 60px more earth and the same complaint one level later -- the
+## top half of the screen is sky the game never uses while the bottom strip
+## holds every target, the tally and the baskets shoulder to shoulder. 0.36
+## gives a 16:9 field ~277px of planting height: two roomy rows with air
+## between them, and the soil still starts below the horizon so it reads as a
+## field seen from slightly above. A tablet had the room already and keeps it.
+const BED_TOP := 0.36
 
 
 func _bed() -> Rect2:
@@ -387,31 +442,55 @@ func _bed() -> Rect2:
 		view.y - top - 60.0 - CROP_HALF * 2.0)
 
 
-func _draw_bed() -> void:
+func _draw_bed(mounds: Array) -> void:
 	# The soil is the planting box grown back out by the inset, so the crops sit
 	# ON it rather than at its edges.
 	var box := _bed().grow(CROP_HALF + 14.0)
 	var soil := Node2D.new()
 	soil.z_index = -5
 	_field.add_child(soil)
-	# fill(), not lit(). lit() shrinks its highlight to three quarters and
-	# shifts it towards the light, which reads as a second brown rectangle
-	# sitting crooked on top of the first once the shape is this big -- fine
-	# for a carrot, wrong for a field.
+	# Body and ink edge first: everything below tints the inside and leaves
+	# this rim alone, which is what seats the soil INTO the meadow instead of
+	# sticking it on top like a card.
 	Shapes.fill(soil, Shapes.rounded_rect(box.position, box.size, 46.0),
 		Color(0.47, 0.33, 0.22), 1.0)
-	# A lighter band along the top edge instead: sunlight on turned earth.
-	Shapes.fill(soil, Shapes.rounded_rect(box.position + Vector2(18, 10),
-		Vector2(box.size.x - 36.0, 26.0), 13.0),
-		Color(0.56, 0.41, 0.28, 0.7), 0.0)
-	# Furrows, so it reads as ploughed ground and not as a brown card.
-	var rows := 3
-	for i in range(rows):
-		var y: float = box.position.y + box.size.y * (float(i) + 1.0) / float(rows + 1)
-		Shapes.fill(soil, Shapes.rounded_rect(
-			Vector2(box.position.x + 40.0, y - 4.0),
-			Vector2(box.size.x - 80.0, 8.0), 4.0),
-			Color(0.36, 0.25, 0.16, 0.5), 0.0)
+	# Light from above: a translucent vertical gradient over the body. Alpha,
+	# not opaque, so the rim above keeps its ink.
+	Shapes.gradient_quad(soil, box.position + Vector2(8, 8), box.size - Vector2(16, 16),
+		Color(0.62, 0.47, 0.31, 0.5), Color(0.30, 0.20, 0.12, 0.5))
+	# Furrows the garden way: soft lit ridges with shade beneath, never
+	# reaching the sides. Three hard dark bars right across would be slats,
+	# and slats would make this a vegetable crate -- see plot_view.gd.
+	var shade := Color(0.36, 0.25, 0.16, 0.55)
+	var lit := Color(0.60, 0.45, 0.30, 0.55)
+	for i in range(3):
+		var y: float = box.position.y + box.size.y * (float(i) + 1.0) / float(3 + 1)
+		var wide: float = box.size.x * (0.72 if i == 1 else 0.60)
+		Shapes.fill(soil, Shapes.oval_points(Vector2(
+			box.position.x + box.size.x * 0.5, y + 4.0),
+			Vector2(wide * 0.5, 7.0), 26), shade, 0.0)
+		Shapes.fill(soil, Shapes.oval_points(Vector2(
+			box.position.x + box.size.x * 0.5, y - 2.0),
+			Vector2(wide * 0.5, 4.5), 26), lit, 0.0)
+	# Crumbs. One fixed seed, so every entry into the level photographs the
+	# same earth -- nothing in the planted rows is random, and the dirt they
+	# sit in should not be either.
+	var rng := Shapes.rng_for("harvest_soil")
+	for i in range(14):
+		var at := Vector2(
+			box.position.x + 40.0 + fmod(float(i) * 173.0, box.size.x - 80.0),
+			box.position.y + 30.0 + fmod(float(i) * 97.0, box.size.y - 60.0))
+		Shapes.fill(soil, Shapes.blob(at,
+			Vector2(4.0 + float(i % 3) * 1.6, 3.0 + float(i % 2) * 1.2),
+			rng), shade, 0.0)
+	# A mound and a contact shadow under every planting. The missing contact
+	# shadow is the number-one reason a cutout looks pasted on -- this is the
+	# line between "pictures of carrots" and "carrots in the ground".
+	for at in mounds:
+		var centre: Vector2 = at
+		Shapes.ground_shadow(soil, centre + Vector2(0, 30), 92.0, 0.18)
+		Shapes.fill(soil, Shapes.oval_points(centre + Vector2(0, 20),
+			Vector2(48, 13), 26), Color(0.36, 0.25, 0.16, 0.9), 0.0)
 
 
 ## Where everything on this level goes: a jittered grid, worked out in one go.
@@ -507,13 +586,47 @@ func _build_hud(config: Dictionary) -> void:
 	back.position = Vector2(24, 24)
 	_hud.add_child(back)
 
-	# What the order wants, as pictures and pips. No sentence to read.
+	# What the order wants, as pictures and pips. No sentence to read. The route
+	# lives in the same vertical group, so a taller tally on a narrow tablet can
+	# never overlap the current-order marker. The whole group rides on one
+	# parchment card, so the tally never has to argue with the sun behind it.
+	var order_card := UiKit.card(Color(0.99, 0.97, 0.90))
+	order_card.position = Vector2(204, 14)
+	# A look, not a button: the tally was untouchable before and stays that
+	# way, so every press still falls through to the field.
+	order_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud.add_child(order_card)
+	var order_hud := VBoxContainer.new()
+	order_hud.add_theme_constant_override("separation", 24)
+	order_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	order_card.add_child(order_hud)
+
+	var order_row := HBoxContainer.new()
+	order_row.add_theme_constant_override("separation", 16)
+	order_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	order_hud.add_child(order_row)
+
+	# Who the order is for, as a face. Optional per level: a level naming no
+	# customer_icon simply has no face, and the tally sits where it always
+	# did. IconLibrary names only (teddy/robot/paw) -- the same faces the
+	# garden's order board uses, so a customer stays recognisable across
+	# rooms without a word being read.
+	var face: Control = UiKit.picture(str(config.get("customer_icon", "")), 72.0)
+	if face != null:
+		face.name = "OrderCustomer"
+		order_row.add_child(face)
+
 	_tally = HBoxContainer.new()
-	_tally.add_theme_constant_override("separation", 18)
-	_tally.position = Vector2(220, 26)
+	_tally.add_theme_constant_override("separation", 24)
 	_tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud.add_child(_tally)
+	order_row.add_child(_tally)
+
+	_order_strip = HBoxContainer.new()
+	_order_strip.add_theme_constant_override("separation", 14)
+	_order_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	order_hud.add_child(_order_strip)
 	_rebuild_tally()
+	_rebuild_order_strip()
 
 	_build_baskets(config)
 
@@ -554,7 +667,12 @@ func _build_baskets(config: Dictionary) -> void:
 	var soil := _bed().grow(CROP_HALF + 14.0)
 	var count: float = maxf(float(spec.size()), 1.0)
 	var span: float = soil.size.y / count
-	var size: float = minf(BASKET_SIZE, span * 0.60)
+	## Three baskets at 0.60 of their span rendered at 73px on a 16:9 screen:
+	## tappable per the probe, but a picture of a basket smaller than the
+	## strawberries it is asked to hold. 0.72 brings three up to ~88px and two
+	## up to ~133px without moving the column: the reach below still comes from
+	## the spacing, so distinguishability is unchanged.
+	var size: float = minf(BASKET_SIZE, span * 0.72)
 	# 0.45 and not 0.5: half the spacing would put two reaches exactly edge to
 	# edge, and a press landing on that seam belongs to nobody in particular.
 	var reach: float = minf(size * 0.9, span * 0.45)
@@ -576,15 +694,42 @@ func _rebuild_tally() -> void:
 		var crop: Dictionary = Crops.get_crop(str(crop_id))
 		var box := VBoxContainer.new()
 		box.alignment = BoxContainer.ALIGNMENT_CENTER
-		var art: Control = UiKit.picture(str(crop.get("asset", "")), 62.0)
+		var art: Control = UiKit.picture(str(crop.get("asset", "")), 80.0)
 		if art != null:
 			box.add_child(art)
 		var count := UiKit.title("%d/%d" % [int(_picked.get(crop_id, 0)),
-			int(_wanted[crop_id])], 26)
+			int(_wanted[crop_id])], 32)
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(count)
 		_tally.add_child(box)
 		_tally_pips.append(count)
+
+
+## The visual companion to `_target_is_available_now`: one chip per order is
+## enough to say "done / now / later" without asking a child to read a sentence.
+func _rebuild_order_strip() -> void:
+	if _order_strip == null or not is_instance_valid(_order_strip):
+		return
+	for child in _order_strip.get_children():
+		child.queue_free()
+	_order_strip.visible = _orders.size() > 1
+	if not _order_strip.visible:
+		return
+	for i in range(_orders.size()):
+		var done := i < _order_index
+		var current := i == _order_index
+		var fill := Palette.YELLOW if current else \
+			(Palette.SURFACE if done else Palette.SURFACE_SUNK)
+		var chip := UiKit.card(fill)
+		chip.custom_minimum_size = Vector2(64, 56)
+		var marker: Control = UiKit.picture("check", 32.0) if done \
+			else UiKit.title("%d" % [i + 1], 28, Palette.INK_SOFT)
+		if marker is Label:
+			(marker as Label).vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		chip.add_child(marker)
+		_order_strip.add_child(chip)
+		if current:
+			UiKit.breathe(chip, 0.025, 0.78)
 
 
 
@@ -692,6 +837,11 @@ func _end(pointer: int, at: Vector2) -> void:
 
 	if target == null or not is_instance_valid(target):
 		return
+	# A target from a later order is not an early bonus. It stays on the plant
+	# until its own order is visible, so a curious tap cannot make the next order
+	# impossible to finish.
+	if not _target_is_available_now(target):
+		return
 	if not target.try_gesture(track, _allowed):
 		# A dig that stopped half way puts the earth back, so the next attempt
 		# starts from somewhere honest rather than from a mound that is
@@ -747,15 +897,31 @@ func _end(pointer: int, at: Vector2) -> void:
 func _take_in_hand(target: Node2D) -> void:
 	_in_hand = target
 	_targets.erase(target)
+	# One finger at a time. A gesture demo still playing is about the picking
+	# half just finished, so it goes quiet and the waiting ring plus the
+	# first-hold pointer below are the only answer left on screen.
+	if _demo != null and is_instance_valid(_demo):
+		_demo.skip()
+	_demo = null
 	# It rises where it grew. See HarvestTarget.lift for why it does not travel
 	# somewhere tidier: a picked strawberry parked on the soil is indis-
 	# tinguishable from a strawberry still growing on the soil.
 	target.lift()
 	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
-	# The baskets start breathing: something is waiting to go in one of them,
-	# and that is the only moment in the level when they are what to look at.
+	# The one basket that can take this crop starts breathing. Highlighting every
+	# basket would turn a sorting question into three equally loud guesses.
 	for basket in _baskets:
-		basket.waiting(true)
+		basket.waiting(_basket_accepts(target, basket))
+	# The first pick of the run also says the loop out loud, once. The waiting
+	# ring above is the permanent visual answer; this voice plus the pointing
+	# finger teach "pick it, then put it in the lit basket" at the exact moment
+	# he has something in his hand -- and never again this run, so the help
+	# does not narrate every strawberry. Reuses the existing two-basket voice
+	# and the existing Tutorial finger; no new hint system.
+	if not _sort_hinted and _baskets.size() > 1:
+		_sort_hinted = true
+		AudioManager.say("harvest_two_baskets")
+		_point_at_the_baskets()
 
 
 ## He tapped somewhere with a crop in his hand.
@@ -770,13 +936,7 @@ func _put_it_away(at: Vector2) -> void:
 		_point_at_the_baskets()
 		return
 
-	# Exceptions first, and that ORDER is the rule (brief section six): "the ones
-	# with a star go in the gift basket" has to beat "fruit goes in the fruit
-	# basket", or a golden strawberry is correct in two places and the child is
-	# marked wrong for following the newer instruction.
-	var must: String = _exception_basket(target)
-	var welcome: bool = basket.id == must if must != "" else basket.takes(target.crop)
-	if not welcome:
+	if not _basket_accepts(target, basket):
 		basket.refuse()
 		target.refuse("wrong_basket")
 		return
@@ -794,9 +954,12 @@ func _put_it_away(at: Vector2) -> void:
 func _point_at_the_baskets() -> void:
 	if _baskets.is_empty() or _in_hand == null or not is_instance_valid(_in_hand):
 		return
+	var destination := _destination_for(_in_hand)
+	if destination == null:
+		return
 	var hand := Tutorial.new()
 	_field.add_child(hand)
-	hand.add_step(_in_hand.global_position, _baskets[0].global_position, 1.1)
+	hand.add_step(_in_hand.global_position, destination.global_position, 1.1)
 	hand.play()
 
 
@@ -830,6 +993,22 @@ func _exception_basket(target: Node2D) -> String:
 	return ""
 
 
+## The one source of truth for sorting. A pointer, a basket tap, and a future
+## helper must never disagree about where the same crop belongs.
+func _basket_accepts(target: Node2D, basket: Node2D) -> bool:
+	if target == null or basket == null:
+		return false
+	var must := _exception_basket(target)
+	return basket.id == must if must != "" else basket.takes(target.crop)
+
+
+func _destination_for(target: Node2D) -> Node2D:
+	for basket in _baskets:
+		if _basket_accepts(target, basket):
+			return basket
+	return null
+
+
 ## Which basket that press landed on, or the only one there is.
 ##
 ## The NEAREST one in reach, not the first one in reach. With the column spaced
@@ -854,7 +1033,7 @@ func _nearest(at: Vector2) -> Node2D:
 	var best: Node2D = null
 	var best_gap := 1e9
 	for node in _targets:
-		if not is_instance_valid(node) or node.taken:
+		if not _target_is_available_now(node) or not node.visible:
 			continue
 		var gap: float = node.global_position.distance_to(at)
 		if gap <= node.radius and gap < best_gap:
@@ -876,6 +1055,9 @@ func _on_picked(target: Node2D) -> void:
 ## hint director can offer help sooner. It costs no time, no star and no coin,
 ## and there is no cap after which something bad happens.
 func _on_refused(_target: Node2D, why: String) -> void:
+	# Any refuse quiets the streak back to zero, silently. See _streak: the
+	# cheer is decoration and its absence is not a punishment.
+	_streak = 0
 	if why == "unripe":
 		_unripe_taps += 1
 		AudioManager.say("harvest_not_yet")
@@ -884,6 +1066,32 @@ func _on_refused(_target: Node2D, why: String) -> void:
 	AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
 	if _hints != null:
 		_hints.missed()
+
+
+## How loud the cheer is for this streak: 0 none, 1 small, 2 big.
+##
+## Static and pure so the table is assertable without a screen: 3 in a row
+## earns the small one, every 5th the big one, anything else nothing at all.
+## Kept sparse on purpose -- a cheer on every pick is wallpaper within a
+## minute, and the base class already says a warm word every 4th correct.
+static func cheer_for(streak: int) -> int:
+	if streak >= 5 and streak % 5 == 0:
+		return 2
+	if streak == 3:
+		return 1
+	return 0
+
+
+## The streak made visible. Juice-owned visuals and one existing sfx only: no
+## new voice (the base class rotates praise_1/2/3 already), no score, no coin.
+func _cheer_for_streak(at: Vector2) -> void:
+	match cheer_for(_streak):
+		1:
+			Juice.burst(_field, at, 28)
+		2:
+			Juice.burst(_field, at, 46)
+			Juice.shockwave(_field, at, 170.0, Color(1.0, 0.94, 0.62, 0.5))
+			AudioManager.play_sfx("res://assets/audio/star.ogg")
 
 
 func _after_a_pick(target: Node2D) -> void:
@@ -895,6 +1103,8 @@ func _after_a_pick(target: Node2D) -> void:
 		_hints.progress()
 	_rebuild_tally()
 	score_correct()
+	_streak += 1
+	_cheer_for_streak(target.global_position)
 
 	# The three doors, decided here and read by the result screen.
 	if not _order_filled() or _order_done:
@@ -911,10 +1121,40 @@ func _after_a_pick(target: Node2D) -> void:
 	if _order_index < _orders.size():
 		AudioManager.play_sfx("res://assets/audio/coin.ogg")
 		AudioManager.say("harvest_next_order")
+		_celebrate_order_done()
 		_load_order()
 		_rebuild_tally()
 		return
 	_finish()
+
+
+## The landed order, said once in pictures: a big check that pops and fades,
+## with the checkpoint write landing in the same beat ("记住啦"). Transient
+## by design -- the fresh tally arriving underneath is the permanent record,
+## and the last order of a level gets the result screen instead of this.
+func _celebrate_order_done() -> void:
+	var party := VBoxContainer.new()
+	party.name = "OrderDone"
+	party.alignment = BoxContainer.ALIGNMENT_CENTER
+	party.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var view := get_viewport_rect().size
+	party.position = view * 0.5 + Vector2(-70, -160)
+	party.custom_minimum_size = Vector2(140, 0)
+	party.size = Vector2(140, 0)
+	_hud.add_child(party)
+	var tick: Control = UiKit.picture("check", 110.0)
+	if tick != null:
+		tick.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		party.add_child(tick)
+	var saved := UiKit.title(I18n.t("harvest.saved"), 30)
+	saved.custom_minimum_size = Vector2(140, 0)
+	saved.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	party.add_child(saved)
+	Juice.pop(party, 0.12)
+	var t := party.create_tween()
+	t.tween_interval(0.5)
+	t.tween_property(party, "modulate:a", 0.0, 0.25)
+	t.tween_callback(party.queue_free)
 
 
 func _order_filled() -> bool:
@@ -969,12 +1209,22 @@ func _teach_if_new(config: Dictionary) -> void:
 	learned.append(lesson)
 	SaveManager.set_setting("harvest_taught", learned)
 	AudioManager.say(str(config.get("teach_voice", "harvest_pull_up")))
-	_show_the_move()
+	_show_the_move(_teaching_target(lesson))
+
+
+## The narrated lesson names a harvest gesture, so demonstrate that gesture --
+## not merely whichever current crop happened to be planted first.
+func _teaching_target(lesson: String) -> Node2D:
+	for node in _targets:
+		if _target_is_available_now(node) and node.visible \
+				and str(node.crop.get("harvest_gesture", "")) == lesson:
+			return node
+	return _first_target()
 
 
 func _first_target() -> Node2D:
 	for node in _targets:
-		if is_instance_valid(node) and not node.taken \
+		if _target_is_available_now(node) and node.visible \
 				and Maturity.pickable(node.step, _allowed):
 			return node
 	return null
@@ -989,11 +1239,20 @@ func _nudge() -> void:
 		Color(1.0, 0.94, 0.62, 0.5))
 
 
-func _show_the_move() -> void:
-	var node := _first_target()
+func _show_the_move(node: Node2D = null) -> void:
+	# A hand already holding a crop has its question, and it is "which
+	# basket" -- not "how to pick". Showing the picking gesture now would be
+	# a second finger about the half already done, so the help points at the
+	# baskets instead, exactly as the third level of help does.
+	if _in_hand != null and is_instance_valid(_in_hand):
+		_point_at_the_baskets()
+		return
+	if node == null:
+		node = _first_target()
 	if node == null:
 		return
 	var hand := Tutorial.new()
+	_demo = hand
 	_field.add_child(hand)
 	hand.add_step(node.global_position, _gesture_end(node), 1.2)
 	hand.play()

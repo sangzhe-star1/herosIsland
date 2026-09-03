@@ -53,6 +53,14 @@ var _t := 0.0
 var _bugs: Array = []
 var _sway: Array = []
 var _looked_like := ""
+## Where the plant is leaning while a finger pulls on it. Direct manipulation,
+## not decoration: it is how a ripe carrot says "coming loose -- pull harder".
+## Two numbers, not tweens, for the same reason _t is one float -- a bed that
+## refreshes mid-pull must not leave a tween against a freed node.
+var _lean_rot := 0.0        # radians, current
+var _lean_lift := 0.0       # pixels, current (0..-22, up is negative)
+var _lean_rot_to := 0.0
+var _lean_lift_to := 0.0
 
 
 func setup(plot_index: int) -> void:
@@ -72,6 +80,21 @@ func setup(plot_index: int) -> void:
 ## beds to hit by accident.
 func reach() -> Vector2:
 	return _box * 0.5
+
+
+## The finger is pulling on this bed. `offset` is how far it has travelled from
+## where it pressed, in screen pixels -- sideways lean tilts the plant, an
+## upward pull lifts it out of the hollow a little. Raw follow, no spring in
+## the input path; the spring below only smooths the RENDERING.
+func lean(offset: Vector2) -> void:
+	_lean_rot_to = clampf(offset.x * 0.0012, -0.20, 0.20)
+	_lean_lift_to = -clampf(-offset.y, 0.0, 120.0) * 0.18
+
+
+## The finger left: the plant settles back, whether or not the pull succeeded.
+func relax() -> void:
+	_lean_rot_to = 0.0
+	_lean_lift_to = 0.0
 
 
 ## Redraw only if something a child could see has changed.
@@ -321,6 +344,20 @@ func _process(delta: float) -> void:
 			_ring = null
 	if not Juice.motion_enabled():
 		return
+	# The lean chases the finger. A lerp rather than a hard set, so a waggle
+	# reads as the plant swinging on its roots instead of vibrating.
+	_lean_rot = lerpf(_lean_rot, _lean_rot_to, minf(1.0, delta * 14.0))
+	_lean_lift = lerpf(_lean_lift, _lean_lift_to, minf(1.0, delta * 14.0))
+	# Settled: only snap to exactly zero once the FINGER has let go and the
+	# spring has carried the plant home -- snapping while a pull is building
+	# would pin the plant upright under the finger.
+	if is_equal_approx(_lean_rot_to, 0.0) and is_equal_approx(_lean_lift_to, 0.0) \
+			and absf(_lean_rot) < 0.002 and absf(_lean_lift) < 0.3:
+		_lean_rot = 0.0
+		_lean_lift = 0.0
+	if _planting != null and is_instance_valid(_planting):
+		_planting.rotation = _lean_rot
+		_planting.position = Vector2(0.0, _lean_lift)
 	for plant in _sway:
 		if is_instance_valid(plant):
 			(plant as Control).rotation = sin(_t * 2.1) * 0.055

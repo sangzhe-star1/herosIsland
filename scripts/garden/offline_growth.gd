@@ -262,8 +262,10 @@ static func advance(plot: Dictionary, crop: Dictionary, seconds: int) -> Diction
 
 ## Settle a whole garden up to `now`, and hand back the garden it became.
 ##
-## This is the only place the two clock anchors are read and written, which is
-## also the only place a clock dragged backwards has to be noticed.
+## This is the only place the garden clock anchors are read and written, which
+## is also the only place a clock dragged backwards has to be noticed. The
+## farm stamp says when the garden was last seen; every plot also keeps its own
+## planting/update stamp, so a seed never inherits time from before it existed.
 ##
 ##   * forwards  -- each plot advances by the elapsed seconds, already capped
 ##                  at one night's worth by GameClock
@@ -292,13 +294,17 @@ static func settle(farm: Dictionary, now: int) -> Dictionary:
 	# high mark. The special case was written first, and deleting it and
 	# watching the garden probe still pass is how it was found to do nothing.
 	# One rule, in one place, with clock_probe as its test.
-	var elapsed: int = GameClock.elapsed_since(last)
 	var plots: Array = out.get("plots", [])
 	for i in range(plots.size()):
 		var plot: Dictionary = Farm.normalise_plot(plots[i], i)
 		var crop: Dictionary = crop_for(plot,
 			GameData.get_crop(str(plot.get("crop_id", ""))))
-		plot = advance(plot, crop, elapsed)
+		# `last_seen_at` keeps a whole-farm visit from being counted twice. A
+		# new seed or a just-completed care action is newer than that visit and
+		# must become the local anchor instead.
+		var plot_anchor := maxi(last, maxi(int(plot.get("planted_at", 0)),
+			int(plot.get("last_updated_at", 0))))
+		plot = advance(plot, crop, GameClock.elapsed_since(plot_anchor))
 		plot["last_updated_at"] = now
 		plots[i] = plot
 	out["plots"] = plots
@@ -340,6 +346,14 @@ static func water(plot: Dictionary) -> Dictionary:
 		# case there is still a job to do and the state stays where it is.
 		if str(out.get("state", "")) == Farm.NEEDS_CARE:
 			out["state"] = Farm.GROWING
+	return out
+
+
+## Start the next growth interval from a real child action. This stays pure so
+## the screen, a visitor and a probe all share the same timestamp rule.
+static func reanchor(plot: Dictionary, now: int) -> Dictionary:
+	var out: Dictionary = plot.duplicate(true)
+	out["last_updated_at"] = maxi(now, 0)
 	return out
 
 

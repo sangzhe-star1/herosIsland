@@ -25,6 +25,7 @@ var crops: Array = []
 ## lives in the save, so retuning a reward can never un-pay an order.
 var garden_orders: Array = []
 var garden_recipes: Array = []
+var garden_dailies: Array = []
 ## The first-planting lesson: which crop, which bed, how fast it grows for the
 ## lesson only, and what the helper points at in what order.
 var garden_tutorial: Dictionary = {}
@@ -85,6 +86,7 @@ func _ready() -> void:
 	crops = _load_json("res://data/crops.json", [])
 	garden_orders = _load_json("res://data/garden_orders.json", [])
 	garden_recipes = _load_json("res://data/garden_recipes.json", [])
+	garden_dailies = _load_json("res://data/garden_dailies.json", [])
 	garden_tutorial = _load_json("res://data/garden_tutorial.json", {})
 	harvest_crops = _load_json("res://data/harvest_crops.json", [])
 	farm_layout = _load_json("res://data/farm_world_layout.json", {})
@@ -120,6 +122,7 @@ func _ready() -> void:
 			["monsters", monsters.size()], ["shop items", shop_items.size()],
 			["crops", crops.size()], ["garden orders", garden_orders.size()],
 			["garden recipes", garden_recipes.size()],
+			["garden dailies", garden_dailies.size()],
 			["garden tutorial steps", garden_tutorial.get("steps", []).size()],
 			["harvest crops", harvest_crops.size()],
 			# Counted by its facilities, because an empty dictionary and a

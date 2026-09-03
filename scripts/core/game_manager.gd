@@ -4,6 +4,9 @@ extends Node
 ## it is time to stop, it never locks them out mid-level.
 
 signal level_finished(result: LevelResult)
+## Emitted after a real resume settles the farm. Screens compare their visible
+## fingerprint before rebuilding, so this is not a high-frequency growth tick.
+signal farm_resumed(changed: bool)
 
 var current_level_id: String = ""
 var current_world_id: String = "safety"
@@ -34,7 +37,8 @@ func _notification(what: int) -> void:
 		# The garden, on the other hand, was growing the whole time it was in
 		# the bag -- that is the point of it. Settle it now so what he sees
 		# when the screen comes back is already up to date.
-		SaveManager.settle_farm()
+		var farm_changed := SaveManager.settle_farm()
+		farm_resumed.emit(farm_changed)
 
 
 ## Bank the elapsed time so the Parent Center is accurate even if the app is

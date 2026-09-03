@@ -1,0 +1,23 @@
+[
+  {
+    "id": "water",
+    "target": 3,
+    "coins": 10,
+    "icon": "watering_can",
+    "name_key": "garden.daily.water"
+  },
+  {
+    "id": "harvest",
+    "target": 5,
+    "coins": 12,
+    "icon": "basket",
+    "name_key": "garden.daily.harvest"
+  },
+  {
+    "id": "deliver",
+    "target": 1,
+    "coins": 10,
+    "icon": "check",
+    "name_key": "garden.daily.deliver"
+  }
+]

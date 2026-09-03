@@ -95,6 +95,11 @@ func _ready() -> void:
 			"planted_at": NOON - 3600})
 		plots[4] = _bed(4, {"state": Farm.TILLED})
 		farm["plots"] = plots
+		if what == "market":
+			# The sell decision with numbers on it: three kinds of crop on the
+			# shelf, each chip naming its unit price, and three carrots boxed
+			# out of twelve -- the row under the crate is the "keep nine" half.
+			farm["warehouse"] = {"carrot": 12, "strawberry": 6, "tomato": 3}
 		if what == "kitchen":
 			# 五级农场，两道会做的菜：汤下得了锅（草莓正好），炖菜还缺
 			# 番茄，架上还有一份昨天的汤——面板的三种状态一屏看全。
@@ -172,6 +177,13 @@ func _ready() -> void:
 		elif what == "orders":
 			scene.call("_tap_building", "orders")
 			await get_tree().process_frame
+		elif what == "market":
+			scene.call("_open_panel", "market")
+			await get_tree().process_frame
+			scene.call("_on_market_drop", {"key": "carrot"}, true, true)
+			for i in range(9):
+				scene.call("_market_step", "carrot", -1)
+			await get_tree().process_frame
 		elif what == "rack" and page > 0:
 			scene.set("_rack_page", page)
 			scene.call("_queue_rebuild")
@@ -199,6 +211,56 @@ func _ready() -> void:
 				.get("camera").call("world_to_screen",
 					art.position + art.size * 0.5))
 			await get_tree().create_timer(0.1).timeout
+	if what == "pet":
+		# A hand on the dog's head: park him in the open, press him, and hold
+		# the shutter while the hearts are still climbing. Nothing else on the
+		# farm moves for this one -- the reaction is the whole picture.
+		var dog: Node = scene.get("_world").get("_dog")
+		dog.set("position", Vector2(640.0, 900.0))
+		dog.set("_target", Vector2(640.0, 900.0))
+		await get_tree().process_frame
+		dog.call("pet")
+		await get_tree().create_timer(0.35).timeout
+	if what == "gold":
+		# Pick the golden bed through the real tap path, then hold the shutter
+		# a fifth of a second while the shower is still falling.
+		var world2: Node = scene.get("_world")
+		var bed: Vector2 = scene.call("_bed_centre", 0)
+		var press2 := InputEventScreenTouch.new()
+		press2.index = 0
+		press2.pressed = true
+		press2.position = bed
+		Input.parse_input_event(press2)
+		await get_tree().process_frame
+		var lift := InputEventScreenTouch.new()
+		lift.index = 0
+		lift.pressed = false
+		lift.position = bed
+		Input.parse_input_event(lift)
+		await get_tree().process_frame
+		await get_tree().create_timer(0.22).timeout
+	if what == "pull":
+		# The gesture moment, caught mid-move: a finger pressed on the ripe
+		# carrot, half way through the pull, camera holding still. The lean
+		# is the whole point of the shot, and the spring needs a beat to
+		# carry the plant over -- so the finger goes down, drags up in real
+		# input events, and STAYS down while the shutter fires.
+		var world: Node = scene.get("_world")
+		var bed: Vector2 = scene.call("_bed_centre", 0)
+		var press := InputEventScreenTouch.new()
+		press.index = 0
+		press.pressed = true
+		press.position = bed
+		Input.parse_input_event(press)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		for step in range(1, 4):
+			var drag := InputEventScreenDrag.new()
+			drag.index = 0
+			drag.position = bed + Vector2(0.0, -70.0 * float(step))
+			Input.parse_input_event(drag)
+			await get_tree().process_frame
+		await get_tree().create_timer(0.4).timeout
 	await RenderingServer.frame_post_draw
 	var image := get_viewport().get_texture().get_image()
 	print("farm_shot -> ", error_string(image.save_png(out)))

@@ -66,6 +66,11 @@ func _default_data() -> Dictionary:
 		# beaten. Each rank makes that challenge a little bigger -- the level
 		# system that keeps growing after the hand-made levels run out.
 		"challenges": {},
+		# One unfinished multi-order 丰收挑战. This is level-local progress, not
+		# something the child grew, so it stays beside challenge progress rather
+		# than inside `farm` with the barn, plots and daily orders. It is kept
+		# deliberately small: completing an order is the only time it changes.
+		"harvest_checkpoint": {},
 		"settings": {
 			"locale": I18nScript.DEFAULT_LOCALE,
 			"music_volume": 0.8,
@@ -257,6 +262,23 @@ func wear_whole(character_id: String, outfit: Dictionary) -> void:
 
 func _migrate(loaded: Dictionary) -> Dictionary:
 	var base := _default_data()
+	# Early builds wrote the harvest challenge's one in-flight delivery under
+	# `farm`. Farm.normalise_farm() quite correctly throws unknown economic
+	# fields away, which also threw this progress away on reload. Carry that one
+	# legacy record to its own challenge branch before normalising the farm.
+	#
+	# Do not replace a modern checkpoint with an old copy: a save can contain
+	# both only while an upgrade is being written, and the top-level one is newer
+	# and already has the right owner.
+	if loaded.get("farm") is Dictionary:
+		var legacy_farm: Dictionary = loaded["farm"]
+		var legacy_checkpoint: Variant = legacy_farm.get("harvest_checkpoint", {})
+		if not loaded.has("harvest_checkpoint") and legacy_checkpoint is Dictionary:
+			loaded["harvest_checkpoint"] = legacy_checkpoint
+		# Make the ownership boundary explicit even before normalise_farm() builds
+		# its fresh economic shape. The next ordinary save then rewrites old files
+		# without a challenge field under the daily garden.
+		legacy_farm.erase("harvest_checkpoint")
 	# BEFORE the defaults are filled in, and that order is the whole point.
 	#
 	# `save_version` is the one version field that gets READ. `version` is its
@@ -756,6 +778,29 @@ func bump_challenge_rank(level_id: String) -> void:
 	data["challenges"][level_id] = get_challenge_rank(level_id) + 1
 	save_game()
 	progress_changed.emit()
+
+
+## The one unfinished multi-order harvest run. It intentionally does not use
+## the daily `farm` dictionary: a harvest challenge is a scored level and has
+## no right to alter the child's plots, barn, spill basket or farm orders.
+func get_harvest_checkpoint() -> Dictionary:
+	var mark: Variant = data.get("harvest_checkpoint", {})
+	return (mark as Dictionary).duplicate(true) if mark is Dictionary else {}
+
+
+func set_harvest_checkpoint(mark: Dictionary) -> void:
+	data["harvest_checkpoint"] = mark.duplicate(true)
+	save_game()
+
+
+## A level may only clear its own mark. Leaving a different unfinished level
+## alone makes a stale screen harmless instead of letting it erase progress.
+func clear_harvest_checkpoint(level_id: String) -> void:
+	var mark := get_harvest_checkpoint()
+	if str(mark.get("level_id", "")) != level_id:
+		return
+	data["harvest_checkpoint"] = {}
+	save_game()
 
 
 # --- the star shop ------------------------------------------------------

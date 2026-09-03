@@ -16,6 +16,7 @@ extends Node
 const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Maturity := preload("res://scripts/harvest/maturity.gd")
 const Crops := preload("res://scripts/harvest/harvest_crops.gd")
+const HarvestAction := preload("res://scripts/minigames/harvest_action.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 
@@ -39,9 +40,12 @@ func _ready() -> void:
 	_an_unknown_gesture_refuses()
 	_unripe_is_not_pickable()
 	_ripeness_is_said_more_than_one_way()
+	_the_cheer_is_sparse()
 	_every_level_can_actually_be_finished()
 	_clutter_is_never_asked_for()
 	_an_exception_names_a_basket_that_exists()
+	_every_pickable_target_has_one_sorting_home()
+	_the_checkpoint_is_challenge_state_not_farm_state()
 	_the_challenge_is_off_the_island_path()
 
 	for failure in _failures:
@@ -159,7 +163,21 @@ func _unripe_is_not_pickable() -> void:
 		"an order that asks for almost-ready ones gets them")
 
 
-## Five channels, and no two steps identical in only one of them.
+## The streak cheer is decoration with a fixed table, not a mood.
+##
+## Three in a row earns the small one, every fifth the big one, anything else
+## nothing -- asserted here so the mapping cannot drift into cheering every
+## pick (wallpaper) or never cheering at all. Whether the counter itself moves
+## is a thumb question, asked in harvest_touch_probe.
+func _the_cheer_is_sparse() -> void:
+	for quiet in [0, 1, 2, 4, 6, 7, 9, 11]:
+		_ok(HarvestAction.cheer_for(quiet) == 0,
+			"a streak of %d cheers nothing" % quiet)
+	_ok(HarvestAction.cheer_for(3) == 1,
+		"three in a row earns the small cheer")
+	for big in [5, 10, 15]:
+		_ok(HarvestAction.cheer_for(big) == 2,
+			"a streak of %d earns the big cheer" % big)
 ##
 ## This is the colour-blindness rule, asserted rather than hoped for: if ready
 ## and unripe ever differ ONLY in tint, roughly one boy in twelve is playing a
@@ -271,8 +289,87 @@ func _an_exception_names_a_basket_that_exists() -> void:
 		for rule in config.get("exceptions", []):
 			_ok(str(rule.get("basket", "")) in have,
 				"%s sends '%s' to basket '%s', which the level does not have"
-				% [str(level.get("id", "")), str(rule.get("tag", "")),
-					str(rule.get("basket", ""))])
+					% [str(level.get("id", "")), str(rule.get("tag", "")),
+						str(rule.get("basket", ""))])
+
+
+## A sorting lesson has one intended answer. "Any matching tag" is convenient
+## for an inventory but wrong for a child asked to separate two things: if both
+## baskets accept an orange, the lesson's rule is only an illusion.
+func _every_pickable_target_has_one_sorting_home() -> void:
+	for level in GameData.levels:
+		if str(level.get("game_type", "")) != "harvest_action":
+			continue
+		var id := str(level.get("id", ""))
+		var config: Dictionary = level.get("config", {})
+		var allowed: Array = config.get("allowed_maturity", Maturity.PICKABLE)
+		var baskets: Array = config.get("baskets", [])
+		if baskets.is_empty():
+			baskets = [{"id": "basket", "accepts_tags": []}]
+		for target in config.get("targets", []):
+			var step := str(target.get("maturity", Maturity.READY))
+			if not Maturity.pickable(step, allowed):
+				continue
+			var crop_id := str(target.get("crop_id", ""))
+			var crop: Dictionary = Crops.get_crop(crop_id)
+			if "clutter" in crop.get("tags", []):
+				continue
+			var must := _exception_for(config.get("exceptions", []), crop, step)
+			var homes := 0
+			for basket in baskets:
+				var welcome := str(basket.get("id", "")) == must if must != "" \
+					else _basket_takes(basket, crop)
+				if welcome:
+					homes += 1
+			_ok(homes == 1,
+				"%s puts pickable %s in %d baskets, not exactly one"
+				% [id, crop_id, homes])
+
+
+func _exception_for(rules: Array, crop: Dictionary, step: String) -> String:
+	for rule in rules:
+		var tag := str(rule.get("tag", ""))
+		if tag in crop.get("tags", []) or (tag == "golden" and step == Maturity.GOLDEN):
+			return str(rule.get("basket", ""))
+	return ""
+
+
+func _basket_takes(basket: Dictionary, crop: Dictionary) -> bool:
+	var accepts: Array = basket.get("accepts_tags", [])
+	if accepts.is_empty():
+		return true
+	for tag in accepts:
+		if tag in crop.get("tags", []):
+			return true
+	return false
+
+
+## A checkpoint says where a scored challenge should resume. It is not a crop,
+## a daily order or a farm upgrade, so farm normalisation must never own it.
+## This simulates a save made by the short-lived old layout and verifies that
+## migration carries it across before Farm.normalise_farm() drops unknown keys.
+func _the_checkpoint_is_challenge_state_not_farm_state() -> void:
+	var fresh := SaveManager._default_data()
+	_ok(fresh.get("harvest_checkpoint", null) is Dictionary,
+		"a fresh save has a dedicated harvest checkpoint branch")
+	_ok(not fresh.get("farm", {}).has("harvest_checkpoint"),
+		"a fresh daily farm has no challenge checkpoint field")
+
+	var legacy := SaveManager._default_data()
+	legacy.erase("harvest_checkpoint")
+	var mark := {"level_id": "harvest_08", "order_index": 1,
+		"delivered": {"carrot": 3, "strawberry": 4}}
+	legacy["farm"]["harvest_checkpoint"] = mark.duplicate(true)
+	var migrated: Dictionary = SaveManager._migrate(
+		JSON.parse_string(JSON.stringify(legacy)))
+	var carried: Dictionary = migrated.get("harvest_checkpoint", {})
+	_ok(str(carried.get("level_id", "")) == "harvest_08"
+		and int(carried.get("order_index", -1)) == 1
+		and int((carried.get("delivered", {}) as Dictionary).get("carrot", 0)) == 3
+		and int((carried.get("delivered", {}) as Dictionary).get("strawberry", 0)) == 4,
+		"a legacy checkpoint moves into the dedicated challenge branch")
+	_ok(not migrated.get("farm", {}).has("harvest_checkpoint"),
+		"migration leaves the daily farm schema free of challenge state")
 
 
 ## The eight harvest levels are a MODE, not eight more stones on the island.
@@ -283,7 +380,7 @@ func _an_exception_names_a_basket_that_exists() -> void:
 ## that says so was right after all.
 func _the_challenge_is_off_the_island_path() -> void:
 	var in_mode: Array = GameData.get_levels_for_mode("harvest")
-	_ok(in_mode.size() >= 8, "there are eight harvest levels (%d)" % in_mode.size())
+	_ok(in_mode.size() >= 8, "there are at least eight harvest levels (%d)" % in_mode.size())
 	for world in GameData.worlds:
 		var path: Array = GameData.get_levels_for_world(str(world.get("id", "")))
 		for level in path:

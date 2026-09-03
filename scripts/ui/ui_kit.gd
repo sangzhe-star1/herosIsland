@@ -170,9 +170,16 @@ static func play_area(parent: Node, catches_input: bool = false) -> Control:
 	area.size = area.get_viewport_rect().size
 	var vp := area.get_viewport()
 	if vp != null:
-		vp.size_changed.connect(func():
+		var resize_area := func() -> void:
 			if is_instance_valid(area):
-				area.size = area.get_viewport_rect().size)
+				area.size = area.get_viewport_rect().size
+		vp.size_changed.connect(resize_area)
+		# The viewport outlives every level. Disconnect before this area is freed,
+		# otherwise the global resize signal retains a lambda whose `area` capture
+		# has already gone away when the next level changes window size.
+		area.tree_exiting.connect(func() -> void:
+			if is_instance_valid(vp) and vp.size_changed.is_connected(resize_area):
+				vp.size_changed.disconnect(resize_area), CONNECT_ONE_SHOT)
 	return area
 
 

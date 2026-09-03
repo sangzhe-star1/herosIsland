@@ -82,7 +82,7 @@
     "care_event_stage": 2,
     "thirst_seconds": 9600,
     "harvest_amount": 4,
-    "harvest_gesture": "tap_each",
+    "harvest_gesture": "tap_collect",
     "tutorial_growth_override": 0,
     "unlock_condition": ""
   },
@@ -111,7 +111,7 @@
     "care_event_stage": 2,
     "thirst_seconds": 0,
     "harvest_amount": 3,
-    "harvest_gesture": "tap_each",
+    "harvest_gesture": "tap_collect",
     "tutorial_growth_override": 0,
     "unlock_condition": ""
   },

@@ -226,7 +226,7 @@ static func maybe_visit(now: int) -> Dictionary:
 	for i in range(plots.size()):
 		var plot: Dictionary = plots[i]
 		if str(plot.get("care_event", "")) == Growth.CARE_THIRSTY:
-			plots[i] = Growth.water(plot)
+			plots[i] = Growth.reanchor(Growth.water(plot), now)
 			watered += 1
 	farm["plots"] = plots
 

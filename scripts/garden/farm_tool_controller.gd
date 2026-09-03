@@ -48,6 +48,18 @@ const TOOLS := [
 	{"id": "basket", "icon": "basket", "voice": "farm_tool_basket"},
 ]
 
+## Kept beside the tool truth, but separate from TOOLS because tools_check.py
+## deliberately parses the latter as a strict compatibility table.
+const LABEL_KEYS := {
+	HAND: "garden.tool.hand",
+	"shovel": "garden.tool.shovel",
+	"seed": "garden.tool.seed",
+	"water": "garden.tool.water",
+	"weed": "garden.tool.weed",
+	"bug": "garden.tool.bug",
+	"basket": "garden.tool.basket",
+}
+
 var selected := HAND
 
 ## Which crop the seed brush plants. Chosen by tapping a tile on the rack --
@@ -65,6 +77,10 @@ func tool_data(tool_id: String) -> Dictionary:
 		if str(tool.get("id", "")) == tool_id:
 			return tool
 	return {}
+
+
+func label_key(tool_id: String) -> String:
+	return str(LABEL_KEYS.get(tool_id, "garden.tool.hand"))
 
 
 ## Does this ONE bed, right now, need this tool?
@@ -98,6 +114,29 @@ func work_exists(tool_id: String, plots: Array) -> bool:
 		if needs(tool_id, plot):
 			return true
 	return false
+
+
+## Which brush answers this plot right now. The task ribbon and tool rack must
+## never each carry a private state-to-tool table: a new care event belongs in
+## needs() once and then reaches both of them.
+func tool_for(plot: Dictionary) -> String:
+	for tool in TOOLS:
+		var tool_id := str(tool.get("id", ""))
+		if needs(tool_id, plot):
+			return tool_id
+	return HAND
+
+
+## The one plot that is worth drawing a child's eye to. This is intentionally
+## a static, side-effect-free ordering for the garden's ribbon and hint flow.
+## A turned bed comes before untouched grass: after he has dug, planting the
+## seed is the natural next beat, not a request to dig a different hole.
+static func next_action_index(plots: Array) -> int:
+	for want in [Farm.READY, Farm.NEEDS_CARE, Farm.TILLED, Farm.EMPTY]:
+		for i in range(plots.size()):
+			if str(plots[i].get("state", "")) == want:
+				return i
+	return -1
 
 
 ## The crop the seed brush would plant right now: the chosen one if he chose

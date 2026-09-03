@@ -20,6 +20,10 @@ const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
+const Gesture := preload("res://scripts/harvest/gesture.gd")
+const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
+const PlotView := preload("res://scripts/garden/plot_view.gd")
+const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 
 ## The fewest questions this probe is allowed to have asked by the time it
 ## prints its verdict.
@@ -36,7 +40,7 @@ const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 357
+const CHECKS_EXPECTED := 470
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -70,6 +74,11 @@ func _ready() -> void:
 	_a_crop_never_dies()
 	_a_ripe_plot_is_frozen()
 	_the_four_plots_do_not_share_a_clock()
+	_a_late_seed_never_inherits_farm_elapsed_time()
+	_care_restarts_growth_from_the_action()
+	_settling_twice_at_the_same_moment_never_compounds()
+	_recurring_orders_hold_up_the_endgame()
+	_the_days_little_jobs_hold_water()
 	# --- stage four: the barn, the orders, and the money ---
 	_the_barn_never_goes_negative()
 	_a_full_barn_never_loses_anything()
@@ -92,6 +101,8 @@ func _ready() -> void:
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
 	_the_seventh_bed_is_bought_once()
+	# --- 阶段 6: the crop's own move ---
+	_the_moves_a_crop_asks_for_are_moves_the_finger_can_make()
 
 	# Put the save back the way it was found, and say so out loud: a probe that
 	# leaves the disk holding its own fixtures is how the shop probe once failed
@@ -731,6 +742,64 @@ func _the_four_plots_do_not_share_a_clock() -> void:
 	SaveManager.data["farm"]["plots"][0]["crop_id"] = ""
 	_ok(str(SaveManager.data["farm"]["plots"][1]["crop_id"]) == "corn",
 		"clearing one plot leaves the others alone")
+	GameClock.clear_test_now()
+
+
+## A farm may have been left all morning, then receive a seed just before the
+## child closes the app. The seed gets its own minute, not the whole morning.
+func _a_late_seed_never_inherits_farm_elapsed_time() -> void:
+	_plant("carrot", NOON)
+	var farm: Dictionary = SaveManager.data["farm"]
+	var late: Dictionary = farm["plots"][1]
+	late["state"] = Farm.SEEDED
+	late["crop_id"] = "carrot"
+	late["planted_at"] = NOON + 30 * 60
+	late["last_updated_at"] = NOON + 30 * 60
+	farm["plots"][1] = late
+	farm["last_seen_at"] = NOON
+
+	GameClock.set_test_now(NOON + 31 * 60, 0)
+	var settled: Dictionary = Growth.settle(farm, GameClock.now_unix())
+	var actual: Dictionary = settled["plots"][1]
+	var expected: Dictionary = Growth.advance(late, GameData.get_crop("carrot"), 60)
+	_ok(int(actual.get("growth_stage", -1)) == int(expected.get("growth_stage", -2)),
+		"a late seed gets only the minute since it was planted")
+	_ok(is_equal_approx(float(actual.get("growth_progress", -1.0)),
+			float(expected.get("growth_progress", -2.0))),
+		"...and its partial stage is only one minute old")
+	_ok(int(actual.get("last_updated_at", 0)) == NOON + 31 * 60,
+		"the late seed receives this settlement's own anchor")
+	GameClock.clear_test_now()
+
+
+## A plot stopped for a job cannot receive the time it spent waiting as a bonus
+## the instant the child waters, weeds or shoos it.
+func _care_restarts_growth_from_the_action() -> void:
+	var crop: Dictionary = GameData.get_crop("corn")
+	var waiting: Dictionary = Farm.fresh_plot(0)
+	waiting["state"] = Farm.NEEDS_CARE
+	waiting["crop_id"] = "corn"
+	waiting["growth_stage"] = 1
+	waiting["growth_progress"] = 0.25
+	waiting["care_event"] = Growth.CARE_WEEDS
+	waiting["planted_at"] = NOON
+	waiting["last_updated_at"] = NOON
+	var cared_at := NOON + 30 * 60
+	var resumed := Growth.reanchor(Growth.weed(waiting), cared_at)
+	var farm := {"last_seen_at": NOON, "clock_high_water": NOON,
+		"plots": [resumed]}
+
+	GameClock.set_test_now(cared_at + 60, 0)
+	var settled: Dictionary = Growth.settle(farm, GameClock.now_unix())
+	var actual: Dictionary = settled["plots"][0]
+	var expected: Dictionary = Growth.advance(resumed, crop, 60)
+	_ok(int(actual.get("growth_stage", -1)) == int(expected.get("growth_stage", -2)),
+		"weeding resumes only from the moment the weeds were pulled")
+	_ok(is_equal_approx(float(actual.get("growth_progress", -1.0)),
+			float(expected.get("growth_progress", -2.0))),
+		"...rather than crediting the half hour it was waiting")
+	_ok(int(actual.get("last_updated_at", 0)) == cared_at + 60,
+		"care's new local anchor is carried through the next settlement")
 	GameClock.clear_test_now()
 
 
@@ -1717,3 +1786,191 @@ func _the_kitchen_cooks_knowledge_and_feeds_a_friend() -> void:
 	_ok(str(((SaveManager.data["farm"].get("visit_log", []) as Array)[0]
 		as Dictionary).get("kind", "")) == "thanks",
 		"the thank-you vanished across a save round-trip")
+
+
+## --- 阶段 6: the crop's own move -------------------------------------------
+##
+## Every crop in the garden names the move that picks it, and the catalogue
+## turns that name into a recogniser Gesture can judge. Both halves of that
+## sentence can rot independently -- a crop retired from one file but not the
+## other, a recogniser renamed, the carrot's pull quietly becoming a push --
+## and none of it crashes anywhere. It shows up as a bed that ignores a
+## child's pull, which is the kind of bug no console will ever print.
+func _the_moves_a_crop_asks_for_are_moves_the_finger_can_make() -> void:
+	var words := {}
+	for crop in GameData.crops:
+		var crop_id := str(crop.get("id", ""))
+		var move := HarvestCrops.gesture_for(crop_id)
+		_ok(not move.is_empty(),
+			"crop %s asks for a move the catalogue knows" % crop_id)
+		if move.is_empty():
+			continue
+		_ok(str(move["recogniser"]) in Gesture.ALL,
+			"crop %s's move is one Gesture can judge" % crop_id)
+		_ok(move["gesture_params"] is Dictionary,
+			"crop %s's move has parameters" % crop_id)
+		# The garden's word for the move and the catalogue's must be the SAME
+		# word. Two files free to disagree are two files that will.
+		_ok(str(move["harvest_gesture"]) == str(crop.get("harvest_gesture", "")),
+			"crop %s's move is called the same thing in both files" % crop_id)
+		words[crop_id] = str(move["harvest_gesture"])
+
+	# The carrot's pull is THE teaching move; it must stay a drag, and upward.
+	var carrot := HarvestCrops.gesture_for("carrot")
+	var carrot_params: Dictionary = carrot.get("gesture_params", {})
+	_ok(str(carrot.get("recogniser", "")) == Gesture.DRAG,
+		"the carrot's move is a drag")
+	_ok(Vector2(float(carrot_params.get("direction_x", 1.0)),
+			float(carrot_params.get("direction_y", 1.0))) == Vector2(0.0, -1.0),
+		"and a drag UP, because a carrot comes out of the ground")
+
+	# The moves exist so the farm is not fourteen identical taps: somewhere in
+	# the list there must be more than one word, and more than one recogniser.
+	var unique_words := {}
+	for crop_id in words:
+		unique_words[words[crop_id]] = true
+	_ok(unique_words.size() >= 5,
+		"the farm asks for at least five different moves")
+
+	# A crop the catalogue never heard of answers with no move at all -- tap
+	# only, never a crash.
+	_ok(HarvestCrops.gesture_for("no_such_crop").is_empty(),
+		"an unknown crop answers with no move, not an error")
+
+	# The lean: a bed follows a pulling finger and clamps, and settles when the
+	# finger leaves. The targets are set synchronously, so no ticking needed.
+	var bed := PlotView.new()
+	bed.setup(0)
+	bed.lean(Vector2(0.0, -120.0))
+	_ok(float(bed.get("_lean_lift_to")) < 0.0,
+		"an upward pull lifts the plant out of its hollow")
+	bed.lean(Vector2(90.0, 0.0))
+	_ok(float(bed.get("_lean_rot_to")) > 0.0,
+		"a sideways pull tilts the plant")
+	bed.lean(Vector2(900.0, -2000.0))
+	_ok(absf(float(bed.get("_lean_rot_to"))) <= 0.20
+			and float(bed.get("_lean_lift_to")) >= -22.0,
+		"the lean is clamped -- a wild drag cannot uproot the drawing")
+	bed.relax()
+	_ok(is_equal_approx(float(bed.get("_lean_rot_to")), 0.0)
+			and is_equal_approx(float(bed.get("_lean_lift_to")), 0.0),
+		"and the plant settles when the finger leaves")
+	bed.free()
+
+
+## The quiet clock settles the same farm every twenty seconds while he plays.
+## The arithmetic must read "asked twice at the same minute" as "asked once",
+## and a minute of clock must buy exactly a minute of carrot every time -- a
+## settle that compounded, even slightly, would make the tick a growth
+## multiplier and the farm a slot machine.
+func _settling_twice_at_the_same_moment_never_compounds() -> void:
+	_plant("carrot", NOON)
+	GameClock.set_test_now(NOON + 60, 0)
+	SaveManager.settle_farm()
+	var once: float = float(_plot0().get("growth_progress", 0.0))
+	_ok(once > 0.0, "a minute of clock grows the carrot")
+	SaveManager.settle_farm()
+	_ok(is_equal_approx(float(_plot0().get("growth_progress", 0.0)), once),
+		"a second settle at the same minute moves nothing")
+	GameClock.set_test_now(NOON + 120, 0)
+	SaveManager.settle_farm()
+	var twice: float = float(_plot0().get("growth_progress", 0.0))
+	_ok(twice > once, "another minute moves it further")
+	_ok(absf((twice - once) - once) < 0.0005,
+		"and by exactly the same minute's worth again -- settling never compounds")
+	GameClock.clear_test_now()
+
+
+## --- 阶段 7: the board never runs dry ---------------------------------------
+##
+## After the friends' own eight orders are all thanked, the board fills with
+## recurring ones -- that is the whole endgame loop, and the only reason the
+## ribbon keeps having something to say. A recurring order that asks for a
+## retired crop, pays nothing, or pays LESS than the market would for the same
+## basket is not a broken card; it is a loop that teaches the wrong lesson.
+func _recurring_orders_hold_up_the_endgame() -> void:
+	var bands := {}
+	var prices: Dictionary = GameData.farm_market_prices.get("prices", {})
+	var recurring := 0
+	for order in GameData.garden_orders:
+		if not bool(order.get("recurring", false)):
+			continue
+		recurring += 1
+		var oid := str(order.get("id", ""))
+		var gate := str(order.get("unlock_condition", ""))
+		var level := int(gate.substr(6)) if gate.begins_with("level:") else 1
+		if not bands.has(level):
+			bands[level] = 0
+		bands[level] += 1
+		var worth := 0
+		var real_crops := true
+		for crop_id in order.get("requirements", {}).keys():
+			if GameData.get_crop(str(crop_id)).is_empty():
+				real_crops = false
+			worth += int(prices.get(str(crop_id), 0)) \
+				* int(order["requirements"][crop_id])
+		_ok(real_crops,
+			"recurring order %s asks only for real crops" % oid)
+		_ok(int(order.get("rewards", {}).get("coins", 0)) > 0,
+			"recurring order %s pays for the trouble" % oid)
+		_ok(int(order.get("rewards", {}).get("coins", 0)) > worth,
+			"recurring order %s beats the market for the same basket (%d vs %d)"
+				% [oid, int(order["rewards"]["coins"]), worth])
+		_ok(str(order.get("completion_transaction_key", "")) != "",
+			"recurring order %s names the key its deliveries are counted by"
+				% oid)
+		_ok(not order.get("rewards", {}).get("items", {}).has("plank"),
+			"recurring order %s carries no planks -- the roof is the friends' story, told once" % oid)
+	_ok(recurring >= 3,
+		"the board has recurring work for the days after the friends' orders")
+	for level in [1, 3, 5]:
+		_ok(int(bands.get(level, 0)) >= 1,
+			"level %d has recurring work -- no band's board ever runs dry" % level)
+
+
+## --- 阶段 8: the day's little jobs ------------------------------------------
+##
+## The daily list is 王者农场's spine, transplanted without the fangs: the
+## same three verbs the farm teaches, tallied for one day, paid once, reset
+## silently at the date line. The arithmetic has to hold four promises -- the
+## tally clamps, the same day keeps its state, a new day rolls clean, and
+## tomorrow's claim key is one nobody has ever paid against.
+func _the_days_little_jobs_hold_water() -> void:
+	var ids := {}
+	for task in GameData.garden_dailies:
+		var tid := str(task.get("id", ""))
+		_ok(tid != "", "a daily task has an id")
+		_ok(not ids.has(tid),
+			"daily id %s is the only one with that name" % tid)
+		ids[tid] = true
+		_ok(int(task.get("target", 0)) > 0,
+			"daily %s has a target a child can reach" % tid)
+		_ok(int(task.get("coins", 0)) > 0,
+			"daily %s pays for the trouble" % tid)
+	_ok(GameData.garden_dailies.size() == 3,
+		"the day asks for exactly three little jobs")
+
+	var yesterday := {"dailies": {"date": "2026-09-01",
+		"progress": {"water": 3}, "claimed": ["water"]}}
+	var same: Dictionary = Dailies.roll(yesterday, "2026-09-01")
+	_ok(int(same.get("progress", {}).get("water", 0)) == 3,
+		"the same day keeps its tally and its claims")
+	var rolled: Dictionary = Dailies.roll(yesterday, "2026-09-02")
+	_ok((rolled.get("progress", {}) as Dictionary).is_empty()
+			and (rolled.get("claimed", []) as Array).is_empty(),
+		"a new date rolls a clean list -- yesterday is never nagged about")
+
+	# add() answers the DAILIES dict; the caller hangs it back on the farm --
+	# the same write-back the screen does.
+	var farm := {"dailies": Dailies.add({}, "2026-09-02", "water", 2)}
+	var water := Dailies.task_by_id("water")
+	_ok(not Dailies.done(farm.get("dailies", {}), water),
+		"two of three is not done")
+	farm["dailies"] = Dailies.add(farm, "2026-09-02", "water", 5)
+	var dailies: Dictionary = farm.get("dailies", {})
+	_ok(int(dailies.get("progress", {}).get("water", 0)) == 3,
+		"the tally clamps at the target -- it is a promise, not a score")
+	_ok(Dailies.done(dailies, water), "and three of three is done")
+	_ok(Dailies.claim_key(dailies, water)
+		!= Dailies.claim_key(Dailies.roll(farm, "2026-09-03"), water),
+		"tomorrow's claim key is one nobody has ever paid against")
