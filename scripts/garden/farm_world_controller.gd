@@ -288,7 +288,7 @@ func _clear_task_beacon_visuals() -> void:
 		return
 	for child in _task_beacon_layer.get_children():
 		_task_beacon_layer.remove_child(child)
-		child.queue_free()
+		child.free()
 
 
 ## Delivery's marker is a world sibling of the buildings, never a child of

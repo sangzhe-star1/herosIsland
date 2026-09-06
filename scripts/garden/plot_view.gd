@@ -444,7 +444,7 @@ func set_task_beacon(icon: String, tint: Color) -> void:
 		return
 	for child in _task_beacon.get_children():
 		_task_beacon.remove_child(child)
-		child.queue_free()
+		child.free()
 	if icon == "":
 		return
 	# The pole lands in the left grass rim; its pennant stays out of the crop's
@@ -466,7 +466,7 @@ func set_tool_target(active: bool, tint: Color, primary: bool = false) -> void:
 		return
 	for child in _tool_target_halo.get_children():
 		_tool_target_halo.remove_child(child)
-		child.queue_free()
+		child.free()
 	_tool_target_active = active
 	_tool_target_halo.modulate = Color.WHITE
 	if not active:
