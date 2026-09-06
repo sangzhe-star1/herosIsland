@@ -67,6 +67,7 @@ const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Dog := preload("res://scripts/garden/farm_dog_controller.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
+const FarmWorldArt := preload("res://scripts/garden/farm_world_art.gd")
 
 ## How long between two presses on the grass still counts as a double tap.
 ## Generous: a six-year-old's second tap is not fast.
@@ -370,6 +371,11 @@ func _draw_ground() -> void:
 	var world := Layout.world_size()
 	Shapes.fill(_ground, Shapes.rounded_rect(Vector2.ZERO, world, 40.0),
 		Color(0.71, 0.84, 0.58), 1.0)
+	# The passive scenery is a child Node2D with no input of its own. It gets
+	# every real bed and facility rectangle first, so a tree can make the world
+	# feel lived in without ever making a child wonder whether a carrot is
+	# behind a decoration.
+	FarmWorldArt.add_ground_dressing(_ground, _art_safe_rects())
 	_draw_plot_clearings()
 
 	# A path from the gate up between the beds, so the farm reads as a place
@@ -451,34 +457,39 @@ func _draw_buildings() -> void:
 		# anywhere on this farm.
 		var locked_here: bool = Level.level() < int(f.get("level", 0))
 		var hut := Node2D.new()
+		hut.name = "Facility_%s" % str(f.get("id", "place"))
 		hut.position = at
 		_buildings.add_child(hut)
 
 		Shapes.ground_shadow(hut, Vector2(0, box.y * 0.44), box.x * 0.8, 0.22)
-		if locked_here:
-			# Not yet: drawn as ground that has been marked out, not as a
-			# building with a padlock. A lock is a thing he is being refused;
-			# a marked-out patch is a thing that is coming.
-			Shapes.fill(hut, Shapes.rounded_rect(-box * 0.5, box, 24.0),
-				Color(0.64, 0.76, 0.53), 1.0)
-			Shapes.fill(hut, Shapes.rounded_rect(-box * 0.5 + Vector2(8, 8),
-				box - Vector2(16, 16), 20.0), Color(0.71, 0.84, 0.58), 1.0)
-		else:
-			Shapes.lit(hut, Shapes.rounded_rect(-box * 0.5, box, 24.0),
-				Color(1.0, 0.99, 0.94), 0.12)
-			# A roof, so that from across the farm the buildings are buildings.
-			Shapes.fill(hut, PackedVector2Array([
-				Vector2(-box.x * 0.56, -box.y * 0.46),
-				Vector2(0, -box.y * 0.86),
-				Vector2(box.x * 0.56, -box.y * 0.46)]),
-				Color(0.86, 0.52, 0.42), 1.0)
+		# FarmWorldArt owns the visual shell only. Layout still owns this box,
+		# and facility_under() still uses that same box for its hit area, so a
+		# richer landmark cannot create a second kind of door to maintain.
+		FarmWorldArt.draw_facility(hut, str(f.get("id", "")), box, locked_here)
 
-		var art := UiKit.picture(str(f.get("icon", "star")), box.y * 0.5)
+		var art_size := minf(box.y * 0.42, box.x * 0.36)
+		var art := UiKit.picture(str(f.get("icon", "star")), art_size)
 		if art != null:
-			art.position = Vector2(-box.y * 0.25, -box.y * 0.22)
+			art.position = FarmWorldArt.facility_icon_anchor(box,
+				str(f.get("id", ""))) - Vector2.ONE * art_size * 0.5
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			art.modulate.a = 0.45 if locked_here else 1.0
 			hut.add_child(art)
+
+
+## Every visible place a child can act on, in world coordinates. This feeds
+## only the passive art layer; facility_under() and bed_under() keep their own
+## existing authority. Keeping the safe rectangles here means a future plot or
+## facility added to the JSON automatically stays clear of scenery too.
+func _art_safe_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	var bed_box := Layout.plot_box()
+	for index in range(Layout.places_for_plots()):
+		out.append(Rect2(Layout.plot_at(index) - bed_box * 0.5, bed_box))
+	for facility in Layout.facilities():
+		var box := Layout.facility_size(facility)
+		out.append(Rect2(Layout.facility_at(facility) - box * 0.5, box))
+	return out
 
 
 func _bear_door_open() -> bool:
@@ -525,11 +536,10 @@ func _draw_expansion_slots(bed_count: int) -> void:
 		_slots[index] = patch
 		var box := Layout.plot_box()
 
-		Shapes.ground_shadow(patch, Vector2(0, box.y * 0.42), box.x * 0.7, 0.16)
-		Shapes.fill(patch, Shapes.rounded_rect(-box * 0.5, box, 26.0),
-			Color(0.63, 0.74, 0.52), 1.0)
-		Shapes.fill(patch, Shapes.rounded_rect(-box * 0.5 + Vector2(9, 9),
-			box - Vector2(18, 18), 22.0), Color(0.70, 0.81, 0.57), 0.0)
+		# The locked plot keeps the exact same hit box and moving stone nodes,
+		# but its idle drawing is now a rocky grass clearing rather than a
+		# rounded inactive tile. FarmWorldArt draws only passive shapes here.
+		FarmWorldArt.draw_future_plot(patch, box, index)
 		# The stones, placed by arithmetic so they sit the same on every
 		# tablet and the purchase can slide THESE exact stones away.
 		var stones := maxi(1, int(GameData.farm_expansions
@@ -540,8 +550,11 @@ func _draw_expansion_slots(bed_count: int) -> void:
 				(float(n) - float(stones - 1) * 0.5) * box.x * 0.28,
 				(-0.12 + 0.16 * float(n % 2)) * box.y)
 			patch.add_child(stone)
-			Shapes.lit(stone, Shapes.circle_points(Vector2.ZERO,
-				box.y * (0.16 + 0.04 * float(n % 2))),
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 47_129 + index * 997 + n * 131
+			var radius := box.y * (0.16 + 0.04 * float(n % 2))
+			Shapes.lit(stone, Shapes.blob(Vector2.ZERO,
+				Vector2(radius, radius * 0.82), rng, 0.10, 4, 20),
 				Color(0.62, 0.64, 0.66), 0.6)
 		# A fence post lying where the fence gave up, pointing at the work.
 		Shapes.fill(patch, Shapes.rounded_rect(

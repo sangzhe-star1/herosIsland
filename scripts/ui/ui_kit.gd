@@ -89,6 +89,19 @@ static func panel_style(fill: Color = Palette.SURFACE, radius: int = RADIUS) -> 
 	return style
 
 
+## A panel with its boundary made explicit. Pages use the quiet `panel_style`
+## surface by default; compact HUD lanes and a child-facing selected state need
+## a stronger edge so adjacent groups do not melt into one pale rectangle.
+## Keeping it here means every future world can use the same friendly border
+## instead of each screen hand-building a slightly different StyleBoxFlat.
+static func framed_panel_style(fill: Color, border: Color,
+		radius: int = RADIUS, border_width: int = 2) -> StyleBoxFlat:
+	var style := panel_style(fill, radius)
+	style.border_color = border
+	style.set_border_width_all(maxi(border_width, 0))
+	return style
+
+
 static func card(fill: Color = Palette.SURFACE) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", panel_style(fill))
@@ -220,14 +233,7 @@ static func big_button(text: String, color: Color = Palette.BLUE) -> Button:
 	b.add_theme_stylebox_override("pressed", _raised(color.darkened(0.06), 2))
 	b.add_theme_stylebox_override("disabled", _raised(Palette.MUTED, 3))
 
-	# Every press earns a little bounce and a little sound, on top of the
-	# squash the styleboxes already do. Feedback at the finger, always -- and
-	# because the sfx player is a single voice, a button whose handler plays
-	# its own louder sound simply replaces this one mid-pop.
-	b.resized.connect(func(): b.pivot_offset = b.size / 2.0)
-	b.pressed.connect(func():
-		Juice.pop(b, 0.06)
-		AudioManager.play_sfx("res://assets/audio/pop.ogg"))
+	_wire_button_feedback(b)
 	return b
 
 
@@ -247,6 +253,55 @@ static func _raised(color: Color, edge_size: int) -> StyleBoxFlat:
 	style.shadow_size = 6
 	style.shadow_offset = Vector2(0, 4)
 	return style
+
+
+## The compact sibling of `big_button`. It preserves the same raised edge,
+## sound and squash feedback, but has a deliberately smaller content gutter
+## for stable HUD slots such as a back arrow. Screens should not hand-roll a
+## tiny Button just because a full 220×120 card would consume the play field.
+static func compact_button(text: String, color: Color = Palette.BLUE,
+		box: Vector2 = Vector2(112, 64), font_size: int = TYPE_BODY) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = box
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_size_override("font_size", font_size)
+	b.add_theme_color_override("font_color", Palette.ON_COLOR)
+	b.add_theme_color_override("font_hover_color", Palette.ON_COLOR)
+	b.add_theme_color_override("font_pressed_color", Palette.ON_COLOR)
+	b.add_theme_color_override("font_disabled_color", Palette.INK)
+	b.add_theme_stylebox_override("normal", _compact_raised(color, EDGE))
+	b.add_theme_stylebox_override("hover", _compact_raised(Palette.lift(color), EDGE))
+	b.add_theme_stylebox_override("pressed", _compact_raised(color.darkened(0.06), 2))
+	b.add_theme_stylebox_override("disabled", _compact_raised(Palette.MUTED, 3))
+	_wire_button_feedback(b)
+	return b
+
+
+static func _compact_raised(color: Color, edge_size: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.set_corner_radius_all(RADIUS_CARD)
+	style.border_width_bottom = edge_size
+	style.border_color = Palette.edge(color)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 6 + (EDGE - edge_size)
+	style.content_margin_bottom = 6
+	style.shadow_color = Color(0.0, 0.05, 0.15, 0.13)
+	style.shadow_size = 5
+	style.shadow_offset = Vector2(0, 3)
+	return style
+
+
+## Every raised button answers at the finger in the same way. The compact
+## family calls this too, so shrinking a HUD button never silently removes the
+## little confirmation bounce that a pre-reader relies on.
+static func _wire_button_feedback(button: Button) -> void:
+	button.resized.connect(func(): button.pivot_offset = button.size / 2.0)
+	button.pressed.connect(func():
+		Juice.pop(button, 0.06)
+		AudioManager.play_sfx("res://assets/audio/pop.ogg"))
 
 
 ## Resolves a picture reference to a node, whichever form it takes.
@@ -350,10 +405,14 @@ static func breathe(control: Control, amount: float = 0.03, period: float = 0.9)
 		control.resized.connect(start, CONNECT_ONE_SHOT)
 
 
-static func back_button(target: Callable) -> Button:
-	var b := big_button("<", Palette.SLATE)
-	b.custom_minimum_size = Vector2(112, 96)
-	b.add_theme_font_size_override("font_size", TYPE_TITLE)
+static func back_button(target: Callable,
+		box: Vector2 = Vector2(112, 96)) -> Button:
+	var b := compact_button("<", Palette.SLATE, box, 30) \
+		if box.y <= 72.0 else big_button("<", Palette.SLATE)
+	b.custom_minimum_size = box
+	b.size = box
+	if box.y > 72.0:
+		b.add_theme_font_size_override("font_size", TYPE_TITLE)
 	b.pressed.connect(target)
 	return b
 

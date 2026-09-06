@@ -96,6 +96,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_overview_shows_the_whole_farm()
 	await _two_taps_on_the_grass_bring_him_home()
 	await _pressing_a_building_looks_at_it()
+	await _landmark_scenery_stays_passive()
 	await _the_furniture_is_not_a_hole_in_the_farm(view)
 	await _the_drop_targets_follow_the_beds()
 	await _a_seed_still_lands_where_he_aimed_after_panning()
@@ -614,6 +615,55 @@ func _pressing_a_building_looks_at_it() -> void:
 		await get_tree().process_frame
 	_world().go_home()
 	await get_tree().process_frame
+
+
+## The new world dressing is deliberately a picture of a farm, not another
+## kind of thing a child has to avoid tapping. It must stay beneath every real
+## facility, have no input-catching Controls, survive a building-only redraw,
+## and leave a decorated patch of grass answerable as ordinary grass.
+func _landmark_scenery_stays_passive() -> void:
+	var ground: Node = _world().get("_ground")
+	var scenery: Node = ground.get_node_or_null("LandmarkScenery")
+	_ok(scenery is Node2D and bool(scenery.get_meta("input_passthrough", false)),
+		"landmark scenery is a passive world node, not a new UI surface")
+	_ok(_all_scenery_controls_ignore_input(scenery),
+		"landmark scenery has no input-catching visual")
+
+	var kept_id := scenery.get_instance_id() if scenery != null else 0
+	_world().refresh_buildings()
+	await get_tree().process_frame
+	_ok(scenery != null and is_instance_valid(scenery)
+			and scenery.get_instance_id() == kept_id,
+		"redrawing facilities never removes or duplicates landmark scenery")
+
+	# This little canopy sits in the established corridor between beds. It is
+	# visible scenery but must still be unclaimed grass in the real hit path.
+	var scenic_world := Vector2(1010.0, 602.0)
+	_world().look_at_world(scenic_world)
+	await get_tree().process_frame
+	var scenic_glass := _camera().world_to_screen(scenic_world)
+	_ok(_world().bed_under(scenic_glass) < 0
+			and _world().facility_under(scenic_glass) == "",
+		"a scenic canopy does not claim a plot or facility target")
+	var heard := {"count": 0}
+	var on_grass := func(_at: Vector2):
+		heard["count"] = int(heard["count"]) + 1
+	_world().grass_pressed.connect(on_grass)
+	await _tap(scenic_glass)
+	_world().grass_pressed.disconnect(on_grass)
+	_ok(int(heard["count"]) == 1,
+		"tapping visible scenery reaches the ordinary grass answer once")
+	_world().go_home()
+	await get_tree().process_frame
+
+
+func _all_scenery_controls_ignore_input(node: Node) -> bool:
+	if node is Control and (node as Control).mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		return false
+	for child in node.get_children():
+		if not _all_scenery_controls_ignore_input(child):
+			return false
+	return true
 
 
 ## Furniture standing over the farm belongs to the GUI, and only to the GUI.

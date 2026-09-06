@@ -12,7 +12,18 @@ extends Button
 ## size; below it, the optional preview yields instead of letting letters
 ## overlap. Callers that want all three use this same component at 78px.
 const THREE_LINE_HEIGHT := 78.0
-const DAILY_ACTION_Y := 24.0
+const DAILY_ACTION_Y := 25.0
+const SECONDARY_TEXT_SIZE := 16
+## A picture needs air before a word begins. These are visual gutters, not
+## touch targets: the whole ribbon remains the one large button.
+const PRIMARY_ICON_TEXT_GAP := 14.0
+const STATUS_ICON_TEXT_GAP := 9.0
+const PREVIEW_ICON_GAP := 8.0
+const LABEL_STAR_GAP := 8.0
+const ACTION_ARROW_GAP := 12.0
+const STATUS_ICON_SIZE := 17.0
+const PREVIEW_ICON_SIZE := 20.0
+const DAILY_STARS_MIN_WIDTH := 112.0
 
 
 func configure(spec: Dictionary, box: Vector2) -> void:
@@ -56,8 +67,8 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge.add_child(art)
 
-	var content_left := badge.position.x + badge_size + 10.0
-	var action_right := box.x - 38.0
+	var content_left := badge.position.x + badge_size + PRIMARY_ICON_TEXT_GAP
+	var action_right := box.x - 29.0 - ACTION_ARROW_GAP
 	var content_width := maxf(40.0, action_right - content_left)
 	var preview: Dictionary = spec.get("preview", {})
 	var marker_text := str(spec.get("marker", ""))
@@ -134,7 +145,7 @@ func _add_daily_badge(daily: Dictionary, left: float, box: Vector2) -> void:
 	row.set_meta("all_done", all_done)
 	add_child(row)
 
-	var crest: Control = UiKit.picture("spark" if all_done else "medal", 17.0)
+	var crest: Control = UiKit.picture("spark" if all_done else "medal", STATUS_ICON_SIZE)
 	if crest != null:
 		crest.name = "HeroTaskDailyIcon"
 		crest.position = Vector2(0.0, -1.0)
@@ -144,17 +155,24 @@ func _add_daily_badge(daily: Dictionary, left: float, box: Vector2) -> void:
 		row.add_child(crest)
 
 	var star_size := 14.0
+	var label_left := STATUS_ICON_SIZE + STATUS_ICON_TEXT_GAP
 	# Before the surprise, the three small stars show what remains. Once all
 	# are lit, let the warm "luck ×2" answer own the entire slim row rather
-	# than squeezing a reward phrase beside decorative stars.
-	var shown := mini(total, 5) if not all_done else 0
-	var stars_left := maxf(50.0, row.size.x - float(shown) * (star_size + 1.0))
+	# than squeezing a reward phrase beside decorative stars. A narrow host
+	# keeps the clear tally and yields only the decorative stars rather than
+	# placing any glyph against an icon.
+	var wanted_stars := mini(total, 5) if not all_done else 0
+	var shown := wanted_stars if row.size.x >= DAILY_STARS_MIN_WIDTH else 0
+	var stars_left := row.size.x if shown == 0 else maxf(
+		label_left + 26.0 + LABEL_STAR_GAP,
+		row.size.x - float(shown) * (star_size + 1.0))
 	var label := UiKit.title(str(daily.get("label", "%d/%d" % [done, total])),
-		UiKit.TYPE_CAPTION,
+		SECONDARY_TEXT_SIZE,
 		Color(0.38, 0.34, 0.25))
 	label.name = "HeroTaskDailyProgress"
-	label.position = Vector2(20.0, -2.0)
-	label.size = Vector2(maxf(26.0, stars_left - 23.0), 22.0)
+	label.position = Vector2(label_left, -2.0)
+	var label_right := stars_left - LABEL_STAR_GAP if shown > 0 else row.size.x
+	label.size = Vector2(maxf(26.0, label_right - label_left), 22.0)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.clip_text = true
@@ -176,26 +194,28 @@ func _add_daily_badge(daily: Dictionary, left: float, box: Vector2) -> void:
 func _add_preview(preview: Dictionary, left: float, box: Vector2) -> void:
 	var row := Control.new()
 	row.name = "HeroTaskPreview"
-	row.position = Vector2(left, box.y - 24.0)
-	row.size = Vector2(maxf(44.0, box.x - left - 36.0), 21.0)
+	row.position = Vector2(left, box.y - 22.0)
+	row.size = Vector2(maxf(44.0, box.x - left - 36.0), 20.0)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(row)
 	var x := 0.0
-	var customer: Control = UiKit.picture(str(preview.get("customer_icon", "")), 20.0)
+	var customer: Control = UiKit.picture(str(preview.get("customer_icon", "")),
+		PREVIEW_ICON_SIZE)
 	if customer != null:
 		customer.name = "HeroTaskCustomer"
 		customer.position = Vector2(x, 0.0)
 		customer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(customer)
-		x += 26.0
-	var crop: Control = UiKit.picture(str(preview.get("crop_icon", "")), 20.0)
+		x += PREVIEW_ICON_SIZE + PREVIEW_ICON_GAP
+	var crop: Control = UiKit.picture(str(preview.get("crop_icon", "")),
+		PREVIEW_ICON_SIZE)
 	if crop != null:
 		crop.name = "HeroTaskPreviewIcon"
 		crop.position = Vector2(x, 0.0)
 		crop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(crop)
-		x += 26.0
-	var progress := UiKit.title(str(preview.get("progress", "")), UiKit.TYPE_CAPTION,
+		x += PREVIEW_ICON_SIZE + PREVIEW_ICON_GAP
+	var progress := UiKit.title(str(preview.get("progress", "")), SECONDARY_TEXT_SIZE,
 		Color(0.36, 0.32, 0.25))
 	progress.name = "HeroTaskProgress"
 	progress.position = Vector2(x, -1.0)

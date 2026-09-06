@@ -15,6 +15,7 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
+const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 
@@ -33,7 +34,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 650
+const CHECKS_EXPECTED := 904
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -82,6 +83,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
+	_the_hero_base_hud_keeps_reading_lanes_open(view)
 	await _the_beds_are_on_the_screen_he_is_holding(view)
 	await _tapping_grass_turns_it_over()
 	await _dragging_a_seed_lands_in_the_bed_he_aimed_at()
@@ -109,6 +111,183 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_challenge_door_shows_what_is_next(view)
 
 	_close()
+
+
+## The base HUD is the one part of the farm that must be understood before a
+## child touches anything.  Do not test colours here -- rendering is a better
+## judge of that -- but make the spatial promise explicit: the five top-bar
+## jobs have their own lanes, and the two shelf rows leave real air between a
+## picture and its words.  Names are intentional test seams, not a second HUD:
+## GardenScreen still owns the existing buttons and UiKit still owns their look.
+func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
+	var screen := Rect2(Vector2.ZERO, view)
+	var top: Node = _find_named(_garden, "GardenTopBar")
+	_ok(top is Control, "the garden has one named top-bar reading lane")
+	_ok(_visible_control_inside(top, screen),
+		"the whole top-bar reading lane stays on the screen")
+	_ok(top is Control and (top as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"the painted top bar itself never eats a farm touch")
+
+	var back: Node = _find_back_button(_garden)
+	var level: Node = _find_named(_garden, "FarmLevelBadge")
+	var plaque: Node = _find_named(_garden, "GardenTitlePlaque")
+	var title: Node = _find_named(_garden, "GardenTitle")
+	var challenge: Node = _find_named(_garden, "HarvestChallenge")
+	var purse: Node = _find_named(_garden, "FarmCoinPurse")
+	var top_items: Array[Node] = [back, level, plaque, challenge, purse]
+	var top_names := ["back", "level", "garden title", "harvest challenge", "coin purse"]
+	for i in range(top_items.size()):
+		var item: Node = top_items[i]
+		_ok(_visible_control_inside(item, screen),
+			"the %s is visible and fully on-screen" % str(top_names[i]))
+		_ok(_control_contains(top, item),
+			"the %s stays inside the top reading lane" % str(top_names[i]))
+
+	_ok(_control_contains(plaque, title) and _title_has_side_gutters(plaque, title, 8.0),
+		"the garden title leaves real side gutters inside its plaque")
+	for left_index in range(top_items.size()):
+		for right_index in range(left_index + 1, top_items.size()):
+			_ok(_controls_are_separate(top_items[left_index], top_items[right_index], 2.0),
+				"top-bar cards never sit on top of each other")
+	_ok(_horizontal_gutter(back, level) >= 10.0,
+		"back and level keep a thumb-width visual gutter")
+	_ok(_horizontal_gutter(level, plaque) >= 12.0,
+		"level and title keep separate reading lanes")
+	_ok(_horizontal_gutter(plaque, challenge) >= 12.0,
+		"title words do not run into the harvest challenge")
+	_ok(_horizontal_gutter(challenge, purse) >= 10.0,
+		"the challenge and coin count do not stick together")
+
+	var challenge_press: Node = _find_named(_garden, "HarvestChallengeShortcut")
+	_ok(_visible_control_inside(challenge_press, screen),
+		"the visible harvest challenge keeps an equally visible press target")
+	var challenge_rect := (challenge as Control).get_global_rect() \
+		if challenge is Control else Rect2()
+	var challenge_press_rect := (challenge_press as Control).get_global_rect() \
+		if challenge_press is Control else Rect2()
+	_ok(challenge is Control and challenge_press is Control
+			and challenge_rect.position.is_equal_approx(challenge_press_rect.position)
+			and challenge_rect.size.is_equal_approx(challenge_press_rect.size),
+		"the harvest challenge picture and its tap target remain the same card")
+	var challenge_label: Node = _find_named(_garden, "ChallengeLabel")
+	var challenge_count: Node = _find_named(_garden, "ChallengeCount")
+	var challenge_icon: Node = _find_named(_garden, "ChallengeIcon")
+	_ok(challenge_label is Label and challenge_count is Label
+			and _control_contains(challenge, challenge_label)
+			and _control_contains(challenge, challenge_count),
+		"challenge words and tally both stay inside their own warm card")
+	_ok(_controls_are_separate(challenge_label, challenge_count, 2.0),
+		"challenge title and progress tally do not stack on the same reading line")
+	_ok(challenge_icon is Control and _horizontal_gutter(challenge_icon, challenge_label) >= 6.0
+			and _horizontal_gutter(challenge_icon, challenge_count) >= 6.0,
+		"challenge words leave a clear gutter after their basket picture")
+	var level_value: Node = _find_named(_garden, "FarmLevelValue")
+	var level_rail: Node = _find_named(_garden, "FarmLevelRail")
+	var level_icon: Node = _find_named(_garden, "FarmLevelIcon")
+	_ok(level_value is Label and level_rail is Control
+			and _control_contains(level, level_value)
+			and _control_contains(level, level_rail),
+		"farm level number and progress rail stay inside their badge")
+	_ok(_controls_are_separate(level_value, level_rail, 2.0),
+		"farm level number leaves air above its progress rail")
+	_ok(level_icon is Control and _horizontal_gutter(level_icon, level_value) >= 6.0,
+		"farm level number leaves a clear gutter after its star picture")
+	var coin_icon: Node = _find_named(_garden, "FarmCoinIcon")
+	var coin_value: Node = _find_named(_garden, "FarmCoinValue")
+	_ok(coin_icon is Control and coin_value is Label
+			and _horizontal_gutter(coin_icon, coin_value) >= 6.0,
+		"coin number leaves a clear gutter after its star-coin picture")
+
+	var shelf: Node = _garden.get("_shelf")
+	_ok(shelf is Control and (shelf as Control).visible,
+		"the bottom shelf is a visible home for tools and seeds")
+	_ok(_visible_control_inside(shelf, screen),
+		"the full bottom shelf remains on the screen")
+	var tool_deck: Node = _find_named(_garden, "GardenToolDeck")
+	var seed_deck: Node = _find_named(_garden, "GardenSeedDeck")
+	for deck_and_name in [[tool_deck, "tool deck"], [seed_deck, "seed deck"]]:
+		var deck: Node = deck_and_name[0]
+		var deck_name := str(deck_and_name[1])
+		_ok(_visible_control_inside(deck, screen),
+			"the %s is visible and fully on-screen" % deck_name)
+		_ok(_control_contains(shelf, deck),
+			"the %s stays inside the bottom shelf" % deck_name)
+		_ok(deck is Control and (deck as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE,
+			"the painted %s never blocks a seed drag or a tool tap" % deck_name)
+
+	var tools: Dictionary = _garden.get("_tool_buttons")
+	_ok(tools.size() == Tools.TOOLS.size(),
+		"the hero base keeps all seven familiar tool choices")
+	var previous_tool: Node = null
+	var lowest_tool_edge := -INF
+	for tool_data in Tools.TOOLS:
+		var tool_id := str((tool_data as Dictionary).get("id", ""))
+		var tool: Node = _find_named(_garden, "GardenTool_%s" % tool_id)
+		_ok(tool is Button and tools.get(tool_id) == tool,
+			"the %s tool has one named, reused button" % tool_id)
+		_ok(_visible_control_inside(tool, screen),
+			"the %s tool remains a visible touch target" % tool_id)
+		_ok(_control_contains(tool_deck, tool),
+			"the %s tool belongs inside the blue tool lane" % tool_id)
+		if previous_tool != null:
+			_ok(_horizontal_gutter(previous_tool, tool) >= 8.0,
+				"neighbouring tools have a finger-sized horizontal gutter")
+		previous_tool = tool
+		if tool is Control:
+			lowest_tool_edge = maxf(lowest_tool_edge,
+				(tool as Control).get_global_rect().end.y)
+
+		var icon: Node = tool.get_node_or_null("GardenToolIcon") if tool != null else null
+		var label: Node = tool.get_node_or_null("GardenToolLabel") if tool != null else null
+		_ok(icon is Control and label is Label and (icon as Control).visible
+			and (label as Label).visible,
+			"the %s tool keeps both its picture and its word" % tool_id)
+		_ok(_control_contains(tool, icon, 2.0) and _control_contains(tool, label, 2.0),
+			"the %s picture and word stay inside their own button" % tool_id)
+		_ok(_vertical_gutter(icon, label) >= 6.0,
+			"the %s tool leaves at least six pixels between picture and word" % tool_id)
+		_ok(_controls_are_separate(icon, label),
+			"the %s picture and word never overlap" % tool_id)
+
+	var unlocked: Array = SaveManager.data.get("farm", {}).get("unlocked_crops", [])
+	var visible_seed_slots := mini(7, unlocked.size())
+	var actual_seed_slots := 0
+	var highest_seed_edge := INF
+	var previous_seed: Node = null
+	for index in range(visible_seed_slots):
+		var seed: Node = _rack_seed_button(index)
+		_ok(seed is Button and (seed as Button).flat,
+			"seed slot %d keeps its direct tap-and-drag target" % (index + 1))
+		_ok(_visible_control_inside(seed, screen),
+			"seed slot %d stays visible on this screen shape" % (index + 1))
+		_ok(_control_contains(seed_deck, seed),
+			"seed slot %d belongs inside the green seed lane" % (index + 1))
+		if previous_seed != null:
+			_ok(_horizontal_gutter(previous_seed, seed) >= 8.0,
+				"neighbouring seed choices do not touch")
+		previous_seed = seed
+		if seed is Control:
+			actual_seed_slots += 1
+			highest_seed_edge = minf(highest_seed_edge,
+				(seed as Control).get_global_rect().position.y)
+	_ok(actual_seed_slots == visible_seed_slots,
+		"the seed rack carries every unlocked first-page choice as a reachable target")
+	_ok(highest_seed_edge - lowest_tool_edge >= 6.0,
+		"the tool row and seed row keep a clear vertical gutter")
+
+	var barn: Node = _find_named(_garden, "BarnShortcut")
+	var deco: Node = _find_named(_garden, "DecoDoor")
+	for utility_and_name in [[barn, "barn"], [deco, "sticker book"]]:
+		var utility: Node = utility_and_name[0]
+		var utility_name := str(utility_and_name[1])
+		_ok(_visible_control_inside(utility, screen),
+			"the %s shortcut stays visible in the base shelf" % utility_name)
+		_ok(_controls_are_separate(seed_deck, utility, 4.0),
+			"the seed lane leaves the %s shortcut tappable" % utility_name)
+	_ok(shelf is Control and top is Control
+		and not (shelf as Control).get_global_rect().intersects(
+			(top as Control).get_global_rect()),
+		"top information and bottom tools leave the farm window between them")
 
 
 func _fresh_garden() -> void:
@@ -876,6 +1055,11 @@ func _fourteen_seeds_take_turns() -> void:
 		+ "is a lock")
 	var next: Variant = buttons.get("rack_next")
 	_ok(next is Button, "fourteen crops give the rack a next arrow")
+	var seed_deck: Node = _find_named(_garden, "GardenSeedDeck")
+	_ok(next is Button and seed_deck is Control
+			and absf((next as Button).get_global_rect().position.x
+				- (seed_deck as Control).get_global_rect().end.x) <= 2.0,
+		"the first-page arrow sits directly after the seed pouch, not in empty shelf space")
 
 	# 翻到第二页，把第二页的第一颗（小麦）真的拖进地里。
 	if next is Button:
@@ -883,8 +1067,13 @@ func _fourteen_seeds_take_turns() -> void:
 		for i in range(3):
 			await get_tree().process_frame
 		_ok(_rack_tiles() == 7, "page two holds the other seven")
-		_ok((_garden.get("_panel_buttons") as Dictionary).get("rack_back")
-			is Button, "and now there is a way back")
+		var back: Variant = (_garden.get("_panel_buttons") as Dictionary).get("rack_back")
+		_ok(back is Button, "and now there is a way back")
+		seed_deck = _find_named(_garden, "GardenSeedDeck")
+		_ok(back is Button and seed_deck is Control
+			and absf((back as Button).get_global_rect().position.x
+				- (seed_deck as Control).get_global_rect().end.x) <= 2.0,
+			"the return arrow keeps the same clear place beside the seed pouch")
 		var plots := _plots()
 		plots[0]["state"] = Farm.TILLED
 		plots[0]["crop_id"] = ""
@@ -1062,12 +1251,15 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 		_ok(int(ribbon.get_meta("plot_index", -1)) == 0,
 			"the ribbon names the same ripe plot the farm points at")
 		var hero_icon := ribbon.get_node_or_null("HeroTaskIconBadge/HeroTaskIcon") as Control
+		var hero_badge := ribbon.get_node_or_null("HeroTaskIconBadge") as Control
 		var hero_action := ribbon.get_node_or_null("HeroTaskAction") as Label
 		var hero_preview := ribbon.get_node_or_null("HeroTaskPreview/HeroTaskProgress") as Label
 		_ok(hero_icon != null and hero_icon.visible and hero_action != null \
-			and hero_action.visible and hero_preview != null and hero_preview.visible,
-			"the hero task card keeps its picture, one action and order progress together")
+			and hero_action.visible and (compact or (hero_preview != null \
+			and hero_preview.visible)),
+			"the hero task card keeps its picture and one clear action, plus an order preview when it fits")
 		var daily := ribbon.get_node_or_null("HeroTaskDaily") as Control
+		var daily_icon := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyIcon") as Control
 		var daily_progress := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyProgress") as Label
 		_ok(daily != null and int(daily.get_meta("done", -1)) == 2
 			and int(daily.get_meta("total", -1)) == 3
@@ -1077,10 +1269,36 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 			and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") != null
 			and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_2") != null,
 			"the daily crest keeps both a readable tally and all three small stars")
-		if daily_progress != null and hero_action != null and hero_preview != null:
-			_ok(not daily_progress.get_global_rect().intersects(hero_action.get_global_rect())
-				and not hero_action.get_global_rect().intersects(hero_preview.get_global_rect()),
-				"daily words, the next action and order words keep separate reading lines")
+		_ok(daily_progress != null and hero_action != null
+			and not daily_progress.get_global_rect().intersects(hero_action.get_global_rect()),
+			"daily words and the next action keep separate reading lines")
+		_ok(hero_badge != null and hero_action != null
+			and hero_action.get_global_rect().position.x - hero_badge.get_global_rect().end.x >= 11.0,
+			"the primary task words leave a clear gutter after their picture badge")
+		_ok(daily_icon != null and daily_progress != null
+			and daily_progress.get_global_rect().position.x - daily_icon.get_global_rect().end.x >= 7.0,
+			"the daily reward words do not stick to their crest icon")
+		var daily_star := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") as Control
+		_ok(daily_star != null and daily_progress != null
+			and daily_star.get_global_rect().position.x
+			- daily_progress.get_global_rect().end.x >= 6.0,
+			"the daily tally words leave air before their decorative stars")
+		if hero_action != null and hero_preview != null:
+			_ok(not hero_action.get_global_rect().intersects(hero_preview.get_global_rect()),
+				"the next action and order words keep separate reading lines")
+			var preview_icon := ribbon.get_node_or_null("HeroTaskPreview/HeroTaskPreviewIcon") as Control
+			_ok(preview_icon != null and hero_preview.get_global_rect().position.x
+				- preview_icon.get_global_rect().end.x >= 6.0,
+				"order progress words do not stick to their crop picture")
+		else:
+			_ok(compact,
+				"a compact shelf yields optional order text before squeezing three reading lines")
+			_ok(compact,
+				"a compact shelf has no hidden order icon next to the next-action words")
+		var arrow := ribbon.get_node_or_null("HeroTaskArrow") as Label
+		_ok(hero_action != null and arrow != null
+			and arrow.get_global_rect().position.x - hero_action.get_global_rect().end.x >= 10.0,
+			"the next-action words leave a clear gutter before their arrow")
 		var derived: Dictionary = _garden.call("_next_task")
 		_ok(hero_action != null and hero_action.text == _garden.call("_next_task_text", derived),
 			"the hero task words come from the one derived garden task")
@@ -1228,14 +1446,33 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 	await get_tree().process_frame
 
 
-## Seed tiles standing on the rack right now, counted by their exact size.
+## Seed tiles standing on the rack right now.  Find each one at the screen's
+## own rack centre rather than copying SEED_TILE: a shelf redesign is supposed
+## to make this test describe a real reachable seed, not silently count an old
+## 96×72 rectangle that no longer exists.
 func _rack_tiles() -> int:
 	var found := 0
-	for child in (_garden.get("_play") as Node).get_children():
-		if child is Button and (child as Button).flat \
-				and (child as Button).size == Vector2(96, 72):
+	for index in range(7):
+		if _rack_seed_button(index) != null:
 			found += 1
 	return found
+
+
+## The seed's transparent Button is deliberately the object under the rack
+## centre: both a tap and a drag begin there.  This stays independent of the
+## art card so a smaller art icon cannot accidentally make the seed unreachable.
+func _rack_seed_button(index: int) -> Button:
+	if _garden == null:
+		return null
+	var at := _seed_tile(index)
+	for node in _every_control(_garden):
+		if not (node is Button):
+			continue
+		var button := node as Button
+		if button.flat and button.is_visible_in_tree() \
+				and button.get_global_rect().has_point(at):
+			return button
+	return null
 
 
 ## Buy chips standing in the shop right now.
@@ -1266,6 +1503,59 @@ func _clear_tutorials() -> void:
 	for child in (_garden.get("_play") as Node).get_children():
 		if child is Tutorial:
 			(child as Tutorial).skip()
+
+
+## HUD geometry helpers.  They deliberately accept Nodes, so a renamed panel
+## is a red assertion instead of a null-method error that skips the rest of a
+## screen shape.
+func _visible_control_inside(node: Node, bounds: Rect2) -> bool:
+	if not (node is Control) or not is_instance_valid(node):
+		return false
+	var control := node as Control
+	return control.is_visible_in_tree() \
+		and bounds.encloses(control.get_global_rect())
+
+
+func _control_contains(outer: Node, inner: Node, breathing: float = 0.0) -> bool:
+	if not (outer is Control) or not (inner is Control) \
+			or not is_instance_valid(outer) or not is_instance_valid(inner):
+		return false
+	return (outer as Control).get_global_rect().encloses(
+		(inner as Control).get_global_rect().grow(breathing))
+
+
+func _title_has_side_gutters(plaque: Node, title: Node, minimum: float) -> bool:
+	if not (plaque is Control) or not (title is Control) \
+			or not is_instance_valid(plaque) or not is_instance_valid(title):
+		return false
+	var plaque_rect := (plaque as Control).get_global_rect()
+	var title_rect := (title as Control).get_global_rect()
+	return title_rect.position.x - plaque_rect.position.x >= minimum \
+		and plaque_rect.end.x - title_rect.end.x >= minimum
+
+
+func _controls_are_separate(left: Node, right: Node, breathing: float = 0.0) -> bool:
+	if not (left is Control) or not (right is Control) \
+			or not is_instance_valid(left) or not is_instance_valid(right):
+		return false
+	return not (left as Control).get_global_rect().grow(breathing).intersects(
+		(right as Control).get_global_rect().grow(breathing))
+
+
+func _horizontal_gutter(left: Node, right: Node) -> float:
+	if not (left is Control) or not (right is Control) \
+			or not is_instance_valid(left) or not is_instance_valid(right):
+		return -INF
+	return (right as Control).get_global_rect().position.x \
+		- (left as Control).get_global_rect().end.x
+
+
+func _vertical_gutter(top: Node, bottom: Node) -> float:
+	if not (top is Control) or not (bottom is Control) \
+			or not is_instance_valid(top) or not is_instance_valid(bottom):
+		return -INF
+	return (bottom as Control).get_global_rect().position.y \
+		- (top as Control).get_global_rect().end.y
 
 
 func _find_named(node: Node, wanted: String) -> Node:
