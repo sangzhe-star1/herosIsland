@@ -50,12 +50,12 @@ static func add_ground_dressing(parent: Node2D, protected: Array[Rect2]) -> Node
 
 	# The short branch paths make the visible base facilities feel connected to
 	# the existing gate-to-well path without ever crossing a plantable bed.
-	_draw_path_branch(layer, PackedVector2Array([
+	draw_path(layer, PackedVector2Array([
 		Vector2(205.0, 346.0), Vector2(298.0, 357.0), Vector2(362.0, 382.0),
-	]))
-	_draw_path_branch(layer, PackedVector2Array([
+	]), 32.0)
+	draw_path(layer, PackedVector2Array([
 		Vector2(208.0, 614.0), Vector2(286.0, 600.0), Vector2(356.0, 574.0),
-	]))
+	]), 32.0)
 
 	# Three edge clusters are enough to establish foreground/middle/background.
 	# They are deliberately fixed: a familiar farm should not rearrange itself
@@ -240,9 +240,17 @@ static func _draw_meadow_patch(parent: Node2D, at: Vector2, radii: Vector2,
 		_draw_tuft(parent, Vector2(x, y), 0.72 + 0.08 * float(i % 2))
 
 
-static func _draw_path_branch(parent: Node2D, points: PackedVector2Array) -> void:
-	Shapes.fill(parent, Shapes.ribbon(points, 32.0), Color(0.82, 0.76, 0.60), 0.0)
-	Shapes.fill(parent, Shapes.ribbon(points, 16.0), Color(0.89, 0.83, 0.68), 0.0)
+## All farm paths share this deliberately soft two-tone treatment.  A route
+## should gather the world into a place someone walks through, not fence the
+## grass into dark, competing sections.  It is visual-only: callers retain the
+## same layout, camera and target boxes beneath the drawing.
+static func draw_path(parent: Node2D, points: PackedVector2Array,
+		width: float) -> void:
+	var outer_width := maxf(width, 1.0)
+	Shapes.fill(parent, Shapes.ribbon(points, outer_width),
+		Color(0.82, 0.76, 0.60), 0.0)
+	Shapes.fill(parent, Shapes.ribbon(points, maxf(12.0, outer_width * 0.50)),
+		Color(0.89, 0.83, 0.68), 0.0)
 
 
 static func _draw_tree_cluster(parent: Node2D, at: Vector2, scale: float,

@@ -14,6 +14,7 @@ const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
+const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
@@ -34,7 +35,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 904
+const CHECKS_EXPECTED := 931
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -86,6 +87,7 @@ func _run_on_a(window: Vector2i) -> void:
 	_the_hero_base_hud_keeps_reading_lanes_open(view)
 	await _the_beds_are_on_the_screen_he_is_holding(view)
 	await _tapping_grass_turns_it_over()
+	await _the_selected_tool_marks_its_possible_beds()
 	await _dragging_a_seed_lands_in_the_bed_he_aimed_at()
 	await _one_bed_takes_one_crop()
 	await _tapping_a_ripe_bed_fills_the_barn()
@@ -109,6 +111,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_day_has_its_own_little_jobs()
 	await _gold_blessing_from_the_days_care()
 	await _the_challenge_door_shows_what_is_next(view)
+	await _care_has_moves_of_its_own()
 
 	_close()
 
@@ -417,6 +420,39 @@ func _tapping_grass_turns_it_over() -> void:
 	# ...and the OTHER beds are untouched. One tap, one bed.
 	_ok(not Farm.is_tilled(_plots()[1]),
 		"and only the bed he tapped")
+
+
+## A brush should make its honest targets easy to spot before a small hand
+## starts a sweep. At this point bed 0 is the only turned patch, so the seed
+## brush has exactly one true target; restoring the hand leaves the following
+## real rack-to-bed drag in its original state.
+func _the_selected_tool_marks_its_possible_beds() -> void:
+	var seed: Variant = (_garden.get("_tool_buttons") as Dictionary).get("seed")
+	_ok(seed is Button and not (seed as Button).disabled,
+		"the seed brush is live when one bed has been turned")
+	if seed is Button:
+		await _tap((seed as Control).get_global_rect().get_center())
+	var tool_controller: Variant = _garden.get("_tools")
+	_ok(tool_controller != null and str(tool_controller.get("selected")) == "seed"
+			and _lit_tool_target_indices() == [0],
+		"choosing seed circles only the turned bed it can really plant in")
+
+	var world: Node = _garden.get("_world")
+	var beds: Array = world.get("_beds") if world != null else []
+	var halo: Node = beds[0].get_node_or_null("ToolTargetHalo") if not beds.is_empty() else null
+	var ring: Node = halo.get_node_or_null("ToolTargetRing") if halo != null else null
+	_ok(halo is Node2D and ring is Node2D
+			and not (halo is Control) and not (ring is Control),
+		"a possible-bed halo is world art, never a control that can eat a drag")
+
+	var hand: Variant = (_garden.get("_tool_buttons") as Dictionary).get(Tools.HAND)
+	_ok(hand is Button, "the familiar hand remains available to leave brush mode")
+	if hand is Button:
+		await _tap((hand as Control).get_global_rect().get_center())
+	tool_controller = _garden.get("_tools")
+	_ok(tool_controller != null and str(tool_controller.get("selected")) == Tools.HAND
+			and _lit_tool_target_indices().is_empty(),
+		"returning to the hand clears every possible-bed halo")
 
 
 func _dragging_a_seed_lands_in_the_bed_he_aimed_at() -> void:
@@ -1056,10 +1092,13 @@ func _fourteen_seeds_take_turns() -> void:
 	var next: Variant = buttons.get("rack_next")
 	_ok(next is Button, "fourteen crops give the rack a next arrow")
 	var seed_deck: Node = _find_named(_garden, "GardenSeedDeck")
-	_ok(next is Button and seed_deck is Control
-			and absf((next as Button).get_global_rect().position.x
-				- (seed_deck as Control).get_global_rect().end.x) <= 2.0,
-		"the first-page arrow sits directly after the seed pouch, not in empty shelf space")
+	var pager_deck: Node = _find_named(_garden, "GardenSeedPagerDeck")
+	_ok(next is Button and seed_deck is Control and pager_deck is Control
+			and (pager_deck as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE
+			and absf((pager_deck as Control).get_global_rect().position.x
+				- (seed_deck as Control).get_global_rect().end.x) <= 4.0
+			and _control_contains(pager_deck, next, 2.0),
+		"the first-page arrow lives in a passive eighth seed slot, not empty shelf space")
 
 	# 翻到第二页，把第二页的第一颗（小麦）真的拖进地里。
 	if next is Button:
@@ -1070,10 +1109,12 @@ func _fourteen_seeds_take_turns() -> void:
 		var back: Variant = (_garden.get("_panel_buttons") as Dictionary).get("rack_back")
 		_ok(back is Button, "and now there is a way back")
 		seed_deck = _find_named(_garden, "GardenSeedDeck")
-		_ok(back is Button and seed_deck is Control
-			and absf((back as Button).get_global_rect().position.x
-				- (seed_deck as Control).get_global_rect().end.x) <= 2.0,
-			"the return arrow keeps the same clear place beside the seed pouch")
+		pager_deck = _find_named(_garden, "GardenSeedPagerDeck")
+		_ok(back is Button and seed_deck is Control and pager_deck is Control
+			and absf((pager_deck as Control).get_global_rect().position.x
+				- (seed_deck as Control).get_global_rect().end.x) <= 4.0
+			and _control_contains(pager_deck, back, 2.0),
+		"the return arrow keeps the same eighth-slot home beside the seed pouch")
 		var plots := _plots()
 		plots[0]["state"] = Farm.TILLED
 		plots[0]["crop_id"] = ""
@@ -1261,28 +1302,43 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 		var daily := ribbon.get_node_or_null("HeroTaskDaily") as Control
 		var daily_icon := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyIcon") as Control
 		var daily_progress := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyProgress") as Label
-		_ok(daily != null and int(daily.get_meta("done", -1)) == 2
-			and int(daily.get_meta("total", -1)) == 3
-			and not bool(daily.get_meta("all_done", true)),
-			"the task card shows the same two-of-three daily care state as the save")
-		_ok(daily_progress != null and daily_progress.text == "2/3"
-			and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") != null
-			and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_2") != null,
-			"the daily crest keeps both a readable tally and all three small stars")
-		_ok(daily_progress != null and hero_action != null
-			and not daily_progress.get_global_rect().intersects(hero_action.get_global_rect()),
-			"daily words and the next action keep separate reading lines")
+		if compact:
+			_ok(daily == null,
+				"the compact task card yields its secondary daily row to one action")
+			_ok(daily_icon == null and daily_progress == null,
+				"the compact card leaves no hidden daily picture or words beside the action")
+			_ok(hero_preview == null,
+				"the compact task card also yields its optional order preview")
+			_ok(hero_action != null and absf(hero_action.get_global_rect().get_center().y
+				- task_rect.get_center().y) <= 1.0,
+				"the one compact next-action line is vertically centred in its card")
+			_ok(hero_action != null
+				and hero_action.get_global_rect().position.y >= task_rect.position.y + 12.0
+				and hero_action.get_global_rect().end.y <= task_rect.end.y - 12.0,
+				"the compact next-action line keeps real top and bottom breathing room")
+		else:
+			_ok(daily != null and int(daily.get_meta("done", -1)) == 2
+				and int(daily.get_meta("total", -1)) == 3
+				and not bool(daily.get_meta("all_done", true)),
+				"the task card shows the same two-of-three daily care state as the save")
+			_ok(daily_progress != null and daily_progress.text == "2/3"
+				and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") != null
+				and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_2") != null,
+				"the daily crest keeps both a readable tally and all three small stars")
+			_ok(daily_progress != null and hero_action != null
+				and not daily_progress.get_global_rect().intersects(hero_action.get_global_rect()),
+				"daily words and the next action keep separate reading lines")
+			_ok(daily_icon != null and daily_progress != null
+				and daily_progress.get_global_rect().position.x - daily_icon.get_global_rect().end.x >= 7.0,
+				"the daily reward words do not stick to their crest icon")
+			var daily_star := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") as Control
+			_ok(daily_star != null and daily_progress != null
+				and daily_star.get_global_rect().position.x
+				- daily_progress.get_global_rect().end.x >= 6.0,
+				"the daily tally words leave air before their decorative stars")
 		_ok(hero_badge != null and hero_action != null
 			and hero_action.get_global_rect().position.x - hero_badge.get_global_rect().end.x >= 11.0,
 			"the primary task words leave a clear gutter after their picture badge")
-		_ok(daily_icon != null and daily_progress != null
-			and daily_progress.get_global_rect().position.x - daily_icon.get_global_rect().end.x >= 7.0,
-			"the daily reward words do not stick to their crest icon")
-		var daily_star := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") as Control
-		_ok(daily_star != null and daily_progress != null
-			and daily_star.get_global_rect().position.x
-			- daily_progress.get_global_rect().end.x >= 6.0,
-			"the daily tally words leave air before their decorative stars")
 		if hero_action != null and hero_preview != null:
 			_ok(not hero_action.get_global_rect().intersects(hero_preview.get_global_rect()),
 				"the next action and order words keep separate reading lines")
@@ -1456,6 +1512,22 @@ func _rack_tiles() -> int:
 		if _rack_seed_button(index) != null:
 			found += 1
 	return found
+
+
+## Which beds currently carry the selected-brush's purely visual halo. The
+## test names the paint node instead of copying tool or plot rules: if a future
+## renderer stops drawing it, this turns red even when the underlying gesture
+## remains valid.
+func _lit_tool_target_indices() -> Array:
+	var out: Array = []
+	var world: Node = _garden.get("_world") if _garden != null else null
+	var beds: Array = world.get("_beds") if world != null else []
+	for i in range(beds.size()):
+		var halo: Node = (beds[i] as Node).get_node_or_null("ToolTargetHalo")
+		var ring: Node = halo.get_node_or_null("ToolTargetRing") if halo != null else null
+		if ring != null and ring.is_visible_in_tree():
+			out.append(i)
+	return out
 
 
 ## The seed's transparent Button is deliberately the object under the rack
@@ -2675,6 +2747,8 @@ func _gold_shines_and_the_dog_says_hello() -> void:
 ## lives in the same actions the child performs.
 func _the_day_has_its_own_little_jobs() -> void:
 	var scene: Node = _garden
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var compact := view.x / maxf(view.y, 1.0) < 1.6
 	# A fresh day, clean tallies.
 	GameClock.set_test_now(NOON, 0)
 	SaveManager.data["farm"]["dailies"] = {"date": GameClock.now_date(),
@@ -2699,6 +2773,11 @@ func _the_day_has_its_own_little_jobs() -> void:
 	var dailies: Dictionary = SaveManager.data["farm"].get("dailies", {})
 	_ok(int(dailies.get("progress", {}).get("water", 0)) == 1,
 		"watering a thirsty bed fills today's water tally")
+	var water_beds: Array = (_garden.get("_world") as Node).get("_beds")
+	var water_feedback: Node = water_beds[0].get_node_or_null("PlotActionFeedback") \
+		if not water_beds.is_empty() else null
+	_ok(water_feedback is Node2D and _find_named(water_feedback, "WaterDrop_0") != null,
+		"a tap-water keeps its visible drop through the immediate redraw")
 	# The day asks for THREE waterings, and each bed is thirsty once per
 	# planting -- so two more beds get thirsty and two more taps go out.
 	plots = _plots()
@@ -2747,22 +2826,34 @@ func _the_day_has_its_own_little_jobs() -> void:
 	# rebuild the real shelf to prove the last star becomes the same golden-luck
 	# state that planting uses -- no separate UI counter is allowed here.
 	var partial_daily: Node = _find_named(scene, "HeroTaskDaily")
-	_ok(partial_daily != null and int(partial_daily.get_meta("done", -1)) == 2
-		and not bool(partial_daily.get_meta("all_done", true)),
-		"two finished daily verbs light two stars before the final little job")
+	if compact:
+		_ok(partial_daily == null,
+			"the compact task card keeps the daily tally out of the one action line")
+	else:
+		_ok(partial_daily != null and int(partial_daily.get_meta("done", -1)) == 2
+			and not bool(partial_daily.get_meta("all_done", true)),
+			"two finished daily verbs light two stars before the final little job")
 	scene.call("_daily_progress", "harvest", 2)
 	scene.call("_rebuild")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var lucky_daily: Node = _find_named(scene, "HeroTaskDaily")
 	var lucky_label: Node = _find_named(scene, "HeroTaskDailyProgress")
-	_ok(lucky_daily != null and int(lucky_daily.get_meta("done", -1)) == 3
-		and int(lucky_daily.get_meta("total", -1)) == 3
-		and bool(lucky_daily.get_meta("all_done", false)),
-		"the final daily star lights the complete care crest on the real task card")
-	_ok(lucky_label is Label and (lucky_label as Label).text
-		== I18n.t("garden.daily.lucky"),
-		"the complete crest tells the child that today's golden luck is active")
+	if compact:
+		var summary: Dictionary = Dailies.summary(SaveManager.data["farm"].get("dailies", {}))
+		_ok(lucky_daily == null and lucky_label == null
+			and bool(summary.get("all_done", false)),
+			"the compact card hides the completed crest without changing its derived state")
+		_ok(is_equal_approx(scene.call("_golden_chance"), 0.08),
+			"the compact action-only card keeps today's golden luck active")
+	else:
+		_ok(lucky_daily != null and int(lucky_daily.get_meta("done", -1)) == 3
+			and int(lucky_daily.get_meta("total", -1)) == 3
+			and bool(lucky_daily.get_meta("all_done", false)),
+			"the final daily star lights the complete care crest on the real task card")
+		_ok(lucky_label is Label and (lucky_label as Label).text
+			== I18n.t("garden.daily.lucky"),
+			"the complete crest tells the child that today's golden luck is active")
 
 	# Claim on the board, once. The second press meets a tick, not a purse.
 	Barn.put("carrot", 2)   # room is irrelevant; the tally is what gates
@@ -2913,3 +3004,165 @@ func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
 	next_card = _find_named(scene, "ChallengeNext")
 	_ok(next_card != null and str(next_card.get_meta("shows", "")) == "star",
 		"a completed harvest shelf previews a star, not a stale crop")
+
+
+## Care with moves of its own: water pours DOWN, a weed pulls UP like a
+## carrot, a bug is shooed side to side -- judged by the same Gesture
+## recognisers the harvest moves are. A tap still does every one of these
+## jobs; the moves are the expressive path, never a gate.
+func _care_has_moves_of_its_own() -> void:
+	var scene: Node = _garden
+	var moves: Dictionary = scene.get("CARE_MOVES")
+	for event in ["thirsty", "weeds", "bug"]:
+		_ok(moves.has(event),
+			"the %s care event has a move of its own" % event)
+	for key in moves:
+		_ok(str(moves[key].get("recogniser", "")) in Gesture.ALL,
+			"the %s care move is one Gesture can judge" % key)
+	await get_tree().create_timer(0.6).timeout
+
+	# Water pours from above: press the thirsty bed, drag DOWN, let go.
+	var plots: Array = SaveManager.data["farm"]["plots"]
+	plots[0]["state"] = Farm.NEEDS_CARE
+	plots[0]["crop_id"] = "carrot"
+	plots[0]["care_event"] = "thirsty"
+	plots[0]["care_completed"] = false
+	plots[0]["growth_stage"] = 1
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var world_care: Node = scene.get("_world")
+	print("DBG care ctx: garden_valid=%s world=%s finger=%s locked=%s blockers=%s level_id=%s" % [
+		str(is_instance_valid(_garden)), str(world_care != null),
+		str(world_care.get("_finger") if world_care else "?"),
+		str(world_care.get("locked") if world_care else "?"),
+		str((world_care.get("blockers") as Array).size() if world_care else "?"),
+		str(GameManager.current_level_id)])
+	await _finger(_bed(0), _bed(0) + Vector2(0.0, 120.0))
+	print("DBG care after pour: state=%s care='%s' dailies_water=%s" % [
+		str(_plots()[0].get("state")),
+		str(_plots()[0].get("care_event", "")),
+		str(SaveManager.data["farm"].get("dailies", {}).get("progress", {}).get("water", 0))])
+	_ok(str(_plots()[0].get("state", "")) == Farm.GROWING
+			and str(_plots()[0].get("care_event", "")) == "",
+		"pouring down onto a thirsty bed waters it")
+	# The state refresh happens in the same path as the pour.  The drops must
+	# therefore live beside the redrawable badge layer: checking them after the
+	# real gesture catches the old version that queued all five for deletion
+	# before a frame could paint them.
+	var water_world: Node = scene.get("_world")
+	var water_beds: Array = water_world.get("_beds") if water_world != null else []
+	var water_bed: Node = water_beds[0] if not water_beds.is_empty() else null
+	var water_feedback: Node = water_bed.get_node_or_null("PlotActionFeedback") \
+		if water_bed != null else null
+	_ok(water_feedback is Node2D and _find_named(water_feedback, "WaterDrop_0") != null,
+		"the water drop is still visible after its state redraw")
+	await get_tree().create_timer(0.72).timeout
+	_ok(water_feedback != null and water_feedback.get_child_count() == 0,
+		"the short water answer cleans itself up after landing")
+
+	# A weed pulls up like a carrot.
+	plots = _plots()
+	plots[1]["state"] = Farm.NEEDS_CARE
+	plots[1]["care_event"] = "weeds"
+	plots[1]["care_completed"] = false
+	plots[1]["growth_stage"] = 1
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _finger(_bed(1), _bed(1) + Vector2(0.0, -120.0))
+	_ok(str(_plots()[1].get("state", "")) == Farm.GROWING
+			and str(_plots()[1].get("care_event", "")) == "",
+		"pulling up on a weedy bed weeds it")
+
+	# A bug is shooed side to side: a real zigzag, two real reversals.
+	plots = _plots()
+	plots[2]["state"] = Farm.NEEDS_CARE
+	plots[2]["care_event"] = "bug"
+	plots[2]["care_completed"] = false
+	plots[2]["growth_stage"] = 1
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var mid: Vector2 = _bed(2)
+	var legs := [Vector2(-70.0, 0.0), Vector2(70.0, 0.0),
+		Vector2(-70.0, 0.0), Vector2(70.0, 0.0)]
+	var at: Vector2 = mid + legs[0]
+	var zig_down := InputEventScreenTouch.new()
+	zig_down.index = 0
+	zig_down.pressed = true
+	zig_down.position = _glass(at)
+	Input.parse_input_event(zig_down)
+	await get_tree().process_frame
+	for i in range(1, legs.size()):
+		var zig := InputEventScreenDrag.new()
+		zig.index = 0
+		zig.position = _glass(mid + legs[i])
+		Input.parse_input_event(zig)
+		await get_tree().process_frame
+	var zig_up := InputEventScreenTouch.new()
+	zig_up.index = 0
+	zig_up.pressed = false
+	zig_up.position = _glass(mid + legs[legs.size() - 1])
+	Input.parse_input_event(zig_up)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(str(_plots()[2].get("state", "")) == Farm.GROWING
+			and str(_plots()[2].get("care_event", "")) == "",
+		"shooing side to side chases the bug off")
+
+	# The wrong move is not an error: a downward drag on a WEEDY bed weeds
+	# nothing -- the camera pans instead, the way any drag from a bed does.
+	plots = _plots()
+	plots[3]["state"] = Farm.NEEDS_CARE
+	plots[3]["care_event"] = "weeds"
+	plots[3]["care_completed"] = false
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var cam_before: Vector2 = _camera().centre
+	var side := _roomiest_side()
+	await _finger(_bed(3), _bed(3) + Vector2(150.0 * side, 0.0))
+	_ok(str(_plots()[3].get("care_event", "")) == "weeds",
+		"the wrong move does no care -- the weeds wait for the right one")
+	_ok(not is_equal_approx(_camera().centre.x, cam_before.x),
+		"and the camera pans instead -- a missed move is still a pan")
+
+	# The tap still cares. There is no wrong tap on this screen.
+	plots = _plots()
+	plots[0]["state"] = Farm.NEEDS_CARE
+	plots[0]["care_event"] = "thirsty"
+	plots[0]["care_completed"] = false
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var world_t: Node = scene.get("_world")
+	var bed_t: Vector2 = _bed(0)
+	print("DBG final tap: bed=%s inside=%s blocked=%s under=%s wants=%s state=%s care='%s'" % [
+		str(bed_t),
+		str(world_t.get("camera").call("inside", bed_t)),
+		str(world_t.call("_blocked", bed_t)),
+		str(world_t.call("bed_under", bed_t)),
+		str(world_t.get("gesture_bed_check").call(0)),
+		str(_plots()[0].get("state")), str(_plots()[0].get("care_event", ""))])
+	# The camera has wandered (the failed-move pans); walk it back to the bed
+	# the way the world walks to the expansion slots, then tap.
+	world_t.call("look_at_world", Layout.plot_at(0))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _tap(_bed(0))
+	var after_t: Dictionary = _plots()[0]
+	print("DBG final after: state=%s care='%s'" % [
+		str(after_t.get("state")), str(after_t.get("care_event", ""))])
+	_ok(str(_plots()[0].get("care_event", "")) == "",
+		"a plain tap still waters, weeds and shoos -- no wrong tap here")

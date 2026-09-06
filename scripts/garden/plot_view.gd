@@ -41,8 +41,18 @@ var index := 0
 
 var _box := Vector2(220, 150)
 var _ground: Node2D
+## A selected brush's possible landing places. This is a sibling of the
+## redrawable soil/plant layers: refresh() may repaint a thirsty bed while a
+## stroke is still held, but it must not erase the little answer to "where can
+## this tool go?".
+var _tool_target_halo: Node2D
+var _tool_target_active := false
 var _planting: Node2D
 var _overlay: Node2D
+## A short action answer must outlive the state redraw that follows it.  It is
+## still owned by this PlotView (not a second feedback system), but sits beside
+## `_overlay` because `_draw_badge()` intentionally clears that snapshot layer.
+var _action_feedback: Node2D
 ## The current farm task lives beside the transient care badge, not inside its
 ## subtree. `_draw_badge()` deliberately clears `_overlay` on every state
 ## change; a world-level pointer must survive that inexpensive redraw.
@@ -76,10 +86,19 @@ func setup(plot_index: int) -> void:
 	position = Layout.plot_at(index)
 	_ground = Node2D.new()
 	add_child(_ground)
+	# Between soil and plant: the ring kisses the earth edge, while the crop,
+	# care badge and task flag retain their familiar visual priority above it.
+	_tool_target_halo = Node2D.new()
+	_tool_target_halo.name = "ToolTargetHalo"
+	add_child(_tool_target_halo)
 	_planting = Node2D.new()
 	add_child(_planting)
 	_overlay = Node2D.new()
 	add_child(_overlay)
+	_action_feedback = Node2D.new()
+	_action_feedback.name = "PlotActionFeedback"
+	_action_feedback.z_index = 1
+	add_child(_action_feedback)
 	# This is a sibling of `_overlay`, on purpose. The task marker is supplied
 	# by FarmWorld from the screen's already-derived next task, while the badge
 	# is rebuilt from the plot snapshot. Neither gets to erase the other.
@@ -117,16 +136,18 @@ func relax() -> void:
 ## in this garden is random.
 func drink() -> void:
 	_drink = 0.55
-	if not Juice.motion_enabled():
+	if not Juice.motion_enabled() or _action_feedback == null \
+			or not is_instance_valid(_action_feedback):
 		return
 	var xs := [-30.0, -13.0, 4.0, 21.0, 36.0]
 	for i in range(xs.size()):
 		var drop := Node2D.new()
+		drop.name = "WaterDrop_%d" % i
 		var at_x: float = xs[i]
 		Shapes.fill(drop, Shapes.circle_points(Vector2.ZERO, 5.0),
 			Color(0.45, 0.66, 0.92), 0.0)
 		drop.position = Vector2(at_x, -74.0)
-		_overlay.add_child(drop)
+		_action_feedback.add_child(drop)
 		var t := drop.create_tween()
 		t.tween_interval(0.05 * float(i))
 		t.tween_property(drop, "position",
@@ -222,6 +243,8 @@ func _draw_ground(plot: Dictionary) -> void:
 			-_box.y * 0.30 + fmod(float(i) * 61.0, _box.y * 0.60))
 		Shapes.fill(_ground, Shapes.circle_points(at, 3.0 + float(i % 2)),
 			shade, 0.0)
+	if thirsty:
+		_draw_dry_cracks(earth)
 
 
 ## Fixed organic outlines let soil be a little irregular without jumping when
@@ -231,6 +254,24 @@ func _patch_blob(radii: Vector2) -> PackedVector2Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 32_557 + index * 7_919
 	return Shapes.blob(Vector2.ZERO, radii, rng, 0.08, 5, 28)
+
+
+## Water is an action a child already understands from the earth itself.  These
+## fixed, short cracks sit at the soil edge rather than under the crop, so the
+## bed reads thirsty even when its little water-can reminder is momentarily
+## out of view.  They are paint only; `water_level` remains the sole rule.
+func _draw_dry_cracks(earth: Color) -> void:
+	var crack := earth.darkened(0.34)
+	for segment in [
+		{"from": Vector2(-61.0, -22.0), "to": Vector2(-44.0, -13.0)},
+		{"from": Vector2(-44.0, -13.0), "to": Vector2(-53.0, -1.0)},
+		{"from": Vector2(55.0, 26.0), "to": Vector2(63.0, 15.0)},
+		{"from": Vector2(63.0, 15.0), "to": Vector2(48.0, 7.0)},
+		{"from": Vector2(21.0, -43.0), "to": Vector2(35.0, -35.0)},
+	]:
+		var from: Vector2 = segment["from"]
+		var to: Vector2 = segment["to"]
+		Shapes.fill(_ground, Shapes.taper(from, to, 2.6, 0.8), crack, 0.0)
 
 
 func _draw_planting(plot: Dictionary) -> void:
@@ -272,6 +313,8 @@ func _draw_planting(plot: Dictionary) -> void:
 			# Ripe things move. This is the whole of "he can see it is ready"
 			# from across the farm, and it costs one entry in a list.
 			_sway.append(plant)
+			if not bool(plot.get("golden", false)):
+				_draw_ready_glints()
 
 	if ripe and bool(plot.get("golden", false)):
 		# Bright enough to see from the far side of the farm at the smallest
@@ -291,6 +334,20 @@ func _draw_planting(plot: Dictionary) -> void:
 			_draw_weeds()
 		Growth.CARE_BUG:
 			_draw_bugs()
+
+
+## A normal ripe crop earns two pale, four-point glints rather than the rare
+## crop's gold halo and four stars.  At overview distance that is enough to say
+## "ready to pick" while leaving the special golden celebration unmistakable.
+func _draw_ready_glints() -> void:
+	var glint := Color(1.0, 0.95, 0.73, 0.86)
+	for sparkle in [
+		{"at": Vector2(-38.0, 24.0), "size": 5.5},
+		{"at": Vector2(37.0, -15.0), "size": 4.0},
+	]:
+		var at: Vector2 = sparkle["at"]
+		Shapes.fill(_planting, Shapes.star_points(at, float(sparkle["size"]),
+			0.38, 4), glint, 0.0)
 
 
 ## Weeds, growing beside the plant rather than drawn on top of it. Two clumps,
@@ -326,26 +383,50 @@ func _draw_badge(plot: Dictionary) -> void:
 		child.queue_free()
 	_badge = null
 	var icon := ""
+	# The icon tells a child what to do; this quiet, state-specific backing lets
+	# him sort the four kinds of work before he has learned every tiny drawing.
+	# They are deliberately pastel rather than reward-gold: a ripe ordinary crop
+	# must not impersonate the rare golden-crop celebration.
+	var fill := Color(0.95, 0.86, 0.66)
+	var rim := Color(0.67, 0.50, 0.29)
 	match str(plot.get("state", Farm.EMPTY)):
 		Farm.EMPTY:
 			icon = "soil"
 		Farm.READY:
 			icon = "basket"
+			fill = Color(1.0, 0.93, 0.66)
+			rim = Color(0.75, 0.57, 0.24)
 		Farm.NEEDS_CARE:
 			match str(plot.get("care_event", "")):
-				Growth.CARE_THIRSTY: icon = "watering_can"
-				Growth.CARE_WEEDS: icon = "weed"
+				Growth.CARE_THIRSTY:
+					icon = "watering_can"
+					fill = Color(0.73, 0.91, 1.0)
+					rim = Color(0.28, 0.61, 0.83)
+				Growth.CARE_WEEDS:
+					icon = "weed"
+					fill = Color(0.80, 0.94, 0.72)
+					rim = Color(0.34, 0.64, 0.31)
 				# The real caterpillar, not a symbol for one. There is a
 				# painting of it already (丰收行动 uses it), and a badge that
 				# shows the THING is one fewer symbol he has to be taught.
-				Growth.CARE_BUG: icon = "res://assets/crops/bug.png"
+				Growth.CARE_BUG:
+					icon = "res://assets/crops/bug.png"
+					fill = Color(1.0, 0.80, 0.72)
+					rim = Color(0.83, 0.39, 0.34)
 	if icon == "":
 		return
 	var badge := Node2D.new()
+	badge.name = "PlotStatusBadge"
 	badge.position = Vector2(_box.x * 0.5 - 24.0, -_box.y * 0.5 + 4.0)
 	_overlay.add_child(badge)
-	Shapes.lit(badge, Shapes.circle_points(Vector2.ZERO, 29.0),
-		Color(1.0, 0.99, 0.94), 0.12)
+	# A coloured rim is softer than an ink circle but still keeps the picture
+	# legible over grass, soil and a pale crop.  The small downward offset also
+	# reads as contact shadow, not a second white map pin.
+	var rim_shadow := rim.darkened(0.10)
+	rim_shadow.a = 0.45
+	Shapes.fill(badge, Shapes.circle_points(Vector2(0.0, 2.0), 30.5), rim_shadow, 0.0)
+	var face := Shapes.lit(badge, Shapes.circle_points(Vector2.ZERO, 28.5), fill, 0.0)
+	face.name = "PlotStatusBadgeSurface"
 	var art := UiKit.picture(icon, 40.0)
 	if art != null:
 		art.position = Vector2(-20, -20)
@@ -373,6 +454,33 @@ func set_task_beacon(icon: String, tint: Color) -> void:
 	flag.position = Vector2(-_box.x * 0.36, -_box.y * 0.36)
 	_task_beacon.add_child(flag)
 	draw_task_beacon(flag, icon, tint, 0.82)
+
+
+## A brush has already been chosen by the screen. This ring does not decide
+## what that brush can do -- FarmToolController remains the single rule -- it
+## only makes every currently compatible bed easy to spot before a small hand
+## starts a sweep. `primary` is the bed already carrying the stronger next-task
+## flag, so its ring intentionally steps back rather than competing with it.
+func set_tool_target(active: bool, tint: Color, primary: bool = false) -> void:
+	if _tool_target_halo == null or not is_instance_valid(_tool_target_halo):
+		return
+	for child in _tool_target_halo.get_children():
+		_tool_target_halo.remove_child(child)
+		child.queue_free()
+	_tool_target_active = active
+	_tool_target_halo.modulate = Color.WHITE
+	if not active:
+		return
+	var halo := Node2D.new()
+	halo.name = "ToolTargetRing"
+	_tool_target_halo.add_child(halo)
+	var alpha := 0.10 if primary else 0.26
+	var outer := tint
+	outer.a = alpha
+	# One fine ring rides the grass edge: it guides a sweep without turning a
+	# living crop into a radar target.  51px stays inside the 75px half-height
+	# of a bed and away from its flag and care badge on 4:3.
+	Shapes.fill(halo, _annulus(51.0, 2.4, 1.0), outer, 0.0)
 
 
 ## Shared by a bed and the orders building so the small world flag uses the
@@ -448,6 +556,12 @@ func _annulus(radius: float, width: float, fraction: float) -> PackedVector2Arra
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _tool_target_active and _tool_target_halo != null \
+			and is_instance_valid(_tool_target_halo):
+		var halo_tint := Color.WHITE
+		halo_tint.a = 0.94 + 0.06 * sin(_t * 1.8 + float(index) * 0.6) \
+			if Juice.motion_enabled() else 1.0
+		_tool_target_halo.modulate = halo_tint
 	if _ring_left > 0.0:
 		_ring_left -= delta
 		if _ring_left <= 0.0 and _ring != null and is_instance_valid(_ring):

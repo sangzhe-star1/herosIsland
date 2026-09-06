@@ -242,6 +242,21 @@ func set_task_beacon(task: Dictionary, tint: Color) -> void:
 	_render_task_beacon()
 
 
+## Lightly circle every bed that the selected brush can genuinely work on.
+## The page hands us already-derived indices instead of another copy of the
+## farm rules, so this remains a world-space presentation route like the task
+## flag above. These are all PlotView Node2Ds, never Controls or blockers.
+func set_tool_targets(indices: Array, tint: Color, primary_index: int = -1) -> void:
+	var wanted := {}
+	for value in indices:
+		var index := int(value)
+		if index >= 0 and index < _beds.size():
+			wanted[index] = true
+	for i in range(_beds.size()):
+		(_beds[i] as PlotView).set_tool_target(wanted.has(i), tint,
+			i == primary_index)
+
+
 ## Remove the old visual first, then route the one supplied target to either a
 ## bed or a facility. This is deliberately a rendering route rather than a
 ## second "what now?" rule: the page remains the only owner of task priority.
@@ -383,9 +398,11 @@ func _draw_ground() -> void:
 	var gate := Layout.facility_at(Layout.facility("gate"))
 	var well := Layout.facility_at(Layout.facility("well"))
 	if gate != Vector2.ZERO and well != Vector2.ZERO:
-		Shapes.fill(_ground, Shapes.ribbon(PackedVector2Array(
-			[gate, gate.lerp(well, 0.5) + Vector2(-90, 0), well]), 54.0),
-			Color(0.83, 0.76, 0.60), 1.0)
+		# Use the same quiet path material as the supply branches.  The old
+		# ink outline read as a crack through the farm and divided nearby beds
+		# into islands even though their layout and touch areas were unchanged.
+		FarmWorldArt.draw_path(_ground, PackedVector2Array(
+			[gate, gate.lerp(well, 0.5) + Vector2(-90, 0), well]), 54.0)
 
 	# A fence around the outside. The edge of the world, said in a way a child
 	# reads as "this is my farm" rather than as "the picture stopped".

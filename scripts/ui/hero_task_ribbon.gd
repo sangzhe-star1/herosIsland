@@ -9,8 +9,8 @@ extends Button
 
 ## A daily crest, the next action and an order preview are three independent
 ## reading lines. They need this much vertical room at the project's caption
-## size; below it, the optional preview yields instead of letting letters
-## overlap. Callers that want all three use this same component at 78px.
+## size; below it, both secondary rows yield so the action can own the card.
+## Callers that want all three use this same component at 78px.
 const THREE_LINE_HEIGHT := 78.0
 const DAILY_ACTION_Y := 25.0
 const SECONDARY_TEXT_SIZE := 16
@@ -80,11 +80,12 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 	var has_daily := not daily.is_empty()
 	# A marker is the caller's explicit header, so it wins over an optional
 	# daily crest. More importantly, never pretend a three-line card fits in a
-	# shorter slot: the action remains readable and the optional preview can
-	# return when a host gives the ribbon its full height.
-	var show_daily := has_daily and marker_text == ""
-	var show_preview := not preview.is_empty() and (not show_daily \
-		or box.y >= THREE_LINE_HEIGHT)
+	# shorter slot: both secondary rows yield and the action stays centered.
+	# This matters on the 4:3 shelf, where an extra "today" line otherwise
+	# competes with the one sentence that says what to touch now.
+	var has_three_lines := box.y >= THREE_LINE_HEIGHT
+	var show_daily := has_daily and marker_text == "" and has_three_lines
+	var show_preview := not preview.is_empty() and has_three_lines
 	var action_y := 8.0 if show_preview else (box.y - 27.0) * 0.5
 	if marker_text != "":
 		var marker := UiKit.title(marker_text, UiKit.TYPE_CAPTION,

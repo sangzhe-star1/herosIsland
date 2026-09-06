@@ -150,6 +150,21 @@ const UNDO_WINDOW_MS := 5000
 ## CELEBRATION and never the yield -- see _harvest_core.
 const GOLDEN_PLANT_CHANCE := 0.04
 
+## The move each care event asks for, in the same Gesture grammar the harvest
+## uses: a weed pulls up like a carrot, a bug is shooed side to side, water
+## pours from above. A tap still does every one of these jobs -- the moves
+## are the expressive path, never a gate.
+const CARE_MOVES := {
+	"weeds": {"recogniser": "drag",
+		"params": {"direction_x": 0.0, "direction_y": -1.0,
+			"distance": 90.0, "angle": 40.0}},
+	"bug": {"recogniser": "sweep",
+		"params": {"turns": 2, "leg": 50.0}},
+	"thirsty": {"recogniser": "drag",
+		"params": {"direction_x": 0.0, "direction_y": 1.0,
+			"distance": 90.0, "angle": 40.0}},
+}
+
 ## The chance as it stands for THIS farm today: doubled when every one of the
 ## day's little jobs is done. 王者农场's blessing-to-mutation loop in its
 ## kindest form -- the bonus is earned by CARING, never by paying, and a
@@ -451,6 +466,7 @@ func _rebuild() -> void:
 	# panel and anything added before it ends up underneath.
 	_seed_rack(view)
 	_tool_bar(view)
+	_sync_tool_target_halos(task if show_beacon else {})
 	_barn(view)
 	_deco_door(view)
 	_view_buttons(view)
@@ -856,9 +872,9 @@ func _next_task_compact_ribbon(view: Vector2, task: Dictionary) -> void:
 	# too-small future viewport into a deceptive, tiny action.
 	if width < 196.0:
 		return
-	# The compact shelf is only one tool-row high. The ribbon itself safely
-	# yields its optional order preview below THREE_LINE_HEIGHT, preserving the
-	# daily crest and one clear action instead of covering the lower barn row.
+	# The compact shelf is only one tool-row high. The ribbon yields both
+	# secondary rows below THREE_LINE_HEIGHT, leaving the next action centered
+	# instead of competing with a daily-reward line or covering the barn row.
 	var box := Vector2(width, 68.0)
 	var at := Vector2(lane_right - box.x, view.y - SHELF + 10.0)
 	_add_next_task_button(task, at, box)
@@ -1207,6 +1223,20 @@ func _seed_deck_width(slots: int) -> float:
 	return minf(766.0, last + SEED_TILE.x * 0.5 + 10.0 - 14.0)
 
 
+## The paging chevron is part of the seed collection, so it uses the shared
+## compact raised-button treatment rather than the roomy sheet chip.  The
+## latter has 20px text gutters for words like "买下", which made a one-letter
+## chevron silently grow taller than its own green slot.
+func _seed_page_button(direction: String) -> Button:
+	var button := UiKit.compact_button(direction, Color(0.95, 0.98, 0.86),
+		Vector2(60, 60), 26)
+	for slot in ["font_color", "font_hover_color", "font_pressed_color",
+			"font_focus_color"]:
+		button.add_theme_color_override(slot, Palette.INK)
+	button.size = Vector2(60, 60)
+	return button
+
+
 func _seed_rack(view: Vector2) -> void:
 	var shelf_h := SHELF
 	var shelf := Panel.new()
@@ -1271,13 +1301,14 @@ func _seed_rack(view: Vector2) -> void:
 		Shapes.fill(tile, Shapes.rounded_rect(
 			-SEED_TILE * 0.5, SEED_TILE, 16.0), Color(0.91, 0.97, 0.82), 1.0)
 		# The default seed is visible even before the seed brush is selected.
-		# Choosing the brush strengthens the same ring rather than creating a
-		# second visual language for "this is the seed I will plant".
+		# Choosing the brush strengthens the same leaf-green ring rather than
+		# creating a warm reward-colour language for "this is the seed I will
+		# plant".  Gold remains reserved for the one next-task instruction.
 		if crop_id == chosen:
 			var chosen_alpha := 0.62 if _tools.selected == "seed" else 0.30
 			Shapes.fill(tile, Shapes.rounded_rect(
 				-SEED_TILE * 0.5 - Vector2(4, 4), SEED_TILE + Vector2(8, 8),
-				19.0), Color(0.95, 0.62, 0.18, chosen_alpha), 1.0)
+				19.0), Color(0.30, 0.70, 0.36, chosen_alpha), 1.0)
 		var art := UiKit.picture(str(crop.get("icon", "seed")), 46.0)
 		if art != null:
 			art.position = at - Vector2(23.0, 23.0)
@@ -1311,8 +1342,21 @@ func _seed_rack(view: Vector2) -> void:
 		var pager_x: float = RACK_X + RACK_STEP * float(RACK_PAGE) - 48.0
 		var has_back := _rack_page > 0
 		var has_next := _rack_page < rack_pages - 1
+		# A passive green eighth-slot backer gives the pale arrow a clear home in
+		# the seed family.  On the future middle page it grows to hold both
+		# directions; it never takes input away from the existing buttons.
+		var pager_deck := Panel.new()
+		pager_deck.name = "GardenSeedPagerDeck"
+		pager_deck.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
+			Color(0.83, 0.94, 0.72), Color(0.44, 0.67, 0.35), 18, 2))
+		pager_deck.position = Vector2(pager_x - 4.0, _seed_lane_y(view) - 38.0)
+		pager_deck.custom_minimum_size = Vector2(136.0 if has_back and has_next else 68.0,
+			70.0)
+		pager_deck.size = pager_deck.custom_minimum_size
+		pager_deck.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_play.add_child(pager_deck)
 		if _rack_page > 0:
-			var back := _chip_button("<", Color(0.97, 0.93, 0.83), Vector2(60, 60))
+			var back := _seed_page_button("<")
 			back.position = Vector2(pager_x, arrow_y)
 			back.pressed.connect(func():
 				AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
@@ -1321,7 +1365,7 @@ func _seed_rack(view: Vector2) -> void:
 			_play.add_child(back)
 			_panel_buttons["rack_back"] = back
 		if _rack_page < rack_pages - 1:
-			var next := _chip_button(">", Color(0.97, 0.93, 0.83), Vector2(60, 60))
+			var next := _seed_page_button(">")
 			next.position = Vector2(
 				pager_x + (68.0 if has_back and has_next else 0.0), arrow_y)
 			next.pressed.connect(func():
@@ -1413,9 +1457,11 @@ func _bed_wants_gesture(index: int) -> bool:
 	# 丰收行动 judges by. Care beds stay tap-only: arming gesture intent on
 	# them bisected as the change that silently broke later harvest taps
 	# (2026-09-04 session) -- re-attempt only with that mystery solved.
-	if str(plot.get("state", "")) != Farm.READY:
-		return false
-	return not HarvestCrops.gesture_for(str(plot.get("crop_id", ""))).is_empty()
+	if str(plot.get("state", "")) == Farm.READY:
+		return not HarvestCrops.gesture_for(str(plot.get("crop_id", ""))).is_empty()
+	if str(plot.get("state", "")) == Farm.NEEDS_CARE:
+		return CARE_MOVES.has(str(plot.get("care_event", "")))
+	return false
 
 
 ## The bed leans while the finger pulls on it. Pure forwarding: what the lean
@@ -1442,6 +1488,22 @@ func _on_gesture_finished(index: int, track: PackedVector2Array,
 	# IS, not the one the finger landed on.
 	var state := str(plot.get("state", ""))
 	if str(plot.get("plot_id", "")) in _harvesting:
+		return
+	if state == Farm.NEEDS_CARE:
+		# The care move: pour, pull or shoo, judged by the same recogniser
+		# the harvest moves are. Success does the care the tap would have;
+		# anything else was a pan that happened to start on a bed.
+		var care: Dictionary = CARE_MOVES.get(str(plot.get("care_event", "")), {})
+		if care.is_empty():
+			return
+		if Gesture.satisfied(str(care["recogniser"]), care["params"],
+				track, centre):
+			plot = _care_for(plot, index)
+			plots[index] = plot
+			_commit_plot(plots, index)
+			return
+		if _world != null and is_instance_valid(_world):
+			_world.pan_by(net)
 		return
 	if state != Farm.READY:
 		return
@@ -1768,10 +1830,11 @@ func _tool_bar(view: Vector2) -> void:
 		var edge := Color(0.42, 0.64, 0.80) if live else Color(0.69, 0.70, 0.70)
 		var style := UiKit.framed_panel_style(fill, edge, 18, 2)
 		if held:
-			# The held tool GLOWS -- a thick warm ring, not a subtle tint. Six
-			# is an age where "which one is on" has to be answerable from the
-			# far side of a room.
-			style = UiKit.framed_panel_style(fill, Color(0.95, 0.58, 0.16), 18, 4)
+			# The held tool stays unmistakable from a distance, but it belongs to
+			# the cool tool family.  Warm gold is reserved for the single next
+			# task, so the shelf never appears to give two competing commands.
+			style = UiKit.framed_panel_style(Color(0.84, 0.95, 1.0),
+				Color(0.16, 0.66, 0.84), 18, 3)
 		for look in ["normal", "hover", "pressed", "focus", "disabled"]:
 			button.add_theme_stylebox_override(look, style)
 		button.disabled = not live
@@ -1822,6 +1885,34 @@ func _select_tool(tool_id: String) -> void:
 		AudioManager.say(voice)
 	AudioManager.play_sfx("res://assets/audio/drag_pick.ogg")
 	_queue_rebuild()
+
+
+## The selected brush gets a small, physical answer in the farm itself: every
+## bed it can work on receives a halo. The eligibility still comes from
+## FarmToolController.needs(), the same function that greys tools and gates a
+## brush stroke, so presentation can never promise a bed the gesture will skip.
+func _sync_tool_target_halos(task: Dictionary = {}) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var targets: Array = []
+	if _tools.selected != Tools.HAND and not _something_is_open():
+		for i in range(_plots().size()):
+			if _tools.needs(_tools.selected, _plots()[i]):
+				targets.append(i)
+	var primary := int(task.get("index", -1))
+	_world.set_tool_targets(targets, _tool_target_color(_tools.selected), primary)
+
+
+## Reuse the same warm/cool task palette for the in-world target rings. Tool
+## semantics remain in FarmToolController; this only gives each existing kind
+## the visual family children have already learned from the task ribbon.
+func _tool_target_color(tool_id: String) -> Color:
+	match tool_id:
+		"basket": return _next_task_color({"kind": "harvest"})
+		"water", "weed", "bug": return _next_task_color({"kind": "care"})
+		"seed": return _next_task_color({"kind": "plant"})
+		"shovel": return _next_task_color({"kind": "till"})
+		_: return Color(1.0, 1.0, 1.0)
 
 
 ## Tapping a seed tile arms the seed brush with that crop, in one move. No
@@ -1891,6 +1982,7 @@ func _on_stroke_swept(index: int) -> void:
 	# The bed changes under the brush as it passes -- that is the whole show --
 	# but nothing is SAVED yet: one stroke is one write, at the end.
 	_world.refresh(plots)
+	_sync_tool_target_halos()
 
 
 ## The finger lifted. Now the stroke is a fact: write it down once, praise it
