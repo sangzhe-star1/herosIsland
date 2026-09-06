@@ -77,6 +77,63 @@ static func satisfied(recogniser: String, params: Dictionary,
 	return false
 
 
+## A short, legible example of a gesture the recogniser will genuinely accept.
+##
+## This is deliberately beside `satisfied()` rather than in the tutorial or a
+## probe. The catalogue already owns the recogniser and its tuned parameters;
+## a child must never be shown a second, approximate version of that rule.
+## `reach` only keeps circular demonstrations inside the target's generous
+## touch area -- it is not a new gameplay tolerance.
+static func demo_path(recogniser: String, params: Dictionary,
+		centre: Vector2, reach: float = 78.0) -> PackedVector2Array:
+	match recogniser:
+		TAP:
+			return PackedVector2Array([centre])
+		DRAG:
+			var direction := Vector2(float(params.get("direction_x", 0.0)),
+				float(params.get("direction_y", -1.0)))
+			if direction.length() < 0.001:
+				direction = Vector2.UP
+			else:
+				direction = direction.normalized()
+			return _line(centre, centre + direction
+				* (float(params.get("distance", 90.0)) + 24.0), 7)
+		LINE:
+			# Crossing both sides of the horizontal stem is what line_ok asks;
+			# a downward point from its centre only *looks* like cutting.
+			var half := float(params.get("line_half_width", 74.0))
+			var side := minf(30.0, half * 0.4)
+			return _line(centre + Vector2(-side, -46.0),
+				centre + Vector2(side, 46.0), 7)
+		SWEEP:
+			# `turns` means reversals, so it needs one more real leg than that
+			# number. The small margin makes a video demonstration robust at the
+			# same difficulty setting a child is currently playing.
+			var leg := float(params.get("leg", 60.0)) + 26.0
+			var turns := maxi(int(params.get("turns", 3)), 1)
+			var sweep_path := PackedVector2Array([centre])
+			var here := centre
+			for i in range(turns + 1):
+				var next := here + Vector2(leg if i % 2 == 0 else -leg, 0.0)
+				for point in _line(here, next, 3):
+					sweep_path.append(point)
+				here = next
+			return sweep_path
+		TWIST:
+			# A visible arc, not a diagonal arrow. The extra 60 degrees leaves
+			# room for a finger that rounds the circle less precisely than ours.
+			var turn := float(params.get("turn", 90.0))
+			var arc := maxf(turn + 60.0, 120.0)
+			var steps := maxi(int(ceil(arc / 20.0)) + 3, 6)
+			var radius := clampf(reach * 0.75, 42.0, 62.0)
+			var twist_path := PackedVector2Array()
+			for i in range(steps + 1):
+				var angle := TAU * arc / 360.0 * float(i) / float(steps)
+				twist_path.append(centre + Vector2(cos(angle), sin(angle)) * radius)
+			return twist_path
+	return PackedVector2Array([centre])
+
+
 ## Down and up in the same place.
 static func tap_ok(track: PackedVector2Array) -> bool:
 	if track.size() == 0:
@@ -186,3 +243,13 @@ static func _travel(track: PackedVector2Array) -> float:
 	for i in range(1, track.size()):
 		total += track[i].distance_to(track[i - 1])
 	return total
+
+
+## One shared interpolation helper keeps the probe's thumb and the tutorial's
+## painted finger on the same deliberate, easy-to-see path.
+static func _line(from: Vector2, to: Vector2, steps: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var count := maxi(steps, 1)
+	for i in range(count + 1):
+		out.append(from.lerp(to, float(i) / float(count)))
+	return out

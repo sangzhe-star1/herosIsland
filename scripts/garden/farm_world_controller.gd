@@ -110,6 +110,14 @@ var gesture_bed_check := Callable()
 
 var _ground: Node2D
 var _buildings: Node2D
+## A quiet world-space landmark for the one task the page has already chosen.
+## It is intentionally separate from both the buildings and beds: rebuilding a
+## hut must not erase a delivery marker, and refreshing a bed must not disturb
+## a marker on another plot.
+var _task_beacon_layer: Node2D
+var _task_beacon_task: Dictionary = {}
+var _task_beacon_tint := Color(1.0, 0.94, 0.62)
+var _task_beacon_plot_index := -1
 var _beds: Array = []          # PlotView, one per bed in the save
 ## The guard dog. Lives in the world so he moves with the ground; takes no
 ## input, keeps his distance, stores nothing.
@@ -146,6 +154,7 @@ func build(view: Vector2, top_bar: float, shelf: float, plots: Array) -> void:
 	for child in get_children():
 		child.queue_free()
 	_beds.clear()
+	_task_beacon_plot_index = -1
 
 	_ground = Node2D.new()
 	add_child(_ground)
@@ -165,9 +174,18 @@ func build(view: Vector2, top_bar: float, shelf: float, plots: Array) -> void:
 	_dog = Dog.new()
 	add_child(_dog)
 
+	# This layer has no Controls that can catch a press and no collision shapes.
+	# It follows the farm like a building, but lies above it so a delivery flag
+	# remains visible when a rooftop redraw happens underneath.
+	_task_beacon_layer = Node2D.new()
+	_task_beacon_layer.name = "TaskBeaconLayer"
+	_task_beacon_layer.z_index = 3
+	add_child(_task_beacon_layer)
+
 	camera.look_at_the_beds(view, top_bar, shelf, plots.size())
 	camera.apply(self)
 	refresh(plots)
+	_render_task_beacon()
 
 
 ## Redraw the beds that changed. Everything else stays exactly where it is --
@@ -211,6 +229,72 @@ func dog_position() -> Vector2:
 
 func bed_count() -> int:
 	return _beds.size()
+
+
+## Show exactly one child-facing landmark for an already-derived screen task.
+## This does not inspect the farm, orders, tools or saves. `index` means a
+## PlotView target; a delivery may provide `facility_id`, with the established
+## physical orders board as the presentation fallback for today's task shape.
+func set_task_beacon(task: Dictionary, tint: Color) -> void:
+	_task_beacon_task = task.duplicate(true)
+	_task_beacon_tint = tint
+	_render_task_beacon()
+
+
+## Remove the old visual first, then route the one supplied target to either a
+## bed or a facility. This is deliberately a rendering route rather than a
+## second "what now?" rule: the page remains the only owner of task priority.
+func _render_task_beacon() -> void:
+	_clear_task_beacon_visuals()
+	if _task_beacon_task.is_empty():
+		return
+	var icon := str(_task_beacon_task.get("icon", "star"))
+	var index := int(_task_beacon_task.get("index", -1))
+	if index >= 0 and index < _beds.size():
+		_task_beacon_plot_index = index
+		(_beds[index] as PlotView).set_task_beacon(icon, _task_beacon_tint)
+		return
+	var facility_id := str(_task_beacon_task.get("facility_id", ""))
+	if facility_id == "" and str(_task_beacon_task.get("kind", "")) == "deliver":
+		facility_id = "orders"
+	if facility_id != "":
+		_draw_facility_task_beacon(facility_id, icon, _task_beacon_tint)
+
+
+## Both possible homes are cleared together, so two "next" markers can never
+## coexist for one task snapshot. Detached children are queued for normal
+## Godot cleanup but leave the visual tree immediately.
+func _clear_task_beacon_visuals() -> void:
+	if _task_beacon_plot_index >= 0 and _task_beacon_plot_index < _beds.size():
+		(_beds[_task_beacon_plot_index] as PlotView).set_task_beacon("", Color.WHITE)
+	_task_beacon_plot_index = -1
+	if _task_beacon_layer == null or not is_instance_valid(_task_beacon_layer):
+		return
+	for child in _task_beacon_layer.get_children():
+		_task_beacon_layer.remove_child(child)
+		child.queue_free()
+
+
+## Delivery's marker is a world sibling of the buildings, never a child of
+## `_buildings`: refresh_buildings() deliberately wipes that subtree. Reusing
+## PlotView's small pennant keeps its icon/tint language identical on soil and
+## on the physical orders board without copying task art a second time.
+func _draw_facility_task_beacon(facility_id: String, icon: String,
+	tint: Color) -> void:
+	if _task_beacon_layer == null or not is_instance_valid(_task_beacon_layer):
+		return
+	var facility := Layout.facility(facility_id)
+	if facility.is_empty():
+		return
+	var landmark := Node2D.new()
+	landmark.name = "TaskFacilityBeacon"
+	var box := Layout.facility_size(facility)
+	# Set it on the left roof corner, where it reads as a destination flag
+	# without covering the building's own big pictogram.
+	landmark.position = Layout.facility_at(facility) + Vector2(
+		-box.x * 0.33, -box.y * 0.22)
+	_task_beacon_layer.add_child(landmark)
+	PlotView.draw_task_beacon(landmark, icon, tint, 1.0)
 
 
 ## Where bed `index` is on the glass right now. The seam every screen-space
@@ -286,6 +370,7 @@ func _draw_ground() -> void:
 	var world := Layout.world_size()
 	Shapes.fill(_ground, Shapes.rounded_rect(Vector2.ZERO, world, 40.0),
 		Color(0.71, 0.84, 0.58), 1.0)
+	_draw_plot_clearings()
 
 	# A path from the gate up between the beds, so the farm reads as a place
 	# somebody walks around rather than as a green rectangle with things on it.
@@ -321,6 +406,27 @@ func _draw_ground() -> void:
 		Shapes.fill(_ground, Shapes.circle_points(at, 9.0), tint, 1.0)
 		Shapes.fill(_ground, Shapes.circle_points(at, 4.0),
 			Color(1.0, 0.94, 0.62), 1.0)
+
+
+## A garden is a place the grass has been cleared back from, not six brown
+## cards laid on one green floor. These low-contrast islands sit below the
+## paths and beds, move with the world, and deliberately have no outline or
+## input of their own. Their seed is the plot index: a refresh must never make
+## a child's farm rearrange its grass.
+func _draw_plot_clearings() -> void:
+	var box := Layout.plot_box()
+	for i in range(Layout.places_for_plots()):
+		var rng := RandomNumberGenerator.new()
+		# Match PlotView's fixed contour seed. The clearing is the same patch of
+		# ground at a gentler scale, so its edge should nest with the grass rim
+		# instead of making a second, unrelated scalloped halo.
+		rng.seed = 32_557 + i * 7_919
+		var island := Shapes.blob(Layout.plot_at(i),
+			Vector2(box.x * 0.58, box.y * 0.64), rng, 0.08, 5, 28)
+		# This is a trampled area, not a second bright outline around the bed.
+		# Stay close to the meadow so the soil, crop and care state remain the
+		# things a child sees first.
+		Shapes.fill(_ground, island, Color(0.68, 0.82, 0.53), 0.0)
 
 
 func _fence_post(at: Vector2) -> void:
@@ -389,6 +495,10 @@ func refresh_buildings() -> void:
 	for child in _buildings.get_children():
 		child.queue_free()
 	_draw_buildings()
+	# The delivery pennant is not a building child, but reroute the current
+	# presentation snapshot explicitly after a town redraw. That keeps the
+	# landmark correct even if a future building visual changes its own layer.
+	_render_task_beacon()
 
 
 ## Everything the town's drawing depends on, as one comparable word.
@@ -603,6 +713,14 @@ func gesture_lean(index: int, offset: Vector2) -> void:
 	if index < 0 or index >= _beds.size():
 		return
 	(_beds[index] as PlotView).lean(offset)
+
+
+## Water landed on this bed: drops in, plant perks. Pure forwarding, like the
+## lean above.
+func drink_bed(index: int) -> void:
+	if index < 0 or index >= _beds.size():
+		return
+	(_beds[index] as PlotView).drink()
 
 
 func add_blocker(node: Control) -> void:

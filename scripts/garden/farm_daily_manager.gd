@@ -82,6 +82,38 @@ static func done(dailies: Dictionary, task: Dictionary) -> bool:
 		>= maxi(int(task.get("target", 1)), 1)
 
 
+## How many of today's familiar verbs have reached their own finish line.
+## Claims deliberately do not matter here: caring for the whole farm is what
+## lights the golden chance, whether the child opens the board for the coin
+## straight away or later.  Both the garden ribbon and the planting rule ask
+## this one question, so their little three-star picture cannot disagree with
+## the actual chance.
+static func done_count(dailies: Dictionary) -> int:
+	var count := 0
+	for task in GameData.garden_dailies:
+		if done(dailies, task):
+			count += 1
+	return count
+
+
+## The day's care is complete only when every configured daily verb is done.
+## An empty or temporarily missing data list is not a free golden bonus.
+static func all_done(dailies: Dictionary) -> bool:
+	var total := GameData.garden_dailies.size()
+	return total > 0 and done_count(dailies) >= total
+
+
+## Display-only facts for a page that wants to celebrate today's care.  The
+## manager still owns the meanings of "done" and "all done"; callers only
+## choose where the already-derived answer is drawn.
+static func summary(dailies: Dictionary) -> Dictionary:
+	return {
+		"done": done_count(dailies),
+		"total": GameData.garden_dailies.size(),
+		"all_done": all_done(dailies),
+	}
+
+
 ## Has this task's reward been collected today? The ledger stores CLAIM KEYS
 ## -- the same date-stamped strings the once-gate is asked with -- so a task
 ## is "claimed" exactly when its key for THIS day is on the list.

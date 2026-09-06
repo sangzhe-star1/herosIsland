@@ -300,12 +300,9 @@ func demo(which: String) -> void:
 	hand.position = target.position + target.custom_minimum_size * 0.55
 	hand.name = "ButtonDemo"
 	add_child(hand)
-	var art := Node2D.new()
-	hand.add_child(art)
-	Shapes.fill(art, Shapes.rounded_rect(Vector2(-11.0, -66.0), Vector2(22.0, 56.0), 10.0),
-		Color(0.98, 0.84, 0.68, 0.85), 0.8)
-	Shapes.lit(art, Shapes.circle_points(Vector2(7.0, 5.0), 24.0, 18),
-		Color(0.98, 0.84, 0.68, 0.9), 0.9)
+	var art := UiKit.guide_hand(92.0)
+	if art != null:
+		hand.add_child(art)
 	_demo_hand = hand
 
 	# The button itself pulses in time with the tap, so the two read as one

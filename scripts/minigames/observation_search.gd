@@ -310,7 +310,9 @@ func _point_at_it() -> void:
 	if target.is_empty():
 		return
 	var hand := Props.hint_hand(_field)
-	hand.position = (target["at"] as Vector2) + Vector2(30, 40)
+	# Props.hint_hand is contact-anchored: its fingertip, not an arbitrary
+	# corner of the picture, belongs on the answer.
+	hand.position = target["at"] as Vector2
 	var node: Node2D = target["node"]
 	if is_instance_valid(node):
 		Shapes.glow(node, Vector2.ZERO, 150.0, Color(1.0, 0.94, 0.55), 4, 0.5)

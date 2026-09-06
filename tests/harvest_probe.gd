@@ -19,6 +19,7 @@ const Crops := preload("res://scripts/harvest/harvest_crops.gd")
 const HarvestAction := preload("res://scripts/minigames/harvest_action.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 
 var _failures: Array[String] = []
 
@@ -33,6 +34,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	_the_catalogue_is_readable()
+	_the_taught_path_obeys_the_real_gesture()
+	_the_still_route_keeps_instruction_data()
 	_a_pull_up_has_a_fan_not_a_line()
 	_a_drag_has_to_go_far_enough()
 	_a_tap_is_not_a_short_drag()
@@ -64,6 +67,42 @@ func _the_catalogue_is_readable() -> void:
 		_ok(recogniser in Gesture.ALL,
 			"%s asks for recogniser '%s', which nothing implements -- it would "
 			% [str(crop.get("id", "?")), recogniser] + "be un-pickable")
+
+
+## The demonstration is an example that the same recogniser accepts, not a
+## nearby arrow drawn by a second set of rules. Check every catalogue entry so
+## a future parameter tune cannot quietly teach an impossible move.
+func _the_taught_path_obeys_the_real_gesture() -> void:
+	var centre := Vector2(640, 360)
+	for crop in GameData.harvest_crops:
+		var recogniser := str(crop.get("recogniser", ""))
+		var params: Dictionary = crop.get("gesture_params", {})
+		var path := Gesture.demo_path(recogniser, params, centre)
+		var id := str(crop.get("id", "?"))
+		_ok(not path.is_empty(), "%s has a visible teaching path" % id)
+		_ok(Gesture.satisfied(recogniser, params, path, centre),
+			"%s's teaching path is accepted by its actual %s recogniser" % [id, recogniser])
+		if recogniser in [Gesture.LINE, Gesture.SWEEP, Gesture.TWIST]:
+			_ok(path.size() > 2,
+				"%s's %s lesson is a route, not a misleading straight arrow"
+				% [id, recogniser])
+
+
+## Reduced-motion lessons use the same route data. The presentation may stop
+## moving, but it may not collapse a cut or sweep into a misleading arrow.
+func _the_still_route_keeps_instruction_data() -> void:
+	var look := Vector2(240, 180)
+	var path := PackedVector2Array([look, Vector2(260, 230), Vector2(300, 285)])
+	var shown := Tutorial.still_route(look, path[path.size() - 1], path)
+	_ok(shown.size() == path.size() and shown[0] == path[0]
+		and shown[shown.size() - 1] == path[path.size() - 1],
+		"a still gesture lesson keeps the complete recogniser route")
+	var point := Vector2(460, 310)
+	var carry := Tutorial.still_route(look, point, PackedVector2Array())
+	_ok(carry.size() == 2 and carry[0] == look and carry[1] == point,
+		"a still basket lesson keeps its crop-to-basket line")
+	_ok(Tutorial.still_route(look, look, PackedVector2Array()).is_empty(),
+		"a still tap needs no invented travel line")
 
 
 ## Straight up the middle is not the only way to pull a carrot.

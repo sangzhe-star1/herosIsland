@@ -332,23 +332,22 @@ static func puzzle_sign(parent: Node) -> Node2D:
 	return node
 
 
-## The teaching hand: a translucent finger that taps where the child should.
-## Used for the opening beat of a level and for the demo after two failures.
+## The teaching hand: the same contact-anchored hero glove used by every
+## tutorial. Used for the opening beat of a level and after two failures.
 static func hint_hand(parent: Node) -> Node2D:
 	var node := Node2D.new()
 	parent.add_child(node)
 	node.modulate = Color(1, 1, 1, 0.85)
-	var art := Node2D.new()
+	var art := UiKit.guide_hand(88.0)
+	if art == null:
+		return node
 	node.add_child(art)
-	Shapes.fill(art, Shapes.rounded_rect(Vector2(-9.0, -54.0), Vector2(18.0, 46.0), 8.0),
-		Color(0.98, 0.82, 0.66), 0.7)
-	Shapes.lit(art, Shapes.circle_points(Vector2(6.0, 4.0), 20.0, 16),
-		Color(0.98, 0.82, 0.66), 0.9)
 	if Juice.motion_enabled():
+		var rest_y := art.position.y
 		var t := art.create_tween().set_loops()
-		t.tween_property(art, "position:y", -18.0, 0.5)\
+		t.tween_property(art, "position:y", rest_y - 18.0, 0.5)\
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		t.tween_property(art, "position:y", 0.0, 0.35)\
+		t.tween_property(art, "position:y", rest_y, 0.35)\
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 		t.tween_interval(0.5)
 	return node

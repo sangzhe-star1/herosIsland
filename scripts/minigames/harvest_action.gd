@@ -112,6 +112,10 @@ var _holding: Node2D = null
 ## half of the move just finished, and two fingers about two halves of one
 ## move is how the held crop ended up wearing its own lesson.
 var _demo: Tutorial = null
+## The sorting pointer is separate from `_demo`, but follows the same
+## one-finger rule. Re-pointing after a missed tap replaces this one instead
+## of leaving a small crowd of hands over the field.
+var _basket_pointer: Tutorial = null
 
 ## What he has picked and not yet put away, in a level with more than one
 ## basket. One thing at a time, on purpose: two things in hand and a tap on a
@@ -903,6 +907,7 @@ func _take_in_hand(target: Node2D) -> void:
 	if _demo != null and is_instance_valid(_demo):
 		_demo.skip()
 	_demo = null
+	_clear_basket_pointer()
 	# It rises where it grew. See HarvestTarget.lift for why it does not travel
 	# somewhere tidier: a picked strawberry parked on the soil is indis-
 	# tinguishable from a strawberry still growing on the soil.
@@ -942,6 +947,7 @@ func _put_it_away(at: Vector2) -> void:
 		return
 
 	_in_hand = null
+	_clear_basket_pointer()
 	for other in _baskets:
 		other.waiting(false)
 	basket.accept()
@@ -957,10 +963,24 @@ func _point_at_the_baskets() -> void:
 	var destination := _destination_for(_in_hand)
 	if destination == null:
 		return
+	_clear_basket_pointer()
 	var hand := Tutorial.new()
+	_basket_pointer = hand
 	_field.add_child(hand)
 	hand.add_step(_in_hand.global_position, destination.global_position, 1.1)
+	hand.finished.connect(func():
+		if _basket_pointer == hand:
+			_basket_pointer = null)
 	hand.play()
+
+
+func _clear_basket_pointer() -> void:
+	if _basket_pointer == null:
+		return
+	var pointer := _basket_pointer
+	_basket_pointer = null
+	if is_instance_valid(pointer):
+		pointer.skip()
 
 
 ## A stone in the way, a bug on a berry. Moved aside, never "collected".
@@ -1254,27 +1274,17 @@ func _show_the_move(node: Node2D = null) -> void:
 	var hand := Tutorial.new()
 	_demo = hand
 	_field.add_child(hand)
-	hand.add_step(node.global_position, _gesture_end(node), 1.2)
+	hand.add_path(node.global_position, _gesture_path(node), 1.2)
 	hand.play()
 
 
-## Where the finger should end up for this crop's gesture. The finger has to
-## travel the actual move, not just point at the thing -- "tap it" and "pull it
-## up" look identical if the hand only ever taps.
-func _gesture_end(node: Node2D) -> Vector2:
+## The teacher and the recogniser consult the same crop parameters. Keeping
+## this one small bridge in the action scene lets the touch probe verify the
+## exact path that `_show_the_move()` sends to TutorialDirector.
+func _gesture_path(node: Node2D) -> PackedVector2Array:
 	var params: Dictionary = node.crop.get("gesture_params", {})
-	match str(node.crop.get("recogniser", "")):
-		Gesture.DRAG:
-			var dir := Vector2(float(params.get("direction_x", 0.0)),
-				float(params.get("direction_y", -1.0))).normalized()
-			return node.global_position + dir * float(params.get("distance", 90.0))
-		Gesture.TWIST:
-			return node.global_position + Vector2(70, -70)
-		Gesture.LINE:
-			return node.global_position + Vector2(0, 90)
-		Gesture.SWEEP:
-			return node.global_position + Vector2(90, 0)
-	return node.global_position
+	return Gesture.demo_path(str(node.crop.get("recogniser", "")), params,
+		node.global_position, float(node.get("radius")))
 
 
 ## Help, step three: do the hard part, and leave the last move to him.

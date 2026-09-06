@@ -285,6 +285,20 @@ static func picture(reference: String, size: float) -> Control:
 	return IconLibrary.build(reference, size)
 
 
+## One contact-anchored teaching glove for tutorials, hints and button demos.
+## The icon owns its shape and contact point; callers only place its parent on
+## the thing a child should touch, so three different screens cannot grow three
+## different crooked fingers over time.
+static func guide_hand(size: float = 104.0) -> Control:
+	var hand := picture("guide_hand", size)
+	if hand == null:
+		return null
+	hand.name = "GuideHandArt"
+	hand.position = -IconLibrary.guide_hand_tip(size)
+	hand.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return hand
+
+
 ## A button carrying a picture above its label.
 ##
 ## The picture is not decoration: a six-year-old cannot read "Adventure" or "My

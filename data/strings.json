@@ -812,7 +812,8 @@
         "garden.daily.title": "Today's little jobs",
         "garden.daily.water": "Water the thirsty beds",
         "garden.daily.harvest": "Pick what is ripe",
-        "garden.daily.deliver": "Hand over an order"
+        "garden.daily.deliver": "Hand over an order",
+        "garden.daily.lucky": "Lucky ×2"
     },
     "zh": {
         "adventure.again": "再来一次，你可以的！",
@@ -1627,6 +1628,7 @@
         "garden.daily.title": "今日小任务",
         "garden.daily.water": "给口渴的地浇水",
         "garden.daily.harvest": "收走成熟的作物",
-        "garden.daily.deliver": "送出一个订单"
+        "garden.daily.deliver": "送出一个订单",
+        "garden.daily.lucky": "好运 ×2"
     }
 }

@@ -22,6 +22,8 @@ extends Node
 ##         still standing as starred ground. SHOT_PAGE=1 flips to page two.
 ## book:   the recipe book, twelve recipes across two pages.
 ## orders: level 3 with five orders delivered -- work first, receipts pad.
+## daily:  the ripe next task with today's three care stars complete and the
+##         gentle golden-luck crest lit on the shelf.
 ## SHOT_PAGE=N flips the mode's paged surface to page N before the shot.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
@@ -95,6 +97,13 @@ func _ready() -> void:
 			"planted_at": NOON - 3600})
 		plots[4] = _bed(4, {"state": Farm.TILLED})
 		farm["plots"] = plots
+		if what == "daily":
+			# A deterministic all-cared-for day: this fixture only makes the
+			# existing daily manager's display state visible; it does not invent
+			# a golden crop, extra money or a second reward ledger.
+			farm["dailies"] = {"date": GameClock.now_date(),
+				"progress": {"water": 3, "harvest": 5, "deliver": 1},
+				"claimed": []}
 		if what == "market":
 			# The sell decision with numbers on it: three kinds of crop on the
 			# shelf, each chip naming its unit price, and three carrots boxed

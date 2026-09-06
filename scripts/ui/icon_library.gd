@@ -54,7 +54,7 @@ const NAMES := [
 	"eye", "umbrella", "magnifier", "compass", "leaf", "music", "medal",
 	"traffic_light",
 	# wordless-instruction states and the star shop's goods
-	"ear", "tap", "tower", "potion", "star_bomb", "balloon",
+	"ear", "tap", "guide_hand", "tower", "potion", "star_bomb", "balloon",
 	# the wardrobe: outfit pieces for the Hero House rack
 	"crown", "party_hat", "cap", "sunglasses", "cape_red", "wings",
 	"cowboy_hat", "bandana", "vest", "dress", "star_robe",
@@ -85,6 +85,13 @@ const NAMES := [
 	# 加工小屋：做好的一份菜。所有菜品共用一张脸，名字由食谱给。
 	"dish",
 ]
+
+
+## The exact contact point of the shared tutorial glove. Callers anchor this
+## point on the thing a child should touch instead of each screen guessing a
+## different "hand offset" and slowly drifting apart.
+static func guide_hand_tip(size: float) -> Vector2:
+	return Vector2(size * 0.28, size * 0.19)
 
 
 # --- primitive helpers --------------------------------------------------
@@ -602,6 +609,39 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 			_poly(p, Shapes.blob(c + Vector2(s * 0.10, s * 0.10), Vector2(s * 0.17, s * 0.14),
 				Shapes.rng_for("tapfist"), 0.10, 2, 12), skin.darkened(0.06))
 			_circle(p, c + Vector2(0.0, -s * 0.34), s * 0.065, skin)
+		"guide_hand":
+			# The first teaching hand was one cream bar plus a circle. At lesson
+			# size it read as a lollipop or mouse cursor, not a hand. Keep the
+			# actual hand warm and immediately recognisable, then give it a blue
+			# little-hero sleeve. That makes the index, thumb and palm legible
+			# before a child has learned the game's visual vocabulary.
+			var skin := Color(1.0, 0.79, 0.59)
+			var sleeve := Color(0.27, 0.64, 0.95)
+			var cuff := Color(1.0, 0.73, 0.24)
+			var palm := c + Vector2(s * 0.12, s * 0.11)
+			var fingertip := guide_hand_tip(s)
+			# Sleeve and cuff sit behind the hand, angled toward the lower-right so
+			# the fingertip can land cleanly on a crop or button without covering it.
+			Shapes.lit(p, Shapes.taper(palm + Vector2(s * 0.13, s * 0.14),
+				c + Vector2(s * 0.36, s * 0.38), s * 0.31, s * 0.29), sleeve, 1.0)
+			Shapes.lit(p, Shapes.taper(palm + Vector2(s * 0.12, s * 0.13),
+				palm + Vector2(s * 0.25, s * 0.26), s * 0.33, s * 0.31), cuff, 1.0)
+			Shapes.lit(p, Shapes.blob(palm, Vector2(s * 0.22, s * 0.19),
+				Shapes.rng_for("guide_hand_palm"), 0.06, 4, 20), skin, 1.0)
+			# One extended index gives the instruction its verb; a round palm alone
+			# is a mitten, and a row of tiny fingers turns to visual noise at 4:3.
+			Shapes.lit(p, Shapes.taper(palm + Vector2(-s * 0.09, -s * 0.10),
+				fingertip + Vector2(s * 0.026, s * 0.053), s * 0.18, s * 0.13),
+				skin, 1.0)
+			Shapes.lit(p, Shapes.circle_points(fingertip, s * 0.078, 16),
+				skin.lightened(0.03), 1.0)
+			# A side thumb stops the long finger from reading as an arrow or wand.
+			Shapes.lit(p, Shapes.taper(palm + Vector2(-s * 0.10, s * 0.06),
+				palm + Vector2(-s * 0.27, s * 0.13), s * 0.15, s * 0.105),
+				skin.darkened(0.03), 0.9)
+			# A tiny sleeve gleam feels heroic without becoming a second icon.
+			Shapes.fill(p, Shapes.oval_points(c + Vector2(s * 0.32, s * 0.34),
+				Vector2(s * 0.045, s * 0.024), 12), Color(1.0, 1.0, 1.0, 0.72), 0.0)
 		"tower":
 			# The energy tower, small enough for a map stone: body, lamp, glow.
 			var steel := Color(0.56, 0.60, 0.74)

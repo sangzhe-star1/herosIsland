@@ -23,6 +23,7 @@ var id := ""
 ## case, where there is nothing to decide.
 var accepts: Array = []
 var radius := 120.0
+var _size := 0.0
 
 var _label: Control
 ## The answer is a visible place before it is a moving place. This ring stays
@@ -32,6 +33,9 @@ var _waiting_cue: Node2D
 ## The "something is waiting for you" pulse, kept so it can be stopped. A
 ## looping tween nobody holds on to runs until the node dies.
 var _pulse: Tween
+## In reduced-motion mode this is the visible landing receipt. It is a child
+## of the basket, not an extra HUD or a second scoring signal.
+var _accepted_cue: Node2D
 
 
 ## `reach` is how far a press may land from the middle and still mean THIS
@@ -42,6 +46,7 @@ func build(spec: Dictionary, size: float, reach: float = -1.0) -> void:
 	id = str(spec.get("id", "basket"))
 	accepts = spec.get("accepts_tags", [])
 	radius = float(spec.get("radius", reach if reach > 0.0 else size * 0.9))
+	_size = size
 	_build_waiting_cue(size)
 
 	# Seated, not pasted: a contact shadow roots the basket to the meadow the
@@ -126,12 +131,37 @@ func in_reach(at: Vector2) -> bool:
 
 ## Yes, that one belongs here.
 func accept() -> void:
+	if _accepted_cue != null and is_instance_valid(_accepted_cue):
+		_accepted_cue.queue_free()
+	_accepted_cue = null
 	if not Juice.motion_enabled():
+		_show_accepted_cue()
 		return
 	var t := create_tween()
 	t.tween_property(self, "scale", Vector2(1.12, 0.9), 0.09)
 	t.tween_property(self, "scale", Vector2.ONE, 0.16)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Still does not mean silent. A fixed check on the actual basket answers
+## "where did it go?" when the crop itself is intentionally not animated
+## across the field. It expires without moving or bouncing.
+func _show_accepted_cue() -> void:
+	var cue := Node2D.new()
+	cue.name = "AcceptedCue"
+	cue.z_index = 2
+	add_child(cue)
+	var check: Control = UiKit.picture("check", _size * 0.48)
+	if check != null:
+		check.position = Vector2(-_size * 0.24, -_size * 0.72)
+		check.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cue.add_child(check)
+	_accepted_cue = cue
+	get_tree().create_timer(0.72).timeout.connect(func():
+		if _accepted_cue == cue:
+			_accepted_cue = null
+		if is_instance_valid(cue):
+			cue.queue_free())
 
 
 ## "Something is waiting to go in one of us."

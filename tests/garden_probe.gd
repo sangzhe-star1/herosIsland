@@ -24,6 +24,7 @@ const Gesture := preload("res://scripts/harvest/gesture.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
+const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
 
 ## The fewest questions this probe is allowed to have asked by the time it
 ## prints its verdict.
@@ -40,7 +41,7 @@ const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 470
+const CHECKS_EXPECTED := 554
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -82,6 +83,7 @@ func _ready() -> void:
 	# --- stage four: the barn, the orders, and the money ---
 	_the_barn_never_goes_negative()
 	_a_full_barn_never_loses_anything()
+	_the_overflow_basket_has_a_stable_shelf_anchor()
 	_an_order_is_all_or_nothing()
 	_an_order_pays_once()
 	_the_garden_cannot_touch_his_score()
@@ -895,6 +897,18 @@ func _a_full_barn_never_loses_anything() -> void:
 	Barn.put("seed_carrot", 500, "inventory")
 	_ok(Barn.count("seed_carrot", "inventory") == 500,
 		"seeds and tools are not capped")
+
+
+## The overflow basket is a shelf landmark, not a row that slides every time a
+## new crop kind spills. A flight started during one brush stroke has one honest
+## landing place even if later beds add more kinds before the shelf rebuilds.
+func _the_overflow_basket_has_a_stable_shelf_anchor() -> void:
+	var wide := GardenScreen.spilled_basket_anchor(Vector2(1280, 720))
+	var tall := GardenScreen.spilled_basket_anchor(Vector2(1280, 960))
+	_ok(wide.x > 0.0 and wide.x < 1280.0 and wide.y > 0.0 and wide.y < 720.0,
+		"the overflow basket anchor sits on the visible wide shelf")
+	_ok(is_equal_approx(wide.x, tall.x) and is_equal_approx(tall.y - wide.y, 240.0),
+		"the overflow anchor keeps its x position and follows the taller shelf")
 
 
 ## An order one carrot short takes nothing. Emptying the barn of everything it
@@ -1962,15 +1976,97 @@ func _the_days_little_jobs_hold_water() -> void:
 
 	# add() answers the DAILIES dict; the caller hangs it back on the farm --
 	# the same write-back the screen does.
-	var farm := {"dailies": Dailies.add({}, "2026-09-02", "water", 2)}
-	var water := Dailies.task_by_id("water")
-	_ok(not Dailies.done(farm.get("dailies", {}), water),
+	var daily_farm: Dictionary = {"dailies": Dailies.add({}, "2026-09-02", "water", 2)}
+	var water: Dictionary = Dailies.task_by_id("water")
+	_ok(not Dailies.done(daily_farm.get("dailies", {}), water),
 		"two of three is not done")
-	farm["dailies"] = Dailies.add(farm, "2026-09-02", "water", 5)
-	var dailies: Dictionary = farm.get("dailies", {})
+	daily_farm["dailies"] = Dailies.add(daily_farm, "2026-09-02", "water", 5)
+	var dailies: Dictionary = daily_farm.get("dailies", {})
 	_ok(int(dailies.get("progress", {}).get("water", 0)) == 3,
 		"the tally clamps at the target -- it is a promise, not a score")
 	_ok(Dailies.done(dailies, water), "and three of three is done")
+	_ok(Dailies.done_count(dailies) == 1 and not Dailies.all_done(dailies),
+		"one finished verb lights one daily star, never the whole luck bonus")
+	var full_day: Dictionary = dailies.duplicate(true)
+	var full_progress: Dictionary = full_day.get("progress", {})
+	for task in GameData.garden_dailies:
+		full_progress[str(task.get("id", ""))] = int(task.get("target", 1))
+	full_day["progress"] = full_progress
+	var summary: Dictionary = Dailies.summary(full_day)
+	_ok(Dailies.done_count(full_day) == GameData.garden_dailies.size()
+		and Dailies.all_done(full_day),
+		"all three familiar verbs, and only all three, light the golden chance")
+	_ok(int(summary.get("done", 0)) == GameData.garden_dailies.size()
+		and int(summary.get("total", 0)) == GameData.garden_dailies.size()
+		and bool(summary.get("all_done", false)),
+		"the ribbon's display summary comes from the same all-done rule")
+	full_day["claimed"] = ["garden_daily_2026-09-02_water"]
+	_ok(Dailies.all_done(full_day),
+		"collecting a coin later does not turn off care already completed")
+	var tomorrow: Dictionary = Dailies.roll({"dailies": full_day}, "2026-09-03")
+	_ok(not Dailies.all_done(tomorrow),
+		"a fresh date starts with dark daily stars and ordinary luck")
 	_ok(Dailies.claim_key(dailies, water)
-		!= Dailies.claim_key(Dailies.roll(farm, "2026-09-03"), water),
+		!= Dailies.claim_key(Dailies.roll(daily_farm, "2026-09-03"), water),
 		"tomorrow's claim key is one nobody has ever paid against")
+
+	# The tally and the claims live INSIDE the farm's own dict, and the farm's
+	# normalisation is a whitelist -- a key it does not know is dropped on
+	# every load. The first cut of the dailies stored them outside that
+	# whitelist: a same-day reopen silently refunded every coin and asked the
+	# child to earn the day a second time. These four questions are the
+	# regression that makes sure the whitelist never forgets again.
+	var saved_farm: Dictionary = SaveManager.data.get("farm", {})
+	var saved_dailies: Dictionary = Dailies.roll(saved_farm, "2026-09-02")
+	saved_dailies["progress"] = {"water": 2}
+	saved_dailies["claimed"] = ["garden_daily_2026-09-02_water"]
+	SaveManager.data["farm"]["dailies"] = saved_dailies
+	var kept: Dictionary = Farm.normalise_farm(SaveManager.data["farm"])
+	_ok(str(kept.get("dailies", {}).get("date", "")) == "2026-09-02",
+		"normalising the farm keeps today's daily list")
+	_ok(int(kept.get("dailies", {}).get("progress", {}).get("water", 0)) == 2,
+		"and its tally survives the load")
+	_ok((kept.get("dailies", {}).get("claimed", []) as Array).size() == 1,
+		"and a claim once collected stays collected for the day")
+	var fresh: Dictionary = Dailies.roll(kept, "2026-09-03")
+	_ok((fresh.get("claimed", []) as Array).is_empty(),
+		"while a new date still rolls a clean list")
+
+	# A whitelist check is not enough: it is the real JSON reload that used to
+	# erase the list. Claim one completed job through the island's usual reward
+	# gate, save it, and come back on the same day. The second pass must see the
+	# stored claim and refuse a second coin payment.
+	SaveManager.data = SaveManager._default_data()
+	var claim_farm: Dictionary = SaveManager.data.get("farm", {})
+	var claim_day := "2026-09-02"
+	var completed: Dictionary = Dailies.add(claim_farm, claim_day,
+		str(water.get("id", "water")), Dailies.target(str(water.get("id", "water"))))
+	claim_farm["dailies"] = completed
+	SaveManager.data["farm"] = claim_farm
+	var first_claims: Array = completed.get("claimed", [])
+	var coin_reward := int(water.get("coins", 0))
+	var coins_before := Coins.balance()
+	var first_paid := RewardManager.grant("garden:daily", coin_reward,
+		Dailies.claim_key(completed, water), first_claims)
+	completed["claimed"] = first_claims
+	SaveManager.data["farm"]["dailies"] = completed
+	SaveManager.save_game()
+	_ok(first_paid == coin_reward and Coins.balance() == coins_before + coin_reward,
+		"a completed daily pays once before the restart")
+
+	SaveManager.load_game()
+	var reloaded_farm: Dictionary = SaveManager.data.get("farm", {})
+	var reloaded_dailies: Dictionary = reloaded_farm.get("dailies", {})
+	_ok(str(reloaded_dailies.get("date", "")) == claim_day,
+		"a same-day restart keeps the daily's date")
+	_ok(int(reloaded_dailies.get("progress", {}).get("water", 0))
+		== Dailies.target("water"),
+		"a same-day restart keeps the completed tally")
+	_ok(Dailies.claimed(reloaded_dailies, water),
+		"a same-day restart keeps the collected claim")
+	var reloaded_claims: Array = reloaded_dailies.get("claimed", [])
+	var coins_after_reload := Coins.balance()
+	var paid_again := RewardManager.grant("garden:daily", coin_reward,
+		Dailies.claim_key(reloaded_dailies, water), reloaded_claims)
+	_ok(paid_again == 0 and Coins.balance() == coins_after_reload,
+		"the reward gate refuses the same daily claim after a restart")

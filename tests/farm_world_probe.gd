@@ -40,7 +40,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 683
+const CHECKS_EXPECTED := 703
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -106,6 +106,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_shovel_sweeps_a_row()
 	await _the_brush_skips_beds_that_do_not_need_it()
 	await _one_stroke_never_pays_twice()
+	await _one_brush_stroke_keeps_every_spill_on_the_same_basket_rim()
 	await _the_last_job_hands_back_the_hand()
 	await _the_seed_brush_plants_what_he_chose()
 	await _grass_pans_and_buildings_answer_with_a_tool_in_hand()
@@ -122,7 +123,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_stones_ask_before_they_move()
 	await _the_barn_full_moment_points_at_the_market()
 
-	_close()
+	await _close()
 	# The bear's own farm is another scene; it gets the glass to itself,
 	# exactly as it would in the game.
 	await _a_visit_to_the_bears_farm()
@@ -151,6 +152,11 @@ func _close() -> void:
 	if is_instance_valid(_garden):
 		_garden.queue_free()
 	_garden = null
+	# The next shape starts a new Garden and sends real input at it. Let the
+	# previous UI leave the tree first, or its still-live shelf buttons may
+	# receive a 4:3 touch intended for the fresh scene.
+	await get_tree().process_frame
+	await get_tree().process_frame
 	GameClock.clear_test_now()
 
 
@@ -880,6 +886,15 @@ func _find_named(node: Node, wanted: String) -> Node:
 	return null
 
 
+func _flight_destination(node: Node) -> Vector2:
+	if node == null:
+		return Vector2.INF
+	var destination: Variant = node.get_meta("destination_at", Vector2.INF)
+	if destination is Vector2:
+		return destination as Vector2
+	return Vector2.INF
+
+
 ## Scrub back and forth across one bed, in ONE stroke. What a child does when
 ## scrubbing is satisfying, which it is.
 func _scrub(centre: Vector2, reach: float) -> void:
@@ -1059,6 +1074,102 @@ func _one_stroke_never_pays_twice() -> void:
 	SaveManager.load_game()
 	_ok(Barn.count("strawberry") == yield_count,
 		"the one payment is what got written down")
+
+
+## A real brush can collect more than one crop before the shelf redraws. When
+## the barn is full, the first receipt must not fly to the old position of a
+## pile that the second crop will extend. Both receipts belong to the one fixed
+## basket rim the child sees after lifting his finger.
+func _one_brush_stroke_keeps_every_spill_on_the_same_basket_rim() -> void:
+	# The preceding scrub's normal flight is deliberately still visible for a
+	# moment. Let it finish before testing that a FULL barn creates no normal
+	# flights of its own.
+	await get_tree().create_timer(0.5).timeout
+	for i in range(6):
+		_set_bed(i, {"state": Farm.TILLED})
+	_set_bed(0, {"state": Farm.READY, "crop_id": "carrot",
+		"growth_stage": 4, "plant_cycle_id": 61})
+	_set_bed(1, {"state": Farm.READY, "crop_id": "strawberry",
+		"growth_stage": 4, "plant_cycle_id": 62})
+	SaveManager.data["farm"]["warehouse"] = {"corn": Barn.cap()}
+	SaveManager.data["farm"]["harvest_basket"] = {}
+	SaveManager.data["farm"]["paid_harvests"] = []
+	# This test is about the two physical receipts, not the separate one-time
+	# market lesson that a full barn normally offers.
+	SaveManager.data["farm"]["market_taught"] = true
+	_world().go_home()
+	await _redraw()
+
+	await _tap((_tool_button("basket") as Button).position + Vector2(48, 38))
+	_ok(_tools_state().selected == "basket",
+		"the full-barn basket brush is genuinely in the child's hand")
+	# Two moves keep both 0 and 1 inside one real touch stroke while leaving the
+	# 0.4s receipt animation alive long enough to inspect its destination.
+	await _finger(_garden.call("_bed_centre", 0),
+		_garden.call("_bed_centre", 1), 2)
+
+	var carrot_flight: Node = _find_named(_garden, "HarvestSpillFlight_carrot")
+	var strawberry_flight: Node = _find_named(_garden,
+		"HarvestSpillFlight_strawberry")
+	var accidental_carrot: Node = _find_named(_garden, "HarvestFlight_carrot")
+	var accidental_strawberry: Node = _find_named(_garden, "HarvestFlight_strawberry")
+	_ok(carrot_flight != null and strawberry_flight != null
+		and accidental_carrot == null and accidental_strawberry == null,
+		"one full-barn brush makes two overflow receipts and no lying barn receipts")
+
+	var carrot_yield := maxi(int(GameData.get_crop("carrot")
+		.get("harvest_amount", 1)), 1)
+	var strawberry_yield := maxi(int(GameData.get_crop("strawberry")
+		.get("harvest_amount", 1)), 1)
+	_ok(carrot_flight != null and str(carrot_flight.get_meta("crop_id", "")) == "carrot"
+		and int(carrot_flight.get_meta("amount", 0)) == carrot_yield
+		and str(carrot_flight.get_meta("destination", "")) == "harvest_basket",
+		"the carrot receipt keeps its real crop, full yield, and overflow destination")
+	_ok(strawberry_flight != null
+		and str(strawberry_flight.get_meta("crop_id", "")) == "strawberry"
+		and int(strawberry_flight.get_meta("amount", 0)) == strawberry_yield
+		and str(strawberry_flight.get_meta("destination", "")) == "harvest_basket",
+		"the strawberry receipt keeps its real crop, full yield, and overflow destination")
+
+	var carrot_landing := _flight_destination(carrot_flight)
+	var strawberry_landing := _flight_destination(strawberry_flight)
+	_ok(carrot_landing != Vector2.INF and strawberry_landing != Vector2.INF
+		and carrot_landing.distance_to(strawberry_landing) < 0.5,
+		"both crops from one stroke fly to the same fixed overflow basket rim")
+
+	# `_queue_rebuild()` waits until the finger lifts. Two frames make this an
+	# assertion about the actual rebuilt picture, rather than two agreeing
+	# metadata values that could both point to the wrong place.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var overflow: Node = _find_named(_garden, "HarvestOverflowBasket")
+	var visible_rim := Vector2.INF
+	if overflow is Control:
+		# UiKit's basket is 30px wide and six pixels above the shelf.
+		visible_rim = (overflow as Control).position + Vector2(15.0, 15.0)
+	_ok(visible_rim != Vector2.INF
+		and visible_rim.distance_to(carrot_landing) < 0.5
+		and visible_rim.distance_to(strawberry_landing) < 0.5,
+		"the rebuilt basket's visible centre is where both flights were headed")
+	_ok(overflow != null and int(overflow.get_meta("crop_kinds", 0)) == 2,
+		"the one rebuilt overflow basket displays both crop kinds")
+	_ok(Barn.count("carrot", Barn.BASKET) == carrot_yield
+		and Barn.count("strawberry", Barn.BASKET) == strawberry_yield
+		and Barn.total(Barn.WAREHOUSE) == Barn.cap(),
+		"both whole harvests wait in the basket while the full warehouse stays full")
+	_ok(str(_plots()[0].get("state", "")) == Farm.TILLED
+		and str(_plots()[1].get("state", "")) == Farm.TILLED,
+		"both neighbouring ready beds were really collected by that one brush")
+
+	await get_tree().create_timer(0.5).timeout
+	_ok(_find_named(_garden, "HarvestSpillFlight_carrot") == null
+		and _find_named(_garden, "HarvestSpillFlight_strawberry") == null,
+		"the two full-barn receipts clean themselves up after their answer")
+	# Later regressions deliberately reload and settle the farm. Leave them a
+	# neutral store rather than smuggling this full-barn fixture into their setup.
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.data["farm"]["harvest_basket"] = {}
+	SaveManager.save_game()
 
 
 func _the_last_job_hands_back_the_hand() -> void:

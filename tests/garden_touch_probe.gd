@@ -33,7 +33,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 544
+const CHECKS_EXPECTED := 650
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -87,6 +87,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _dragging_a_seed_lands_in_the_bed_he_aimed_at()
 	await _one_bed_takes_one_crop()
 	await _tapping_a_ripe_bed_fills_the_barn()
+	await _overflow_harvests_show_their_real_landing_places()
 	await _a_harvest_is_paid_for_once()
 	await _handing_an_order_over_pays_once()
 	await _the_lesson_happens_once_in_a_childhood()
@@ -104,7 +105,8 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_market_shows_what_things_are_worth()
 	await _gold_shines_and_the_dog_says_hello()
 	await _the_day_has_its_own_little_jobs()
-	await _the_challenge_door_shows_what_is_next()
+	await _gold_blessing_from_the_days_care()
+	await _the_challenge_door_shows_what_is_next(view)
 
 	_close()
 
@@ -317,6 +319,137 @@ func _tapping_a_ripe_bed_fills_the_barn() -> void:
 	var paid: Array = SaveManager.data["farm"].get("paid_harvests", [])
 	_ok("farm_harvest_plot_4_7" in paid,
 		"the harvest is recorded against the bed and the planting it came from")
+
+
+## A full barn is not a failure state. The child must see the same split the
+## receipt really made: what fitted flies to the barn; what did not fits in the
+## fixed overflow basket by its door. Run both partial and fully-full cases on
+## the real tap path, in each screen shape.
+func _overflow_harvests_show_their_real_landing_places() -> void:
+	var plots := _plots()
+	var split: Dictionary = Farm.fresh_plot(4)
+	split["crop_id"] = "carrot"
+	split["growth_stage"] = 4
+	split["plant_cycle_id"] = 51
+	split["state"] = Farm.READY
+	plots[4] = split
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["warehouse"] = {"corn": Barn.cap() - 2}
+	farm["harvest_basket"] = {}
+	farm["paid_harvests"] = []
+	# This fixture reaches the capacity lesson by design; it is not testing the
+	# market's finger, which would add an unrelated guide to the flight layer.
+	farm["market_taught"] = true
+	SaveManager.data["farm"] = farm
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	for i in range(2):
+		await get_tree().process_frame
+
+	var partial_amount := int(GameData.get_crop("carrot").get("harvest_amount", 0))
+	await _tap(_bed(4))
+	var stored: Node = _find_named(_garden, "HarvestFlight_carrot")
+	var spilled: Node = _find_named(_garden, "HarvestSpillFlight_carrot")
+	_ok(Barn.count("carrot", Barn.WAREHOUSE) == 2
+		and Barn.count("carrot", Barn.BASKET) == partial_amount - 2,
+		"a nearly full barn stores two carrots and spills the truthful remainder")
+	_ok(stored != null and spilled != null,
+		"a partial harvest creates one receipt flight to each real destination")
+	if stored != null:
+		_ok(int(stored.get_meta("amount", 0)) == 2
+			and str(stored.get_meta("destination", "")) == "warehouse",
+			"the barn flight carries only the two carrots that fitted")
+		var stored_count: Node = stored.get_node_or_null("FlightAmount")
+		_ok(stored_count is Label and str((stored_count as Label).text) == "×2",
+			"the partial barn receipt says x2 instead of pretending it carried all")
+		var shortcut: Node = _find_named(_garden, "BarnShortcut")
+		var shortcut_centre := Vector2.INF
+		if shortcut is Control:
+			shortcut_centre = (shortcut as Control).get_global_rect().get_center()
+		var stored_landing: Variant = stored.get_meta("destination_at", Vector2.INF)
+		_ok(stored_landing is Vector2 and shortcut_centre != Vector2.INF
+			and (stored_landing as Vector2).distance_to(shortcut_centre) < 0.5,
+			"the barn receipt actually lands on the rebuilt barn shortcut")
+	var partial_landing := Vector2.INF
+	if spilled != null:
+		var landing: Variant = spilled.get_meta("destination_at", Vector2.INF)
+		if landing is Vector2:
+			partial_landing = landing as Vector2
+		_ok(int(spilled.get_meta("amount", 0)) == partial_amount - 2
+			and str(spilled.get_meta("destination", "")) == "harvest_basket"
+			and partial_landing != Vector2.INF,
+			"the overflow flight carries only the remainder to the real basket")
+		var spill_count: Node = spilled.get_node_or_null("FlightAmount")
+		_ok(spill_count is Label and str((spill_count as Label).text)
+				== "×%d" % (partial_amount - 2),
+			"the partial overflow receipt says exactly what is waiting")
+	var overflow: Node = _find_named(_garden, "HarvestOverflowBasket")
+	var basket_landing: Variant = overflow.get_meta("destination_at", Vector2.INF) \
+		if overflow != null else Vector2.INF
+	_ok(overflow != null and basket_landing is Vector2
+		and (basket_landing as Vector2).distance_to(partial_landing) < 0.5,
+		"the rebuilt overflow basket is exactly where the spill flight is headed")
+	var visible_basket_landing := Vector2.INF
+	if overflow is Control:
+		# UiKit's picture is 30px wide and sits six pixels above the shelf,
+		# so this is the centre of the basket the child actually sees.
+		visible_basket_landing = (overflow as Control).position + Vector2(15.0, 15.0)
+	_ok(visible_basket_landing != Vector2.INF
+		and visible_basket_landing.distance_to(partial_landing) < 0.5,
+		"the spill receipt lands on the visible centre of the overflow basket")
+	await get_tree().create_timer(0.5).timeout
+	_ok(_find_named(_garden, "HarvestFlight_carrot") == null
+		and _find_named(_garden, "HarvestSpillFlight_carrot") == null,
+		"both split receipts clean up after their short answer")
+
+	# A second crop while the barn is full must use the SAME basket rim. The
+	# rebuilt pile gains another row to the left, but an earlier flight cannot
+	# chase a moving target halfway through one brush/tap sequence.
+	var full: Dictionary = Farm.fresh_plot(5)
+	full["crop_id"] = "strawberry"
+	full["growth_stage"] = 4
+	full["plant_cycle_id"] = 52
+	full["state"] = Farm.READY
+	plots[5] = full
+	SaveManager.data["farm"]["plots"] = plots
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	for i in range(2):
+		await get_tree().process_frame
+
+	var full_amount := int(GameData.get_crop("strawberry").get("harvest_amount", 0))
+	await _tap(_bed(5))
+	var should_not_exist: Node = _find_named(_garden, "HarvestFlight_strawberry")
+	var full_spill: Node = _find_named(_garden, "HarvestSpillFlight_strawberry")
+	_ok(should_not_exist == null and full_spill != null,
+		"a full barn sends the whole harvest only to the overflow basket")
+	_ok(Barn.count("strawberry", Barn.WAREHOUSE) == 0
+		and Barn.count("strawberry", Barn.BASKET) == full_amount,
+		"a full barn keeps every strawberry in the overflow basket, not nowhere")
+	if full_spill != null:
+		var full_landing: Variant = full_spill.get_meta("destination_at", Vector2.INF)
+		_ok(int(full_spill.get_meta("amount", 0)) == full_amount
+			and str(full_spill.get_meta("destination", "")) == "harvest_basket"
+			and full_landing is Vector2
+			and (full_landing as Vector2).distance_to(partial_landing) < 0.5,
+			"new crop kinds extend left but every spill keeps the same basket rim")
+	overflow = _find_named(_garden, "HarvestOverflowBasket")
+	_ok(overflow != null and int(overflow.get_meta("crop_kinds", 0)) == 2,
+		"the shelf redraws both spilled crop kinds under the fixed basket")
+	if overflow is Control:
+		visible_basket_landing = (overflow as Control).position + Vector2(15.0, 15.0)
+	_ok(visible_basket_landing != Vector2.INF
+		and visible_basket_landing.distance_to(partial_landing) < 0.5,
+		"a new crop row grows left without moving the visible basket rim")
+	await get_tree().create_timer(0.5).timeout
+	_ok(_find_named(_garden, "HarvestSpillFlight_strawberry") == null,
+		"the full-overflow receipt also cleans itself up")
+	# Do not make the next independent regression inherit a full barn and a
+	# waiting basket. Its reload path deliberately asks SaveManager to settle
+	# storage, which would otherwise turn this fixture into its starting state.
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.data["farm"]["harvest_basket"] = {}
+	SaveManager.save_game()
 
 
 ## The app settles the save on resume. The world stays in place, so this asks
@@ -883,6 +1016,8 @@ func _fourteen_seeds_take_turns() -> void:
 ## opens the old barn panel. This is run through both screen shapes because the
 ## ribbon belongs in the spare shelf lane and must never cover a target bed.
 func _the_next_step_and_barn_shortcut_are_honest() -> void:
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var compact := view.x / maxf(view.y, 1.0) < 1.6
 	_garden.call("_close_panels")
 	var farm: Dictionary = SaveManager.data["farm"]
 	farm["tutorial_completed"] = true
@@ -899,6 +1034,10 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 	ripe["plant_cycle_id"] = 17
 	plots[0] = ripe
 	farm["plots"] = plots
+	# Two of the three familiar daily verbs are already cared for. The ribbon
+	# must show that derived fact without changing which ripe bed is next.
+	farm["dailies"] = {"date": GameClock.now_date(),
+		"progress": {"water": 3, "harvest": 5}, "claimed": []}
 	SaveManager.data["farm"] = farm
 	SaveManager.data["farm_orders"] = {"delivered": []}
 	SaveManager.data["farm"]["warehouse"] = {"carrot": 20}
@@ -916,10 +1055,35 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 		task_rect = Rect2(ribbon.global_position, ribbon.size)
 		_ok(ribbon.visible and ribbon.size.x >= 240.0,
 			"the next-step card remains a readable, visible touch target")
+		_ok(Rect2(Vector2.ZERO, view).encloses(task_rect),
+			"the hero task card stays entirely inside this screen shape")
 		_ok(str(ribbon.get_meta("kind", "")) == "harvest",
 			"a ripe crop wins the next-step ribbon")
 		_ok(int(ribbon.get_meta("plot_index", -1)) == 0,
 			"the ribbon names the same ripe plot the farm points at")
+		var hero_icon := ribbon.get_node_or_null("HeroTaskIconBadge/HeroTaskIcon") as Control
+		var hero_action := ribbon.get_node_or_null("HeroTaskAction") as Label
+		var hero_preview := ribbon.get_node_or_null("HeroTaskPreview/HeroTaskProgress") as Label
+		_ok(hero_icon != null and hero_icon.visible and hero_action != null \
+			and hero_action.visible and hero_preview != null and hero_preview.visible,
+			"the hero task card keeps its picture, one action and order progress together")
+		var daily := ribbon.get_node_or_null("HeroTaskDaily") as Control
+		var daily_progress := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyProgress") as Label
+		_ok(daily != null and int(daily.get_meta("done", -1)) == 2
+			and int(daily.get_meta("total", -1)) == 3
+			and not bool(daily.get_meta("all_done", true)),
+			"the task card shows the same two-of-three daily care state as the save")
+		_ok(daily_progress != null and daily_progress.text == "2/3"
+			and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") != null
+			and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_2") != null,
+			"the daily crest keeps both a readable tally and all three small stars")
+		if daily_progress != null and hero_action != null and hero_preview != null:
+			_ok(not daily_progress.get_global_rect().intersects(hero_action.get_global_rect())
+				and not hero_action.get_global_rect().intersects(hero_preview.get_global_rect()),
+				"daily words, the next action and order words keep separate reading lines")
+		var derived: Dictionary = _garden.call("_next_task")
+		_ok(hero_action != null and hero_action.text == _garden.call("_next_task_text", derived),
+			"the hero task words come from the one derived garden task")
 		var half := _bed_box() * 0.5
 		var bed := Rect2(_bed(0) - half, half * 2.0)
 		_ok(not task_rect.intersects(bed),
@@ -937,11 +1101,46 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 				(basket_tool as Control).global_position,
 				(basket_tool as Control).size)),
 				"the next-step card leaves the harvest tool tappable")
+		if compact:
+			var right_tool_edge := 0.0
+			var tool_row_y := -1.0
+			for item in tools.values():
+				if item is Control:
+					var tool: Control = item as Control
+					right_tool_edge = maxf(right_tool_edge,
+						tool.global_position.x + tool.size.x)
+					tool_row_y = maxf(tool_row_y, tool.global_position.y)
+			_ok(right_tool_edge > 0.0 and task_rect.position.x >= right_tool_edge + 8.0
+				and task_rect.end.x <= view.x - 20.0,
+				"the compact next step fills only the empty right end of the tool row")
+			_ok(tool_row_y >= 0.0 and absf(task_rect.position.y - tool_row_y) <= 4.0,
+				"the compact next step stays aligned with the tools, not the seed row")
 		var decor: Node = _find_named(_garden, "DecoDoor")
 		if decor is Control:
 			_ok(not task_rect.grow(5.0).intersects(Rect2((decor as Control).global_position,
 				(decor as Control).size)),
 				"the next-step card leaves the sticker-book door tappable")
+		var farm_world = _garden.get("_world")
+		if farm_world != null:
+			var beds: Array = farm_world.get("_beds")
+			var beacon: Node = beds[0].get_node_or_null("TaskBeacon/TaskBeaconFlag") \
+				if not beds.is_empty() else null
+			_ok(beacon != null and farm_world.bed_under(_bed(0)) == 0,
+				"the harvest flag points to the same bed without changing its hit target")
+			var other_beacons := 0
+			for i in range(1, beds.size()):
+				if beds[i].get_node_or_null("TaskBeacon/TaskBeaconFlag") != null:
+					other_beacons += 1
+			_ok(other_beacons == 0,
+				"one next task draws one world flag, never a field of competing arrows")
+			await _tap(task_rect.get_center())
+			_ok(farm_world.camera.inside(_bed(0)),
+				"pressing the harvest task brings its ripe bed into the farm window")
+			_ok(Farm.is_ready(_plots()[0]),
+				"pressing the task card points at the crop without harvesting it")
+		else:
+			_ok(false, "a harvest task has the existing farm camera to focus")
+			_ok(false, "a harvest task keeps its crop until the child touches the bed")
 	# A ready crop is now gone; the already-full basket should be handed over
 	# before the screen asks for another planting turn.
 	plots = _plots()
@@ -954,6 +1153,14 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 	var delivery: Node = _find_named(_garden, "NextTask")
 	_ok(delivery is Button and str((delivery as Button).get_meta("kind", "")) == "deliver",
 		"a fillable order comes before asking for another planting turn")
+	var delivery_world = _garden.get("_world")
+	var facility_beacon: Node = delivery_world.get_node_or_null(
+		"TaskBeaconLayer/TaskFacilityBeacon") if delivery_world != null else null
+	var delivery_beds: Array = delivery_world.get("_beds") if delivery_world != null else []
+	var old_plot_beacon: Node = delivery_beds[0].get_node_or_null(
+		"TaskBeacon/TaskBeaconFlag") if not delivery_beds.is_empty() else null
+	_ok(facility_beacon != null and old_plot_beacon == null,
+		"delivery moves the one world flag from the crop to the real order board")
 	var delivery_rect := Rect2((delivery as Control).global_position,
 		(delivery as Control).size) if delivery is Control else Rect2()
 	# This is the actual shelf press, not a direct call to the hint helper. The
@@ -975,6 +1182,9 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 		await _tap(board_at)
 		_ok(bool(_garden.get("_orders_open")),
 			"the visible visitor board still opens its existing order panel after guidance")
+		var beacon_layer: Node = world.get_node_or_null("TaskBeaconLayer")
+		_ok(beacon_layer != null and beacon_layer.get_child_count() == 0,
+			"opening a paper panel clears the world flag until the farm is playable again")
 		_garden.call("_close_panels")
 		await get_tree().process_frame
 		_clear_tutorials()
@@ -1291,6 +1501,28 @@ func _handing_an_order_over_pays_once() -> void:
 		_ok(Barn.count(str(crop_id)) == 0,
 			"the barn handed over the %s" % str(crop_id))
 
+	# Reload only after the garden is gone.  The order card queues a redraw and
+	# the live scene deliberately writes farm-entry facts while it is around;
+	# reloading underneath that fixture made this test race its own old screen.
+	# A real close -> load -> reopen is the child path we are promising here.
+	_close()
+	GameClock.set_test_now(NOON, 0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	SaveManager.load_game()
+	_ok(str(order.get("id", ""))
+			in SaveManager.data["farm_orders"].get("delivered", []),
+		"the delivery is on disk, not just in memory")
+	_ok(Coins.balance() == before + price,
+		"...and so are the 星星币 it paid")
+	_ok(Barn.count("plank", "inventory") == 1,
+		"...and the one plank")
+
+	_open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _open_the_board()
+
 	# Press the card again, if it is still there at all.
 	var again := _order_card(str(order.get("id", "")))
 	if again != null:
@@ -1316,19 +1548,6 @@ func _handing_an_order_over_pays_once() -> void:
 		"and pressing it again pays nothing at all")
 	_ok(Barn.count("plank", "inventory") == 1,
 		"and no second plank arrives however it is pressed")
-
-	# And it survives the game being closed. In memory the delivered list is a
-	# reference, so the in-memory dedup works whether or not anything is
-	# written -- which means deleting the save_game() from the delivery left
-	# every check above still passing. This is the one that notices.
-	SaveManager.load_game()
-	_ok(str(order.get("id", ""))
-			in SaveManager.data["farm_orders"].get("delivered", []),
-		"the delivery is on disk, not just in memory")
-	_ok(Coins.balance() == before + price,
-		"...and so are the 星星币 it paid")
-	_ok(Barn.count("plank", "inventory") == 1,
-		"...and the one plank")
 
 
 ## Walk up to the order board and press it, the way he does.
@@ -2231,6 +2450,29 @@ func _the_day_has_its_own_little_jobs() -> void:
 	dailies = SaveManager.data["farm"].get("dailies", {})
 	_ok(int(dailies.get("progress", {}).get("deliver", 0)) == 1,
 		"handing an order over fills the delivery tally")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# The real verbs above have lit water and delivery; the crop tally is still
+	# two short. Finish that one existing tally through the screen helper, then
+	# rebuild the real shelf to prove the last star becomes the same golden-luck
+	# state that planting uses -- no separate UI counter is allowed here.
+	var partial_daily: Node = _find_named(scene, "HeroTaskDaily")
+	_ok(partial_daily != null and int(partial_daily.get_meta("done", -1)) == 2
+		and not bool(partial_daily.get_meta("all_done", true)),
+		"two finished daily verbs light two stars before the final little job")
+	scene.call("_daily_progress", "harvest", 2)
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var lucky_daily: Node = _find_named(scene, "HeroTaskDaily")
+	var lucky_label: Node = _find_named(scene, "HeroTaskDailyProgress")
+	_ok(lucky_daily != null and int(lucky_daily.get_meta("done", -1)) == 3
+		and int(lucky_daily.get_meta("total", -1)) == 3
+		and bool(lucky_daily.get_meta("all_done", false)),
+		"the final daily star lights the complete care crest on the real task card")
+	_ok(lucky_label is Label and (lucky_label as Label).text
+		== I18n.t("garden.daily.lucky"),
+		"the complete crest tells the child that today's golden luck is active")
 
 	# Claim on the board, once. The second press meets a tick, not a purse.
 	Barn.put("carrot", 2)   # room is irrelevant; the tally is what gates
@@ -2271,30 +2513,113 @@ func _the_day_has_its_own_little_jobs() -> void:
 		"a new day rolls a clean list and starts counting again")
 	_ok(not Dailies.claimed(dailies, Dailies.task_by_id("water")),
 		"and yesterday's claims do not follow him into it")
+	# The claim section opened the board; a probe that leaves a sheet of
+	# blocker standing over the farm blocks every tap after it.
+	scene.call("_close_panels")
+	await get_tree().process_frame
 
 
-## The challenge door says what comes next, as a crop -- or a star.
-##
-## Runs last in its shape: finishing the whole shelf on purpose rewrites the
-## save, and nothing after it may inherit a played-in game. The next shape
-## starts fresh again.
-func _the_challenge_door_shows_what_is_next() -> void:
-	var door: Node = _find_named(_garden, "HarvestChallenge")
-	_ok(door != null, "the garden holds a door to the harvest challenge")
-	var preview: Node = _find_named(_garden, "ChallengeNext")
-	_ok(preview != null, "the door previews what comes next")
-	if preview == null:
-		return
-	_ok(str(preview.get_meta("shows")) == "carrot",
-		"a fresh garden previews the carrot first order (shows '%s')"
-			% str(preview.get_meta("shows")))
-	for level in GameData.get_levels_for_mode("harvest"):
-		SaveManager.record_level_result(str(level.get("id", "")), 1, 1.0)
-	# Stars land in the save; the screen only redraws when asked, like after
-	# any other action that changes what it shows.
-	_garden.call("_queue_rebuild")
-	for i in range(12):
+
+## The day's list, finished, doubles the gold: 王者农场's blessing-to-mutation
+## loop in its kindest form -- earned by CARING, never by paying, and a child
+## who never opens the list is never told he lost anything.
+func _gold_blessing_from_the_days_care() -> void:
+	var scene: Node = _garden
+	var base: float = scene.call("_golden_chance")
+	_ok(is_equal_approx(base, 0.04),
+		"an unfinished day leaves the gold chance where it was")
+	var dailies_now: Dictionary = SaveManager.data["farm"].get("dailies", {})
+	var prog: Dictionary = dailies_now.get("progress", {})
+	for task in GameData.garden_dailies:
+		prog[str(task.get("id", ""))] = int(task.get("target", 1))
+	dailies_now["progress"] = prog
+	SaveManager.data["farm"]["dailies"] = dailies_now
+	var boosted: float = scene.call("_golden_chance")
+	_ok(is_equal_approx(boosted, 0.08),
+		"a day fully cared for doubles the gold chance -- the blessing, earned")
+
+
+## The harvest door, restored after a parallel-edit collision took the first
+## draft: the chip names the tally honestly against the save, the shortcut
+## under it starts the next unstarred level, and the little card beside it
+## shows what that level asks for -- the crop, or a star when the shelf is
+## empty.
+func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
+	var scene: Node = _garden
+	var levels: Array = GameData.get_levels_for_mode("harvest")
+	_ok(not levels.is_empty(), "the harvest challenge has levels to show")
+	var door: Node = _find_named(scene, "HarvestChallenge")
+	_ok(door != null, "the challenge door stands in the top bar")
+	var press: Node = _find_named(scene, "HarvestChallengeShortcut")
+	_ok(press is Button and not (press as Button).disabled,
+		"and its way in is pressable")
+	var next_card: Node = _find_named(scene, "ChallengeNext")
+	_ok(next_card != null and next_card.has_meta("shows"),
+		"and what comes next has a card that names it")
+	var door_rect := (door as Control).get_global_rect() if door is Control else Rect2()
+	var press_rect := (press as Control).get_global_rect() if press is Control else Rect2()
+	_ok(door is Control and press is Control and door_rect.size.is_equal_approx(press_rect.size),
+		"the whole visible challenge card is the whole press target")
+	var compact := view.x / maxf(view.y, 1.0) < 1.6
+	_ok(next_card is Control and (next_card as Control).visible == not compact,
+		"the next-crop card stays out of the farm window on a compact tablet")
+
+	# The tally, honest against the save: no stars anywhere reads zero.
+	var count: Node = _find_named(scene, "ChallengeCount")
+	_ok(count is Label and (count as Label).text
+			== "0/%d" % levels.size(),
+		"a fresh save reads 0 over every harvest level")
+	# The first look must be concrete, not merely "some preview": a fresh
+	# garden points at the very crop in the first unfinished challenge.
+	var first_config: Dictionary = levels[0].get("config", {})
+	var first_targets: Array = first_config.get("targets", [])
+	var first_crop := ""
+	if not first_targets.is_empty():
+		var first_target: Dictionary = first_targets[0]
+		first_crop = str(first_target.get("crop_id", ""))
+	_ok(not first_crop.is_empty() and next_card != null
+			and str(next_card.get_meta("shows", "")) == first_crop,
+		"a fresh garden previews the first challenge crop '%s'" % first_crop)
+
+	# One star lands on the first harvest level: the tally moves to one, and
+	# the door keeps standing in its slot -- the number is the promise.
+	var first: String = str(levels[0].get("id", ""))
+	SaveManager.data["levels"][first] = {"stars": 1, "best_accuracy": 1.0,
+		"attempts": 1, "completed": true, "found_hidden": false}
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	count = _find_named(scene, "ChallengeCount")
+	_ok(count is Label and (count as Label).text
+			== "1/%d" % levels.size(),
+		"one starred level moves the tally to one")
+	press = _find_named(scene, "HarvestChallengeShortcut")
+	_ok(press is Button and not (press as Button).disabled,
+		"and the door still opens the next unstarred level")
+	if press is Button:
+		# This probe owns the current scene, so let the real press reach
+		# GameManager but hold SceneManager's transition for this one frame.
+		# It verifies the connected shortcut without replacing the probe itself.
+		var expected := str(levels[1].get("id", ""))
+		var was_busy := bool(SceneManager.get("_busy"))
+		SceneManager.set("_busy", true)
+		(press as Button).emit_signal("pressed")
 		await get_tree().process_frame
-	preview = _find_named(_garden, "ChallengeNext")
-	_ok(preview != null and str(preview.get_meta("shows")) == "star",
-		"a finished shelf previews a star instead")
+		_ok(GameManager.current_level_id == expected,
+			"pressing the door starts the next unstarred harvest challenge")
+		SceneManager.set("_busy", was_busy)
+
+	# Once every challenge has a star, there is no crop left to promise. The
+	# same card becomes a clear completion star instead of retaining stale art.
+	for level in levels:
+		var level_id: String = str(level.get("id", ""))
+		SaveManager.data["levels"][level_id] = {"stars": 1, "best_accuracy": 1.0,
+			"attempts": 1, "completed": true, "found_hidden": false}
+	SaveManager.save_game()
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	next_card = _find_named(scene, "ChallengeNext")
+	_ok(next_card != null and str(next_card.get_meta("shows", "")) == "star",
+		"a completed harvest shelf previews a star, not a stale crop")

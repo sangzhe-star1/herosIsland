@@ -213,6 +213,11 @@ static func default_farm() -> Dictionary:
 		# ever ships.
 		"visit_log": [],
 		"visit_log_unread": false,
+		# Today's little jobs: the date, the tally, and the claims. Lived
+		# here, inside the whitelist, or normalise_farm would wipe them on
+		# every load -- the first cut stored them and watched a same-day
+		# reopen hand out the day's coins a second time.
+		"dailies": {"date": "", "progress": {}, "claimed": []},
 	}
 
 

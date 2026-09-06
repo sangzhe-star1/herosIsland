@@ -94,6 +94,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _every_gesture_reaches_the_hand()
 	await _the_lesson_starts_on_its_named_gesture()
 	await _the_baskets_are_telling_apart()
+	await _the_static_lesson_and_sort_route_are_still()
 	await _the_matching_basket_stays_marked_without_motion()
 	await _a_wrong_basket_costs_him_nothing()
 	await _only_the_starred_one_goes_in_the_gift_basket()
@@ -124,8 +125,19 @@ func _fresh() -> void:
 ## Boot a level AT a difficulty. _open()'s _fresh() wipes the save, so the
 ## setting has to land after the wipe and before the scene reads it.
 func _open_at(level_id: String, tier: int) -> void:
+	await _open_with_settings(level_id, {"difficulty": tier})
+
+
+## Low motion changes the tutorial during scene construction, so the setting
+## belongs in the save before the scene is instantiated, not after it appears.
+func _open_low_motion(level_id: String) -> void:
+	await _open_with_settings(level_id, {"reduce_motion": true})
+
+
+func _open_with_settings(level_id: String, settings: Dictionary) -> void:
 	_fresh()
-	SaveManager.set_setting("difficulty", tier)
+	for setting in settings:
+		SaveManager.set_setting(str(setting), settings[setting])
 	GameManager.current_level_id = level_id
 	_level = load(
 		"res://scenes/minigames/harvest_action/HarvestAction.tscn").instantiate()
@@ -295,13 +307,7 @@ func _the_late_levels_hold_their_shape() -> void:
 
 
 func _open(level_id: String) -> void:
-	_fresh()
-	GameManager.current_level_id = level_id
-	_level = load(
-		"res://scenes/minigames/harvest_action/HarvestAction.tscn").instantiate()
-	add_child(_level)
-	for i in range(6):
-		await get_tree().process_frame
+	await _open_with_settings(level_id, {})
 
 
 func _close() -> void:
@@ -351,50 +357,15 @@ func _tap(at: Vector2) -> void:
 	await _stroke([at, at])
 
 
-func _line(from: Vector2, to: Vector2, steps: int) -> Array:
-	var out: Array = []
-	for i in range(steps + 1):
-		out.append(from.lerp(to, float(i) / float(steps)))
-	return out
-
-
 ## The move a child makes for this crop, ending where it naturally ends -- ON
 ## the plant, never over at the baskets. That is the point: the gesture is the
 ## picking and nothing else.
 func _move_for(target: Node2D) -> Array:
-	var at: Vector2 = target.global_position
-	var params: Dictionary = target.crop.get("gesture_params", {})
-	match str(target.crop.get("recogniser", "")):
-		Gesture.TAP:
-			return [at, at]
-		Gesture.DRAG:
-			var dir := Vector2(float(params.get("direction_x", 0.0)),
-				float(params.get("direction_y", -1.0))).normalized()
-			var far: float = float(params.get("distance", 90.0)) + 24.0
-			return _line(at, at + dir * far, 7)
-		Gesture.LINE:
-			var half: float = float(params.get("line_half_width", 74.0))
-			return _line(at + Vector2(-minf(30.0, half * 0.4), -46.0),
-				at + Vector2(minf(30.0, half * 0.4), 46.0), 7)
-		Gesture.SWEEP:
-			var leg: float = float(params.get("leg", 60.0)) + 26.0
-			var turns: int = int(params.get("turns", 3)) + 1
-			var path: Array = [at]
-			var here := at
-			for i in range(turns + 1):
-				var next := here + Vector2(leg if i % 2 == 0 else -leg, 0.0)
-				path.append_array(_line(here, next, 3))
-				here = next
-			return path
-		Gesture.TWIST:
-			var turn: float = float(params.get("turn", 90.0))
-			var steps := int(ceil(turn / 20.0)) + 3
-			var path: Array = []
-			for i in range(steps + 1):
-				var a: float = TAU * (turn + 60.0) / 360.0 * float(i) / float(steps)
-				path.append(at + Vector2(cos(a), sin(a)) * 62.0)
-			return path
-	return [at, at]
+	# The probe is a real thumb, but it does not carry a private answer to
+	# "what move works". The tutorial and recogniser share this exact path.
+	return Array(Gesture.demo_path(str(target.crop.get("recogniser", "")),
+		target.crop.get("gesture_params", {}), target.global_position,
+		float(target.get("radius"))))
 
 
 func _targets() -> Array:
@@ -504,6 +475,11 @@ func _every_gesture_reaches_the_hand() -> void:
 				await _close()
 				continue
 			_ok(_baskets().size() > 1, "%s sorts into more than one basket" % level_id)
+			var taught_path: PackedVector2Array = _level.call("_gesture_path", target)
+			_ok(Gesture.satisfied(str(target.crop.get("recogniser", "")),
+				target.crop.get("gesture_params", {}), taught_path, target.global_position),
+				"the %s lesson path really satisfies its %s recogniser (%s)"
+				% [str(target.crop.get("id", "crop")), recogniser, level_id])
 			await _stroke(_move_for(target))
 			var held := _in_hand()
 			_ok(held != null,
@@ -537,6 +513,18 @@ func _the_lesson_starts_on_its_named_gesture() -> void:
 	var taught: Node2D = _level.call("_teaching_target", "cut_stem")
 	_ok(taught != null and str(taught.crop.get("harvest_gesture", "")) == "cut_stem",
 		"the cut-stem lesson starts on a crop that actually uses cut_stem")
+	var demo: Node = _level.get("_demo")
+	var path := PackedVector2Array()
+	if demo != null and is_instance_valid(demo):
+		var steps: Array = demo.get("_steps")
+		if not steps.is_empty():
+			path = steps[0].get("path", PackedVector2Array())
+	_ok(taught != null and path.size() > 2,
+		"the on-screen cut lesson keeps its full route, not just one arrow")
+	if taught != null:
+		_ok(Gesture.satisfied(str(taught.crop.get("recogniser", "")),
+			taught.crop.get("gesture_params", {}), path, taught.global_position),
+			"the route the tutorial actually plays satisfies the cut-stem recogniser")
 	await _close()
 
 
@@ -567,31 +555,98 @@ func _the_baskets_are_telling_apart() -> void:
 		await _close()
 
 
+## The line-cut lesson begins already still: the route is the actual gesture,
+## but its spotlight and hand do not travel. Once the child has picked a crop,
+## the same tutorial component turns that route into the direct answer from
+## held crop to matching basket.
+func _the_static_lesson_and_sort_route_are_still() -> void:
+	await _open_low_motion("harvest_07")
+	var taught: Node2D = _level.call("_teaching_target", "cut_stem")
+	var lesson: Node = _level.get("_demo")
+	var trace: Line2D = lesson.get_node_or_null("MotionTrace") as Line2D \
+		if lesson != null else null
+	var spot: Node2D = lesson.get("_spot") as Node2D if lesson != null else null
+	var hand: Node2D = lesson.get("_hand") as Node2D if lesson != null else null
+	var path := PackedVector2Array()
+	if taught != null:
+		path = _level.call("_gesture_path", taught)
+	_ok(taught != null and trace != null and trace.visible
+		and _same_path(trace.points, path),
+		"low-motion cut lesson shows its real full route as a fixed trace")
+	var hand_art: Control = hand.get_node_or_null("GuideHandArt") as Control \
+		if hand != null else null
+	_ok(taught != null and spot != null and hand != null and hand_art != null
+		and spot.position.distance_to(taught.global_position) < 0.5
+		and hand.position.distance_to(path[path.size() - 1]) < 0.5,
+		"the still lesson anchors its hero glove on the real final touch point")
+	var spot_at := spot.position if spot != null else Vector2.INF
+	var hand_at := hand.position if hand != null else Vector2.INF
+	var trace_at := PackedVector2Array(trace.points) if trace != null else PackedVector2Array()
+	await get_tree().create_timer(0.9).timeout
+	_ok(spot != null and hand != null and trace != null
+		and spot.position.distance_to(spot_at) < 0.5
+		and hand.position.distance_to(hand_at) < 0.5
+		and _same_path(trace.points, trace_at),
+		"the low-motion lesson stays still instead of replaying a travel tween")
+
+	var tomato := _find(Gesture.TAP, "tomato")
+	_ok(tomato != null, "多作物订单 has a tomato for the still sorting route")
+	if tomato == null:
+		await _close()
+		return
+	var origin := tomato.global_position
+	await _stroke(_move_for(tomato))
+	var held := _in_hand()
+	_ok(held != null and held.global_position.distance_to(origin + Vector2(0, -46)) < 0.5
+		and held.scale.distance_to(Vector2(1.12, 1.12)) < 0.001
+		and held.z_index >= 2 and held.get_node_or_null("HeldCue") != null,
+		"a low-motion pick lands immediately in the visible held pose")
+	if held == null:
+		await _close()
+		return
+	var destination: Node2D = _level.call("_destination_for", held)
+	var guides := _live_guides()
+	var pointer: Node = guides[0] if guides.size() == 1 else null
+	var pointer_trace: Line2D = pointer.get_node_or_null("MotionTrace") as Line2D \
+		if pointer != null else null
+	var carry := PackedVector2Array([held.global_position,
+		destination.global_position]) if destination != null else PackedVector2Array()
+	_ok(destination != null and guides.size() == 1 and pointer_trace != null
+		and pointer_trace.visible and _same_path(pointer_trace.points, carry),
+		"the fixed basket pointer reuses the held crop and shared destination")
+	var held_at := held.global_position
+	var held_scale := held.scale
+	await get_tree().create_timer(0.65).timeout
+	_ok(is_instance_valid(held) and held.global_position.distance_to(held_at) < 0.5
+		and held.scale.distance_to(held_scale) < 0.001,
+		"the held crop does not start an idle bob in low-motion mode")
+	await _close()
+
+
 ## Reduce-motion makes the page quieter, never less understandable. After a
 ## real pick, the same shared destination resolver must leave exactly one
 ## basket visibly marked even though the optional breathing tween is absent.
 func _the_matching_basket_stays_marked_without_motion() -> void:
-	await _open("harvest_02")
-	var was: Variant = SaveManager.get_setting("reduce_motion", false)
-	SaveManager.set_setting("reduce_motion", true)
+	await _open_low_motion("harvest_02")
 	var berry := _find(Gesture.TAP, "strawberry")
 	_ok(berry != null, "草莓红了吗 has a strawberry for the still target cue")
 	if berry == null:
-		SaveManager.set_setting("reduce_motion", was)
 		await _close()
 		return
+	var origin := berry.global_position
 	await _stroke(_move_for(berry))
 	var held := _in_hand()
-	_ok(held != null, "the strawberry is held before its basket is marked")
+	_ok(held != null and held.global_position.distance_to(origin + Vector2(0, -46)) < 0.5
+		and held.scale.distance_to(Vector2(1.12, 1.12)) < 0.001
+		and held.z_index >= 2 and held.get_node_or_null("HeldCue") != null,
+		"the strawberry is immediately shown in its final held pose")
 	if held == null:
-		SaveManager.set_setting("reduce_motion", was)
 		await _close()
 		return
 	var target: Node2D = _level.call("_destination_for", held)
 	_ok(target != null and target.id == "fruit",
 		"the shared target resolver chooses the fruit basket for the still cue")
 	if target == null:
-		SaveManager.set_setting("reduce_motion", was)
 		await _close()
 		return
 	var cue: Node2D = target.get("_waiting_cue")
@@ -609,9 +664,14 @@ func _the_matching_basket_stays_marked_without_motion() -> void:
 		var other_cue: Node2D = basket.get("_waiting_cue")
 		_ok(other_cue != null and not other_cue.visible,
 			"only the matching basket wears the static answer ring")
+	var held_at := held.global_position
+	var held_scale := held.scale
 	await get_tree().create_timer(0.65).timeout
 	_ok(target.scale.distance_to(Vector2.ONE) < 0.001,
 		"the low-motion answer remains still after time passes")
+	_ok(is_instance_valid(held) and held.global_position.distance_to(held_at) < 0.5
+		and held.scale.distance_to(held_scale) < 0.001,
+		"the held strawberry does not begin bobbing after the instant lift")
 	var wrong: Node2D = null
 	for basket in _baskets():
 		if basket != target:
@@ -623,9 +683,9 @@ func _the_matching_basket_stays_marked_without_motion() -> void:
 		_ok(cue.visible and _in_hand() == held,
 			"a wrong basket leaves the still target cue and held crop intact")
 	await _tap(target.global_position)
-	_ok(not cue.visible and _in_hand() == null,
-		"the static answer ring clears after the crop is put away")
-	SaveManager.set_setting("reduce_motion", was)
+	var receipt: Node2D = target.get_node_or_null("AcceptedCue") as Node2D
+	_ok(not cue.visible and _in_hand() == null and receipt != null and receipt.visible,
+		"the static answer clears and a fixed check confirms the instant landing")
 	await _close()
 
 
@@ -1272,13 +1332,19 @@ func _one_finger_at_a_time() -> void:
 	for i in range(6):
 		await get_tree().process_frame
 	var after := _live_guides()
-	_ok(after.size() == before + 1,
-		"help while holding points instead of demonstrating")
-	if held != null and after.size() == before + 1:
+	_ok(before == 1 and after.size() == 1,
+		"help while holding replaces its basket finger instead of stacking another")
+	if held != null and after.size() == 1:
 		var want2: Node2D = _level.call("_destination_for", held)
-		_ok(_guide_then(after[after.size() - 1]).distance_to(
+		_ok(want2 != null and _guide_then(after[0]).distance_to(
 			want2.global_position) < 0.5,
 			"and that finger also answers which basket")
+		if want2 != null:
+			await _tap(want2.global_position)
+			for i in range(3):
+				await get_tree().process_frame
+			_ok(_live_guides().is_empty(),
+				"putting the crop away clears the now-stale basket finger")
 	await _close()
 
 
@@ -1298,6 +1364,15 @@ func _guide_then(guide: Node) -> Vector2:
 	if steps.is_empty():
 		return Vector2.INF
 	return steps[0].get("then", Vector2.INF)
+
+
+func _same_path(actual: PackedVector2Array, expected: PackedVector2Array) -> bool:
+	if actual.size() != expected.size():
+		return false
+	for i in actual.size():
+		if actual[i].distance_to(expected[i]) > 0.5:
+			return false
+	return true
 
 
 ## A landed order is said once in pictures before the next one arrives.

@@ -240,12 +240,24 @@ func lift(height: float = 46.0) -> void:
 	# a moment ago, and "it is sitting on something now" is a thing he can see
 	# without being told to look.
 	var lamp := Node2D.new()
+	lamp.name = "HeldCue"
 	lamp.z_index = -1
 	add_child(lamp)
 	Shapes.glow(lamp, Vector2.ZERO, radius * 1.3, Color(1.0, 0.90, 0.42), 6, 0.62)
 	Shapes.fill(lamp, Shapes.circle_points(Vector2.ZERO, radius * 0.88, 30),
 		Color(1.0, 0.99, 0.93), 1.0)
 	_halo = lamp
+
+	# He still needs to see that this crop is now in his hand. In reduced
+	# motion, land directly in the clear held pose and keep its saucer/glow;
+	# the optional spring and idle bob are decoration, not the state itself.
+	# It must also sit over neighbouring crops, rather than quietly disappear
+	# behind the very field it was picked from.
+	z_index = maxi(z_index, 2)
+	if not Juice.motion_enabled():
+		global_position += Vector2(0.0, -height)
+		scale = Vector2(1.12, 1.12)
+		return
 
 	var t := create_tween()
 	t.tween_property(self, "global_position",
@@ -260,6 +272,12 @@ func fly_to(where: Vector2) -> void:
 	for extra in [_halo, _affordance, _cover]:
 		if extra != null and is_instance_valid(extra):
 			extra.queue_free()
+	# HarvestBasket.accept() supplies the fixed check at the destination in
+	# reduced motion. Do not make a crop fly across the field just to explain a
+	# state the basket can say still and clearly.
+	if not Juice.motion_enabled():
+		queue_free()
+		return
 	var t := create_tween()
 	t.tween_property(self, "global_position", where, 0.34)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)

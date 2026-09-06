@@ -46,6 +46,7 @@ const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
+const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 
 ## WHERE THE BEDS ARE IS NO LONGER THIS FILE'S BUSINESS
 ##
@@ -61,6 +62,9 @@ const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const SEED_TILE := Vector2(96, 72)
 const TOP_BAR := 96.0
 const SHELF := 168.0
+## The barn card and its overflow basket share this one shelf measurement.
+## A flight should land on the same place the rebuilt shelf will draw.
+const BARN_CARD := Vector2(168.0, SEED_TILE.y)
 ## The shelf's spacing rhythm: one gap, used between rows, between tiles,
 ## and between the shelf's edge and its first tile. One number is a rhythm;
 ## three numbers are three accidents that used to live here -- the rack's
@@ -128,6 +132,16 @@ const UNDO_WINDOW_MS := 5000
 ## rare enough that meeting one is a story he tells. Gold changes the
 ## CELEBRATION and never the yield -- see _harvest_core.
 const GOLDEN_PLANT_CHANCE := 0.04
+
+## The chance as it stands for THIS farm today: doubled when every one of the
+## day's little jobs is done. 王者农场's blessing-to-mutation loop in its
+## kindest form -- the bonus is earned by CARING, never by paying, and a
+## child who never opens the list is never told he lost anything, because
+## four percent is already the gift it was yesterday.
+func _golden_chance() -> float:
+	var dailies: Dictionary = _farm().get("dailies", {})
+	return GOLDEN_PLANT_CHANCE * 2.0 if Dailies.all_done(dailies) \
+		else GOLDEN_PLANT_CHANCE
 
 var _field: DragField
 var _play: Control
@@ -317,13 +331,21 @@ func _daily_progress(verb: String, by: int = 1) -> void:
 	var before: Dictionary = _farm().get("dailies", {})
 	SaveManager.data["farm"]["dailies"] = Dailies.add(_farm(),
 		GameClock.now_date(), verb, by)
+	var after: Dictionary = SaveManager.data["farm"].get("dailies", {})
 	for task in GameData.garden_dailies:
 		if str(task.get("id", "")) != verb:
 			continue
-		if Dailies.done(SaveManager.data["farm"]["dailies"], task) \
+		if Dailies.done(after, task) \
 				and not Dailies.done(before, task):
 			AudioManager.play_sfx("res://assets/audio/found.ogg")
 		break
+	# The third little star is a small happy discovery, not a countdown alarm:
+	# the same pure all_done() gate drives the visible ribbon and the doubled
+	# rare-crop chance.  Claims are intentionally irrelevant -- caring is what
+	# lit the luck, and a child may collect the coins whenever he finds the board.
+	if Dailies.all_done(after) and not Dailies.all_done(before):
+		AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
+		AudioManager.say("praise_3")
 
 
 func _on_farm_resumed(changed: bool) -> void:
@@ -376,6 +398,15 @@ func _rebuild() -> void:
 		_world.gesture_finished.connect(_on_gesture_finished)
 	else:
 		_world.refresh(_plots())
+	# Ask the existing task resolver ONCE. The shelf card and the flag in the
+	# farm are two views of the same answer, never competing quest systems.
+	# A crop that is merely growing keeps its quiet shelf preview but gets no
+	# world flag: only a thing the child can do right now is a destination.
+	var task: Dictionary = _next_task()
+	var show_task := not _lesson_running and not _something_is_open() \
+		and not task.is_empty()
+	var show_beacon := show_task and bool(task.get("actionable", false))
+	_world.set_task_beacon(task if show_beacon else {}, _next_task_color(task))
 	_draw_decorations()
 
 	_play = UiKit.play_area(self, true)
@@ -408,8 +439,8 @@ func _rebuild() -> void:
 	_view_buttons(view)
 	# The shelf is drawn after the top bar. Put this last so its one clear
 	# instruction is visible above the shelf background and never hidden by it.
-	if not _lesson_running and not _something_is_open():
-		_next_task_ribbon(view)
+	if show_task:
+		_next_task_ribbon(view, task)
 	# The world needs to know whether a press on a bed is a tap or a stroke,
 	# and it must never disagree with the toolbar about it.
 	_world.brush_armed = _tools.is_brush()
@@ -683,12 +714,31 @@ func _next_task_color(task: Dictionary) -> Color:
 		_: return Color(0.91, 0.94, 0.84)
 
 
+## The little daily crest is display data only. FarmDailyManager owns both
+## the tally and the all-done meaning; this page only gives the shared task
+## ribbon a small, word-light way to show it.
+func _daily_task_badge() -> Dictionary:
+	var daily: Dictionary = Dailies.summary(_farm().get("dailies", {}))
+	if bool(daily.get("all_done", false)):
+		daily["label"] = I18n.t("garden.daily.lucky")
+	else:
+		daily["label"] = "%d/%d" % [int(daily.get("done", 0)),
+			int(daily.get("total", 0))]
+	return daily
+
+
 ## One card, one verb, one target. It lives in the shelf's spare middle rather
 ## than on top of the farm: a child can always pan empty grass, and the prompt
 ## becomes the bridge from tools to the barn instead of a floating obstruction.
-func _next_task_ribbon(view: Vector2) -> void:
-	var task := _next_task()
+func _next_task_ribbon(view: Vector2, task: Dictionary) -> void:
 	if task.is_empty():
+		return
+	# A 4:3 tablet gives the garden more height, not another middle shelf lane:
+	# the seed/deco/barn row still owns that lane. Put this same one-step card
+	# in the empty right end of the TOOL row instead. It stays on the shelf, so
+	# it cannot cover a bed or take a pan away from the farm.
+	if view.x / maxf(view.y, 1.0) < 1.6:
+		_next_task_compact_ribbon(view, task)
 		return
 	# Seven tool tiles finish at x=740. The sticker-book door and barn own the
 	# far right of the shelf, so the card gets the lane BETWEEN them instead of
@@ -703,84 +753,82 @@ func _next_task_ribbon(view: Vector2) -> void:
 	# button; hiding it is safer until that breakpoint has a dedicated layout.
 	if width < 240.0:
 		return
-	var box := Vector2(width, 70.0)
-	var at := Vector2(right - box.x, view.y - SHELF + 9.0)
-	var ribbon := Button.new()
-	ribbon.name = "NextTask"
-	ribbon.flat = false
-	ribbon.focus_mode = Control.FOCUS_NONE
+	# The shared ribbon carries daily care, the one next action and (when
+	# relevant) an order tally. Give those three lines real breathing room,
+	# then pin its bottom to the old card's bottom: the card grows upward into
+	# the clear shelf lane rather than into the seed/barn row below.
+	var box := Vector2(width, HeroTaskRibbon.THREE_LINE_HEIGHT)
+	var at := Vector2(right - box.x, view.y - SHELF)
+	_add_next_task_button(task, at, box)
+
+
+## The tool row is deliberately shorter than the seed/deco/barn row. Its
+## right-side breathing room is the compact card's home: measure the actual
+## buttons rather than copying their x arithmetic, so a later tool change
+## cannot make the prompt cover one.
+func _next_task_compact_ribbon(view: Vector2, task: Dictionary) -> void:
+	var lane_left := 24.0
+	for item in _tool_buttons.values():
+		if item is Control and is_instance_valid(item):
+			var tool: Control = item as Control
+			lane_left = maxf(lane_left, tool.position.x + tool.size.x)
+	lane_left += SHELF_GAP
+	var lane_right := view.x - 24.0
+	var width := minf(248.0, lane_right - lane_left)
+	# Below this a task name becomes a mystery word. The rest of this screen's
+	# fixed seven-tool shelf does not fit usefully either, so do not turn a
+	# too-small future viewport into a deceptive, tiny action.
+	if width < 180.0:
+		return
+	# Same typography budget as the wide shelf. The compact lane has extra
+	# room above it, while its lower edge must stay clear of the barn controls.
+	var box := Vector2(width, HeroTaskRibbon.THREE_LINE_HEIGHT)
+	var at := Vector2(lane_right - box.x, view.y - SHELF)
+	_add_next_task_button(task, at, box)
+
+
+## Both shelf shapes use exactly the same derived task, icon, colour and
+## focus action. Layout may respond to a tablet, but "what should I do?" must
+## never become a second garden rule.
+func _add_next_task_button(task: Dictionary, at: Vector2, box: Vector2) -> void:
+	var order: Dictionary = task.get("order", {})
+	var ribbon := HeroTaskRibbon.new()
+	ribbon.configure({
+		"name": "NextTask",
+		"hint": I18n.t("garden.next"),
+		"title": _next_task_text(task),
+		"icon": str(task.get("icon", "star")),
+		"tint": _next_task_color(task),
+		"preview": _task_order_preview(order),
+		"daily": _daily_task_badge(),
+		"primary": bool(task.get("actionable", false)),
+	}, box)
 	ribbon.position = at
-	ribbon.custom_minimum_size = box
-	ribbon.size = box
 	ribbon.set_meta("kind", str(task.get("kind", "")))
 	ribbon.set_meta("plot_index", int(task.get("index", -1)))
 	ribbon.set_meta("tool_id", str(task.get("tool_id", "")))
-	var order: Dictionary = task.get("order", {})
 	ribbon.set_meta("order_id", str(order.get("id", "")))
-	var tint := _next_task_color(task)
-	for look in ["normal", "hover", "pressed", "focus"]:
-		var style := UiKit.panel_style(tint, 20)
-		style.border_color = tint.darkened(0.20)
-		style.set_border_width_all(3)
-		ribbon.add_theme_stylebox_override(look, style)
-
-	var marker := UiKit.title(I18n.t("garden.next"), 13, Color(0.32, 0.30, 0.24))
-	marker.position = Vector2(58.0, 5.0)
-	marker.size = Vector2(box.x - 94.0, 17.0)
-	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ribbon.add_child(marker)
-	var art: Control = UiKit.picture(str(task.get("icon", "star")), 38.0)
-	if art != null:
-		art.position = Vector2(10.0, 19.0)
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ribbon.add_child(art)
-	var line := UiKit.title(_next_task_text(task), 20)
-	line.position = Vector2(58.0, 20.0)
-	line.size = Vector2(box.x - 90.0, 26.0)
-	line.clip_text = true
-	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ribbon.add_child(line)
-	var arrow := UiKit.title(">", 24, Color(0.34, 0.30, 0.22))
-	arrow.position = Vector2(box.x - 29.0, 23.0)
-	arrow.size = Vector2(20.0, 28.0)
-	arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ribbon.add_child(arrow)
-	_task_order_preview(ribbon, order)
 
 	var task_copy := task.duplicate(true)
 	ribbon.pressed.connect(func(): _focus_next_task(task_copy))
 	_play.add_child(ribbon)
-	if bool(task.get("actionable", false)):
-		UiKit.breathe(ribbon, 0.016, 1.4)
 
 ## The order preview is a single icon-chain, not a miniature second order
 ## board. The grown-up details remain one tap away at the existing building.
-func _task_order_preview(ribbon: Button, order: Dictionary) -> void:
+func _task_order_preview(order: Dictionary) -> Dictionary:
 	if order.is_empty():
-		return
+		return {}
 	var crop_id := _first_missing_order_crop(order)
 	if crop_id == "":
-		return
+		return {}
 	var wants: Dictionary = order.get("requirements", {})
 	var need := int(wants.get(crop_id, 0))
-	var who: Control = UiKit.picture(str(order.get("customer_icon", "teddy")), 20.0)
-	if who != null:
-		who.position = Vector2(58.0, 46.0)
-		who.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ribbon.add_child(who)
 	var crop: Dictionary = GameData.get_crop(crop_id)
-	var crop_art: Control = UiKit.picture(str(crop.get("icon", "seed")), 20.0)
-	if crop_art != null:
-		crop_art.position = Vector2(84.0, 46.0)
-		crop_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ribbon.add_child(crop_art)
-	var tally := UiKit.title("%d/%d" % [mini(Barn.count(crop_id), need), need],
-		16, Color(0.36, 0.32, 0.25))
-	tally.position = Vector2(110.0, 44.0)
-	tally.size = Vector2(60.0, 22.0)
-	tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ribbon.add_child(tally)
+	return {
+		"customer_icon": str(order.get("customer_icon", "teddy")),
+		"crop_icon": str(crop.get("icon", "seed")),
+		"progress": "%d/%d" % [mini(Barn.count(crop_id), need), need],
+	}
 
 
 func _focus_next_task(task: Dictionary) -> void:
@@ -1190,23 +1238,7 @@ func _tap_plot(index: int) -> void:
 		Farm.READY:
 			_harvest(plot, index)
 		Farm.NEEDS_CARE:
-			var cared_at := GameClock.now_unix()
-			match str(plot.get("care_event", "")):
-				Growth.CARE_THIRSTY:
-					plot = Growth.reanchor(Growth.water(plot), cared_at)
-					AudioManager.play_sfx("res://assets/audio/water.ogg")
-					_daily_progress("water")
-				Growth.CARE_WEEDS:
-					plot = Growth.reanchor(Growth.weed(plot), cared_at)
-					AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
-				Growth.CARE_BUG:
-					plot = Growth.reanchor(Growth.shoo(plot), cared_at)
-					AudioManager.play_sfx("res://assets/audio/rustle.ogg")
-				_:
-					# Waiting for care, but not for anything with a name. Repair
-					# it rather than leave a plot no tap can ever move.
-					plot["state"] = Farm.GROWING
-					plot = Growth.reanchor(plot, cared_at)
+			plot = _care_for(plot, index)
 		Farm.TILLED:
 			# Turned, empty, and tapped: he is trying to plant by tapping. Point
 			# at the rack rather than doing nothing, which is the same as being
@@ -1253,6 +1285,10 @@ func _bed_wants_gesture(index: int) -> bool:
 	var plot: Dictionary = plots[index]
 	if str(plot.get("plot_id", "")) in _harvesting:
 		return false
+	# Ripe beds ask for the crop's own move, judged by the same recognisers
+	# 丰收行动 judges by. Care beds stay tap-only: arming gesture intent on
+	# them bisected as the change that silently broke later harvest taps
+	# (2026-09-04 session) -- re-attempt only with that mystery solved.
 	if str(plot.get("state", "")) != Farm.READY:
 		return false
 	return not HarvestCrops.gesture_for(str(plot.get("crop_id", ""))).is_empty()
@@ -1280,8 +1316,10 @@ func _on_gesture_finished(index: int, track: PackedVector2Array,
 	var plot: Dictionary = plots[index]
 	# The bed may have changed while the finger was down; judge the bed that
 	# IS, not the one the finger landed on.
-	if str(plot.get("state", "")) != Farm.READY \
-			or str(plot.get("plot_id", "")) in _harvesting:
+	var state := str(plot.get("state", ""))
+	if str(plot.get("plot_id", "")) in _harvesting:
+		return
+	if state != Farm.READY:
 		return
 	var move := HarvestCrops.gesture_for(str(plot.get("crop_id", "")))
 	if move.is_empty():
@@ -1294,6 +1332,33 @@ func _on_gesture_finished(index: int, track: PackedVector2Array,
 		return
 	if _world != null and is_instance_valid(_world):
 		_world.pan_by(net)
+
+
+## The care a NEEDS_CARE bed asks for, done: water, weed or shoo, each with
+## its sound, the water one with its drip response and its day-tally. Shared
+## by the tap and by the care gestures, because "the same care from a
+## different hand" must be the same care. Returns the plot in its new state.
+func _care_for(plot: Dictionary, index: int) -> Dictionary:
+	var cared_at := GameClock.now_unix()
+	match str(plot.get("care_event", "")):
+		Growth.CARE_THIRSTY:
+			plot = Growth.reanchor(Growth.water(plot), cared_at)
+			AudioManager.play_sfx("res://assets/audio/water.ogg")
+			_daily_progress("water")
+			if _world != null and is_instance_valid(_world):
+				_world.drink_bed(index)
+		Growth.CARE_WEEDS:
+			plot = Growth.reanchor(Growth.weed(plot), cared_at)
+			AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
+		Growth.CARE_BUG:
+			plot = Growth.reanchor(Growth.shoo(plot), cared_at)
+			AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+		_:
+			# Waiting for care, but not for anything with a name. Repair
+			# it rather than leave a plot no tap can ever move.
+			plot["state"] = Farm.GROWING
+			plot = Growth.reanchor(plot, cared_at)
+	return plot
 
 
 ## Pick it, and pay for it exactly once.
@@ -1400,7 +1465,7 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	# the moment the barn is full. store_harvest() is the only call that
 	# guarantees stored + spilled == picked.
 	var learned: Array = []
-	Barn.store_harvest(crop_id, picked)
+	var landed := Barn.store_harvest(crop_id, picked)
 	_daily_progress("harvest", picked)
 	learned = Recipes.check_barn()
 	if not learned.is_empty():
@@ -1434,7 +1499,13 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 		_market_finger_queued = true
 
 	_release_after_the_animation(plot_id)
-	return {"crop_id": crop_id, "amount": picked, "golden": was_golden}
+	return {
+		"crop_id": crop_id,
+		"amount": picked,
+		"stored": int(landed.get("stored", 0)),
+		"spilled": int(landed.get("spilled", 0)),
+		"golden": was_golden,
+	}
 
 
 ## Let go of the plot once the picking animation has had its moment.
@@ -1512,7 +1583,7 @@ func _plant_in(index: int, crop_id: String) -> void:
 	# (the yield is exactly the crop's own; gold changes the celebration,
 	# never the numbers).
 	plot["golden"] = not _lesson_running \
-		and randf() < GOLDEN_PLANT_CHANCE
+		and randf() < _golden_chance()
 	plots[index] = plot
 	SaveManager.data["farm"]["plots"] = plots
 
@@ -1669,6 +1740,8 @@ func _on_stroke_swept(index: int) -> void:
 			plot = Growth.reanchor(Growth.water(plot), GameClock.now_unix())
 			AudioManager.play_sfx("res://assets/audio/water.ogg")
 			_daily_progress("water")
+			if _world != null and is_instance_valid(_world):
+				_world.drink_bed(index)
 		"weed":
 			plot = Growth.reanchor(Growth.weed(plot), GameClock.now_unix())
 			AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
@@ -1742,22 +1815,46 @@ func _show_combo(index: int, receipt: Dictionary) -> void:
 	_fly_to_barn(index, receipt)
 
 
-## The picked crop flies from its bed into the barn shortcut -- the one piece
-## of theatre that says WHERE the things went. The basket is a harvesting tool,
-## so aiming at it would make the three basket pictures mean the same thing.
+## The picked crop flies from its bed to the place that really received it.
+## A partial harvest deliberately has two small receipts: otherwise a child
+## sees all three carrots fly to the barn even though one is waiting in the
+## overflow basket, and the screen tells the opposite story to the inventory.
 func _fly_to_barn(index: int, receipt: Dictionary) -> void:
 	if not Juice.motion_enabled():
 		return
 	var crop_id := str(receipt.get("crop_id", ""))
 	if crop_id == "" or index < 0 or index >= _plots().size():
 		return
+	# Older callers supplied only `amount`; keep that harmless shape meaning
+	# "all stored" while the harvesting path now carries the full receipt.
+	var stored := maxi(int(receipt.get("stored", receipt.get("amount", 0))), 0)
+	var spilled := maxi(int(receipt.get("spilled", 0)), 0)
+	if stored > 0:
+		_spawn_harvest_flight(index, receipt, stored, _barn_button_at,
+			"warehouse", "HarvestFlight")
+	if spilled > 0:
+		_spawn_harvest_flight(index, receipt, spilled, _spill_flight_destination(),
+			"harvest_basket", "HarvestSpillFlight")
+
+
+## One visual receipt. Both destinations use this exact component so crop art,
+## golden tint, timing and cleanup cannot drift apart while only the honest
+## destination and quantity vary.
+func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
+		destination_at: Vector2, destination: String, node_prefix: String) -> void:
+	var crop_id := str(receipt.get("crop_id", ""))
 	var crop: Dictionary = GameData.get_crop(crop_id)
 	var art := UiKit.picture(str(crop.get("icon", "basket")), 44.0)
 	if art == null:
 		return
-	art.name = "HarvestFlight_%s" % crop_id
+	art.name = "%s_%s" % [node_prefix, crop_id]
 	art.set_meta("crop_id", crop_id)
-	art.set_meta("amount", int(receipt.get("amount", 0)))
+	art.set_meta("amount", amount)
+	art.set_meta("total_amount", int(receipt.get("amount", amount)))
+	art.set_meta("stored", int(receipt.get("stored", amount)))
+	art.set_meta("spilled", int(receipt.get("spilled", 0)))
+	art.set_meta("destination", destination)
+	art.set_meta("destination_at", destination_at)
 	art.set_meta("golden", bool(receipt.get("golden", false)))
 	if bool(receipt.get("golden", false)):
 		# The one that came up gold flies gold: the same flight, telling the
@@ -1766,8 +1863,17 @@ func _fly_to_barn(index: int, receipt: Dictionary) -> void:
 	art.position = _bed_centre(index) - Vector2(22, 22)
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_harvest_feedback_layer().add_child(art)
+	# When one crop batch splits, the little x2 / x1 tags answer the question
+	# a single flying icon cannot: how much reached each real destination.
+	if amount != int(receipt.get("amount", amount)):
+		var count := UiKit.on_art(UiKit.title("×%d" % amount, 20, Color.WHITE), 4)
+		count.name = "FlightAmount"
+		count.position = Vector2(24.0, -13.0)
+		count.size = Vector2(46.0, 24.0)
+		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.add_child(count)
 	var t := art.create_tween()
-	t.tween_property(art, "position", _barn_button_at - Vector2(22, 22), 0.4)\
+	t.tween_property(art, "position", destination_at - Vector2(22, 22), 0.4)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	t.parallel().tween_property(art, "scale", Vector2(0.5, 0.5), 0.4)
 	t.tween_callback(art.queue_free)
@@ -1924,7 +2030,7 @@ func _barn(view: Vector2) -> void:
 	# A real card, pinned to the shelf's right edge with the same margin the
 	# rack starts with -- the first cut floated a bare label at 65% of the
 	# width, which read as text that had fallen off something.
-	var box := Vector2(168, SEED_TILE.y)
+	var box := BARN_CARD
 	var at := Vector2(view.x - 24.0 - box.x, view.y - SHELF * 0.25 - box.y * 0.5)
 	var card := Panel.new()
 	card.add_theme_stylebox_override("panel",
@@ -1999,16 +2105,19 @@ func _spilled_basket(view: Vector2) -> void:
 		return
 	# Just left of the barn's card, on the shelf and not over the farm: the
 	# farm scrolls, and a strawberry that stays put while the ground slides
-	# past is not a strawberry, it is a bug. Measured from the card so a
-	# taller pile grows LEFT into the shelf's spare middle, never under it.
-	var at := Vector2(view.x - 24.0 - 168.0 - 24.0
-		- 38.0 - float(spilled.size()) * 66.0, view.y - SHELF * 0.25)
+	# past is not a strawberry, it is a bug. The basket itself is FIXED here;
+	# its crop rows grow left. That stable rim is also where every spill flight
+	# lands, even when one brush stroke adds several new crop kinds.
+	var at := spilled_basket_anchor(view)
 	var pile := UiKit.picture("basket", 30.0)
 	if pile != null:
+		pile.name = "HarvestOverflowBasket"
+		pile.set_meta("crop_kinds", spilled.size())
+		pile.set_meta("destination_at", at + Vector2(15.0, 9.0))
 		pile.modulate = Color(1.0, 0.94, 0.78)
 		pile.position = Vector2(at.x, at.y - 6.0)
 		_play.add_child(pile)
-	var x := at.x + 38.0
+	var x := at.x - 8.0 - float(spilled.size()) * 66.0
 	for pair in spilled:
 		var crop: Dictionary = GameData.get_crop(str(pair[0]))
 		var art := UiKit.picture(str(crop.get("icon", "seed")), 26.0)
@@ -2018,8 +2127,20 @@ func _spilled_basket(view: Vector2) -> void:
 		var many := UiKit.title("x%d" % int(pair[1]), 18)
 		many.position = Vector2(x + 24.0, at.y)
 		many.size = Vector2(44, 22)
+		many.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_play.add_child(many)
 		x += 66.0
+
+
+## Pure shelf geometry, shared by the rebuilt overflow pile and every flight
+## already on its way there. Crop rows extend left; this landing rim never does.
+static func spilled_basket_anchor(view: Vector2) -> Vector2:
+	return Vector2(view.x - 24.0 - BARN_CARD.x - 24.0 - 38.0,
+		view.y - SHELF * 0.25)
+
+
+func _spill_flight_destination() -> Vector2:
+	return spilled_basket_anchor(get_viewport_rect().size) + Vector2(15.0, 9.0)
 
 
 ## Who needs a hand today. Three cards, each one a picture of somebody, what
@@ -3932,6 +4053,8 @@ func _show_the_move() -> void:
 		# the same move 丰收行动 teaches for the same crop, so one lesson
 		# serves both screens, and a child who taps instead still picks.
 		hand.add_step(bed, bed + Vector2(0.0, -90.0), 1.3)
+	elif state == Farm.NEEDS_CARE:
+		hand.add_step(bed, bed, 1.3)
 	elif state == Farm.TILLED:
 		hand.add_step(_seed_rack_centre(), bed, 1.3)
 	else:
@@ -4032,13 +4155,19 @@ func _challenge_door(view: Vector2) -> void:
 			next = level
 			break
 
-	# One chip family on this bar: 56 tall, 12 apart, 26 from the edge. The
+	# One chip family on this bar: 72 tall, 12 apart, 26 from the edge. The
 	# word matters here: a basket with 0/8 otherwise competes with the tool
 	# basket and the barn basket without explaining that this is a side quest.
+	# UiKit.card gives its 32px picture 20px of breathing room above and below,
+	# so the visual card is 72px tall. Keep the transparent shortcut exactly
+	# that same box: a lower strip that looks like part of the door must also
+	# be tappable.
+	var door_box := Vector2(218.0, 72.0)
 	var door := UiKit.card(Color(0.98, 0.94, 0.78))
 	door.name = "HarvestChallenge"
-	door.custom_minimum_size = Vector2(218, 56)
-	door.position = Vector2(view.x - 26.0 - 150.0 - 12.0 - 218.0, 24)
+	door.custom_minimum_size = door_box
+	door.size = door_box
+	door.position = Vector2(view.x - 26.0 - 150.0 - 12.0 - door_box.x, 24)
 	_play.add_child(door)
 
 	var row := HBoxContainer.new()
@@ -4051,6 +4180,7 @@ func _challenge_door(view: Vector2) -> void:
 	row.add_child(label)
 	# How many are done, as a number he can compare to eight. No percentage.
 	var count := UiKit.title("%d/%d" % [done, levels.size()], 22)
+	count.name = "ChallengeCount"
 	row.add_child(count)
 
 	var press := Button.new()
@@ -4058,36 +4188,40 @@ func _challenge_door(view: Vector2) -> void:
 	press.flat = true
 	press.focus_mode = Control.FOCUS_NONE
 	press.position = door.position
-	press.size = door.custom_minimum_size
-	press.custom_minimum_size = door.custom_minimum_size
+	press.size = door_box
+	press.custom_minimum_size = door_box
 	var go := str(next.get("id", ""))
 	press.pressed.connect(func(): GameManager.start_level(go))
 	_play.add_child(press)
 
 	# What comes next, as a crop -- or a star when the shelf is empty. A
-	# second small card tucked under the door's right end, so the door itself
-	# never grows sideways into the purse. The "shows" meta names the crop
-	# (or "star") for the probe; the picture is what the child reads.
+	# small card tucked below the door's right end, so the door itself never
+	# grows sideways into the purse. It belongs only on a wide screen: at 4:3
+	# it landed in the farm window, painted over a bed while letting the tap go
+	# through it. Keep the node and its data in compact mode for the tutorial
+	# and probe, but do not draw an untappable picture over the child's soil.
+	var preview_box := Vector2(80.0, 80.0)
 	var preview := UiKit.card(Color(0.98, 0.94, 0.78))
 	preview.name = "ChallengeNext"
 	preview.position = door.position \
-		+ Vector2(door.custom_minimum_size.x - 76.0, 62.0)
-	preview.custom_minimum_size = Vector2(72, 72)
-	preview.size = Vector2(72, 72)
+		+ Vector2(door_box.x - preview_box.x, door_box.y + 8.0)
+	preview.custom_minimum_size = preview_box
+	preview.size = preview_box
 	# A look, not a button: the door above is the way in, and this card must
 	# never eat a tap meant for the bed underneath it.
 	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var shows := "star"
-	var art: Control = UiKit.picture("star", 52.0)
+	var art: Control = UiKit.picture("star", 40.0)
 	if done < levels.size():
 		var tgts: Array = (next.get("config", {}) as Dictionary).get("targets", [])
 		if not tgts.is_empty():
 			var crop: Dictionary = HarvestCrops.get_crop(
 				str(tgts[0].get("crop_id", "")))
 			if not crop.is_empty():
-				art = UiKit.picture(str(crop.get("asset", "")), 52.0)
+				art = UiKit.picture(str(crop.get("asset", "")), 40.0)
 				shows = str(crop.get("id", ""))
 	preview.set_meta("shows", shows)
+	preview.visible = view.x / maxf(view.y, 1.0) >= 1.6
 	if art != null:
 		preview.add_child(art)
 	_play.add_child(preview)

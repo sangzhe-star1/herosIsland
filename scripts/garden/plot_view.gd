@@ -43,6 +43,10 @@ var _box := Vector2(220, 150)
 var _ground: Node2D
 var _planting: Node2D
 var _overlay: Node2D
+## The current farm task lives beside the transient care badge, not inside its
+## subtree. `_draw_badge()` deliberately clears `_overlay` on every state
+## change; a world-level pointer must survive that inexpensive redraw.
+var _task_beacon: Node2D
 var _badge: Node2D
 var _ring: Node2D
 var _ring_left := 0.0
@@ -61,6 +65,9 @@ var _lean_rot := 0.0        # radians, current
 var _lean_lift := 0.0       # pixels, current (0..-22, up is negative)
 var _lean_rot_to := 0.0
 var _lean_lift_to := 0.0
+## Seconds of perk-up left after water landed. The water's WORK is in the
+## timestamps; this is only the part that tells him it happened.
+var _drink := 0.0
 
 
 func setup(plot_index: int) -> void:
@@ -73,6 +80,13 @@ func setup(plot_index: int) -> void:
 	add_child(_planting)
 	_overlay = Node2D.new()
 	add_child(_overlay)
+	# This is a sibling of `_overlay`, on purpose. The task marker is supplied
+	# by FarmWorld from the screen's already-derived next task, while the badge
+	# is rebuilt from the plot snapshot. Neither gets to erase the other.
+	_task_beacon = Node2D.new()
+	_task_beacon.name = "TaskBeacon"
+	_task_beacon.z_index = 2
+	add_child(_task_beacon)
 
 
 ## How big a press on this bed's middle may miss by and still be this bed.
@@ -95,6 +109,30 @@ func lean(offset: Vector2) -> void:
 func relax() -> void:
 	_lean_rot_to = 0.0
 	_lean_lift_to = 0.0
+
+
+## Water just landed on this bed. Two things happen and neither is a number:
+## a few drops fall in from above, and the plant perks up with a damped
+## little wobble. Fixed drop positions, like everything else here -- nothing
+## in this garden is random.
+func drink() -> void:
+	_drink = 0.55
+	if not Juice.motion_enabled():
+		return
+	var xs := [-30.0, -13.0, 4.0, 21.0, 36.0]
+	for i in range(xs.size()):
+		var drop := Node2D.new()
+		var at_x: float = xs[i]
+		Shapes.fill(drop, Shapes.circle_points(Vector2.ZERO, 5.0),
+			Color(0.45, 0.66, 0.92), 0.0)
+		drop.position = Vector2(at_x, -74.0)
+		_overlay.add_child(drop)
+		var t := drop.create_tween()
+		t.tween_interval(0.05 * float(i))
+		t.tween_property(drop, "position",
+			Vector2(at_x + 4.0, 2.0), 0.34)			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		t.tween_property(drop, "modulate:a", 0.0, 0.12)
+		t.tween_callback(drop.queue_free)
 
 
 ## Redraw only if something a child could see has changed.
@@ -132,17 +170,15 @@ func _draw_ground(plot: Dictionary) -> void:
 		or str(plot.get("care_event", "")) == Growth.CARE_THIRSTY
 	var earth: Color = GRASS if not tilled \
 		else (EARTH_DRY if thirsty else EARTH_WET)
+	# A narrow rim is enough to say "grass meets soil". A wide saturated ring
+	# made the two world layers compete with the crop for attention.
+	var grass_island := _patch_blob(_box * 0.50)
 
-	Shapes.ground_shadow(_ground, Vector2(0, _box.y * 0.42), _box.x * 0.86, 0.20)
-	# One ink line, and only around the outside. Everything inside a bed is
-	# drawn WITHOUT an outline, and that single argument is the difference
-	# between soil and a wooden crate: Shapes.fill() inks whatever it is given,
-	# so three inked ovals across a brown rectangle are three slats, and the
-	# first cut of this screen came out as six vegetable boxes.
-	Shapes.lit(_ground, Shapes.rounded_rect(-_box * 0.5, _box, 26.0), earth, 0.5)
+	Shapes.ground_shadow(_ground, Vector2(0, _box.y * 0.42), _box.x * 0.82, 0.14)
 
 	if not tilled:
 		# Untouched grass, with the tufts that say it has never been turned.
+		Shapes.fill(_ground, grass_island, GRASS.lightened(0.05), 0.0)
 		for i in range(5):
 			var x := -_box.x * 0.34 + _box.x * 0.17 * float(i)
 			Shapes.fill(_ground, PackedVector2Array([
@@ -151,24 +187,32 @@ func _draw_ground(plot: Dictionary) -> void:
 				Color(0.34, 0.56, 0.28), 0.0)
 		return
 
-	# Turned earth: ridges and crumbs.
-	#
-	# THE FIRST CUT OF THIS DREW A CRATE. Three hard dark bars right across the
-	# rectangle, evenly spaced, full width -- which is exactly what slats look
-	# like, and every bed on the farm read as a wooden box with a vegetable
-	# sitting in it. Soil is not regular: the ridges are soft, they are lit
-	# along their top edge and shaded underneath, they do not reach the sides,
-	# and there are crumbs between them. None of that is decoration; "is this
-	# earth I can dig, or a box" is the first question a bed has to answer.
+	# A soft grass rim and an irregular soil island say "a patch of earth" much
+	# more clearly than a dark rounded rectangle says it. Keep both unoutlined:
+	# the crop, care badge and contact shadow already carry the interaction
+	# contrast; an ink perimeter turned the old ground into a wooden crate.
+	Shapes.fill(_ground, grass_island, Color(0.55, 0.72, 0.39), 0.0)
+	var soil_island := _patch_blob(_box * 0.46)
+	Shapes.lit(_ground, soil_island, earth, 0.0)
+
+	# Turned earth: short, staggered mounds and crumbs. They never bridge the
+	# whole island, so they read as loose soil rather than wooden slats.
 	var shade := earth.darkened(0.08)
 	var lit := earth.lightened(0.10)
-	for i in range(3):
-		var y := -_box.y * 0.24 + _box.y * 0.24 * float(i)
-		var wide: float = _box.x * (0.72 if i == 1 else 0.60)
-		Shapes.fill(_ground, Shapes.oval_points(Vector2(0, y + 3.0),
-			Vector2(wide * 0.5, 6.0)), shade, 0.0)
-		Shapes.fill(_ground, Shapes.oval_points(Vector2(0, y),
-			Vector2(wide * 0.5, 4.0)), lit, 0.0)
+	var mounds := [
+		[Vector2(-42.0, -29.0), Vector2(31.0, 5.0)],
+		[Vector2(30.0, -23.0), Vector2(27.0, 5.0)],
+		[Vector2(-7.0, -3.0), Vector2(40.0, 6.0)],
+		[Vector2(-48.0, 23.0), Vector2(26.0, 5.0)],
+		[Vector2(43.0, 27.0), Vector2(31.0, 5.0)],
+	]
+	for mound in mounds:
+		var at: Vector2 = mound[0]
+		var radii: Vector2 = mound[1]
+		Shapes.fill(_ground, Shapes.oval_points(at + Vector2(1.5, 2.5), radii),
+			shade, 0.0)
+		Shapes.fill(_ground, Shapes.oval_points(at + Vector2(-1.0, -1.0),
+			Vector2(radii.x * 0.84, radii.y * 0.55)), lit, 0.0)
 
 	# Crumbs. Fixed positions, not scattered -- nothing in this garden is
 	# random, for the same reason the weeds are not (offline_growth.gd).
@@ -178,6 +222,15 @@ func _draw_ground(plot: Dictionary) -> void:
 			-_box.y * 0.30 + fmod(float(i) * 61.0, _box.y * 0.60))
 		Shapes.fill(_ground, Shapes.circle_points(at, 3.0 + float(i % 2)),
 			shade, 0.0)
+
+
+## Fixed organic outlines let soil be a little irregular without jumping when
+## the farm refreshes. The plot index is stable across saves and camera moves,
+## which makes the shape part of the place rather than an animation.
+func _patch_blob(radii: Vector2) -> PackedVector2Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 32_557 + index * 7_919
+	return Shapes.blob(Vector2.ZERO, radii, rng, 0.08, 5, 28)
 
 
 func _draw_planting(plot: Dictionary) -> void:
@@ -301,6 +354,64 @@ func _draw_badge(plot: Dictionary) -> void:
 	_badge = badge
 
 
+## Point to this bed's one current world task. This is presentation only: the
+## screen decides which task exists, and FarmWorld chooses which PlotView gets
+## it. A Node2D plus mouse-ignoring art has no hit shape and cannot change the
+## forgiving bed hit test below it.
+func set_task_beacon(icon: String, tint: Color) -> void:
+	if _task_beacon == null or not is_instance_valid(_task_beacon):
+		return
+	for child in _task_beacon.get_children():
+		_task_beacon.remove_child(child)
+		child.queue_free()
+	if icon == "":
+		return
+	# The pole lands in the left grass rim; its pennant stays out of the crop's
+	# centre and the care badge's top-right corner.
+	var flag := Node2D.new()
+	flag.name = "TaskBeaconFlag"
+	flag.position = Vector2(-_box.x * 0.36, -_box.y * 0.36)
+	_task_beacon.add_child(flag)
+	draw_task_beacon(flag, icon, tint, 0.82)
+
+
+## Shared by a bed and the orders building so the small world flag uses the
+## same icon and colour language as the shelf ribbon. It intentionally has no
+## tween: the task ribbon already provides gentle motion when appropriate, and
+## a quiet landmark lets the crop/care feedback keep the child's attention.
+static func draw_task_beacon(parent: Node2D, icon: String, tint: Color,
+	scale: float = 1.0) -> void:
+	if icon == "":
+		return
+	var cloth := tint
+	cloth.a = 1.0
+	var wood := Color(0.45, 0.34, 0.22)
+	var pole_top := Vector2(0.0, -52.0 * scale)
+	var pole_bottom := Vector2(0.0, 44.0 * scale)
+	Shapes.fill(parent, Shapes.taper(pole_bottom, pole_top,
+		7.0 * scale, 4.4 * scale), wood, 0.65)
+	Shapes.lit(parent, Shapes.circle_points(pole_top, 5.5 * scale),
+		Color(1.0, 0.84, 0.34), 0.55)
+	var pennant := Node2D.new()
+	pennant.name = "TaskBeaconPennant"
+	pennant.position = pole_top + Vector2(2.0 * scale, 0.0)
+	parent.add_child(pennant)
+	Shapes.lit(pennant, PackedVector2Array([
+		Vector2(0.0, 0.0), Vector2(60.0 * scale, 9.0 * scale),
+		Vector2(47.0 * scale, 23.0 * scale), Vector2(60.0 * scale, 37.0 * scale),
+		Vector2(0.0, 47.0 * scale),
+	]), cloth, 0.78)
+	var badge_at := Vector2(29.0 * scale, 24.0 * scale)
+	Shapes.lit(pennant, Shapes.circle_points(badge_at, 14.0 * scale),
+		Color(1.0, 0.99, 0.92, 0.90), 0.35)
+	var art := UiKit.picture(icon, 22.0 * scale)
+	if art != null:
+		art.name = "TaskBeaconIcon"
+		art.position = badge_at - Vector2.ONE * 11.0 * scale
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pennant.add_child(art)
+
+
 ## The progress ring, for as long as he is looking at it.
 func show_ring(plot: Dictionary) -> void:
 	var crop: Dictionary = Growth.crop_for(plot,
@@ -358,6 +469,15 @@ func _process(delta: float) -> void:
 	if _planting != null and is_instance_valid(_planting):
 		_planting.rotation = _lean_rot
 		_planting.position = Vector2(0.0, _lean_lift)
+		# The perk after a drink: a damped wobble that settles as the timer
+		# runs out, then snaps to exactly one so nothing drifts.
+		if _drink > 0.0:
+			_drink = maxf(0.0, _drink - delta)
+			var wobble := 1.0 + 0.07 * sin((0.55 - _drink) * 16.0) \
+				* (_drink / 0.55)
+			_planting.scale = Vector2(wobble, wobble)
+		elif not is_equal_approx(_planting.scale.x, 1.0):
+			_planting.scale = Vector2.ONE
 	for plant in _sway:
 		if is_instance_valid(plant):
 			(plant as Control).rotation = sin(_t * 2.1) * 0.055
