@@ -597,6 +597,21 @@ func _world_texture_alpha_rect(sprite: TextureRect) -> Rect2:
 
 
 ## Rejection feedback changes only the local visual group, even when a lift
+## How far a display group gets from home during the next `seconds` of a
+## shake, sampled every frame. The shake is a 0.22 s tween through zero
+## twice; one snapshot at 0.04 s used to be the whole test, and a single
+## slow frame under software GL could land that snapshot on a zero crossing
+## and call a shaking cover still. Watching the frames is what an eye does.
+func _largest_swing(visual: Node2D, seconds: float) -> float:
+	var swing := 0.0
+	var left := seconds
+	while left > 0.0 and visual != null and is_instance_valid(visual):
+		swing = maxf(swing, visual.position.length())
+		left -= get_process_delta_time()
+		await get_tree().process_frame
+	return swing
+
+
 ## or held bob owns the target transform. Real touches still use the same anchor.
 func _refusals_keep_the_input_anchor() -> void:
 	await _open_at("harvest_02", 2)
@@ -608,10 +623,10 @@ func _refusals_keep_the_input_anchor() -> void:
 		_ok(visual != null, "rejection feedback has a local display group")
 		for retry in range(2):
 			await _stroke(_move_for(unripe))
-			await get_tree().create_timer(0.04).timeout
+			var swing := await _largest_swing(visual, 0.14)
 			_ok(unripe.position.distance_to(home) < 0.001,
 				"a refused gesture never moves the crop input anchor")
-			_ok(visual != null and visual.position.length() > 0.1,
+			_ok(swing > 0.1,
 				"refusal still gives visible local shake feedback")
 		await get_tree().create_timer(0.28).timeout
 		_ok(visual != null and visual.position.length() < 0.001,
@@ -628,10 +643,10 @@ func _refusals_keep_the_input_anchor() -> void:
 		_ok(visual != null and cover != null and cover.get_parent() == visual,
 			"the opaque soil cover shares the rejection display group")
 		await _stroke([potato.global_position, potato.global_position + Vector2(12, 0)])
-		await get_tree().create_timer(0.04).timeout
+		var swing := await _largest_swing(visual, 0.14)
 		_ok(potato.position.distance_to(home) < 0.001,
 			"a failed dig preserves the potato input anchor")
-		_ok(visual != null and visual.position.length() > 0.1,
+		_ok(swing > 0.1,
 			"the soil covering the potato visibly shakes on refusal")
 		await get_tree().create_timer(0.28).timeout
 		_ok(visual != null and visual.position.length() < 0.001,
