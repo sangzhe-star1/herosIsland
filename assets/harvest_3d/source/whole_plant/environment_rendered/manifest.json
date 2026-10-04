@@ -1,0 +1,526 @@
+{
+  "status": "离线美术候选；未接正式页面",
+  "source_sha256": "123cfab7a4150110e8af29ca208b46dda6a8250d4870e46f3fb791620f64718c",
+  "input": "/private/tmp/heroes-whole-plant-pose-fixed-UZ65wQ/whole_plant_scene.glb",
+  "source_file_unchanged": true,
+  "imported_meshes_unchanged": true,
+  "imported_transforms_unchanged": true,
+  "hidden_only": [
+    "GardenBed"
+  ],
+  "max_imported_transform_delta": 0.0,
+  "transform_tolerance": 1e-06,
+  "environment_export_contains_fixed_soil_marks": false,
+  "input_mesh_fingerprints": {
+    "Basket | static geometry": "6c24161dbd129bcd5f44cd56f201dec1a52a39cced48d9eb5a89b37e76645834",
+    "GardenBed | static geometry": "0e9eeaee6c44563aa9fbf8ab7d71ddd00f8bacbdadd2ad91dacdf68112acbf9c",
+    "HarvestTarget Tomato P01 F01": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P01 F02": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P01 F03": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P01 F04": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "Plant01 | static geometry": "5b4907067da52c06f38fc1bd81b30c0d02919cd4f2a2375dbbe7048636a68203",
+    "HarvestTarget Tomato P02 F01": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P02 F02": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P02 F03": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P02 F04": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "Plant02 | static geometry": "37b6c81cb65594cbd723fdf1a0d3f449784d745aabf0e56f26db388b907a0038",
+    "HarvestTarget Tomato P03 F01": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P03 F02": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P03 F03": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "HarvestTarget Tomato P03 F04": "29958be9b3bd0ea7d8db71077e70f0f351acbd54feb0b7670755df7af2e36ed3",
+    "Plant03 | static geometry": "9edddfcfaf69e9fc927ba035abb3b04568733728b05d4c626bc1d33568ab5ce8"
+  },
+  "generator_sha256": "833a04b804cb677a60b812d497130119913af55707adfc1f10521a270bd63394",
+  "blender_version": "5.2.2 LTS",
+  "renders": [
+    {
+      "file": "same_source_space_16x9.png",
+      "size": [
+        1280,
+        720
+      ],
+      "ortho_scale": 9.4,
+      "camera_direction": "与整株冻结模型一致",
+      "environment_only_ortho_scale": 18.488888888888887,
+      "environment_only_reference": "1280逻辑宽、art_size90/180px画布的同源背景；不是放大展示图"
+    },
+    {
+      "file": "same_source_space_4x3.png",
+      "size": [
+        960,
+        720
+      ],
+      "ortho_scale": 8.8,
+      "camera_direction": "与整株冻结模型一致",
+      "environment_only_ortho_scale": 18.488888888888887,
+      "environment_only_reference": "1280逻辑宽、art_size90/180px画布的同源背景；不是放大展示图"
+    }
+  ],
+  "environment_audit": {
+    "path": "passive_environment.glb",
+    "bytes": 263956,
+    "sha256": "4ba97d1c636df5734288c34b6b80a5d44a938eaae28a145689a4581ab4514e64",
+    "summary": {
+      "nodes": 3,
+      "meshes": 2,
+      "materials": 2,
+      "unique_mesh_triangles": 11136,
+      "unique_mesh_vertices": 5745,
+      "unique_mesh_primitives": 2,
+      "unique_color_0_primitives": 1,
+      "instanced_scene_triangles": 11136,
+      "instanced_scene_vertices": 5745,
+      "instanced_scene_primitives": 2,
+      "instanced_color_0_primitives": 1,
+      "static_scene_triangles": 11136,
+      "static_scene_primitives": 2,
+      "target_scene_triangles": 0,
+      "targets": 0,
+      "unique_target_names": 0,
+      "textures": 0,
+      "images": 0,
+      "cameras": 0,
+      "lights": 0,
+      "extensions_used": [],
+      "extensions_required": [],
+      "extensions_present": []
+    },
+    "hierarchy": [
+      {
+        "id": 2,
+        "name": "Environment | passive same-source space",
+        "path": "Environment | passive same-source space",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": null
+      },
+      {
+        "id": 0,
+        "name": "Environment | continuous gentle field",
+        "path": "Environment | passive same-source space/Environment | continuous gentle field",
+        "parent": "Environment | passive same-source space",
+        "parent_id": 2,
+        "depth": 1,
+        "mesh": 0
+      },
+      {
+        "id": 1,
+        "name": "Environment | restrained short grass",
+        "path": "Environment | passive same-source space/Environment | restrained short grass",
+        "parent": "Environment | passive same-source space",
+        "parent_id": 2,
+        "depth": 1,
+        "mesh": 1
+      }
+    ],
+    "targets": [],
+    "duplicate_target_names": [],
+    "duplicate_node_names": [],
+    "default_scene": 0,
+    "scene_roots": [
+      "Environment | passive same-source space"
+    ],
+    "unreachable_node_ids": [],
+    "materials": [
+      {
+        "id": 0,
+        "name": "Environment | quiet natural grass",
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorFactor_explicit": false,
+        "baseColorTexture": null,
+        "roughness": 1,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 1,
+        "name": "Leaf | garden green",
+        "baseColorFactor": [
+          0.10499999672174454,
+          0.32499998807907104,
+          0.04500000178813934,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8799999952316284,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      }
+    ],
+    "meshes": [
+      {
+        "id": 0,
+        "name": "Environment | continuous gentle field mesh",
+        "triangles": 9216,
+        "vertices": 4753,
+        "primitive_count": 1,
+        "color_0_primitive_count": 1,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 4753,
+            "triangles": 9216,
+            "material": 0,
+            "material_name": "Environment | quiet natural grass",
+            "attributes": [
+              "COLOR_0",
+              "NORMAL",
+              "POSITION"
+            ],
+            "color_0": {
+              "type": "VEC3",
+              "componentType": 5126,
+              "count": 4753,
+              "normalized": null,
+              "min": [
+                0.19635,
+                0.341275,
+                0.079475
+              ],
+              "max": [
+                0.279591,
+                0.43225,
+                0.182005
+              ],
+              "mean": [
+                0.208198,
+                0.358296,
+                0.088848
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": 1,
+        "name": "Environment | restrained short grass Mesh",
+        "triangles": 1920,
+        "vertices": 992,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 992,
+            "triangles": 1920,
+            "material": 1,
+            "material_name": "Leaf | garden green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      }
+    ],
+    "instances": [
+      {
+        "node": 0,
+        "name": "Environment | continuous gentle field",
+        "path": "Environment | passive same-source space/Environment | continuous gentle field",
+        "mesh": 0,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 9216,
+        "vertices": 4753,
+        "primitive_count": 1,
+        "color_0_primitive_count": 1
+      },
+      {
+        "node": 1,
+        "name": "Environment | restrained short grass",
+        "path": "Environment | passive same-source space/Environment | restrained short grass",
+        "mesh": 1,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 1920,
+        "vertices": 992,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      }
+    ],
+    "images": [],
+    "cameras": [],
+    "lights": [],
+    "notes": [
+      "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+      "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+      "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+      "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+    ]
+  },
+  "render_profile": {
+    "display_transform": "Standard",
+    "exposure": -0.2,
+    "look": "None",
+    "samples": 24,
+    "denoise": true,
+    "camera_location": [
+      6.7,
+      -9.8,
+      6.8
+    ],
+    "camera_aim": [
+      0.14,
+      -0.12,
+      1.03
+    ],
+    "camera_rotation_euler": [
+      1.1124104261398315,
+      8.635075765539568e-09,
+      0.5955926179885864
+    ],
+    "ambient_color": [
+      0.7,
+      0.82,
+      0.88
+    ],
+    "ambient_strength": 0.45,
+    "camera_sky_color": [
+      0.32,
+      0.64,
+      0.92
+    ],
+    "camera_sky_strength": 1,
+    "lights": [
+      {
+        "name": "Key",
+        "type": "SUN",
+        "location": [
+          -3.7,
+          -4.5,
+          10.5
+        ],
+        "energy": 1.1,
+        "color": [
+          1,
+          0.93,
+          0.83
+        ],
+        "aim": [
+          0,
+          0,
+          0.8
+        ],
+        "angle": 0.3
+      },
+      {
+        "name": "Fill",
+        "type": "AREA",
+        "location": [
+          4.5,
+          -1.0,
+          5.5
+        ],
+        "energy": 240,
+        "color": [
+          0.88,
+          0.94,
+          1
+        ],
+        "aim": [
+          0,
+          0,
+          0.8
+        ],
+        "shape": "SQUARE",
+        "size": 4.6
+      },
+      {
+        "name": "Rim",
+        "type": "AREA",
+        "location": [
+          1.0,
+          4.5,
+          6.0
+        ],
+        "energy": 180,
+        "color": [
+          1,
+          0.97,
+          0.86
+        ],
+        "aim": [
+          0,
+          0,
+          0.8
+        ],
+        "shape": "SQUARE",
+        "size": 4.6
+      }
+    ],
+    "camera_visible_sky_separate_from_ambient": true
+  },
+  "runtime_reference": {
+    "logical_width_px": 1280,
+    "crop_art_size": 90,
+    "crop_ortho_span_m": 2.6,
+    "pixels_per_metre": 69.23076923076923,
+    "plant_body_art_size": 102.11538461538461,
+    "dense_plant_body_art_size": 81.6923076923077,
+    "background_ortho_span_m": 18.488888888888887
+  },
+  "png_contract": {
+    "size_px": [
+      512,
+      512
+    ],
+    "world0_px": [
+      256,
+      467
+    ],
+    "ortho_spans_m": {
+      "plant001_body": 2.95,
+      "tomato_fruit": 1.08,
+      "basket": 1.94
+    },
+    "projected_fruit_anchors": [
+      {
+        "name": "HarvestTarget Tomato P01 F01",
+        "pixel_center_512": [
+          150.882,
+          348.231
+        ],
+        "scale": [
+          1.1300002336502075,
+          1.1300002336502075,
+          1.1299999952316284
+        ]
+      },
+      {
+        "name": "HarvestTarget Tomato P01 F02",
+        "pixel_center_512": [
+          262.141,
+          341.192
+        ],
+        "scale": [
+          1.130000114440918,
+          1.130000114440918,
+          1.1299999952316284
+        ]
+      },
+      {
+        "name": "HarvestTarget Tomato P01 F03",
+        "pixel_center_512": [
+          176.44,
+          254.838
+        ],
+        "scale": [
+          1.130000114440918,
+          1.130000114440918,
+          1.1299999952316284
+        ]
+      },
+      {
+        "name": "HarvestTarget Tomato P01 F04",
+        "pixel_center_512": [
+          271.27,
+          242.842
+        ],
+        "scale": [
+          1.130000114440918,
+          1.130000114440918,
+          1.1299999952316284
+        ]
+      }
+    ],
+    "single_target_fruit_pixel_center_512": [
+      256.0,
+      368.369
+    ],
+    "source_scale_baked_in_fruit_png": [
+      1.13,
+      1.13,
+      1.13
+    ],
+    "contact_shadow_baked": false
+  },
+  "matching_cutouts": {
+    "plant001_body_512.png": "株身；512画布，原点(256,467)，跨度2.95",
+    "tomato_fruit_512.png": "单果；跨度1.08，图内已含1.13源比例，果心抬高.232m",
+    "basket_512.png": "独立空篮；原点(256,467)，跨度1.94"
+  },
+  "transparent_shadow_baked": false,
+  "reuse": [
+    "默认导入冻结整株/果实/篮GLB",
+    "已有Builder.leaflet及叶端修复",
+    "原绿叶材质"
+  ],
+  "limits": [
+    "没有 Godot UI 或运行截图，不是可点击农场",
+    "环境顶点色 COLOR_0 需要实际 Godot 导入检查",
+    "地表截图不是完整背景替换；运行侧仍由既有节点坐标驱动",
+    "当前仅检查完整构图，不证明72px可读性或设备性能"
+  ],
+  "transparent_pngs": {
+    "tomato_fruit_512.png": {
+      "size": [
+        512,
+        512
+      ],
+      "alpha_bounds": [
+        148,
+        237,
+        364,
+        478
+      ],
+      "world0_px": [
+        256,
+        467
+      ],
+      "sha256": "52d1c470aee5cc3233b77591a0dfa7fee9fd06fe2a1286aeec5ecb5fce6cc763",
+      "border_alpha_nonzero": false
+    },
+    "plant001_body_512.png": {
+      "size": [
+        512,
+        512
+      ],
+      "alpha_bounds": [
+        149,
+        122,
+        387,
+        468
+      ],
+      "world0_px": [
+        256,
+        467
+      ],
+      "sha256": "f1a24279ff376de06d91b7a496df47b54598e509b1bdf3c552c8bb7bdaf41e59",
+      "border_alpha_nonzero": false
+    },
+    "basket_512.png": {
+      "size": [
+        512,
+        512
+      ],
+      "alpha_bounds": [
+        91,
+        100,
+        421,
+        487
+      ],
+      "world0_px": [
+        256,
+        467
+      ],
+      "sha256": "3133f9b097e2349b119158a7c838a243b619590b30b6e8fe656bcbf4adb9d0df",
+      "border_alpha_nonzero": false
+    }
+  },
+  "qa_contact_sheets": {
+    "small_scale_review.png": "48/72/96 refers to full transparent canvas, not runtime art_size",
+    "runtime_art_size_review.png": "runtime art_size72/90 with 144/180px canvas; current tomato/basket comparison"
+  }
+}

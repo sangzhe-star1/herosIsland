@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "status": "archived_source_candidate_not_accepted_for_runtime",
+  "archive_date": "2026-10-02",
+  "runtime_assets_updated": false,
+  "whole_page_art_accepted": false,
+  "godot_interaction_accepted": false,
+  "source_run_status": "rendered_pending_art_acceptance",
+  "origin_render_directory": "/private/tmp/heroes-catalog-profile-final-7etobe6w",
+  "manifest_copied_verbatim": true,
+  "archived_exporter": {
+    "path": "export_catalog.py",
+    "sha256": "1238c73043593bb6f26a8281abcc6aebbd3dc2c539708c2ed6a2663c0190e057",
+    "copied_verbatim_from": "/private/tmp/heroes-harvest-catalog-profile-20261002-prototype/export_catalog.py",
+    "no_tmp_path_dependency": true
+  },
+  "frozen_profile": {
+    "path": "inputs/frozen_render_profile.blend",
+    "sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+    "origin_at_render": "/opt/heroesIsland/assets/harvest_3d/source/whole_plant/environment_rendered/same_source_space.blend",
+    "scene": "Scene",
+    "view_transform": "Standard",
+    "exposure": -0.20000000298023224,
+    "lamps": [
+      {
+        "name": "Environment review | Key",
+        "type": "SUN"
+      },
+      {
+        "name": "Environment review | Fill",
+        "type": "AREA"
+      },
+      {
+        "name": "Environment review | Rim",
+        "type": "AREA"
+      }
+    ],
+    "copied_exact_bytes": true
+  },
+  "rebuild_inputs": [
+    {
+      "argument": "--source-blend",
+      "repository_relative_from_candidate": "../harvest_sprite_pack.blend",
+      "sha256": "2dd8b2baabb50b610484b5876a904361005e1503f19b966954917a454f8bda91",
+      "copied": false
+    },
+    {
+      "argument": "--source-manifest",
+      "repository_relative_from_candidate": "../manifest.json",
+      "sha256": "24e29d69ab0bc35fb9618ab56c0186333db17066d162cd0e4e768f3c2fb60902",
+      "copied": false
+    },
+    {
+      "argument": "--carrot-blend",
+      "repository_relative_from_candidate": "../carrot_shape_candidate/harvest_sprite_pack.blend",
+      "sha256": "c9973e236dff542ee164f91d4ecbad893e1042db864b10e259c33ddfa721d26e",
+      "copied": false
+    },
+    {
+      "argument": "--profile-blend",
+      "repository_relative_from_candidate": "inputs/frozen_render_profile.blend",
+      "sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+      "copied": true
+    }
+  ],
+  "preservation": {
+    "catalog_assets": 17,
+    "original_catalog_assets": 15,
+    "long_root_replacements": [
+      "carrot",
+      "golden_carrot"
+    ],
+    "geometry_and_materials_and_world_matrices_unchanged": true,
+    "source_geometry_object_types": {
+      "MESH": 241,
+      "CURVE": 78
+    },
+    "source_contact_shadow_objects_excluded": 17,
+    "contact_shadow_baked": false,
+    "runtime_contact_shadow_owner": "existing Shapes.ground_shadow",
+    "profile_environment_geometry_or_fixed_soil_marks_included": false,
+    "old_basket_and_soil_props_included": false,
+    "world_proportions_or_asset_ortho_auto_fitted": false
+  },
+  "offline_png_audit": {
+    "size_px": [
+      512,
+      512
+    ],
+    "world0_px": [
+      256,
+      467
+    ],
+    "ortho_span_m": 2.6,
+    "all_17_pngs_rendered": true,
+    "all_17_pngs_canvas_gate_passed": true,
+    "canvas_failures": [],
+    "geometry_projection_failures": [],
+    "audit_does_not_establish_whole_page_art_or_interaction_acceptance": true
+  },
+  "archive_policy": "Source-only candidate, ignored by Godot. Original runtime crop PNGs are unchanged. Inputs and outputs use explicit CLI paths; rebuild does not depend on the historical tmp paths.",
+  "runtime_adoption_20261003": {
+    "status": "integrated_in_formal_tree; current_1706_touch_checks_and_actual_screenshots_passed",
+    "formal_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-formal-art-6ykzg4kx",
+    "touch_checks": 1584,
+    "gameplay_screenshots": 30,
+    "held_clearance_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-held-clearance-w_utxrh_",
+    "evidence_document": "docs/HARVEST_RUNTIME_QA_20261002.md",
+    "current_runtime_manifest": "assets/harvest_3d/source/RUNTIME_INTEGRATION_20261003.json",
+    "scope": "Historical render manifest and source fingerprints are retained verbatim. Adoption is recorded separately from the original candidate status. Whole-page review of subsequent edits, target-device performance and child recognition are separate evidence.",
+    "later_source_override": "strawberry_readability (adopted in formal runtime; original 17-asset catalog preserved as frozen-profile baseline)",
+    "final_polish_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-readable-final-vfsy2myx",
+    "final_touch_checks": 1706,
+    "final_polish_gameplay_screenshots": 14,
+    "native_badge_sizes": [
+      24,
+      32,
+      48,
+      72,
+      96
+    ],
+    "native_badge_cells": 85,
+    "current_input_sha_manifest": "qa_logs/strawberry_readability_summary.json",
+    "completion_qa": {
+      "snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-completion-clean-w_924pv9",
+      "checks": 448,
+      "ratios_and_motion_cases": 4,
+      "orders": 12,
+      "real_deliveries": 68,
+      "result_and_save_reload": "passed"
+    },
+    "screenshot_content_gate": {
+      "script_sha256": "57c75ac18198c190be5976895c1317a482caf58ac602c913e09ccb34b6cd010e",
+      "two_ratio_runs": "1280x720 and 1024x768; CONTENT PASSED; actual PNG SHA recorded in RUNTIME_INTEGRATION_20261003.json"
+    }
+  }
+}

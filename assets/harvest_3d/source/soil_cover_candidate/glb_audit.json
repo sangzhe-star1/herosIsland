@@ -1,0 +1,62 @@
+{
+  "sha256": "573f96e7f88fd005b0308a516c07471658a5fb081fd34c7f63ba39095809f8cc",
+  "bytes": 24248,
+  "nodes": 2,
+  "meshes": 1,
+  "materials": 1,
+  "textures": 0,
+  "images": 0,
+  "animations": 0,
+  "totals": {
+    "vertices": 705,
+    "triangles": 1024,
+    "nonfinite_positions": 0,
+    "nonfinite_normals": 0,
+    "zero_normals": 0,
+    "nonunit_normals": 0,
+    "invalid_indices": 0,
+    "degenerate_triangles": 0,
+    "opposed_face_normals": 0
+  },
+  "primitives": [
+    {
+      "mesh": "SoilCover | shallow irregular mound Mesh",
+      "vertices": 705,
+      "triangles": 1024,
+      "nonfinite_positions": 0,
+      "nonfinite_normals": 0,
+      "zero_normals": 0,
+      "nonunit_normals": 0,
+      "invalid_indices": 0,
+      "degenerate_triangles": 0,
+      "opposed_face_normals": 0
+    }
+  ],
+  "local_bounds_gltf_y_up": [
+    [
+      -0.7427420020103455,
+      0.0,
+      -0.6036291718482971
+    ],
+    [
+      0.5943418741226196,
+      0.24688154458999634,
+      0.5555289387702942
+    ]
+  ],
+  "materials_detail": [
+    {
+      "name": "SoilCover | warm loose earth",
+      "pbr": {
+        "baseColorFactor": [
+          0.23000000417232513,
+          0.1080000028014183,
+          0.04800000041723251,
+          1
+        ],
+        "metallicFactor": 0
+      },
+      "alpha_mode": "OPAQUE"
+    }
+  ]
+}

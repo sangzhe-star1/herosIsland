@@ -1,0 +1,194 @@
+{
+  "source_blend": "assets/harvest_3d/source/harvest_sprite_pack.blend",
+  "source_blend_sha256": "2dd8b2baabb50b610484b5876a904361005e1503f19b966954917a454f8bda91",
+  "crop_manifest": "data/harvest_crops.json",
+  "catalog": [
+    {
+      "id": "carrot",
+      "file": "carrot.glb",
+      "sha256": "abef24c6aaf4b2b92058c6055cb9be6119281de65003ab132b0736bf6a3c5d22",
+      "bytes": 72864,
+      "meshes": 7,
+      "vertices": 2180,
+      "triangles": 4316,
+      "source_collection": "ASSET | carrot",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "golden_carrot",
+      "file": "golden_carrot.glb",
+      "sha256": "6115a5ab75278e186dcc5dd841f728e15b924d5112b15cb13251c5d15c89100d",
+      "bytes": 72952,
+      "meshes": 7,
+      "vertices": 2180,
+      "triangles": 4316,
+      "source_collection": "ASSET | golden_carrot",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "potato",
+      "file": "potato.glb",
+      "sha256": "0e720c5df061f87eb7e5db833dd13bfa6e5a40d569ef118b3f3211577db0c17e",
+      "bytes": 73108,
+      "meshes": 7,
+      "vertices": 1372,
+      "triangles": 2716,
+      "source_collection": "ASSET | potato",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "tomato",
+      "file": "tomato.glb",
+      "sha256": "33533f6ac4f1d681a7100df8ba420339270f266b98d4367abd31ccc96a596cc8",
+      "bytes": 127652,
+      "meshes": 9,
+      "vertices": 3704,
+      "triangles": 7264,
+      "source_collection": "ASSET | tomato",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "strawberry",
+      "file": "strawberry.glb",
+      "sha256": "fc84710232307a6b52f747fe029fbff9706f718d6ab156adee3a476c8ac47974",
+      "bytes": 139804,
+      "meshes": 29,
+      "vertices": 3554,
+      "triangles": 6992,
+      "source_collection": "ASSET | strawberry",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "corn",
+      "file": "corn.glb",
+      "sha256": "be9387cd108ae06971dc4a38484559378cd7c160d17cfa79ba934cd69a5c263d",
+      "bytes": 250820,
+      "meshes": 48,
+      "vertices": 5834,
+      "triangles": 11476,
+      "source_collection": "ASSET | corn",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "orange",
+      "file": "orange.glb",
+      "sha256": "799fc2a76262db58c84a8c105f086cb2290c8d456f621beb32b41e5578e771f3",
+      "bytes": 87116,
+      "meshes": 8,
+      "vertices": 2066,
+      "triangles": 4008,
+      "source_collection": "ASSET | orange",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "apple",
+      "file": "apple.glb",
+      "sha256": "88779bcf451bd12b83fc3511d7b3013f0c947a7769a35dd44201994796f12bbb",
+      "bytes": 79084,
+      "meshes": 3,
+      "vertices": 2028,
+      "triangles": 3936,
+      "source_collection": "ASSET | apple",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "peas",
+      "file": "peas.glb",
+      "sha256": "e223a68ec0cbd98708d420c38cbc597eebe513a2a0f352448001f35492002d1d",
+      "bytes": 115036,
+      "meshes": 7,
+      "vertices": 2594,
+      "triangles": 5144,
+      "source_collection": "ASSET | peas",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "pumpkin",
+      "file": "pumpkin.glb",
+      "sha256": "917fe68eddbe0b84de1e075e1aaff5b5ae3bb3daa21556f8843997a4ac19dda9",
+      "bytes": 428220,
+      "meshes": 11,
+      "vertices": 11170,
+      "triangles": 22080,
+      "source_collection": "ASSET | pumpkin",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "watermelon",
+      "file": "watermelon.glb",
+      "sha256": "d19d748b8ade9e9052bc96d33af5606dc644bd7135d5214b7c78d40e9716c7ac",
+      "bytes": 453824,
+      "meshes": 8,
+      "vertices": 11638,
+      "triangles": 23160,
+      "source_collection": "ASSET | watermelon",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "broccoli",
+      "file": "broccoli.glb",
+      "sha256": "211e60673a1ecfbaeabb6f00a29abe52b20f07bdc224ceb8b7030e529f47c023",
+      "bytes": 227200,
+      "meshes": 34,
+      "vertices": 4712,
+      "triangles": 9272,
+      "source_collection": "ASSET | broccoli",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "lettuce",
+      "file": "lettuce.glb",
+      "sha256": "6ca3020b0dddf1df5489e662a191d8258e0c94e7877b5f76d0608dcef351151e",
+      "bytes": 131928,
+      "meshes": 16,
+      "vertices": 4736,
+      "triangles": 9408,
+      "source_collection": "ASSET | lettuce",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "grape",
+      "file": "grape.glb",
+      "sha256": "bfeed396c489f0b0539b7ab0307fe58ab945232f09981b9c930589c7a3042ece",
+      "bytes": 161760,
+      "meshes": 14,
+      "vertices": 3780,
+      "triangles": 7488,
+      "source_collection": "ASSET | grape",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "wheat",
+      "file": "wheat.glb",
+      "sha256": "04a5c7fbef8410da5d10d4ec69ba8ccb2e365c3e3535437fb8b497cbb89be730",
+      "bytes": 448236,
+      "meshes": 84,
+      "vertices": 10164,
+      "triangles": 19668,
+      "source_collection": "ASSET | wheat",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "stone",
+      "file": "stone.glb",
+      "sha256": "15e3bdc0aab1b1319040bbdbbc1679540d4c4b8311ecf373d8f9336cfa605efd",
+      "bytes": 52760,
+      "meshes": 2,
+      "vertices": 545,
+      "triangles": 1040,
+      "source_collection": "ASSET | stone",
+      "excluded_shadow_planes": true
+    },
+    {
+      "id": "bug",
+      "file": "bug.glb",
+      "sha256": "f7cdc92ca7373bbfbe68326fc47a07b8f3c22fdfd81e1404767946651d07b03a",
+      "bytes": 167232,
+      "meshes": 19,
+      "vertices": 3696,
+      "triangles": 7208,
+      "source_collection": "ASSET | bug",
+      "excluded_shadow_planes": true
+    }
+  ]
+}

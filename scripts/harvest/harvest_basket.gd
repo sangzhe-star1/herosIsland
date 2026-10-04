@@ -17,6 +17,8 @@ extends Node2D
 ## and a game that punishes the wrong answer teaches them to stop guessing.
 
 const Maturity := preload("res://scripts/harvest/maturity.gd")
+const FarmWorldArt := preload("res://scripts/garden/farm_world_art.gd")
+const VisualArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 
 var id := ""
 ## Tags this basket takes. Empty means it takes anything -- the single-basket
@@ -49,38 +51,54 @@ func build(spec: Dictionary, size: float, reach: float = -1.0) -> void:
 	_size = size
 	_build_waiting_cue(size)
 
-	# Seated, not pasted: a contact shadow roots the basket to the meadow the
-	# same way the soil mounds root the crops. Added first so the art lands
-	# on top of it.
-	Shapes.ground_shadow(self, Vector2(0, size * 0.52), size * 1.05, 0.20)
-
-	var art: Control = UiKit.picture(str(spec.get("icon", "basket")), size)
-	if art != null:
-		art.position = Vector2(-size * 0.5, -size * 0.5)
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(art)
+	# The 3D render shares the crop camera/ground pivot. Metadata selects
+	# the existing short ground shadow. Keep the previous shell as a fallback so
+	# this component remains usable before optional artwork is imported.
+	var basket_texture := VisualArt.prop_texture("basket_empty")
+	if basket_texture != null:
+		if not VisualArt.prop_has_baked_contact_shadow("basket_empty"):
+			Shapes.ground_shadow(self, Vector2(0.0, size * 0.52), size * 1.05, 0.18)
+		var basket_art := VisualArt.grounded_sprite(basket_texture, size,
+			Vector2(0.0, size * 0.52), "HarvestBasket3DArt")
+		add_child(basket_art)
+	else:
+		Shapes.ground_shadow(self, Vector2(0, size * 0.52), size * 1.05, 0.20)
+		FarmWorldArt.draw_basket_shell(self, size)
 
 	# What it takes, drawn as the thing itself rather than written as a word.
 	# A child who cannot read "fruit" can recognise a strawberry.
 	var sample := str(spec.get("sample", ""))
 	if sample != "":
-		# A cream disc behind the badge, the garden plot-badge way: a sample
-		# floating bare against the sky reads as another crop on the field,
-		# and one overlapping a target reads as sitting in the wrong basket.
-		var disc := Node2D.new()
-		disc.position = Vector2(-size * 0.65, -size * 0.23)
-		add_child(disc)
-		Shapes.lit(disc, Shapes.circle_points(Vector2.ZERO, size * 0.30, 26),
-			Color(1.0, 0.99, 0.94), 0.12)
-		var badge: Control = UiKit.picture(sample, size * 0.42)
+		# The sample is a stitched-on basket tag, not a cream disc floating next
+		# to it.  A loose disc is too easily read as another pickable crop; this
+		# small warm tag stays physically attached to the place it describes.
+		var tag := Node2D.new()
+		tag.name = "BasketSampleTag"
+		tag.position = Vector2(0.0, size * 0.14)
+		tag.z_index = 1
+		add_child(tag)
+		var tag_box := Vector2(size * 0.58, size * 0.30)
+		Shapes.lit(tag, Shapes.rounded_rect(-tag_box * 0.5, tag_box,
+			tag_box.y * 0.46), Color(1.0, 0.84, 0.43), 0.52)
+		var badge_size := minf(size * 0.42, tag_box.y * 1.18)
+		var sample_id := sample.get_file().get_basename() if sample.begins_with("res://") \
+			else sample
+		var badge: Control = VisualArt.crop_badge(sample_id, badge_size,
+			"BasketSample3DBadge")
+		if badge == null:
+			badge = UiKit.picture(sample, badge_size)
 		if badge != null:
-			# Tucked against the basket's left shoulder rather than floating
-			# above it, where two stacked baskets put one sample on top of the
-			# other basket and it read as a berry sitting in the wrong one.
-			badge.position = disc.position - Vector2(size * 0.21, size * 0.21)
+			badge.position = Vector2.ONE * (-badge_size * 0.5)
 			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			add_child(badge)
+			tag.add_child(badge)
 			_label = badge
+		if "golden" in accepts:
+			var star := UiKit.picture("star", maxf(badge_size * 0.62, 18.0))
+			if star != null:
+				star.name = "GoldenBasketMarker"
+				star.position = Vector2(-badge_size * 0.57, -badge_size * 0.60)
+				star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				tag.add_child(star)
 
 
 ## A fixed yellow ring and warm halo say "this basket" without requiring a
@@ -157,11 +175,19 @@ func _show_accepted_cue() -> void:
 		check.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cue.add_child(check)
 	_accepted_cue = cue
-	get_tree().create_timer(0.72).timeout.connect(func():
-		if _accepted_cue == cue:
-			_accepted_cue = null
-		if is_instance_valid(cue):
-			cue.queue_free())
+	# A second landing replaces this receipt. Its own tween dies with it,
+	# rather than leaving a tree timer holding a freed Node in a closure.
+	var lifetime := cue.create_tween()
+	lifetime.tween_interval(0.72)
+	lifetime.tween_callback(_finish_accepted_cue.bind(cue.get_instance_id()))
+
+
+func _finish_accepted_cue(instance_id: int) -> void:
+	if not is_instance_valid(_accepted_cue) \
+			or _accepted_cue.get_instance_id() != instance_id:
+		return
+	_accepted_cue.queue_free()
+	_accepted_cue = null
 
 
 ## "Something is waiting to go in one of us."

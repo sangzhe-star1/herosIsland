@@ -1,0 +1,37 @@
+{
+  "status": "source-only visual candidate; not adopted by runtime",
+  "blender_version": "5.2.2 LTS",
+  "source_generator": "assets/harvest_3d/source/strawberry_plant_candidate/build_strawberry_plant.py",
+  "source_sha256": "3c0ab47a45020864da67ce1dbad4bd4879b5e365ed38eed173d3c9676d40b8a3",
+  "editable_source": "assets/harvest_3d/source/strawberry_plant_candidate/rendered/strawberry_plant_review.blend",
+  "editable_source_sha256": "63fa97b78f5854eae2f3484acc261f5bf7308668555315725fa7d74fb807e132",
+  "fruit_source": "assets/harvest_3d/source/strawberry_readability/rendered/strawberry.glb",
+  "ground_origin": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "fruit_slot_node": "FruitSlot | strawberry GLB center",
+  "fruit_slot_center": [
+    0.025,
+    -0.365,
+    0.235
+  ],
+  "fruit_is_separate_harvest_target": true,
+  "mesh_primitive_estimate": 5,
+  "triangle_estimate": 10934,
+  "files": {
+    "strawberry_plant_body.glb": {
+      "bytes": 205100,
+      "sha256": "577f0da6c7ef27d5f58d25ee20b91897bfb16cbaf0ed8ce778d05ee349f37adc"
+    },
+    "strawberry_plant_preview.png": {
+      "bytes": 562902,
+      "sha256": "338e403fce8ebb0617933935e8cd8fe7f19deb49202b6e36a856ccc5b74d774f"
+    },
+    "strawberry_plant_review.blend": {
+      "bytes": 340873,
+      "sha256": "63fa97b78f5854eae2f3484acc261f5bf7308668555315725fa7d74fb807e132"
+    }
+  }
+}

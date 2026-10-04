@@ -1,0 +1,46 @@
+{
+  "status": "source reproduced exactly; refined runtime soil screenshots reviewed; formal integration QA pending",
+  "source_revision": "/private/tmp/heroes-soil-cover-source-4sr3wl0p/revision_semantic_r1",
+  "rebuilder": "assets/harvest_3d/source/soil_cover_candidate/build_soil_cover.py",
+  "rebuild_sha256": "3d92f87c700545db3b2c2ee0edd7ef639397ed9fb2c5488c1e702a0e55f3c42d",
+  "reproduced_glb_sha256": "573f96e7f88fd005b0308a516c07471658a5fb081fd34c7f63ba39095809f8cc",
+  "source_glb_exactly_reproduced": true,
+  "profile_sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+  "archived_renderer_sha256": "851e0a2a83f3f019b3442337343e3693d27af6b5146e21c120a7bef1b49fe45c",
+  "rendered_input_manifest": "profile_manifest.json",
+  "actual_review_qa": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-refined-art-63mo4s7f",
+  "runtime_adoption_20261003": {
+    "status": "integrated_in_formal_tree; current_1706_touch_checks_and_actual_screenshots_passed",
+    "formal_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-formal-art-6ykzg4kx",
+    "touch_checks": 1584,
+    "gameplay_screenshots": 30,
+    "held_clearance_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-held-clearance-w_utxrh_",
+    "evidence_document": "docs/HARVEST_RUNTIME_QA_20261002.md",
+    "current_runtime_manifest": "assets/harvest_3d/source/RUNTIME_INTEGRATION_20261003.json",
+    "scope": "Historical render manifest and source fingerprints are retained verbatim. Adoption is recorded separately from the original candidate status. Whole-page review of subsequent edits, target-device performance and child recognition are separate evidence.",
+    "final_polish_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-readable-final-vfsy2myx",
+    "final_touch_checks": 1706,
+    "final_polish_gameplay_screenshots": 14,
+    "native_badge_sizes": [
+      24,
+      32,
+      48,
+      72,
+      96
+    ],
+    "native_badge_cells": 85,
+    "current_input_sha_manifest": "qa_logs/strawberry_readability_summary.json",
+    "completion_qa": {
+      "snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-completion-clean-w_924pv9",
+      "checks": 448,
+      "ratios_and_motion_cases": 4,
+      "orders": 12,
+      "real_deliveries": 68,
+      "result_and_save_reload": "passed"
+    },
+    "screenshot_content_gate": {
+      "script_sha256": "57c75ac18198c190be5976895c1317a482caf58ac602c913e09ccb34b6cd010e",
+      "two_ratio_runs": "1280x720 and 1024x768; CONTENT PASSED; actual PNG SHA recorded in RUNTIME_INTEGRATION_20261003.json"
+    }
+  }
+}

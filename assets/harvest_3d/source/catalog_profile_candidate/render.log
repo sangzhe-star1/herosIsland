@@ -1,0 +1,52 @@
+00:00.347  blend            | Read blend: "/opt/heroesIsland/assets/harvest_3d/source/whole_plant/environment_rendered/same_source_space.blend"
+/private/tmp/heroes-harvest-catalog-profile-20261002-prototype/export_catalog.py:53: DeprecationWarning: 'World.use_nodes' is expected to be removed in Blender 6.0
+  result[prop.identifier] = serial(getattr(subject, prop.identifier))
+/private/tmp/heroes-harvest-catalog-profile-20261002-prototype/export_catalog.py:128: DeprecationWarning: 'World.use_nodes' is expected to be removed in Blender 6.0
+  'node_tree': node_tree_values(world.node_tree if world.use_nodes else None)},
+/private/tmp/heroes-harvest-catalog-profile-20261002-prototype/export_catalog.py:53: DeprecationWarning: 'SunLight.use_nodes' is expected to be removed in Blender 6.0
+  result[prop.identifier] = serial(getattr(subject, prop.identifier))
+/private/tmp/heroes-harvest-catalog-profile-20261002-prototype/export_catalog.py:131: DeprecationWarning: 'SunLight.use_nodes' is expected to be removed in Blender 6.0
+  node_tree=node_tree_values(o.data.node_tree if o.data.use_nodes else None))
+/private/tmp/heroes-harvest-catalog-profile-20261002-prototype/export_catalog.py:53: DeprecationWarning: 'AreaLight.use_nodes' is expected to be removed in Blender 6.0
+  result[prop.identifier] = serial(getattr(subject, prop.identifier))
+/private/tmp/heroes-harvest-catalog-profile-20261002-prototype/export_catalog.py:131: DeprecationWarning: 'AreaLight.use_nodes' is expected to be removed in Blender 6.0
+  node_tree=node_tree_values(o.data.node_tree if o.data.use_nodes else None))
+00:01.155  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/carrot.png'
+CATALOG carrot meshes 10 shadow-excluded 1 rendered True canvas-gate True
+00:01.870  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/golden_carrot.png'
+CATALOG golden_carrot meshes 10 shadow-excluded 1 rendered True canvas-gate True
+00:02.615  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/potato.png'
+CATALOG potato meshes 7 shadow-excluded 1 rendered True canvas-gate True
+00:03.313  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/tomato.png'
+CATALOG tomato meshes 9 shadow-excluded 1 rendered True canvas-gate True
+00:04.031  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/strawberry.png'
+CATALOG strawberry meshes 29 shadow-excluded 1 rendered True canvas-gate True
+00:04.758  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/corn.png'
+CATALOG corn meshes 48 shadow-excluded 1 rendered True canvas-gate True
+00:05.462  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/orange.png'
+CATALOG orange meshes 8 shadow-excluded 1 rendered True canvas-gate True
+00:06.240  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/apple.png'
+CATALOG apple meshes 3 shadow-excluded 1 rendered True canvas-gate True
+00:06.959  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/peas.png'
+CATALOG peas meshes 7 shadow-excluded 1 rendered True canvas-gate True
+00:07.743  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/pumpkin.png'
+CATALOG pumpkin meshes 11 shadow-excluded 1 rendered True canvas-gate True
+00:08.538  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/watermelon.png'
+CATALOG watermelon meshes 8 shadow-excluded 1 rendered True canvas-gate True
+00:09.313  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/broccoli.png'
+CATALOG broccoli meshes 34 shadow-excluded 1 rendered True canvas-gate True
+00:10.054  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/lettuce.png'
+CATALOG lettuce meshes 16 shadow-excluded 1 rendered True canvas-gate True
+00:10.781  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/grape.png'
+CATALOG grape meshes 14 shadow-excluded 1 rendered True canvas-gate True
+00:11.545  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/wheat.png'
+CATALOG wheat meshes 84 shadow-excluded 1 rendered True canvas-gate True
+00:12.243  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/stone.png'
+CATALOG stone meshes 2 shadow-excluded 1 rendered True canvas-gate True
+00:12.946  render           | Saved: '/private/tmp/heroes-catalog-profile-final-7etobe6w/sprites/bug.png'
+CATALOG bug meshes 19 shadow-excluded 1 rendered True canvas-gate True
+Info: Saved as "catalog_profile_editable.blend"
+MANIFEST /private/tmp/heroes-catalog-profile-final-7etobe6w/manifest.json
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:49:19)
+
+Blender quit

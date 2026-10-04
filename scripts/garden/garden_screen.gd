@@ -64,7 +64,7 @@ const SEED_TILE := Vector2(96, 64)
 ## tablet for the island. These are compact *lanes*, not smaller touch targets:
 ## the buttons inside keep their child-friendly hit boxes.
 const TOP_BAR := 84.0
-const SHELF := 156.0
+const SHELF := 170.0
 ## One header rhythm, used by the five facts a child sees before touching the
 ## farm. Keeping the measurements together prevents the title plaque, level
 ## and challenge door from each growing toward one another on 4:3.
@@ -75,7 +75,7 @@ const HUD_LEVEL_BOX := Vector2(102.0, 54.0)
 const HUD_CHALLENGE_BOX := Vector2(202.0, 64.0)
 const HUD_PURSE_BOX := Vector2(126.0, 58.0)
 const HUD_CARD_Y := 10.0
-## The seed, barn and decorating door share one lower-lane centre. Moving this
+## The seed and barn share one lower-lane centre. Moving this
 ## once keeps their cards aligned while leaving the task ribbon's breathing
 ## halo inside the shorter shelf above them.
 const SEED_LANE_SHIFT := 4.0
@@ -224,12 +224,13 @@ var _confirm_expand := -1
 ## this and loses NOTHING.
 var _market_sell: Dictionary = {}
 ## One stepper row per crop in the box, keyed by crop id: {"row": Node,
-## "count": Label}. Rows are _play children, so a rebuild frees them; the
-## dictionary is cleared wherever the box itself is cleared.
+## "count": Label}. Rows live in the receipt's scroll area; a rebuild frees
+## them with the panel, then `_market_panel` repopulates from the basket.
 var _market_rows: Dictionary = {}
-## Where the crate stood when the market panel was last built -- the rows
-## anchor to it (see _ensure_market_row).
-var _market_box_at := Vector2.ZERO
+var _market_rows_scroll: ScrollContainer
+var _market_scroll_offset := 0
+var _market_rows_list: VBoxContainer
+var _market_drop_hint: Label
 var _market_total: Label
 ## The market's own drag field, so crops can be dragged into the box with the
 ## same hands-feel as everything else. Separate from the rack's _field: each
@@ -323,8 +324,8 @@ func setup_level() -> void:
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 	build_world(self, 0.42)
 	_rebuild()
-	# App resume settles the save before this signal. Only redraw when that
-	# settlement changes something a child can see; the lesson's half-second
+	# App resume settles the save before this signal. The settlement may
+	# change the warehouse as well as the beds; the lesson's half-second
 	# settle is deliberately not part of this signal.
 	if not GameManager.farm_resumed.is_connected(_on_farm_resumed):
 		GameManager.farm_resumed.connect(_on_farm_resumed)
@@ -383,8 +384,7 @@ func _daily_progress(verb: String, by: int = 1) -> void:
 func _on_farm_resumed(changed: bool) -> void:
 	if not changed or not is_inside_tree():
 		return
-	if _how_the_beds_look() != _beds_looked_like:
-		_queue_rebuild()
+	_queue_rebuild()
 
 
 # --- the screen ---------------------------------------------------------
@@ -403,6 +403,16 @@ func _on_farm_resumed(changed: bool) -> void:
 ## once and told what changed, and everything that does NOT move with the farm
 ## is still rebuilt wholesale, because that part is still not worth diffing.
 func _rebuild() -> void:
+	# Ingredients can arrive through overflow refills, not just harvesting.
+	# Resolve recipe knowledge before the book and kitchen read their rows.
+	var learned: Array = Recipes.check_barn()
+	# Keep the receipt on the row being read when the garden clock refreshes.
+	# Closing the market or emptying the box starts the next receipt at the top.
+	if _market_open and not _market_sell.is_empty() \
+			and is_instance_valid(_market_rows_scroll):
+		_market_scroll_offset = _market_rows_scroll.scroll_vertical
+	else:
+		_market_scroll_offset = 0
 	for child in get_children():
 		if child is Control or child is DragField:
 			child.queue_free()
@@ -496,6 +506,9 @@ func _rebuild() -> void:
 	# the lesson was waiting for. Asked here rather than at each of the four
 	# call sites that change a plot, so a fifth one cannot forget.
 	_lesson_advance()
+	# Show the existing lesson card after the sweep that would have freed it.
+	if not learned.is_empty():
+		_recipe_learned_card(learned[0])
 
 
 ## Rebuild after this frame, and not while he is holding something.
@@ -524,10 +537,10 @@ func _queue_rebuild() -> void:
 	await get_tree().process_frame
 	while is_inside_tree() and ((_field != null and is_instance_valid(_field) \
 			and not _field.held().is_empty()) \
+			or (is_instance_valid(_market_field) and not _market_field.held().is_empty()) \
 			or (_world != null and is_instance_valid(_world) and _world.stroking())):
-		# Not while a seed is in the air, and not while a brush stroke is going:
-		# both are a child mid-gesture, and a rebuild takes the thing he is
-		# using out of his hand.
+		# Seeds, market produce and brush strokes all keep their live gesture
+		# until release; a clock update must not take an item out of his hand.
 		await get_tree().process_frame
 	_rebuild_queued = false
 	if is_inside_tree():
@@ -553,15 +566,43 @@ func _header_title_box(view: Vector2) -> Rect2:
 	return Rect2(left + (room - width) * 0.5, 14.0, width, 56.0)
 
 
+## The garden needs surfaces to separate reading lanes, not a second row of
+## cards.  Keep that low-relief material in one helper so the header and dock
+## can share it without inventing another UI family for each little panel.
+func _quiet_surface_style(fill: Color, radius: int, edge: Color,
+		edge_width: int = 0, content_margin: int = 20) -> StyleBoxFlat:
+	var style := UiKit.panel_style(fill, radius)
+	style.shadow_size = 0
+	style.shadow_offset = Vector2.ZERO
+	style.set_content_margin_all(content_margin)
+	if edge_width > 0:
+		style.border_color = edge
+		style.set_border_width_all(edge_width)
+	return style
+
+
+## A tool is a choice inside the shared dock, rather than seven little cards.
+## The selected one still gets a firm blue outline and a tiny lift; hover gets
+## only a hairline so it cannot compete with the single gold task ribbon.
+func _tool_tile_style(fill: Color, edge: Color, selected: bool,
+		hovered: bool = false) -> StyleBoxFlat:
+	var edge_width := 2 if selected else (1 if hovered else 0)
+	var style := _quiet_surface_style(fill, 16, edge, edge_width)
+	if selected:
+		style.shadow_size = 4
+		style.shadow_offset = Vector2(0, 2)
+	return style
+
+
 func _top_bar(view: Vector2) -> void:
-	# A fixed, pale strip prevents the moving farm from reaching the text. The
-	# former full-height cards made this feel like a control panel; five compact
-	# slots let the island have the majority of the glass again.
+	# A fixed, pale strip prevents the moving farm from reaching the text. It is
+	# deliberately flat: facts should read as one calm sentence above the farm,
+	# not five raised cards competing with the island below.
 	var strip := Panel.new()
 	strip.name = "GardenTopBar"
-	var strip_style := UiKit.panel_style(Color(0.99, 0.98, 0.93), 0)
-	strip_style.border_color = Color(0.53, 0.70, 0.42, 0.75)
-	strip_style.border_width_bottom = 4
+	var strip_style := _quiet_surface_style(Color(0.99, 0.98, 0.93), 0,
+		Color(0.53, 0.70, 0.42, 0.42))
+	strip_style.border_width_bottom = 2
 	strip.add_theme_stylebox_override("panel", strip_style)
 	strip.position = Vector2.ZERO
 	strip.custom_minimum_size = Vector2(view.x, TOP_BAR)
@@ -581,8 +622,8 @@ func _top_bar(view: Vector2) -> void:
 	if title_box.size.x >= 220.0:
 		var plaque := Panel.new()
 		plaque.name = "GardenTitlePlaque"
-		plaque.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
-			Color(1.0, 0.95, 0.78), Color(0.76, 0.56, 0.26), 22, 2))
+		plaque.add_theme_stylebox_override("panel", _quiet_surface_style(
+			Color(1.0, 0.95, 0.78, 0.72), 22, Color(0.76, 0.56, 0.26, 0.40), 1))
 		plaque.position = title_box.position
 		plaque.custom_minimum_size = title_box.size
 		plaque.size = title_box.size
@@ -601,8 +642,8 @@ func _top_bar(view: Vector2) -> void:
 	# in the same stable slot as the back door, not as a loose rail underneath.
 	var badge := Panel.new()
 	badge.name = "FarmLevelBadge"
-	badge.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
-		Color(0.99, 0.96, 0.86), Color(0.82, 0.68, 0.35), 18, 2))
+	badge.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(0.99, 0.96, 0.86, 0.72), 18, Color(0.82, 0.68, 0.35, 0.38), 1))
 	badge.position = Vector2(HUD_INSET + HUD_BACK_BOX.x + HUD_GAP, 15.0)
 	badge.custom_minimum_size = HUD_LEVEL_BOX
 	badge.size = HUD_LEVEL_BOX
@@ -641,8 +682,8 @@ func _top_bar(view: Vector2) -> void:
 	# familiar without letting its empty white area compete with the challenge.
 	var purse := Panel.new()
 	purse.name = "FarmCoinPurse"
-	purse.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
-		Color(1.0, 0.98, 0.90), Color(0.83, 0.70, 0.39), 18, 2))
+	purse.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(1.0, 0.98, 0.90, 0.72), 18, Color(0.83, 0.70, 0.39, 0.38), 1))
 	purse.position = _header_purse_at(view)
 	purse.custom_minimum_size = HUD_PURSE_BOX
 	purse.size = HUD_PURSE_BOX
@@ -866,6 +907,9 @@ func _next_task_compact_ribbon(view: Vector2, task: Dictionary) -> void:
 			lane_left = maxf(lane_left, tool.position.x + tool.size.x)
 	lane_left += SHELF_GAP
 	var lane_right := view.x - 24.0
+	var door := _play.get_node_or_null("DecoDoor") as Control
+	if door != null:
+		lane_right = minf(lane_right, door.position.x - SHELF_GAP)
 	var width := minf(248.0, lane_right - lane_left)
 	# Below this a task name becomes a mystery word. The rest of this screen's
 	# fixed seven-tool shelf does not fit usefully either, so do not turn a
@@ -1209,7 +1253,7 @@ const RACK_STEP := SEED_TILE.x + SHELF_GAP
 
 
 ## The whole lower possession row moves together: seeds, its page arrows,
-## sticker book, barn and any overflow basket. Keeping a named answer prevents
+## barn and any overflow basket. Keeping a named answer prevents
 ## one of those from drifting into the task card when the shelf height changes.
 func _seed_lane_y(view: Vector2) -> float:
 	return view.y - SHELF * 0.25 + SEED_LANE_SHIFT
@@ -1223,13 +1267,21 @@ func _seed_deck_width(slots: int) -> float:
 	return minf(766.0, last + SEED_TILE.x * 0.5 + 10.0 - 14.0)
 
 
-## The paging chevron is part of the seed collection, so it uses the shared
-## compact raised-button treatment rather than the roomy sheet chip.  The
-## latter has 20px text gutters for words like "买下", which made a one-letter
-## chevron silently grow taller than its own green slot.
+## The paging chevron is part of the seed collection.  It reuses UiKit's
+## compact button behaviour rather than the roomy sheet chip, then adopts the
+## dock's quiet paint so a one-letter arrow does not become another card.
 func _seed_page_button(direction: String) -> Button:
 	var button := UiKit.compact_button(direction, Color(0.95, 0.98, 0.86),
 		Vector2(60, 60), 26)
+	# Paging is a detail of the seed collection, not a second raised button in
+	# the dock.  Preserve UiKit's existing size, sound and press behaviour while
+	# letting the shared green lane carry the grouping.
+	button.add_theme_stylebox_override("normal", _quiet_surface_style(
+		Color(0.95, 0.98, 0.86), 16, Color(0.44, 0.67, 0.35, 0.28), 1, 8))
+	button.add_theme_stylebox_override("hover", _quiet_surface_style(
+		Color(0.98, 0.99, 0.91), 16, Color(0.44, 0.67, 0.35, 0.48), 1, 8))
+	button.add_theme_stylebox_override("pressed", _quiet_surface_style(
+		Color(0.90, 0.95, 0.80), 16, Color(0.38, 0.60, 0.30, 0.48), 1, 8))
 	for slot in ["font_color", "font_hover_color", "font_pressed_color",
 			"font_focus_color"]:
 		button.add_theme_color_override(slot, Palette.INK)
@@ -1240,9 +1292,12 @@ func _seed_page_button(direction: String) -> Button:
 func _seed_rack(view: Vector2) -> void:
 	var shelf_h := SHELF
 	var shelf := Panel.new()
-	var shelf_style := UiKit.panel_style(Color(0.99, 0.98, 0.91), 0)
-	shelf_style.border_color = Color(0.63, 0.75, 0.50, 0.72)
-	shelf_style.border_width_top = 4
+	# One quiet material makes the possession area read as a dock.  The blue and
+	# green lanes below only hint at tool versus seed; they no longer pose as
+	# separate floating cards.
+	var shelf_style := _quiet_surface_style(Color(0.99, 0.98, 0.91), 0,
+		Color(0.63, 0.75, 0.50, 0.40))
+	shelf_style.border_width_top = 2
 	shelf.add_theme_stylebox_override("panel", shelf_style)
 	shelf.position = Vector2(0, view.y - shelf_h)
 	shelf.custom_minimum_size = Vector2(view.x, shelf_h)
@@ -1251,15 +1306,15 @@ func _seed_rack(view: Vector2) -> void:
 	_play.add_child(shelf)
 	_shelf = shelf
 
-	# Two physical docks turn the old uninterrupted cream slab into a map: blue
-	# things are tools he holds, green things are seeds he plants. They are
-	# passive panels under the existing buttons, not a new toolbar or input path.
+	# These low-contrast lanes are passive backers under the existing controls,
+	# not a new toolbar or input path.  Their colour is enough to orient a child
+	# without carving the dock into a second dashboard.
 	var tool_deck := Panel.new()
 	tool_deck.name = "GardenToolDeck"
-	tool_deck.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
-		Color(0.83, 0.93, 0.99), Color(0.42, 0.64, 0.80), 20, 2))
+	tool_deck.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(0.78, 0.90, 0.97, 0.42), 20, Color(0.42, 0.64, 0.80, 0.20), 1))
 	tool_deck.position = Vector2(14.0, view.y - SHELF + 2.0)
-	tool_deck.custom_minimum_size = Vector2(minf(736.0, view.x - 28.0), 80.0)
+	tool_deck.custom_minimum_size = Vector2(minf(736.0, view.x - 28.0), 88.0)
 	tool_deck.size = tool_deck.custom_minimum_size
 	tool_deck.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play.add_child(tool_deck)
@@ -1280,8 +1335,8 @@ func _seed_rack(view: Vector2) -> void:
 		(_rack_page + 1) * RACK_PAGE)
 	var seed_deck := Panel.new()
 	seed_deck.name = "GardenSeedDeck"
-	seed_deck.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
-		Color(0.87, 0.96, 0.78), Color(0.44, 0.67, 0.35), 20, 2))
+	seed_deck.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(0.82, 0.94, 0.73, 0.42), 20, Color(0.44, 0.67, 0.35, 0.22), 1))
 	seed_deck.position = Vector2(14.0, _seed_lane_y(view) - 38.0)
 	seed_deck.custom_minimum_size = Vector2(
 		minf(_seed_deck_width(on_page.size()), view.x - 28.0), 70.0)
@@ -1347,8 +1402,8 @@ func _seed_rack(view: Vector2) -> void:
 		# directions; it never takes input away from the existing buttons.
 		var pager_deck := Panel.new()
 		pager_deck.name = "GardenSeedPagerDeck"
-		pager_deck.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
-			Color(0.83, 0.94, 0.72), Color(0.44, 0.67, 0.35), 18, 2))
+		pager_deck.add_theme_stylebox_override("panel", _quiet_surface_style(
+			Color(0.82, 0.94, 0.73, 0.42), 18, Color(0.44, 0.67, 0.35, 0.22), 1))
 		pager_deck.position = Vector2(pager_x - 4.0, _seed_lane_y(view) - 38.0)
 		pager_deck.custom_minimum_size = Vector2(136.0 if has_back and has_next else 68.0,
 			70.0)
@@ -1820,39 +1875,40 @@ func _tool_bar(view: Vector2) -> void:
 		button.flat = false
 		button.focus_mode = Control.FOCUS_NONE
 		button.position = Vector2(x, y)
-		button.custom_minimum_size = Vector2(92, 68)
-		button.size = Vector2(92, 68)
-		button.pivot_offset = Vector2(46, 34)
-		# Tools are cool blue; seeds below are leaf green. The two rows used to
-		# be the same cream cards, so a child had to remember which pictures are
-		# things he holds and which ones are things he plants.
-		var fill := Color(0.91, 0.96, 1.0) if live else Color(0.90, 0.91, 0.92)
-		var edge := Color(0.42, 0.64, 0.80) if live else Color(0.69, 0.70, 0.70)
-		var style := UiKit.framed_panel_style(fill, edge, 18, 2)
-		if held:
-			# The held tool stays unmistakable from a distance, but it belongs to
-			# the cool tool family.  Warm gold is reserved for the single next
-			# task, so the shelf never appears to give two competing commands.
-			style = UiKit.framed_panel_style(Color(0.84, 0.95, 1.0),
-				Color(0.16, 0.66, 0.84), 18, 3)
-		for look in ["normal", "hover", "pressed", "focus", "disabled"]:
-			button.add_theme_stylebox_override(look, style)
+		button.custom_minimum_size = Vector2(92, 80)
+		button.size = Vector2(92, 80)
+		button.pivot_offset = Vector2(46, 40)
+		# Tools are cool blue; seeds below are leaf green.  The shared dock owns
+		# that family cue now, so unheld tools are quiet tiles instead of seven
+		# independently raised cards.  The one in hand keeps the blue lift; warm
+		# gold remains reserved for the single next-task instruction.
+		var fill := Color(0.87, 0.94, 0.98) if live else Color(0.90, 0.91, 0.92)
+		var edge := Color(0.16, 0.66, 0.84) if held else Color(0.42, 0.64, 0.80, 0.42)
+		var normal := _tool_tile_style(fill, edge, held)
+		var hover := _tool_tile_style(fill.lightened(0.025), edge, held, not held)
+		var pressed := _tool_tile_style(fill.darkened(0.025), edge, held, not held)
+		var disabled := _tool_tile_style(Color(0.90, 0.91, 0.92),
+			Color(0.69, 0.70, 0.70, 0.28), false)
+		button.add_theme_stylebox_override("normal", normal)
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_stylebox_override("pressed", pressed)
+		button.add_theme_stylebox_override("focus", normal)
+		button.add_theme_stylebox_override("disabled", disabled)
 		button.disabled = not live
-		button.modulate = Color(1, 1, 1, 1.0 if live else 0.92)
-		var art := UiKit.picture(str(tool.get("icon", "star")), 32.0)
+		button.modulate = Color(1, 1, 1, 1.0 if live else 0.82)
+		var art := UiKit.picture(str(tool.get("icon", "star")), 44.0)
 		if art != null:
 			art.name = "GardenToolIcon"
-			art.position = Vector2(30, 4)
+			art.position = Vector2(24, 2)
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			art.modulate.a = 1.0 if live else 0.40
 			button.add_child(art)
 		var label := UiKit.title(I18n.t(_tools.label_key(tool_id)), 14,
 			Color(0.30, 0.28, 0.24) if live else Color(0.58, 0.57, 0.54))
 		label.name = "GardenToolLabel"
-		# Noto's real 14px line box is 24px high. Start it at 42: the 32px
-		# picture ends at 36, leaving six pixels of honest air, and the label
-		# still ends two pixels above the 68px button edge.
-		label.position = Vector2(3.0, 42.0)
+		# The 44px picture ends at 46, followed by a 6px gutter and Noto's
+		# 24px line box. Both keep padding inside the 80px touch target.
+		label.position = Vector2(3.0, 52.0)
 		label.size = Vector2(86.0, 24.0)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.clip_text = true
@@ -2121,7 +2177,7 @@ func _end_combo() -> void:
 ## Small and always visible rather than behind a button: the whole point of
 ## growing something is watching the pile get bigger, and a pile behind a door
 ## is a pile he has to remember to go and look at.
-## The door to the decorating room, beside the barn: a sticker book on a
+## The door to the decorating room, at the right end of the tool row: a sticker book on a
 ## chip. Which room it opens is the garden's own DATA (config.deco_room) --
 ## the room-naming rule keeps the id out of code, and a save from before the
 ## room existed simply shows no door. 二期阶段 1 的入口。
@@ -2130,20 +2186,21 @@ func _deco_door(view: Vector2) -> void:
 	if room_id == "" or GameData.get_level(room_id).is_empty():
 		return
 	var box := Vector2(64, SEED_TILE.y)
-	var at := Vector2(view.x - 24.0 - 168.0 - 12.0 - box.x,
-		_seed_lane_y(view) - box.y * 0.5)
+	# Keep the lower possession lane clear for the overflow basket. This door
+	# used to cover its entire image while receipts kept flying underneath it.
+	var at := Vector2(view.x - 24.0 - box.x, view.y - SHELF + 16.0)
 	var b := Button.new()
 	b.name = "DecoDoor"
 	b.focus_mode = Control.FOCUS_NONE
 	b.position = at
 	b.custom_minimum_size = box
 	b.size = box
-	b.add_theme_stylebox_override("normal", UiKit.framed_panel_style(
-		Color(0.97, 0.93, 0.83), Color(0.73, 0.60, 0.38), 16, 2))
-	b.add_theme_stylebox_override("hover", UiKit.framed_panel_style(
-		Color(0.99, 0.96, 0.88), Color(0.73, 0.60, 0.38), 16, 2))
-	b.add_theme_stylebox_override("pressed", UiKit.framed_panel_style(
-		Color(0.93, 0.88, 0.76), Color(0.67, 0.51, 0.31), 16, 2))
+	b.add_theme_stylebox_override("normal", _quiet_surface_style(
+		Color(0.97, 0.93, 0.83), 16, Color(0.73, 0.60, 0.38, 0.26), 1))
+	b.add_theme_stylebox_override("hover", _quiet_surface_style(
+		Color(0.99, 0.96, 0.88), 16, Color(0.73, 0.60, 0.38, 0.48), 1))
+	b.add_theme_stylebox_override("pressed", _quiet_surface_style(
+		Color(0.93, 0.88, 0.76), 16, Color(0.67, 0.51, 0.31, 0.48), 1))
 	var art: Control = UiKit.picture("sticker_book", 38.0)
 	if art != null:
 		art.position = Vector2((box.x - 38.0) * 0.5, (box.y - 38.0) * 0.5)
@@ -2260,7 +2317,7 @@ func _barn(view: Vector2) -> void:
 	var card := Panel.new()
 	card.name = "GardenBarnCard"
 	card.add_theme_stylebox_override("panel",
-		UiKit.framed_panel_style(Color(0.97, 0.93, 0.83), Color(0.73, 0.60, 0.38), 16, 2))
+		_quiet_surface_style(Color(0.97, 0.93, 0.83), 16, Color(0.73, 0.60, 0.38, 0.26), 1))
 	card.position = at
 	card.custom_minimum_size = box
 	card.size = box
@@ -2994,116 +3051,187 @@ func _buy_confirmed() -> void:
 ## nothing, which is what makes dragging things in safe to play with.
 func _market_panel(view: Vector2) -> void:
 	var wide := 780.0
-	var origin := _panel_sheet(view, "garden.market_title", wide, 430.0)
+	var tall := 460.0
+	var origin := _panel_sheet(view, "garden.market_title", wide, tall)
+	# A rebuild clears the visual rows, not the basket contents. Recreate the
+	# widgets from that one basket snapshot so a resize cannot leave stale nodes.
+	_market_rows.clear()
+	_market_total = null
+	_market_rows_scroll = null
+	_market_rows_list = null
+	_market_drop_hint = null
+
+	# The market reads as two places: the barn shelf on the left and a small
+	# receipt counter on the right. These are low relief surfaces; crops and the
+	# sell action keep the stronger edges so the page still has one clear job.
+	var shelf := Panel.new()
+	shelf.name = "MarketBarnShelf"
+	shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shelf.position = origin + Vector2(18.0, 72.0)
+	shelf.size = Vector2(414.0, 372.0)
+	shelf.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(0.93, 0.91, 0.81, 0.64), 22, Color(0.57, 0.53, 0.40, 0.28), 1, 10))
+	_play.add_child(shelf)
+	var receipt := Panel.new()
+	receipt.name = "MarketReceipt"
+	receipt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	receipt.position = origin + Vector2(440.0, 72.0)
+	receipt.size = Vector2(322.0, 372.0)
+	receipt.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(0.99, 0.96, 0.86, 0.76), 22, Color(0.77, 0.62, 0.34, 0.38), 1, 10))
+	_play.add_child(receipt)
+
+	var shelf_title := UiKit.title(I18n.t("garden.market.shelf"), 21)
+	shelf_title.position = origin + Vector2(34.0, 75.0)
+	shelf_title.size = Vector2(210.0, 30.0)
+	shelf_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_play.add_child(shelf_title)
+	var box_title := UiKit.title(I18n.t("garden.market.box"), 21)
+	box_title.position = origin + Vector2(458.0, 75.0)
+	box_title.size = Vector2(260.0, 30.0)
+	box_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_play.add_child(box_title)
 
 	_market_field = DragField.new()
 	_play.add_child(_market_field)
 	_market_field.dropped.connect(_on_market_drop)
 
-	# The box: a crate drawn where the crops land, with a dark mouth so "put
-	# it IN" is legible without a word. Drawn by hand -- the first cut used a
-	# picture that quietly failed to show, and an invisible drop target is a
-	# game of pin-the-tail.
-	var box_at := origin + Vector2(wide - 190.0, 200.0)
-	# Where the crate stands, written down once per build: the stepper rows
-	# are created LATER (a drop, a press) and must land relative to the same
-	# crate, not re-derive the panel's arithmetic a second time.
-	_market_box_at = box_at
+	# The basket still uses DragField as its only target rule. Its open dark
+	# mouth, warm rim and short ground shadow make the landing place legible
+	# without changing the snap radius or adding a second hit test.
+	var box_at := origin + Vector2(600.0, 166.0)
 	var crate := Node2D.new()
 	crate.position = box_at
 	_play.add_child(crate)
-	Shapes.fill(crate, Shapes.rounded_rect(Vector2(-70, -24),
-		Vector2(140, 78), 14.0), Color(0.72, 0.52, 0.30), 1.0)
-	Shapes.fill(crate, Shapes.rounded_rect(Vector2(-58, -40),
-		Vector2(116, 30), 10.0), Color(0.45, 0.31, 0.18), 1.0)
-	Shapes.fill(crate, Shapes.rounded_rect(Vector2(-70, 10),
-		Vector2(140, 10), 5.0), Color(0.62, 0.44, 0.26), 0.0)
-	var box_slot := Node2D.new()
-	_play.add_child(box_slot)
-	_market_field.add_slot(box_slot, box_at, "", 99)
+	Shapes.fill(crate, Shapes.oval_points(Vector2(0.0, 42.0),
+		Vector2(80.0, 13.0), 24), Color(0.34, 0.25, 0.16, 0.15), 0.0)
+	Shapes.lit(crate, Shapes.rounded_rect(Vector2(-72.0, -5.0),
+		Vector2(144.0, 78.0), 16.0), Color(0.72, 0.52, 0.30), 0.8)
+	Shapes.fill(crate, Shapes.oval_points(Vector2(0.0, -9.0),
+		Vector2(68.0, 20.0), 24), Color(0.38, 0.25, 0.15), 0.65)
+	Shapes.lit(crate, Shapes.rounded_rect(Vector2(-72.0, 18.0),
+		Vector2(144.0, 15.0), 7.0), Color(0.83, 0.63, 0.37), 0.5)
+	var box_slot_node := Node2D.new()
+	_play.add_child(box_slot_node)
+	var box_slot: Dictionary = _market_field.add_slot(box_slot_node,
+		box_at, "", 99)
 
-	# One chip per pile in the barn -- INCLUDING piles with part of themselves
-	# already in the box: the chip shows what is still on the shelf, the box
-	# row shows what is in the box, and the two numbers together are the whole
-	# truth of "how many do I keep". The chip IS the pile: dragging it into
-	# the box offers everything the shelf still holds.
+	# Four columns by four rows cover all fourteen crops with thumb-sized drag
+	# points. Each card answers two questions at a glance: how many remain and
+	# what one crop is worth. Dragging a card still offers the remaining pile.
 	var contents := Barn.contents()
-	var x := origin.x + 46.0
-	var y := origin.y + 96.0
-	for pair in contents:
+	for i in range(contents.size()):
+		var pair: Array = contents[i]
 		var crop_id := str(pair[0])
 		var boxed := int(_market_sell.get(crop_id, 0))
 		var remaining := Barn.count(crop_id) - boxed
 		var chip := Node2D.new()
-		chip.position = Vector2(x, y)
+		var col := i % 4
+		var row_index := int(i / 4)
+		# Four 96px cards with 4px gaps fill the shelf with even side margins;
+		# keep the first row clear of the shelf title.
+		chip.position = origin + Vector2(75.0 + 100.0 * col,
+			154.0 + 82.0 * row_index)
 		_play.add_child(chip)
 		var spent := remaining <= 0
-		# Ninety-six wide, and the bottom line lifted OFF the border: the
-		# first cut drew the count and the price edge to edge -- a row that
-		# touches its own frame reads as a mistake, not a number.
-		Shapes.fill(chip, Shapes.rounded_rect(Vector2(-48, -38),
-			Vector2(96, 76), 16.0),
-			Color(0.94, 0.91, 0.84) if spent else Color(0.98, 0.95, 0.86), 1.0)
-		# The picture and the count are CHILDREN of the chip, in chip-local
-		# coordinates. The first cut parented them to the screen, so dragging
-		# the chip into the box moved an empty beige rectangle while the
-		# carrot and its number stayed floating over the shelf.
+		Shapes.fill(chip, Shapes.rounded_rect(Vector2(-48.0, -32.0),
+			Vector2(96.0, 72.0), 15.0), Color(0.49, 0.38, 0.22, 0.12), 0.0)
+		Shapes.lit(chip, Shapes.rounded_rect(Vector2(-48.0, -36.0),
+			Vector2(96.0, 72.0), 15.0),
+			Color(0.91, 0.89, 0.82) if spent else Color(0.99, 0.97, 0.90), 0.72)
 		var art := UiKit.picture(
 			str(GameData.get_crop(crop_id).get("icon", "seed")), 40.0)
 		if art != null:
-			art.position = Vector2(-20.0, -28.0)
+			art.position = Vector2(-20.0, -32.0)
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			chip.add_child(art)
 		var many := UiKit.title("x%d" % remaining, 17)
 		many.name = "PileCount_%s" % crop_id
 		many.position = Vector2(-44.0, 8.0)
-		many.size = Vector2(42, 22)
+		many.size = Vector2(42.0, 22.0)
+		many.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		many.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(many)
-		# What ONE of these is worth, as a coin and a number. This is the
-		# number every other number on this panel is made of -- the total he
-		# sees after a drop is just this times how many he put in -- and it
-		# was invisible for two rounds of the market before anyone noticed
-		# the child was comparing piles with no idea what either was worth.
 		var coin_glyph := UiKit.picture("star_coin", 14.0)
 		if coin_glyph != null:
-			coin_glyph.position = Vector2(2.0, 12.0)
+			coin_glyph.position = Vector2(0.0, 12.0)
 			coin_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			chip.add_child(coin_glyph)
 		var unit := UiKit.title(str(GameData.market_price(crop_id)), 17)
 		unit.name = "UnitPrice_%s" % crop_id
-		unit.position = Vector2(22.0, 8.0)
-		unit.size = Vector2(22, 22)
+		unit.position = Vector2(18.0, 8.0)
+		unit.size = Vector2(28.0, 22.0)
 		unit.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(unit)
-		_market_field.add_item(chip, Vector2(x, y), crop_id)
-		x += 108.0
-		if x > origin.x + 380.0:
-			x = origin.x + 46.0
-			y += 84.0
+		var market_item := _market_field.add_item(chip, chip.position, crop_id)
+		# `_market_sell` is the basket's state across a panel rebuild (for
+		# example, when the viewport changes size). Rebuild the matching visual
+		# placement too, so a boxed crop cannot appear draggable from the shelf
+		# while its receipt row still claims it is in the basket.
+		if boxed > 0:
+			market_item["placed"] = true
+			market_item["slot"] = box_slot
+			box_slot["held"] = int(box_slot["held"]) + 1
+			chip.position = box_at
 
-	# A row for everything already in the box -- a drop fills the box, and
-	# these rows are how the box says what it holds and lets him take some
-	# back out.
+	# The box is also a compact receipt: selected crop rows scroll inside this
+	# area, while the quote and Sell button stay anchored at the bottom.
+	_market_rows_scroll = ScrollContainer.new()
+	_market_rows_scroll.name = "MarketReceiptRows"
+	_market_rows_scroll.position = origin + Vector2(456.0, 244.0)
+	_market_rows_scroll.custom_minimum_size = Vector2(290.0, 124.0)
+	_market_rows_scroll.size = Vector2(290.0, 124.0)
+	_market_rows_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_market_rows_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	_play.add_child(_market_rows_scroll)
+	_market_rows_list = VBoxContainer.new()
+	_market_rows_list.name = "MarketReceiptList"
+	_market_rows_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_market_rows_list.add_theme_constant_override("separation", 5)
+	_market_rows_scroll.add_child(_market_rows_list)
 	for crop_id in _market_sell.keys():
 		_ensure_market_row(str(crop_id))
+	# Scroll limits become available after the receipt containers lay out.
+	_market_rows_scroll.set_deferred("scroll_vertical", _market_scroll_offset)
+	_market_drop_hint = UiKit.title(I18n.t("garden.market.drop_hint"), 17,
+		Color(0.53, 0.48, 0.38))
+	_market_drop_hint.name = "MarketDropHint"
+	_market_drop_hint.position = origin + Vector2(466.0, 277.0)
+	_market_drop_hint.size = Vector2(270.0, 46.0)
+	_market_drop_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play.add_child(_market_drop_hint)
+	_market_sync_rows_visibility()
 
-	# The total, sitting IN the box's mouth: the number is the box's answer to
-	# "and what are these worth?", where he just put them.
 	var coin := UiKit.picture("star_coin", 20.0)
 	if coin != null:
-		coin.position = box_at + Vector2(-52, -36)
+		coin.position = origin + Vector2(526.0, 395.0)
 		_play.add_child(coin)
+	var total_caption := UiKit.title(I18n.t("garden.market.total"), 14,
+		Color(0.48, 0.42, 0.31))
+	total_caption.position = origin + Vector2(458.0, 396.0)
+	total_caption.size = Vector2(66.0, 24.0)
+	total_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	total_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play.add_child(total_caption)
 	_market_total = UiKit.title(str(Market.quote(_market_sell)), 26)
-	_market_total.position = box_at + Vector2(-28, -40)
-	_market_total.size = Vector2(70, 28)
+	_market_total.position = origin + Vector2(546.0, 391.0)
+	_market_total.size = Vector2(46.0, 32.0)
+	_market_total.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_market_total.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play.add_child(_market_total)
 
 	var sell := _chip_button(I18n.t("garden.sell"),
-		Color(0.99, 0.83, 0.52), Vector2(180, 62))
-	sell.position = Vector2(box_at.x - 90.0, origin.y + 348.0)
+		Color(0.99, 0.83, 0.52), Vector2(152.0, 56.0))
+	# The panel's generous text gutters would grow this 56px action into
+	# the tool dock. Keep its raised surface inside the receipt's last row.
+	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := sell.get_theme_stylebox(look) as StyleBoxFlat
+		style.content_margin_top = 6.0
+		style.content_margin_bottom = 6.0
+	sell.position = origin + Vector2(594.0, 382.0)
 	sell.pressed.connect(_sell_pressed)
 	_play.add_child(sell)
+	sell.size = Vector2(152.0, 56.0)
 	_panel_buttons["sell"] = sell
 
 
@@ -3111,61 +3239,69 @@ func _market_panel(view: Vector2) -> void:
 ## the total. No rebuild -- DragField has already sat the chip in the box, and
 ## rebuilding mid-gesture is forbidden anyway.
 func _on_market_drop(item: Dictionary, slot: Variant, correct: bool) -> void:
-	if not correct or slot == null:
+	if not _market_open or not correct or slot == null:
 		return
 	var crop_id := str(item.get("key", ""))
 	_market_sell[crop_id] = Barn.count(crop_id)
 	if not _market_rows.has(crop_id):
 		_ensure_market_row(crop_id)
 	_market_refresh_row(crop_id)
-	if _market_total != null and is_instance_valid(_market_total):
-		_market_total.text = str(Market.quote(_market_sell))
-		Juice.pop(_market_total, 0.2)
+	_market_sync_rows_visibility()
 	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 
 
-## The box's row for one crop: the crop, how many are in the box, and a minus
-## and a plus big enough for a thumb. The minus takes one back out; the plus
-## puts one back in -- up to everything the barn holds, because boxed crops
-## stay in the barn until the sale goes through. Rows live under the crate;
-## a screen shows two comfortably, which is one or two more kinds of crop
-## than a child ever boxes at once -- and the total counts every kind
-## regardless of whether its row fits.
+## One receipt row: the crop, its boxed count, and two thumb-sized ways to
+## change it. The scroll area owns overflow; the total and commit button stay
+## fixed so every crop can be sold without covering the action.
 func _ensure_market_row(crop_id: String) -> void:
-	if _market_rows.has(crop_id):
+	if _market_rows.has(crop_id) or _market_rows_list == null \
+			or not is_instance_valid(_market_rows_list):
 		return
-	var index := _market_rows.size()
-	var at := _market_box_at + Vector2(-70.0, 64.0 + 52.0 * float(index))
-	var row := Node2D.new()
-	row.position = at
-	_play.add_child(row)
-	# Everything on ONE centre line: art, count and both buttons share y=0,
-	# with an even 4-6px between neighbours. The first cut had the art and
-	# count sitting low while the buttons floated high -- three misaligned
-	# baselines in one 44-pixel row.
+	var row := PanelContainer.new()
+	row.name = "MarketBoxRow_%s" % crop_id
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.custom_minimum_size = Vector2(274.0, 50.0)
+	row.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(1.0, 0.99, 0.93), 13, Color(0.67, 0.58, 0.39, 0.24), 1, 4))
+	_market_rows_list.add_child(row)
+	var line := HBoxContainer.new()
+	line.name = "MarketReceiptLine"
+	line.mouse_filter = Control.MOUSE_FILTER_PASS
+	line.add_theme_constant_override("separation", 4)
+	row.add_child(line)
 	var art := UiKit.picture(
-		str(GameData.get_crop(crop_id).get("icon", "seed")), 34.0)
+		str(GameData.get_crop(crop_id).get("icon", "seed")), 32.0)
 	if art != null:
-		art.position = Vector2(0.0, -17.0)
+		art.custom_minimum_size = Vector2(36.0, 40.0)
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(art)
-	var count := UiKit.title("x%d" % int(_market_sell.get(crop_id, 0)), 20)
+		line.add_child(art)
+	var count := UiKit.title("x%d" % int(_market_sell.get(crop_id, 0)), 19)
 	count.name = "BoxCount_%s" % crop_id
-	count.position = Vector2(38.0, -14.0)
-	count.size = Vector2(50, 28)
+	count.custom_minimum_size = Vector2(54.0, 34.0)
+	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(count)
-	var minus := _chip_button("−", Color(0.99, 0.86, 0.74), Vector2(48, 48))
+	line.add_child(count)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.add_child(spacer)
+	var minus := _chip_button("−", Color(0.99, 0.86, 0.74), Vector2(44.0, 44.0))
 	minus.name = "BoxMinus_%s" % crop_id
-	minus.position = Vector2(94.0, -24.0)
 	minus.pressed.connect(func(): _market_step(crop_id, -1))
-	row.add_child(minus)
-	var plus := _chip_button("+", Color(0.88, 0.95, 0.84), Vector2(48, 48))
+	line.add_child(minus)
+	var plus := _chip_button("+", Color(0.88, 0.95, 0.84), Vector2(44.0, 44.0))
 	plus.name = "BoxPlus_%s" % crop_id
-	plus.position = Vector2(148.0, -24.0)
 	plus.pressed.connect(func(): _market_step(crop_id, +1))
-	row.add_child(plus)
+	line.add_child(plus)
 	_market_rows[crop_id] = {"row": row, "count": count}
+
+
+func _market_sync_rows_visibility() -> void:
+	var has_boxed := not _market_sell.is_empty()
+	if _market_rows_scroll != null and is_instance_valid(_market_rows_scroll):
+		_market_rows_scroll.visible = has_boxed
+	if _market_drop_hint != null and is_instance_valid(_market_drop_hint):
+		_market_drop_hint.visible = not has_boxed
 
 
 ## The box row redraws its number and the shelf chip answers with what is
@@ -3193,6 +3329,33 @@ func _market_refresh_shelf(crop_id: String) -> void:
 			Barn.count(crop_id) - int(_market_sell.get(crop_id, 0)))
 
 
+## Put this crop card back on the barn shelf when its receipt count reaches
+## zero. The receipt is the basket's live contents; an empty row with a card
+## still parked in the crate would tell a different story.
+func _market_return_to_shelf(crop_id: String) -> void:
+	if _market_field == null or not is_instance_valid(_market_field):
+		return
+	for item in _market_field.items():
+		if str(item.get("key", "")) != crop_id \
+				or not bool(item.get("placed", false)):
+			continue
+		var slot: Variant = item.get("slot", {})
+		if slot is Dictionary and not slot.is_empty():
+			slot["held"] = maxi(0, int(slot.get("held", 0)) - 1)
+		item["placed"] = false
+		item["slot"] = {}
+		var node_value: Variant = item.get("node")
+		if not is_instance_valid(node_value) or not (node_value is Node2D):
+			return
+		var card := node_value as Node2D
+		var home: Vector2 = item.get("home", item.get("at", Vector2.ZERO))
+		_market_field.cancel_item_motion(item)
+		card.position = home
+		card.scale = Vector2.ONE
+		card.z_index = 0
+		return
+
+
 ## One crop, one step. The floor is an empty box for that crop -- the row
 ## leaves with it, and the shelf chip comes back whole. The ceiling is the
 ## barn itself: boxed crops never left the barn, so "all of them" is always
@@ -3204,30 +3367,31 @@ func _market_step(crop_id: String, delta: int) -> void:
 		_market_sell.erase(crop_id)
 	else:
 		_market_sell[crop_id] = boxed
-	if boxed == 0 and _market_rows.has(crop_id):
-		var entry: Variant = _market_rows[crop_id]
-		if entry is Dictionary and (entry as Dictionary).get("row") is Node:
-			var row: Node = (entry as Dictionary)["row"]
-			if is_instance_valid(row):
-				row.queue_free()
-		_market_rows.erase(crop_id)
-	else:
-		_market_refresh_row(crop_id)
-	_market_refresh_shelf(crop_id)
+	if boxed == 0:
+		if _market_rows.has(crop_id):
+			var entry: Variant = _market_rows[crop_id]
+			if entry is Dictionary and (entry as Dictionary).get("row") is Node:
+				var row: Node = (entry as Dictionary)["row"]
+				if is_instance_valid(row):
+					row.queue_free()
+			_market_rows.erase(crop_id)
+		_market_return_to_shelf(crop_id)
+	_market_refresh_row(crop_id)
+	_market_sync_rows_visibility()
 	AudioManager.play_sfx("res://assets/audio/%s"
 		% ("drag_snap.ogg" if delta > 0 else "drag_back.ogg"))
 
 
 func _sell_pressed() -> void:
 	var paid := Market.sell(_market_sell)
-	_market_sell = {}
-	_market_rows = {}
 	if paid <= 0:
-		# An empty box. The button shrugs instead of the screen erroring.
+		# A refused sale keeps its receipt and card placement unchanged.
 		var button: Variant = _panel_buttons.get("sell")
 		if button is Button and is_instance_valid(button):
 			Juice.nudge(button, 8.0)
 		return
+	_market_sell = {}
+	_market_rows = {}
 	AudioManager.play_sfx("res://assets/audio/coin.ogg")
 	AudioManager.say("farm_market_sold")
 	# Coins fly to the purse: the one piece of theatre that says where the
@@ -3238,12 +3402,14 @@ func _sell_pressed() -> void:
 			var fly := UiKit.picture("star_coin", 30.0)
 			if fly == null:
 				continue
-			fly.position = Vector2(view.x * 0.5, view.y * 0.45) 				+ Vector2(float(i - 2) * 22.0, 0)
+			fly.position = Vector2(view.x * 0.5, view.y * 0.45) \
+				+ Vector2(float(i - 2) * 22.0, 0)
 			_play.add_child(fly)
 			var t := fly.create_tween()
 			t.tween_interval(0.05 * float(i))
 			t.tween_property(fly, "position",
-				Vector2(view.x - 160.0, 40.0), 0.5)				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+				Vector2(view.x - 160.0, 40.0), 0.5) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 			t.tween_callback(fly.queue_free)
 	_queue_rebuild()
 
@@ -3607,7 +3773,9 @@ func _recipe_learned_card(recipe: Dictionary) -> void:
 	card.custom_minimum_size = Vector2(wide, 116.0)
 	card.size = Vector2(wide, 116.0)
 	card.z_index = 30
-	add_child(card)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Collection feedback survives the bed/barn redraw that earned it.
+	_harvest_feedback_layer().add_child(card)
 	var face := UiKit.picture("teddy", 72.0)
 	if face != null:
 		face.position = Vector2(20.0, 22.0)
@@ -4384,14 +4552,13 @@ func _challenge_door(view: Vector2) -> void:
 			break
 
 	# One warm side-quest chip, distinct from the blue tool dock and the gold
-	# next-step ribbon. Its contents are stacked rather than squeezed into a
-	# single sentence: the basket says what it is, the lower number says how far
-	# through it he is.
+	# next-step ribbon.  It shares the header's low-relief material so it reads
+	# as useful context, not a second primary action.
 	var door_box := HUD_CHALLENGE_BOX
 	var door := Panel.new()
 	door.name = "HarvestChallenge"
-	door.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
-		Color(0.98, 0.94, 0.78), Color(0.75, 0.58, 0.28), 18, 2))
+	door.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(0.98, 0.94, 0.78, 0.72), 18, Color(0.75, 0.58, 0.28, 0.38), 1))
 	door.custom_minimum_size = door_box
 	door.size = door_box
 	door.position = _header_challenge_at(view)
@@ -4441,8 +4608,8 @@ func _challenge_door(view: Vector2) -> void:
 	var preview_box := Vector2(64.0, 64.0)
 	var preview := Panel.new()
 	preview.name = "ChallengeNext"
-	preview.add_theme_stylebox_override("panel", UiKit.framed_panel_style(
-		Color(0.98, 0.94, 0.78), Color(0.75, 0.58, 0.28), 16, 2))
+	preview.add_theme_stylebox_override("panel", _quiet_surface_style(
+		Color(0.98, 0.94, 0.78, 0.72), 16, Color(0.75, 0.58, 0.28, 0.38), 1))
 	preview.position = door.position \
 		+ Vector2(door_box.x - preview_box.x, door_box.y + 6.0)
 	preview.custom_minimum_size = preview_box
@@ -4451,15 +4618,18 @@ func _challenge_door(view: Vector2) -> void:
 	# never eat a tap meant for the bed underneath it.
 	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var shows := "star"
-	var art: Control = UiKit.picture("star", 36.0)
+	# Resolve the picture before constructing it. Replacing a newly drawn star
+	# would leave that unparented node (and its shapes) alive after every refresh.
+	var art_ref := "star"
 	if done < levels.size():
 		var tgts: Array = (next.get("config", {}) as Dictionary).get("targets", [])
 		if not tgts.is_empty():
 			var crop: Dictionary = HarvestCrops.get_crop(
 				str(tgts[0].get("crop_id", "")))
 			if not crop.is_empty():
-				art = UiKit.picture(str(crop.get("asset", "")), 36.0)
+				art_ref = str(crop.get("asset", ""))
 				shows = str(crop.get("id", ""))
+	var art: Control = UiKit.picture(art_ref, 36.0)
 	preview.set_meta("shows", shows)
 	preview.visible = view.x / maxf(view.y, 1.0) >= 1.6
 	if art != null:

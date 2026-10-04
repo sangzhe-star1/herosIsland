@@ -24,15 +24,33 @@ extends Node
 ## orders: level 3 with five orders delivered -- work first, receipts pad.
 ## daily:  the ripe next task with today's three care stars complete and the
 ##         gentle golden-luck crest lit on the shelf.
+## daily_board: real orders board; water claimed, harvest claimable, delivery
+##         unfinished. Checks the real once-gate and three button states.
+## overflow: real touches split a carrot harvest, then spill a full strawberry
+##         harvest. SHOT_DIR receives flight/settled/barn PNGs for each step.
+##         SHOT_FULL_RACK=1 includes the seven-seed page and its real next arrow.
 ## SHOT_PAGE=N flips the mode's paged surface to page N before the shot.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
+const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const Recipes := preload("res://scripts/garden/recipe_manager.gd")
+const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
 
 const NOON := 1_699_963_200
 
+var _fixture_failures: Array[String] = []
+var _daily_asked := 0
+var _overflow_asked := 0
+
 
 func _ready() -> void:
+	if DisplayServer.get_name() == "headless":
+		print("FAIL FarmShot requires a rendered window")
+		await ProbeLifecycle.finish(self, 1)
+		return
 	var out := OS.get_environment("SHOT_PATH")
 	var what := OS.get_environment("SHOT_WHAT")
 	if what == "":
@@ -97,12 +115,37 @@ func _ready() -> void:
 			"planted_at": NOON - 3600})
 		plots[4] = _bed(4, {"state": Farm.TILLED})
 		farm["plots"] = plots
+		if what == "overflow":
+			if OS.get_environment("SHOT_FULL_RACK") == "1":
+				farm["farm_xp"] = 200
+				farm["unlocked_crops"] = []
+				for crop in GameData.crops:
+					(farm["unlocked_crops"] as Array).append(str(crop.get("id", "")))
+			farm["warehouse"] = {"corn": Barn.cap() - 2}
+			farm["harvest_basket"] = {}
+			farm["paid_harvests"] = []
+			farm["market_taught"] = true
+			farm["unlocked_recipes"] = []
+			for recipe in Recipes.all():
+				(farm["unlocked_recipes"] as Array).append(str(recipe.get("id", "")))
+			plots[4] = _bed(4, {"state": Farm.READY, "crop_id": "carrot",
+				"growth_stage": 4, "plant_cycle_id": 51, "planted_at": NOON - 7200})
+			SaveManager.data["settings"]["reduce_motion"] = false
 		if what == "daily":
 			# A deterministic all-cared-for day: this fixture only makes the
 			# existing daily manager's display state visible; it does not invent
 			# a golden crop, extra money or a second reward ledger.
 			farm["dailies"] = {"date": GameClock.now_date(),
 				"progress": {"water": 3, "harvest": 5, "deliver": 1},
+				"claimed": []}
+		if what == "daily_board":
+			# Set the existing task tallies, then let the production claim path
+			# produce the earned/claimable/unfinished states on the real board.
+			var water_task := Dailies.task_by_id("water")
+			var harvest_task := Dailies.task_by_id("harvest")
+			farm["dailies"] = {"date": GameClock.now_date(),
+				"progress": {"water": int(water_task.get("target", 0)),
+					"harvest": int(harvest_task.get("target", 0)), "deliver": 0},
 				"claimed": []}
 		if what == "market":
 			# The sell decision with numbers on it: three kinds of crop on the
@@ -183,6 +226,20 @@ func _ready() -> void:
 			scene.set("_book_page", page)
 			scene.call("_queue_rebuild")
 			await get_tree().process_frame
+		elif what == "daily_board":
+			var water_task := Dailies.task_by_id("water")
+			var before := Coins.balance()
+			scene.call("_claim_daily", water_task)
+			_daily_check(Coins.balance() == before + int(water_task.get("coins", 0)),
+				"real water claim pays its configured reward")
+			scene.call("_claim_daily", water_task)
+			_daily_check(Coins.balance() == before + int(water_task.get("coins", 0)),
+				"repeated water claim does not pay twice")
+			await get_tree().process_frame
+			scene.call("_tap_building", "orders")
+			await get_tree().process_frame
+			await get_tree().process_frame
+			_validate_daily_board(scene)
 		elif what == "orders":
 			scene.call("_tap_building", "orders")
 			await get_tree().process_frame
@@ -208,6 +265,14 @@ func _ready() -> void:
 	# Long enough for the dog to have RUN from his kennel to the ripe bed and
 	# sat down beside it -- a farm standing at attention is not this farm.
 	await get_tree().create_timer(3.4).timeout
+	if what == "overflow":
+		await _overflow_sequence(scene)
+		for failure in _fixture_failures:
+			print("FAIL ", failure)
+		print("asked %d questions" % _overflow_asked)
+		print("OVERFLOW SHOT ", "PASSED" if _fixture_failures.is_empty() else "FAILED")
+		await ProbeLifecycle.finish(self, 0 if _fixture_failures.is_empty() else 1)
+		return
 	if what == "poke":
 		# Fire the wiggle NOW and catch it mid-tilt: the answer lasts four
 		# tenths of a second, which is the point -- and the reason it cannot
@@ -272,8 +337,188 @@ func _ready() -> void:
 		await get_tree().create_timer(0.4).timeout
 	await RenderingServer.frame_post_draw
 	var image := get_viewport().get_texture().get_image()
-	print("farm_shot -> ", error_string(image.save_png(out)))
-	get_tree().quit(0)
+	var rendered := ProbeLifecycle.image_has_content(image)
+	var save_error := image.save_png(out)
+	print("farm_shot -> ", error_string(save_error))
+	if what == "daily_board":
+		_daily_check(rendered, "daily board screenshot contains rendered content")
+		_daily_check(save_error == OK, "daily board PNG was saved")
+		for failure in _fixture_failures:
+			print("FAIL ", failure)
+		print("asked %d questions" % _daily_asked)
+		print("DAILY BOARD SHOT ", "PASSED" if _fixture_failures.is_empty() else "FAILED")
+	elif not rendered:
+		print("FAIL farm screenshot contains no rendered content")
+	await ProbeLifecycle.finish(self, 0 if rendered and save_error == OK and _fixture_failures.is_empty() else 1)
+
+
+func _daily_check(condition: bool, label: String) -> void:
+	_daily_asked += 1
+	if not condition:
+		_fixture_failures.append(label)
+
+
+func _overflow_check(condition: bool, label: String) -> void:
+	_overflow_asked += 1
+	if not condition:
+		_fixture_failures.append(label)
+
+
+func _overflow_tap(at: Vector2) -> void:
+	# Input.parse_input_event receives window pixels, as in GardenTouchProbe.
+	var view := get_viewport().get_visible_rect().size
+	var window_size := Vector2(get_window().size)
+	var glass := Vector2(at.x * window_size.x / view.x, at.y * window_size.y / view.y)
+	var touch := InputEventScreenTouch.new()
+	touch.index = 0
+	touch.position = glass
+	touch.pressed = true
+	Input.parse_input_event(touch)
+	await get_tree().process_frame
+	touch = InputEventScreenTouch.new()
+	touch.index = 0
+	touch.position = glass
+	touch.pressed = false
+	Input.parse_input_event(touch)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _overflow_save(name: String) -> void:
+	RenderingServer.force_draw(false)
+	var path := OS.get_environment("SHOT_DIR").path_join(name + ".png")
+	var image := get_viewport().get_texture().get_image()
+	_overflow_check(ProbeLifecycle.image_has_content(image), "overflow screenshot contains rendered content: " + name)
+	var saved := image.save_png(path)
+	_overflow_check(saved == OK, "overflow PNG saved: " + name)
+	print("overflow_shot -> ", path, " ", error_string(saved))
+
+
+func _overflow_flight(scene: Node, node_name: String, destination: String,
+		amount: int, at: Vector2) -> void:
+	var flight := scene.find_child(node_name, true, false) as Control
+	_overflow_check(flight != null, "the real receipt flight exists: " + node_name)
+	if flight == null:
+		return
+	_overflow_check(int(flight.get_meta("amount", 0)) == amount
+		and str(flight.get_meta("destination", "")) == destination,
+		"the receipt flight carries the real split amount and destination")
+	var target: Vector2 = flight.get_meta("destination_at", Vector2.INF)
+	_overflow_check(target.distance_to(at) < 0.5, "the receipt heads to its visible destination")
+	_overflow_check(get_viewport().get_visible_rect().encloses(flight.get_global_rect()),
+		"the in-flight crop remains inside the viewport")
+	print("OVERFLOW RECEIPT ", node_name, " amount=", amount, " destination=", target)
+
+
+func _overflow_sequence(scene: Node) -> void:
+	var directory := OS.get_environment("SHOT_DIR")
+	_overflow_check(not directory.is_empty() and directory.is_absolute_path(), "SHOT_DIR is explicit and absolute")
+	if directory.is_empty() or not directory.is_absolute_path():
+		return
+	_overflow_check(DirAccess.make_dir_recursive_absolute(directory) == OK, "overflow output directory exists")
+	var amount := int(GameData.get_crop("carrot").get("harvest_amount", 0))
+	var bed: Vector2 = scene.call("_bed_centre", 4)
+	await _overflow_tap(bed)
+	await get_tree().create_timer(0.22).timeout
+	var shortcut := scene.find_child("BarnShortcut", true, false) as Control
+	var basket := scene.find_child("HarvestOverflowBasket", true, false) as Control
+	_overflow_check(shortcut != null and basket != null, "both real receipt destinations exist")
+	if shortcut == null or basket == null:
+		return
+	var landing := basket.get_global_rect().get_center()
+	_overflow_layout(scene, basket)
+	_overflow_check(Barn.count("carrot") == 2 and Barn.count("carrot", Barn.BASKET) == amount - 2,
+		"the real partial harvest stores two and spills the remainder")
+	_overflow_flight(scene, "HarvestFlight_carrot", "warehouse", 2, shortcut.get_global_rect().get_center())
+	_overflow_flight(scene, "HarvestSpillFlight_carrot", Barn.BASKET, amount - 2, landing)
+	_overflow_save("partial_flight")
+	await get_tree().create_timer(0.3).timeout
+	_overflow_check(scene.find_child("HarvestFlight_carrot", true, false) == null
+		and scene.find_child("HarvestSpillFlight_carrot", true, false) == null,
+		"both partial receipt flights clean up")
+	_overflow_save("partial_settled")
+	await _overflow_tap(shortcut.get_global_rect().get_center())
+	_overflow_check(bool(scene.get("_barn_open")), "the real shortcut opens the barn")
+	_overflow_save("partial_barn")
+	scene.call("_close_panels")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var plots: Array = SaveManager.data["farm"]["plots"]
+	plots[5] = _bed(5, {"state": Farm.READY, "crop_id": "strawberry",
+		"growth_stage": 4, "plant_cycle_id": 52, "planted_at": NOON - 7200})
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	bed = scene.call("_bed_centre", 5)
+	await _overflow_tap(bed)
+	await get_tree().create_timer(0.22).timeout
+	amount = int(GameData.get_crop("strawberry").get("harvest_amount", 0))
+	_overflow_check(Barn.count("strawberry") == 0 and Barn.count("strawberry", Barn.BASKET) == amount,
+		"the real full harvest sends every strawberry to the basket")
+	_overflow_check(scene.find_child("HarvestFlight_strawberry", true, false) == null,
+		"a full barn has no false warehouse flight")
+	_overflow_flight(scene, "HarvestSpillFlight_strawberry", Barn.BASKET, amount, landing)
+	basket = scene.find_child("HarvestOverflowBasket", true, false) as Control
+	_overflow_check(basket != null and int(basket.get_meta("crop_kinds", 0)) == 2,
+		"the real basket displays both crop kinds")
+	_overflow_check(basket != null and basket.get_global_rect().get_center().distance_to(landing) < 0.5,
+		"a new crop row preserves the visible basket landing point")
+	if basket != null:
+		_overflow_layout(scene, basket)
+	_overflow_save("full_flight")
+	await get_tree().create_timer(0.3).timeout
+	_overflow_check(scene.find_child("HarvestSpillFlight_strawberry", true, false) == null,
+		"the full spill receipt flight cleans up")
+	_overflow_save("full_settled")
+	shortcut = scene.find_child("BarnShortcut", true, false) as Control
+	if shortcut != null:
+		await _overflow_tap(shortcut.get_global_rect().get_center())
+	_overflow_check(bool(scene.get("_barn_open")), "the full barn opens through its real shortcut")
+	_overflow_save("full_barn")
+
+
+func _overflow_layout(scene: Node, basket: Control) -> void:
+	var door := scene.find_child("DecoDoor", true, false) as Control
+	var next_task := scene.find_child("NextTask", true, false) as Control
+	_overflow_check(door != null, "the real decoration door exists")
+	_overflow_check(next_task != null, "the real task ribbon exists")
+	_overflow_check(door != null and not door.get_global_rect().intersects(basket.get_global_rect()),
+		"the decoration door does not hide the overflow basket")
+	_overflow_check(door != null and get_viewport().get_visible_rect().encloses(door.get_global_rect()),
+		"the moved decoration door stays fully in the viewport")
+	_overflow_check(door != null and next_task != null and not door.get_global_rect().intersects(next_task.get_global_rect()),
+		"the decoration door does not hide the task ribbon")
+	if OS.get_environment("SHOT_FULL_RACK") == "1":
+		var seeds := scene.find_children("GardenSeed_*", "Button", true, false)
+		_overflow_check(seeds.size() == 7, "the full first seed page has seven real tiles")
+		var buttons: Dictionary = scene.get("_panel_buttons")
+		var arrow := buttons.get("rack_next") as Control
+		_overflow_check(arrow != null, "the full first seed page has its real next arrow")
+		_overflow_check(arrow != null and get_viewport().get_visible_rect().encloses(arrow.get_global_rect())
+			and not arrow.get_global_rect().intersects(basket.get_global_rect()),
+			"the seed page arrow stays visible beside the overflow basket")
+
+
+func _validate_daily_board(scene: Node) -> void:
+	_daily_check(bool(scene.get("_orders_open")), "the actual orders board is open")
+	var daily: Dictionary = SaveManager.data["farm"].get("dailies", {})
+	_daily_check(Dailies.claimed(daily, Dailies.task_by_id("water")),
+		"water has today's real claim key")
+	_daily_check(not Dailies.claimed(daily, Dailies.task_by_id("harvest")),
+		"harvest remains unclaimed")
+	_daily_check(not Dailies.done(daily, Dailies.task_by_id("deliver")),
+		"delivery remains unfinished")
+	var view := get_viewport().get_visible_rect()
+	for task in GameData.garden_dailies:
+		var task_id := str(task.get("id", ""))
+		var job := scene.find_child("DailyJob_" + task_id, true, false) as Button
+		_daily_check(is_instance_valid(job), "real job button exists: " + task_id)
+		if not is_instance_valid(job):
+			continue
+		_daily_check(job.disabled == (not Dailies.done(daily, task) or Dailies.claimed(daily, task)),
+			"button state matches the daily manager: " + task_id)
+		_daily_check(view.encloses(job.get_global_rect()),
+			"job button stays inside the viewport: " + task_id)
 
 
 func _bed(index: int, fields: Dictionary) -> Dictionary:

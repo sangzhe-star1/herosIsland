@@ -1,0 +1,155 @@
+{
+  "source": "/private/tmp/heroes-environment-layered-20261002/passive_environment.glb",
+  "source_sha256": "b0ab2a87738360bf01d84aeb2651ee3e48176bc816a3413bfc1d72bfa55d3e92",
+  "blender_version": "5.2.2 LTS",
+  "import_method": "bpy.ops.import_scene.gltf, default importer options",
+  "imported_images": [],
+  "materials": [
+    {
+      "name": "Environment | quiet natural grass",
+      "use_nodes": true,
+      "base_color_default": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "base_color_linked": true,
+      "base_color_link_sources": [
+        {
+          "node_type": "VERTEX_COLOR",
+          "node_name": "Color Attribute"
+        }
+      ],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": [
+        {
+          "type": "VERTEX_COLOR",
+          "name": "Color Attribute",
+          "attribute": ""
+        }
+      ]
+    },
+    {
+      "name": "Leaf | garden green",
+      "use_nodes": true,
+      "base_color_default": [
+        0.10499999672174454,
+        0.32499998807907104,
+        0.04500000178813934,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    }
+  ],
+  "mesh_reviews": [
+    {
+      "mesh": "Environment | continuous gentle field mesh",
+      "users": 1,
+      "vertices": 7345,
+      "triangles": 14336,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998918348382,
+        1.0000001178122988
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 352,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": [
+        {
+          "name": "Color",
+          "domain": "CORNER",
+          "data_type": "BYTE_COLOR",
+          "count": 43008,
+          "nonfinite_colors": 0
+        }
+      ]
+    },
+    {
+      "mesh": "Environment | restrained short grass Mesh",
+      "users": 1,
+      "vertices": 1565,
+      "triangles": 1440,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998473767729,
+        1.0000001080334129
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 1466,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    }
+  ],
+  "hierarchy": [
+    {
+      "name": "Environment | passive same-source space",
+      "type": "EMPTY",
+      "path": "Environment | passive same-source space",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Environment | continuous gentle field",
+      "type": "MESH",
+      "path": "Environment | passive same-source space/Environment | continuous gentle field",
+      "parent": "Environment | passive same-source space",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Environment | restrained short grass",
+      "type": "MESH",
+      "path": "Environment | passive same-source space/Environment | restrained short grass",
+      "parent": "Environment | passive same-source space",
+      "negative_world_determinant": false
+    }
+  ],
+  "limits": [
+    "Offline Blender import review; not a Godot screenshot or gameplay test.",
+    "Boundary edges may be intentional leaf surfaces; numeric normal findings require visual review.",
+    "Visibility counts record per-object render flags; they do not prove input/hit-test behavior."
+  ],
+  "summary": {
+    "imported_mesh_nodes": 2,
+    "unique_imported_meshes": 2,
+    "imported_materials": 2,
+    "target_mesh_nodes": 0,
+    "image_texture_nodes": 0,
+    "meshes_with_color_attributes": 1,
+    "nonfinite_positions": 0,
+    "nonfinite_corner_normals": 0,
+    "zero_corner_normals": 0,
+    "unique_mesh_degenerate_triangles": 0,
+    "unique_mesh_triangles_opposed_to_corner_normals": 0
+  },
+  "review_camera": {
+    "resolution": [
+      1280,
+      720
+    ],
+    "location": [
+      92.4927749633789,
+      -123.70484161376953,
+      90.93122863769531
+    ],
+    "rotation_euler": [
+      1.03037691116333,
+      8.418175667657124e-08,
+      0.6435011029243469
+    ],
+    "ortho_scale": 65.42820739746094
+  },
+  "full_render": "/private/tmp/heroes-environment-layered-roundtrip-20261002/roundtrip_full_16x9.png",
+  "source_sha256_after_review": "b0ab2a87738360bf01d84aeb2651ee3e48176bc816a3413bfc1d72bfa55d3e92",
+  "source_unchanged": true
+}

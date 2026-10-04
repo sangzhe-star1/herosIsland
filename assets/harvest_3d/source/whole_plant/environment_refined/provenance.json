@@ -1,0 +1,47 @@
+{
+  "status": "same-source environment candidate; actual refined QA completed, final held collision fix pending",
+  "source_packet": "/private/tmp/heroes-env-contract-final-z4VwTW",
+  "passive_environment_glb_sha256": "b0ab2a87738360bf01d84aeb2651ee3e48176bc816a3413bfc1d72bfa55d3e92",
+  "frozen_profile": "../environment_rendered/same_source_space.blend",
+  "frozen_contracts": [
+    "render_profile",
+    "runtime_reference",
+    "png_contract"
+  ],
+  "actual_art_qa": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-refined-art-63mo4s7f",
+  "generator_sha256": "52baafb026366c229e097ee7efb76241ee46e659266c3bedd19399b8aad9fb87",
+  "runtime_adoption_20261003": {
+    "status": "integrated_in_formal_tree; current_1706_touch_checks_and_actual_screenshots_passed",
+    "formal_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-formal-art-6ykzg4kx",
+    "touch_checks": 1584,
+    "gameplay_screenshots": 30,
+    "held_clearance_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-held-clearance-w_utxrh_",
+    "evidence_document": "docs/HARVEST_RUNTIME_QA_20261002.md",
+    "current_runtime_manifest": "assets/harvest_3d/source/RUNTIME_INTEGRATION_20261003.json",
+    "scope": "Historical render manifest and source fingerprints are retained verbatim. Adoption is recorded separately from the original candidate status. Whole-page review of subsequent edits, target-device performance and child recognition are separate evidence.",
+    "final_polish_snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-readable-final-vfsy2myx",
+    "final_touch_checks": 1706,
+    "final_polish_gameplay_screenshots": 14,
+    "native_badge_sizes": [
+      24,
+      32,
+      48,
+      72,
+      96
+    ],
+    "native_badge_cells": 85,
+    "current_input_sha_manifest": "qa_logs/strawberry_readability_summary.json",
+    "completion_qa": {
+      "snapshot": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-completion-clean-w_924pv9",
+      "checks": 448,
+      "ratios_and_motion_cases": 4,
+      "orders": 12,
+      "real_deliveries": 68,
+      "result_and_save_reload": "passed"
+    },
+    "screenshot_content_gate": {
+      "script_sha256": "57c75ac18198c190be5976895c1317a482caf58ac602c913e09ccb34b6cd010e",
+      "two_ratio_runs": "1280x720 and 1024x768; CONTENT PASSED; actual PNG SHA recorded in RUNTIME_INTEGRATION_20261003.json"
+    }
+  }
+}

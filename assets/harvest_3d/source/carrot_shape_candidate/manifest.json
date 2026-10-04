@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "sprite_size": 512,
+  "assets": [
+    {
+      "id": "carrot",
+      "file": "sprites/carrot.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "golden_carrot",
+      "file": "sprites/golden_carrot.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    }
+  ],
+  "render": {
+    "engine": "Blender Cycles",
+    "resolution": [
+      512,
+      512
+    ],
+    "transparent": true,
+    "camera": "fixed 3/4 orthographic",
+    "ortho_scale": 2.6,
+    "ground_pivot_pixel": [
+      256,
+      467
+    ],
+    "pivot_offset_from_texture_center_px": [
+      0,
+      211
+    ],
+    "contact_shadow": "short radial alpha mesh; no scene background plane"
+  }
+}

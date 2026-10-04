@@ -20,6 +20,8 @@ const HarvestAction := preload("res://scripts/minigames/harvest_action.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
+const HarvestRoute := preload("res://scripts/harvest/harvest_route.gd")
+const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
 
 var _failures: Array[String] = []
 
@@ -34,8 +36,11 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	_the_catalogue_is_readable()
+	_balanced_grid_layout_is_safe_at_both_aspects()
+	_visual_slot_row_balance_cost_is_phase_aware()
 	_the_taught_path_obeys_the_real_gesture()
 	_the_still_route_keeps_instruction_data()
+	_the_basket_hint_routes_around_crops()
 	_a_pull_up_has_a_fan_not_a_line()
 	_a_drag_has_to_go_far_enough()
 	_a_tap_is_not_a_short_drag()
@@ -54,7 +59,7 @@ func _ready() -> void:
 	for failure in _failures:
 		print("FAIL  %s" % failure)
 	print("HARVEST PROBE %s\n" % ("PASSED" if _failures.is_empty() else "FAILED"))
-	get_tree().quit(1 if _failures.size() > 0 else 0)
+	await ProbeLifecycle.finish(self, 1 if _failures.size() > 0 else 0)
 
 
 func _the_catalogue_is_readable() -> void:
@@ -67,6 +72,116 @@ func _the_catalogue_is_readable() -> void:
 		_ok(recogniser in Gesture.ALL,
 			"%s asks for recogniser '%s', which nothing implements -- it would "
 			% [str(crop.get("id", "?")), recogniser] + "be un-pickable")
+
+
+## The screen-relative crop band must clear the order HUD's largest target
+## reach, and both aspect-specific grids must preserve the thumb spacing floor.
+func _balanced_grid_layout_is_safe_at_both_aspects() -> void:
+	var layouts := [
+		{"size": Vector2(1280.0, 720.0), "width": 772.0,
+			"counts": {5: 2, 6: 2, 8: 2, 9: 2, 11: 2, 12: 2, 14: 3, 18: 3}},
+		{"size": Vector2(1280.0, 960.0), "width": 751.0,
+			"counts": {5: 2, 6: 2, 8: 3, 9: 3, 11: 3, 12: 3, 14: 4, 18: 4}},
+	]
+	for layout in layouts:
+		var view: Vector2 = layout["size"]
+		var safe := HarvestAction._safe_meadow_y_bounds(view.y, 96.0)
+		var hud_clearance := HarvestAction.HARVEST_HUD_SAFE_BOTTOM + 96.0 \
+			+ HarvestAction.HARVEST_HUD_TOUCH_MARGIN
+		_ok(safe.x + 0.01 >= maxf(view.y * 0.34, hud_clearance),
+			"the meadow top clears the order card and maximum crop hit radius")
+		_ok(safe.y <= view.y * 0.81 + 0.01,
+			"the meadow band stays above the basket row")
+		var box := Rect2(Vector2(102.0, safe.x),
+			Vector2(float(layout["width"]), maxf(safe.y - safe.x - 8.0, 0.0)))
+		for key in layout["counts"]:
+			var count := int(key)
+			var expected_rows := int(layout["counts"][key])
+			var rows := HarvestAction._preferred_grid_rows(count,
+				view.x / view.y)
+			var fitted := HarvestAction._fit_grid_shape(count, box, 176.0, rows)
+			rows = int(fitted["rows"])
+			var apart := float(fitted["apart"])
+			var row_counts := HarvestAction._balanced_row_counts(count, rows)
+			var points: Array = HarvestAction._balanced_grid_points(
+				count, box, apart, rows)
+			var fewest_in_row := count
+			var most_in_row := 0
+			for row_count in row_counts:
+				fewest_in_row = mini(fewest_in_row, int(row_count))
+				most_in_row = maxi(most_in_row, int(row_count))
+			_ok(rows == expected_rows,
+				"%d targets use the balanced %d-row layout at %dx%d"
+				% [count, expected_rows, int(view.x), int(view.y)])
+			_ok(apart >= HarvestAction.THUMB_APART
+				and HarvestAction._grid_shape_holds(count, box, apart, rows),
+				"%d targets fit their aspect-specific band at safe spacing" % count)
+			_ok(points.size() == count and most_in_row - fewest_in_row <= 1,
+				"%d targets split evenly across %d rows" % [count, rows])
+			if rows >= 3:
+				for row_index in range(int(rows / 2)):
+					_ok(row_counts[row_index] == row_counts[rows - row_index - 1],
+						"%d-target outer rows stay visually balanced" % count)
+			for point_value in points:
+				var point: Vector2 = point_value
+				_ok(box.has_point(point),
+					"%d-target grid centres stay inside the safe meadow band" % count)
+				_ok(point.y - 96.0 >= HarvestAction.HARVEST_HUD_SAFE_BOTTOM
+					+ HarvestAction.HARVEST_HUD_TOUCH_MARGIN - 0.01,
+					"%d-target hit area stays below the order HUD" % count)
+			for i in range(points.size()):
+				for j in range(i + 1, points.size()):
+					var point_a: Vector2 = points[i]
+					var point_b: Vector2 = points[j]
+					_ok(point_a.distance_to(point_b)
+						>= HarvestAction.THUMB_APART - 0.01,
+						"%d-target grid keeps every pair at thumb-safe spacing" % count)
+
+
+## The visual ownership cost only separates targets that coexist in the same
+## order, and this A/B correction is scoped to harvest_08's four-row tablet map.
+func _visual_slot_row_balance_cost_is_phase_aware() -> void:
+	var action := HarvestAction.new()
+	_ok(bool(action.call("_visual_row_balance_enabled", "harvest_08", 4)),
+		"the measured celebration tablet grid enables its row-balance cost")
+	_ok(not bool(action.call("_visual_row_balance_enabled", "harvest_08", 3)),
+		"the measured three-row widescreen grid keeps its ownership map")
+	_ok(not bool(action.call("_visual_row_balance_enabled", "harvest_02", 4)),
+		"unreviewed four-row levels do not inherit the celebration correction")
+	var four_row_points: Array = [
+		Vector2(100.0, 10.0), Vector2(200.0, 20.0),
+		Vector2(100.0, 150.0), Vector2(200.0, 160.0),
+		Vector2(100.0, 290.0), Vector2(200.0, 300.0),
+		Vector2(100.0, 430.0), Vector2(200.0, 440.0),
+	]
+	_ok(int(action.call("_visual_row_count", four_row_points)) == 4,
+		"the tablet's jittered target coordinates resolve to four rows")
+	_ok(int(action.call("_visual_row_count", four_row_points.slice(0, 6))) == 3,
+		"the three-row layout is recognized independently")
+
+	var items: Array = [[], [], []]
+	var masks: Array = [[true, false, false], [true, false, false],
+		[false, true, false]]
+	var terms: Array = action.call("_visual_pair_terms", items, 3, masks, true)
+	var same_row_cost: float = action.call("_visual_pair_cost", terms, 3, 0, 1,
+		Vector2(100.0, 100.0), Vector2(300.0, 150.0))
+	var cross_row_cost: float = action.call("_visual_pair_cost", terms, 3, 0, 1,
+		Vector2(100.0, 100.0), Vector2(300.0, 180.0))
+	var never_co_visible_cost: float = action.call("_visual_pair_cost", terms, 3, 0, 2,
+		Vector2(100.0, 100.0), Vector2(300.0, 100.0))
+	_ok(is_equal_approx(same_row_cost, HarvestAction.VISUAL_ROW_BALANCE_WEIGHT),
+		"one pair co-visible in one phase incurs one row cost")
+	_ok(is_zero_approx(cross_row_cost),
+		"targets in different rows incur no row cost")
+	_ok(is_zero_approx(never_co_visible_cost),
+		"targets from disjoint orders are not counted as an overlap")
+	var three_row_terms: Array = action.call("_visual_pair_terms", items, 3, masks,
+		bool(action.call("_visual_row_balance_enabled", "harvest_08", 3)))
+	var disabled_cost: float = action.call("_visual_pair_cost", three_row_terms, 3, 0, 1,
+		Vector2(100.0, 100.0), Vector2(300.0, 100.0))
+	_ok(is_zero_approx(disabled_cost),
+		"three-row layouts keep the row-balance term disabled")
+	action.free()
 
 
 ## The demonstration is an example that the same recogniser accepts, not a
@@ -103,6 +218,55 @@ func _the_still_route_keeps_instruction_data() -> void:
 		"a still basket lesson keeps its crop-to-basket line")
 	_ok(Tutorial.still_route(look, look, PackedVector2Array()).is_empty(),
 		"a still tap needs no invented travel line")
+
+
+## The carry hint is a temporary teaching route. Its line and moving hand must
+## stay clear of the crop silhouettes between a far target and its basket.
+func _the_basket_hint_routes_around_crops() -> void:
+	var start := Vector2(10.0, 52.0)
+	var finish := Vector2(205.0, 52.0)
+	var obstacles: Array = [
+		Rect2(Vector2(56.0, 28.0), Vector2(20.0, 46.0)),
+		Rect2(Vector2(116.0, 31.0), Vector2(22.0, 50.0)),
+	]
+	var route := HarvestRoute.avoid_rectangles(start, finish, obstacles, 12.0)
+	_ok(route.size() > 2,
+		"a basket hint detours when crops occupy the direct route")
+	_ok(route[0] == start and route[route.size() - 1] == finish,
+		"a detour still starts at the held crop and ends at its basket")
+	for index in range(1, route.size()):
+		_ok(HarvestRoute.segment_is_clear_of_rectangles(route[index - 1],
+			route[index], obstacles, 12.0),
+			"each basket hint segment clears every neighboring crop")
+	var overlapping_obstacles: Array = [
+		Rect2(Vector2(70.0, 20.0), Vector2(45.0, 60.0)),
+		Rect2(Vector2(90.0, 34.0), Vector2(45.0, 60.0)),
+	]
+	var overlap_route := HarvestRoute.avoid_rectangles(start, finish,
+		overlapping_obstacles, 12.0)
+	_ok(overlap_route.size() == 1 or overlap_route.size() > 2,
+		"overlapping crop silhouettes produce a clear detour or hide the route")
+	for index in range(1, overlap_route.size()):
+		_ok(HarvestRoute.segment_is_clear_of_rectangles(overlap_route[index - 1],
+			overlap_route[index], overlapping_obstacles, 12.0),
+			"an overlapping-crop detour clears the whole silhouette cluster")
+	var bounds := Rect2(Vector2(24.0, 24.0), Vector2(240.0, 160.0))
+	var bounded_route := HarvestRoute.avoid_rectangles(Vector2(40.0, 85.0),
+		Vector2(250.0, 85.0),
+		[Rect2(Vector2(100.0, 55.0), Vector2(60.0, 60.0))], 12.0, bounds)
+	_ok(bounded_route.size() > 2,
+		"a basket hint still finds an in-screen detour when the field has room")
+	for point in bounded_route:
+		_ok(bounds.has_point(point), "route waypoints stay inside the field margin")
+	for index in range(1, bounded_route.size()):
+		_ok(HarvestRoute.segment_is_clear_of_rectangles(bounded_route[index - 1],
+			bounded_route[index], [Rect2(Vector2(100.0, 55.0),
+			Vector2(60.0, 60.0))], 12.0),
+			"an in-screen detour clears the target")
+	var unobstructed := HarvestRoute.avoid_rectangles(start, finish, [], 12.0)
+	_ok(unobstructed.size() == 2 and unobstructed[0] == start
+		and unobstructed[1] == finish,
+		"an open basket hint stays a direct route")
 
 
 ## Straight up the middle is not the only way to pull a carrot.

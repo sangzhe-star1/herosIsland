@@ -52,7 +52,8 @@ var _home_zoom := 1.0
 var overview := 0.0
 
 
-## Point it at the beds, as close in as it can get with all of them visible.
+## Point it at the opening farm frame, as close in as it can get while every
+## live bed and Layout's one stable base landmark remain visible.
 func look_at_the_beds(view: Vector2, top_bar: float, shelf: float,
 		count: int) -> void:
 	window = Layout.window_rect(view, top_bar, shelf)

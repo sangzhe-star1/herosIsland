@@ -1,0 +1,22 @@
+{
+  "status": "已采用为正式草莓PNG；沿用唯一运行徽标、目标与分拣规则",
+  "runtime_path": "assets/harvest_3d/crops/strawberry.png",
+  "runtime_sha256": "9c965bd5d7cf69cb3d1d21d376dc3d7fd6e0454ecdc8e3190f1004a7f3a8a04a",
+  "previous_png_sha256": "9b09e8bc60e0f12cf5ec74ab63eaf79a126bed7a0c43ad2bf1cdfd042075aac1",
+  "previous_source_retained": "assets/harvest_3d/source/catalog_profile_candidate/sprites/strawberry.png",
+  "candidate_qa": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-strawberry-candidate-_3s2yca7",
+  "formal_qa": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-readable-final-vfsy2myx",
+  "formal_touch_checks": 1706,
+  "formal_catalog_sizes_px": [24, 32, 48, 72, 96],
+  "formal_catalog_cells": 85,
+  "formal_gameplay_screenshots": 14,
+  "source_glb_sha256": "eb33862a529ba8d182d7d76363931f3173453175da2d02dfd1db9205ace29ae7",
+  "source_roundtrip": "rendered/validation/roundtrip_report.json",
+  "review": "候选10页面及24/32小图已主会话与独立会话目视；正式两比例果园普通/手持也已目视；自动非空检查不替代美术识别审核",
+  "limits": [
+    "未完成5–8岁儿童识别观察",
+    "未测Android、iPad及Web目标设备",
+    "未迁移为整页实时3D",
+    "固定镜头种子排布，不宣称任意旋转视角已完成"
+  ]
+}

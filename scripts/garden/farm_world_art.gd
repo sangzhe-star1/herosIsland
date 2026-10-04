@@ -410,6 +410,78 @@ static func _draw_crate(parent: Node2D, at: Vector2, size: float,
 		WOOD_DARK.lightened(0.08), 0.0)
 
 
+## A shared physical basket shell for world-sized collection destinations.
+## Small UI buttons should still use IconLibrary's compact basket glyph; this
+## is deliberately for things a child drops crops into, where a flat icon made
+## the field look like it had a HUD sticker sitting on the grass. The caller
+## keeps ownership of its hit area, label and feedback.
+static func draw_basket_shell(parent: Node2D, size: float) -> Node2D:
+	var shell := Node2D.new()
+	shell.name = "FarmBasketShell"
+	shell.set_meta("input_passthrough", true)
+	parent.add_child(shell)
+
+	var willow_dark := Color(0.54, 0.33, 0.16)
+	var willow := Color(0.76, 0.49, 0.22)
+	var willow_light := Color(0.91, 0.66, 0.32)
+	# The handle is painted first so the front lip of the basket naturally hides
+	# its lower ends. A ribbon, rather than a separate ring icon, gives it a
+	# single warm outline and the same left-top light as buildings and soil.
+	var handle := PackedVector2Array([
+		Vector2(-size * 0.31, size * 0.04),
+		Vector2(-size * 0.23, -size * 0.34),
+		Vector2(0.0, -size * 0.47),
+		Vector2(size * 0.23, -size * 0.34),
+		Vector2(size * 0.31, size * 0.04),
+	])
+	Shapes.lit(shell, Shapes.ribbon(handle, size * 0.105), willow, 0.52)
+
+	var body_box := Vector2(size * 0.82, size * 0.52)
+	var body_at := Vector2(-body_box.x * 0.5, -size * 0.05)
+	Shapes.lit(shell, Shapes.rounded_rect(body_at, body_box, size * 0.15),
+		willow, 0.58)
+	# The upper rim and a pair of quiet weave bands give a bowl-shaped, tactile
+	# destination at a glance. They are intentionally lower contrast than the
+	# sample tag: the tag answers which basket to choose.
+	Shapes.lit(shell, Shapes.oval_points(Vector2(0.0, -size * 0.03),
+		Vector2(size * 0.42, size * 0.105)), willow_light, 0.46)
+	for y in [size * 0.16, size * 0.31]:
+		Shapes.fill(shell, Shapes.rounded_rect(Vector2(-size * 0.31, y),
+			Vector2(size * 0.62, size * 0.042), size * 0.021),
+			willow_dark.lightened(0.10), 0.0)
+	for x in [-size * 0.22, 0.0, size * 0.22]:
+		Shapes.fill(shell, Shapes.taper(Vector2(x - size * 0.012, size * 0.07),
+			Vector2(x + size * 0.012, size * 0.43), size * 0.032,
+			size * 0.024), willow_dark.lightened(0.13), 0.0)
+	return shell
+
+
+## A low sorting nook groups the existing drop baskets without turning them
+## into a vertical toolbar. It is only a passive ground treatment: the caller
+## continues to own every basket's position, hit area and feedback.
+static func draw_harvest_basket_station(parent: Node, slots: Array,
+		basket_size: float) -> Node2D:
+	var station := Node2D.new()
+	station.name = "HarvestBasketStation"
+	station.z_index = -4
+	station.set_meta("input_passthrough", true)
+	parent.add_child(station)
+
+	var mat := Color(0.71, 0.56, 0.30, 0.14)
+	var straw := Color(0.96, 0.79, 0.40, 0.16)
+	for slot in slots:
+		var at: Vector2 = slot
+		# A short warm oval is deliberately softer than the basket's own
+		# contact shadow. It gives the group a shared place in the grass but
+		# never becomes a rectangular UI panel.
+		Shapes.fill(station, Shapes.oval_points(at + Vector2(0.0, basket_size * 0.37),
+			Vector2(basket_size * 0.64, basket_size * 0.18), 24), mat, 0.0)
+		Shapes.fill(station, Shapes.oval_points(at + Vector2(-basket_size * 0.05,
+			basket_size * 0.33), Vector2(basket_size * 0.43, basket_size * 0.09), 20),
+			straw, 0.0)
+	return station
+
+
 ## 种子店不用再只是“另一间颜色不同的小屋”：门口的条纹遮阳棚、
 ## 两盒种子和圆招牌共同形成“可以买、能种”的轮廓。真正可点击的盒子
 ## 仍由 FarmWorld 的既有 layout 决定，下面全部只是被动的画笔。

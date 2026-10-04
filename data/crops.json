@@ -2,7 +2,7 @@
   {
     "id": "carrot",
     "name_key": "crop.carrot",
-    "icon": "carrot",
+    "icon": "res://assets/crops/carrot.png",
     "growth_seconds": 1800,
     "growth_stages": 5,
     "stage_seconds": [
@@ -15,8 +15,8 @@
       "seed",
       "sprout",
       "sprout",
-      "carrot",
-      "carrot"
+      "res://assets/crops/carrot.png",
+      "res://assets/crops/carrot.png"
     ],
     "care_event_types": [
       "thirsty"
@@ -31,7 +31,7 @@
   {
     "id": "corn",
     "name_key": "crop.corn",
-    "icon": "corn",
+    "icon": "res://assets/crops/corn.png",
     "growth_seconds": 7200,
     "growth_stages": 5,
     "stage_seconds": [
@@ -44,8 +44,8 @@
       "seed",
       "sprout",
       "sprout",
-      "corn",
-      "corn"
+      "res://assets/crops/corn.png",
+      "res://assets/crops/corn.png"
     ],
     "care_event_types": [
       "weeds"
@@ -60,7 +60,7 @@
   {
     "id": "strawberry",
     "name_key": "crop.strawberry",
-    "icon": "strawberry",
+    "icon": "res://assets/crops/strawberry.png",
     "growth_seconds": 14400,
     "growth_stages": 5,
     "stage_seconds": [
@@ -73,8 +73,8 @@
       "seed",
       "sprout",
       "sprout",
-      "strawberry",
-      "strawberry"
+      "res://assets/crops/strawberry.png",
+      "res://assets/crops/strawberry.png"
     ],
     "care_event_types": [
       "thirsty"
@@ -89,7 +89,7 @@
   {
     "id": "tomato",
     "name_key": "crop.tomato",
-    "icon": "tomato",
+    "icon": "res://assets/crops/tomato.png",
     "growth_seconds": 28800,
     "growth_stages": 5,
     "stage_seconds": [
@@ -102,8 +102,8 @@
       "seed",
       "sprout",
       "sprout",
-      "tomato",
-      "tomato"
+      "res://assets/crops/tomato.png",
+      "res://assets/crops/tomato.png"
     ],
     "care_event_types": [
       "bug"
@@ -118,7 +118,7 @@
   {
     "id": "potato",
     "name_key": "crop.potato",
-    "icon": "potato",
+    "icon": "res://assets/crops/potato.png",
     "growth_seconds": 10800,
     "growth_stages": 5,
     "stage_seconds": [
@@ -131,8 +131,8 @@
       "seed",
       "sprout",
       "sprout",
-      "potato",
-      "potato"
+      "res://assets/crops/potato.png",
+      "res://assets/crops/potato.png"
     ],
     "care_event_types": [
       "weeds"
@@ -147,7 +147,7 @@
   {
     "id": "lettuce",
     "name_key": "crop.lettuce",
-    "icon": "lettuce",
+    "icon": "res://assets/crops/lettuce.png",
     "growth_seconds": 3600,
     "growth_stages": 5,
     "stage_seconds": [
@@ -160,8 +160,8 @@
       "seed",
       "sprout",
       "sprout",
-      "lettuce",
-      "lettuce"
+      "res://assets/crops/lettuce.png",
+      "res://assets/crops/lettuce.png"
     ],
     "care_event_types": [
       "thirsty"

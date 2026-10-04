@@ -29,7 +29,11 @@ extends Node
 
 const Maturity := preload("res://scripts/harvest/maturity.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
+const HarvestRoute := preload("res://scripts/harvest/harvest_route.gd")
+const HarvestVisualArt := preload("res://scripts/harvest/harvest_visual_art.gd")
+const HarvestAction := preload("res://scripts/minigames/harvest_action.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
+const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
 
 const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
 
@@ -80,7 +84,7 @@ func _ready() -> void:
 		print("FAIL  only %d checks ran" % _asked)
 	print("HARVEST TOUCH PROBE %s\n"
 		% ("PASSED" if _failures.is_empty() else "FAILED"))
-	get_tree().quit(1 if _failures.size() > 0 else 0)
+	await ProbeLifecycle.finish(self, 1 if _failures.size() > 0 else 0)
 
 
 func _run_on_a(window: Vector2i) -> void:
@@ -91,11 +95,19 @@ func _run_on_a(window: Vector2i) -> void:
 		% [str(window), str(get_viewport().get_visible_rect().size)])
 
 	await _one_basket_needs_one_move()
+	await _mouse_path_uses_the_same_targets_and_baskets()
+	await _delivery_stops_the_lift_and_bob()
+	await _the_sort_pointer_tracks_the_lifting_crop()
+	await _refusals_keep_the_input_anchor()
+	await _soil_cover_uses_the_existing_gesture()
+	await _orchard_cues_fit_their_fruit()
+	await _the_plant_body_stays_after_a_pick()
 	await _every_gesture_reaches_the_hand()
 	await _the_lesson_starts_on_its_named_gesture()
 	await _the_baskets_are_telling_apart()
 	await _the_static_lesson_and_sort_route_are_still()
 	await _the_matching_basket_stays_marked_without_motion()
+	await _rapid_still_landings_replace_their_receipts()
 	await _a_wrong_basket_costs_him_nothing()
 	await _only_the_starred_one_goes_in_the_gift_basket()
 	await _later_order_crops_wait_for_their_turn()
@@ -169,6 +181,11 @@ func _the_difficulty_table_is_real() -> void:
 		decoys[tier] = not_pickable
 		hints[tier] = int((_level.get("_hints") as Node).get("misses_before_help"))
 		clock[tier] = _level.get("_clock") != null
+		if tier == 2:
+			var label: Label = _level.get("_clock") as Label
+			_ok(label != null and label.get_parent() == _level.get("_hud")
+				and label.position.x >= get_viewport().get_visible_rect().size.x - 180.0,
+				"the brave clock is in the clear HUD corner, above field artwork")
 		await _close()
 
 		# Row 4, read off a carrot's tuned cone.
@@ -353,13 +370,385 @@ func _stroke(points: Array) -> void:
 		await get_tree().process_frame
 
 
+## Desktop equivalent of `_stroke()`. Send actual mouse events through the
+## viewport so Control routing, emulation settings and HUD pass-through are
+## covered along with the crop gesture recogniser.
+func _mouse_stroke(points: Array) -> void:
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.position = _glass(points[0])
+	down.global_position = down.position
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+
+	for i in range(1, points.size()):
+		var motion := InputEventMouseMotion.new()
+		motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+		motion.position = _glass(points[i])
+		motion.global_position = motion.position
+		motion.relative = motion.position - _glass(points[i - 1])
+		Input.parse_input_event(motion)
+		await get_tree().process_frame
+
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	up.position = _glass(points[points.size() - 1])
+	up.global_position = up.position
+	Input.parse_input_event(up)
+	for i in range(4):
+		await get_tree().process_frame
+
+
+func _mouse_tap(at: Vector2) -> void:
+	await _mouse_stroke([at, at])
+
+
 func _tap(at: Vector2) -> void:
 	await _stroke([at, at])
+
+
+## Mouse is still a supported path on desktop, and the passive order-folder HUD
+## must not intercept it. Exercise a real harvest and basket delivery rather
+## than only checking the Control's mouse_filter value.
+func _mouse_path_uses_the_same_targets_and_baskets() -> void:
+	await _open("harvest_07")
+	var target := _find("", "tomato")
+	_ok(target != null, "多作物订单 exposes a ready tomato to the mouse path")
+	if target != null:
+		var before := _picked_total()
+		await _mouse_stroke(_move_for(target))
+		var held := _in_hand()
+		_ok(held == target, "mouse drag picks the same tomato the touch path accepts")
+		var basket: Node2D = _level.call("_destination_for", held) if held != null else null
+		_ok(basket != null and basket.id == "veg",
+			"mouse-held tomato resolves through the existing vegetable basket")
+		if basket != null:
+			await _mouse_tap(basket.global_position)
+			_ok(_in_hand() == null and _picked_total() == before + 1,
+				"one mouse delivery lands once and clears the held crop")
+	await _close()
+
+
+## Fast delivery cancels the unfinished lift; delayed delivery cancels the
+## held bob. Neither can start writing the transform again during the flight.
+func _delivery_stops_the_lift_and_bob() -> void:
+	for pause in [0.0, 0.36]:
+		await _open("harvest_02")
+		var target := _find("", "strawberry")
+		_ok(target != null, "the lift transition has a ready strawberry")
+		if target == null:
+			await _close()
+			continue
+		await _stroke(_move_for(target))
+		_ok(_in_hand() == target, "the lift transition starts from a real pick")
+		if pause > 0.0:
+			await get_tree().create_timer(pause).timeout
+		var previous_lift: Tween = target.get("_move_tween") as Tween
+		var previous_bob: Tween = target.get("_held_bob") as Tween
+		if pause > 0.0:
+			_ok(previous_bob != null and previous_bob.is_valid(),
+				"the delayed delivery exercises a running held bob")
+		var basket: Node2D = _level.call("_destination_for", target)
+		_ok(basket != null, "the held strawberry has a delivery destination")
+		if basket == null:
+			await _close()
+			continue
+		await _tap(basket.global_position)
+		_ok(_in_hand() == null and _picked_total() == 1,
+			"delivery during a lift or bob lands exactly once")
+		_ok(previous_lift == null or not previous_lift.is_valid(),
+			"delivery cancels the previous lift and its pending callback")
+		_ok(previous_bob == null or not previous_bob.is_valid(),
+			"delivery cancels the previous held bob")
+		await get_tree().create_timer(0.25).timeout
+		_ok(not is_instance_valid(target) or target.get("_held_bob") == null,
+			"no delayed lift callback starts a bob during delivery")
+		await get_tree().create_timer(0.18).timeout
+		_ok(not is_instance_valid(target), "a delivered crop leaves the scene")
+		await _close()
+
+
+## Plant art is a passive field sibling. Picking and delivering only moves
+## the existing fruit Target and leaves its plant rooted in the same place.
+func _the_plant_body_stays_after_a_pick() -> void:
+	await _open("harvest_07")
+	var target := _find("", "tomato")
+	_ok(target != null, "the planted crop has one available fruit target")
+	if target == null:
+		await _close()
+		return
+	var body: Node2D = target.get_meta("visual_plant", null) as Node2D
+	var mound: Node2D = target.get_meta("visual_mound", null) as Node2D
+	_ok(body != null and mound != null, "the crop has a plant body and ground contact")
+	if body == null or mound == null:
+		await _close()
+		return
+	_ok(body.get_parent() == _level.get("_field"), "plant art lives in the field")
+	var planted_at := body.global_position
+	var rooted_at := mound.global_position
+	await _stroke(_move_for(target))
+	_ok(_in_hand() == target, "only the picked fruit becomes the held target")
+	_ok(body.visible and mound.visible and body.global_position == planted_at
+		and mound.global_position == rooted_at, "the plant and contact stay after picking")
+	var basket: Node2D = _level.call("_destination_for", target)
+	_ok(basket != null, "the picked fruit uses the existing basket resolver")
+	if basket != null:
+		await _tap(basket.global_position)
+		await get_tree().create_timer(0.45).timeout
+		_ok(not is_instance_valid(target), "the delivered fruit leaves the scene")
+		_ok(is_instance_valid(body) and body.visible and body.global_position == planted_at
+			and mound.visible and mound.global_position == rooted_at,
+			"the passive plant stays rooted after delivery")
+	await _close()
+	await _open("harvest_08")
+	var future := _find_any("tomato", "ready")
+	var future_body: CanvasItem = future.get_meta("visual_plant", null) as CanvasItem \
+		if future != null else null
+	_ok(future != null and not future.visible and future_body != null and not future_body.visible,
+		"a future order hides both its fruit and passive plant body")
+	await _close()
+
+
+## The sorting guide follows the actual held fruit during the lift, while
+## its existing trace names the basket from the first visible beat.
+func _the_sort_pointer_tracks_the_lifting_crop() -> void:
+	await _open("harvest_07")
+	var tomato := _find("", "tomato")
+	_ok(tomato != null, "the moving sorting guide has a ready tomato")
+	if tomato == null:
+		await _close()
+		return
+	var expected_height: float = tomato.call("held_lift_height")
+	_ok(expected_height >= 46.0, "the held lift retains its minimum clearance")
+	await _stroke(_move_for(tomato))
+	var held := _in_hand()
+	var pointer: Node = _level.get("_basket_pointer")
+	var destination: Node2D = _level.call("_destination_for", held) if held != null else null
+	_ok(held != null and pointer != null and destination != null,
+		"the first held crop immediately has one sorting pointer")
+	if held == null or pointer == null or destination == null:
+		await _close()
+		return
+	var trace: Line2D = pointer.get_node_or_null("MotionTrace") as Line2D
+	var spot: Node2D = pointer.get("_spot") as Node2D
+	_ok(trace != null and trace.visible and trace.points.size() >= 2
+		and _guide_endpoint_points_into_basket(trace, destination),
+		"normal motion guides into the matching basket mouth without covering its sample")
+	await get_tree().create_timer(0.12).timeout
+	var fruit_art: TextureRect = held.get("_art") as TextureRect
+	var fruit_anchor := _world_texture_alpha_rect(fruit_art).get_center() \
+		if fruit_art != null else held.global_position
+	_ok(spot != null and spot.position.distance_to(fruit_anchor) < 3.0,
+		"the LOOK spotlight tracks the visible fruit during its real lift")
+	_ok(trace != null and trace.points.size() >= 2
+		and trace.points[0].distance_to(fruit_anchor) < 3.0,
+		"the obstacle-aware route starts at the visible lifted fruit")
+	await get_tree().create_timer(0.16).timeout
+	fruit_anchor = _world_texture_alpha_rect(fruit_art).get_center() \
+		if fruit_art != null else held.global_position
+	_ok(spot != null and spot.position.distance_to(fruit_anchor) < 2.0,
+		"the guide remains attached to the held pose after the spring finishes")
+	if held.has_meta("visual_plant"):
+		var body: Node2D = held.get_meta("visual_plant") as Node2D
+		var body_art: TextureRect = body.get_node_or_null("HarvestPlantBody3DArt") as TextureRect
+		_ok(body_art != null and fruit_art != null,
+			"the plant clearance check uses the actual source textures")
+		if body_art != null and fruit_art != null:
+			var body_bounds := _world_texture_alpha_rect(body_art)
+			var fruit_bounds := _world_texture_alpha_rect(fruit_art)
+			_ok(body_bounds.position.y - fruit_bounds.end.y >= 12.0,
+				"the held fruit visibly clears the actual top of its passive plant")
+			if trace != null and trace.points.size() > 1 and body_art.is_visible_in_tree():
+				var rooted_plant_obstacles: Array = [body_bounds]
+				for point_index in range(1, trace.points.size()):
+					var route_segment_clear := HarvestRoute.segment_is_clear_of_rectangles(
+						trace.points[point_index - 1], trace.points[point_index],
+						rooted_plant_obstacles, 4.0)
+					if not route_segment_clear:
+						print("rooted route collision viewport=%s segment=%d points=%s bounds=%s start=%s held=%s" % [
+							str(get_viewport().get_visible_rect().size), point_index,
+							str(trace.points), str(body_bounds), str(trace.points[point_index - 1]),
+							str(held.global_position)])
+					_ok(route_segment_clear,
+						"the basket pointer routes around the picked crop's rooted plant")
+			var field: Node = _level.get("_field")
+			for child in field.get_children():
+				var neighbour: TextureRect = child.get_node_or_null("HarvestPlantBody3DArt") as TextureRect
+				if neighbour != null and neighbour != body_art and neighbour.is_visible_in_tree():
+					_ok(not fruit_bounds.grow(8.0).intersects(_world_texture_alpha_rect(neighbour)),
+						"the detached fruit also clears neighbouring plant bodies")
+	await _tap(destination.global_position)
+	for i in range(3):
+		await get_tree().process_frame
+	_ok(_in_hand() == null and _live_guides().is_empty(),
+		"delivery clears the following pointer and its trace")
+	await _close()
+
+
+func _world_texture_alpha_rect(sprite: TextureRect) -> Rect2:
+	var image := sprite.texture.get_image()
+	var used := Rect2(image.get_used_rect())
+	var factor := sprite.size / Vector2(image.get_size())
+	var transform := sprite.get_global_transform()
+	return Rect2(transform * (used.position * factor),
+		used.size * factor * transform.get_scale())
+
+
+## Rejection feedback changes only the local visual group, even when a lift
+## or held bob owns the target transform. Real touches still use the same anchor.
+func _refusals_keep_the_input_anchor() -> void:
+	await _open_at("harvest_02", 2)
+	var unripe := _find_any("strawberry", Maturity.UNRIPE)
+	_ok(unripe != null, "the refusal test has an unripe target")
+	if unripe != null:
+		var home: Vector2 = unripe.position
+		var visual: Node2D = unripe.get("_visual") as Node2D
+		_ok(visual != null, "rejection feedback has a local display group")
+		for retry in range(2):
+			await _stroke(_move_for(unripe))
+			await get_tree().create_timer(0.04).timeout
+			_ok(unripe.position.distance_to(home) < 0.001,
+				"a refused gesture never moves the crop input anchor")
+			_ok(visual != null and visual.position.length() > 0.1,
+				"refusal still gives visible local shake feedback")
+		await get_tree().create_timer(0.28).timeout
+		_ok(visual != null and visual.position.length() < 0.001,
+			"rapid refused gestures return the display to its original position")
+	await _close()
+
+	await _open("harvest_04")
+	var potato := _find(Gesture.SWEEP, "potato")
+	_ok(potato != null, "the visual refusal test has a covered potato")
+	if potato != null:
+		var home: Vector2 = potato.position
+		var visual: Node2D = potato.get("_visual") as Node2D
+		var cover: Node2D = potato.get("_cover") as Node2D
+		_ok(visual != null and cover != null and cover.get_parent() == visual,
+			"the opaque soil cover shares the rejection display group")
+		await _stroke([potato.global_position, potato.global_position + Vector2(12, 0)])
+		await get_tree().create_timer(0.04).timeout
+		_ok(potato.position.distance_to(home) < 0.001,
+			"a failed dig preserves the potato input anchor")
+		_ok(visual != null and visual.position.length() > 0.1,
+			"the soil covering the potato visibly shakes on refusal")
+		await get_tree().create_timer(0.28).timeout
+		_ok(visual != null and visual.position.length() < 0.001,
+			"the soil cover returns to the crop origin after refusal")
+	await _close()
+
+	await _open("harvest_02")
+	var target := _find("", "strawberry")
+	_ok(target != null, "the held refusal test has a ready berry")
+	if target == null:
+		await _close()
+		return
+	await _stroke(_move_for(target))
+	_ok(_in_hand() == target, "the held refusal test starts with a real pick")
+	var lift: Tween = target.get("_move_tween") as Tween
+	var wrong := _basket("veg")
+	var visual: Node2D = target.get("_visual") as Node2D
+	_ok(wrong != null and visual != null, "the held crop has a wrong destination and visual group")
+	if wrong == null or visual == null:
+		await _close()
+		return
+	await _tap(wrong.global_position)
+	_ok(_in_hand() == target and _picked_total() == 0,
+		"a wrong basket during the lift retains the held crop")
+	_ok(target.get("_move_tween") == lift,
+		"a wrong basket does not replace the crop lift transform")
+	await get_tree().create_timer(0.35).timeout
+	var bob: Tween = target.get("_held_bob") as Tween
+	_ok(bob != null and bob.is_valid(), "the lifting callback still starts the held bob")
+	await _tap(wrong.global_position)
+	await get_tree().create_timer(0.03).timeout
+	await _tap(wrong.global_position)
+	_ok(target.get("_held_bob") == bob and bob != null and bob.is_valid(),
+		"rapid wrong baskets preserve the independent held bob")
+	_ok(_in_hand() == target and _picked_total() == 0,
+		"rapid wrong baskets do not lose or count the crop")
+	await get_tree().create_timer(0.28).timeout
+	_ok(visual.position.length() < 0.001, "wrong-basket feedback returns its display to the held origin")
+	var right: Node2D = _level.call("_destination_for", target)
+	if right != null:
+		await _tap(right.global_position)
+		_ok(_in_hand() == null and _picked_total() == 1,
+			"the same held crop still delivers once after wrong baskets")
+		await get_tree().create_timer(0.43).timeout
+		_ok(not is_instance_valid(target), "the delivered crop leaves after visual refusal")
+	await _close()
 
 
 ## The move a child makes for this crop, ending where it naturally ends -- ON
 ## the plant, never over at the baskets. That is the point: the gesture is the
 ## picking and nothing else.
+
+## The soil mesh is only artwork. Real partial strokes still drive the same
+## cover opacity, and a release before the required turns restores the cover.
+func _soil_cover_uses_the_existing_gesture() -> void:
+	await _open("harvest_04")
+	var target := _find(Gesture.SWEEP, "potato")
+	_ok(target != null, "the soil-cover QA has the existing potato Target")
+	if target == null:
+		await _close()
+		return
+	var cover: Node2D = target.get("_cover") as Node2D
+	var art: Control = cover.get_node_or_null("HarvestSoilCover3DArt") as Control \
+		if cover != null else null
+	_ok(art != null, "the matching-profile loose-earth image is present")
+	if art == null:
+		await _close()
+		return
+	_ok(art.mouse_filter == Control.MOUSE_FILTER_IGNORE and art.get_script() == null,
+		"the soil image does not receive input or own gesture state")
+	_ok(not HarvestVisualArt.prop_has_baked_contact_shadow("soil_cover"),
+		"the source soil image leaves contact shadows to the existing field")
+	var fitted := HarvestVisualArt.soil_cover_layout(90.0)
+	var fitted_bounds: Rect2 = fitted.get("rect", Rect2())
+	_ok(absf(fitted_bounds.size.x - 117.0) < 0.5,
+		"soil width is measured from the image alpha rather than its full canvas")
+	var before: int = _picked_total()
+	var at: Vector2 = target.global_position
+	var params: Dictionary = target.crop.get("gesture_params", {})
+	var leg := float(params.get("leg", 60.0)) + 26.0
+	var down := InputEventScreenTouch.new()
+	down.index = 0
+	down.pressed = true
+	down.position = _glass(at)
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+	var last := at
+	for point in [at + Vector2(leg, 0), at + Vector2(leg - 14.0, 0)]:
+		var drag := InputEventScreenDrag.new()
+		drag.index = 0
+		drag.position = _glass(point)
+		drag.relative = _glass(point) - _glass(last)
+		last = point
+		Input.parse_input_event(drag)
+		await get_tree().process_frame
+	_ok(cover.modulate.a > 0.05 and cover.modulate.a < 0.95,
+		"a real unfinished dig gradually uncovers the crop")
+	_ok(cover.scale.x < 1.0 and cover.scale.x > 0.80,
+		"the passive earth follows the existing dig shrink feedback")
+	_ok(_picked_total() == before and not target.taken and target.global_position.distance_to(at) < 0.001,
+		"partial digging preserves the existing count and input origin")
+	var up := InputEventScreenTouch.new()
+	up.index = 0
+	up.pressed = false
+	up.position = _glass(last)
+	Input.parse_input_event(up)
+	for i in range(4):
+		await get_tree().process_frame
+	_ok(is_equal_approx(cover.modulate.a, 1.0) and cover.scale.distance_to(Vector2.ONE) < 0.001,
+		"releasing an unfinished dig restores the same cover")
+	_ok(_picked_total() == before and not target.taken,
+		"an unfinished dig does not consume the potato")
+	await get_tree().create_timer(0.25).timeout
+	await _stroke(_move_for(target))
+	_ok(_picked_total() == before + 1, "the original full sweep still delivers once to its only basket")
+	await _close()
+
 func _move_for(target: Node2D) -> Array:
 	# The probe is a real thumb, but it does not carry a private answer to
 	# "what move works". The tutorial and recogniser share this exact path.
@@ -459,6 +848,123 @@ func _one_basket_needs_one_move() -> void:
 ## The move ENDS ON THE PLANT. Not near a basket, not on the way to one -- the
 ## reason four levels were unplayable is that those two things were asked of the
 ## same stroke, and no stroke can do both.
+func _orchard_cues_fit_their_fruit() -> void:
+	await _open("harvest_03")
+	var corn := _find(Gesture.DRAG, "corn")
+	_ok(corn != null, "the short down-swipe cue has a real corn target")
+	if corn != null:
+		var cue: Node2D = corn.get("_affordance") as Node2D
+		var arrow := cue.get_node_or_null("HarvestDirectionCue") as Line2D \
+			if cue != null else null
+		var arrowhead := cue.get_node_or_null("HarvestDirectionArrowhead") as Polygon2D \
+			if cue != null else null
+		_ok(arrow != null and arrowhead != null,
+			"the short corn down-swipe keeps a visible directional cue")
+		if arrow != null and arrow.points.size() >= 2:
+			_ok(arrow.points[-1].y > arrow.points[0].y,
+				"the compact corn cue follows its configured downward gesture")
+			_ok(arrow.points[0].distance_to(arrow.points[-1]) <= 60.0,
+				"the short down-swipe cue stays compact around its crop")
+		var passive := cue != null and arrow != null and arrowhead != null \
+			and cue.get_script() == null and arrow.get_script() == null \
+			and arrowhead.get_script() == null
+		_ok(passive,
+			"the direction cue is passive artwork under the existing Target")
+	await _close()
+	await _open("harvest_06")
+	var peas := _find(Gesture.DRAG, "peas")
+	_ok(peas != null, "the short pod-opening cue has a real pea target")
+	if peas != null:
+		var cue: Node2D = peas.get("_affordance") as Node2D
+		var arrow := cue.get_node_or_null("HarvestDirectionCue") as Line2D \
+			if cue != null else null
+		var follows_down := arrow != null and arrow.points.size() >= 2
+		if follows_down:
+			follows_down = arrow.points[-1].y > arrow.points[0].y
+		_ok(follows_down,
+			"the short pod-opening cue follows its configured downward gesture")
+	await _close()
+
+	await _open("harvest_05")
+	var orange := _find(Gesture.TWIST, "orange")
+	_ok(orange != null, "the rotation cue has a real orange Target")
+	if orange != null:
+		var cue: Node2D = orange.get("_affordance") as Node2D
+		var arc := cue.get_node_or_null("HarvestTwistArc") as Line2D \
+			if cue != null else null
+		var start_arrowhead := cue.get_node_or_null("HarvestTwistArrowheadStart") as Polygon2D \
+			if cue != null else null
+		var end_arrowhead := cue.get_node_or_null("HarvestTwistArrowheadEnd") as Polygon2D \
+			if cue != null else null
+		_ok(arc != null and start_arrowhead != null and end_arrowhead != null \
+			and arc.points.size() == 13,
+			"the orange shows both possible directions on a curved rotation cue")
+		if arc != null and start_arrowhead != null and end_arrowhead != null:
+			var art: TextureRect = orange.get("_art") as TextureRect
+			var fruit := HarvestVisualArt.texture_used_bounds(art.texture,
+				art.size.x * 0.5, Vector2.ZERO, art.position) if art != null else Rect2()
+			var centre := fruit.get_center()
+			var max_radius := 0.0
+			for point in arc.points:
+				max_radius = maxf(max_radius, point.distance_to(centre))
+			for point in start_arrowhead.polygon:
+				max_radius = maxf(max_radius, point.distance_to(centre))
+			for point in end_arrowhead.polygon:
+				max_radius = maxf(max_radius, point.distance_to(centre))
+			_ok(max_radius < float(orange.get("radius")) - 8.0,
+				"the twist art stays inside the existing orange touch radius")
+			_ok(start_arrowhead.polygon[0].distance_to(arc.points[0]) < 0.01 \
+				and end_arrowhead.polygon[0].distance_to(arc.points[-1]) < 0.01,
+				"opposing arrowheads sit at both ends of the rotation arc")
+			_ok(cue.get_script() == null and arc.get_script() == null \
+				and start_arrowhead.get_script() == null \
+				and end_arrowhead.get_script() == null,
+				"the orange rotation cue is passive artwork only")
+	var branches := 0
+	for target in _targets():
+		if str(target.crop.get("sweep_cover", "")) != "branch":
+			continue
+		branches += 1
+		var cue: Node2D = target.get("_affordance") as Node2D
+		var twig := cue.get_node_or_null("HarvestBranchTwig") as Polygon2D \
+			if cue != null else null
+		var art: TextureRect = target.get("_art") as TextureRect
+		_ok(cue != null and cue.name == "HarvestBranchCue" and twig != null,
+			"orchard shaking keeps a visible short hanging twig")
+		if twig == null or art == null:
+			continue
+		var bounds := Rect2(twig.polygon[0], Vector2.ZERO)
+		for point in twig.polygon:
+			bounds = bounds.expand(point)
+		var fruit := HarvestVisualArt.texture_used_bounds(art.texture,
+			art.size.x * 0.5, Vector2.ZERO, art.position)
+		_ok(bounds.size.x >= 44.0 and bounds.size.x <= 72.0,
+			"the curved bough stays within one fruit slot")
+		_ok(bounds.end.y >= fruit.position.y - 4.0 \
+			and bounds.end.y <= fruit.position.y + 3.0,
+			"the bough meets the actual smaller or full fruit crown")
+		_ok(cue.get_script() == null and cue.get_parent() == target.get("_visual"),
+			"the branch remains passive artwork under the existing Target")
+		for child in cue.get_children():
+			_ok(child is Polygon2D and child.get_script() == null,
+				"the twig adds neither an input node nor a dark outline")
+	_ok(branches > 0, "the branch checks found real orchard targets")
+	var apple := _find(Gesture.SWEEP, "apple")
+	_ok(apple != null, "the compact branch has a ripe apple to shake")
+	if apple != null:
+		var before := _picked_total()
+		await _stroke(_move_for(apple))
+		_ok(_in_hand() == apple and _picked_total() == before,
+			"a real shaking stroke still picks into the existing held state")
+		var basket: Node2D = _level.call("_destination_for", apple)
+		_ok(basket != null, "the shaken apple still uses the shared destination resolver")
+		if basket != null:
+			await _tap(basket.global_position)
+			_ok(_in_hand() == null and _picked_total() == before + 1,
+				"the shortened visual branch still delivers exactly one apple")
+	await _close()
+
+
 func _every_gesture_reaches_the_hand() -> void:
 	# tap and line and drag all appear in 多作物订单; sweep and twist in 果园摇一摇.
 	for level_id in ["harvest_07", "harvest_05"]:
@@ -540,6 +1046,12 @@ func _the_baskets_are_telling_apart() -> void:
 		var view: Vector2 = get_viewport().get_visible_rect().size
 		for i in range(baskets.size()):
 			var here: Node2D = baskets[i]
+			if "golden" in here.accepts:
+				var marker := here.get_node_or_null("BasketSampleTag/GoldenBasketMarker") as Control
+				_ok(marker != null and marker.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+					"the gift basket has a passive star matching golden crops")
+				_ok(here.get("_label") != null,
+					"the golden basket keeps its crop sample beside the star")
 			_ok(here.global_position.x + here.radius <= view.x
 					and here.global_position.x - here.radius >= 0.0,
 				"%s: basket '%s' is on the glass" % [level_id, here.id])
@@ -597,23 +1109,41 @@ func _the_static_lesson_and_sort_route_are_still() -> void:
 	var origin := tomato.global_position
 	await _stroke(_move_for(tomato))
 	var held := _in_hand()
-	_ok(held != null and held.global_position.distance_to(origin + Vector2(0, -46)) < 0.5
+	_ok(held != null and held.global_position.distance_to(origin + held.held_lift_displacement()) < 0.5
 		and held.scale.distance_to(Vector2(1.12, 1.12)) < 0.001
-		and held.z_index >= 2 and held.get_node_or_null("HeldCue") != null,
+		and held.z_index >= 2 and held.get_node_or_null("HarvestTargetVisual/HeldCue") != null,
 		"a low-motion pick lands immediately in the visible held pose")
 	if held == null:
 		await _close()
 		return
+	var held_shift: Vector2 = held.get_meta("visual_held_shift", Vector2.ZERO)
+	var held_art := held.get("_art") as TextureRect
+	var rooted_plant := held.get_meta("visual_plant", null) as Node2D
+	var rooted_art := rooted_plant.get_node_or_null("HarvestPlantBody3DArt") as TextureRect \
+		if rooted_plant != null else null
+	var held_alpha: Rect2 = _level.call("_world_art_bounds", held_art) \
+		if held_art != null else Rect2()
+	var rooted_alpha: Rect2 = _level.call("_world_art_bounds", rooted_art) \
+		if rooted_art != null else Rect2()
+	print("  held-shift shape=%s crop=%s x=%.1f fruit_alpha=%s plant_alpha=%s" % [
+		_shape, str(held.crop.get("id", "")), held_shift.x,
+		str(held_alpha), str(rooted_alpha)])
+	var shift_limit := float(_level.get_script().get_script_constant_map().get(
+		"HELD_SHIFT_LIMIT", 0.0))
+	_ok(rooted_art != null and held_alpha.has_area() and rooted_alpha.has_area()
+		and shift_limit > 0.0 and absf(held_shift.x) <= shift_limit + 0.01,
+		"held alpha-bounds stay within the configured horizontal plant reach %.0fpx (shift %.1f)"
+			% [shift_limit, held_shift.x])
 	var destination: Node2D = _level.call("_destination_for", held)
 	var guides := _live_guides()
 	var pointer: Node = guides[0] if guides.size() == 1 else null
 	var pointer_trace: Line2D = pointer.get_node_or_null("MotionTrace") as Line2D \
 		if pointer != null else null
-	var carry := PackedVector2Array([held.global_position,
-		destination.global_position]) if destination != null else PackedVector2Array()
+	var carry: PackedVector2Array = _level.call("_basket_hint_route", held,
+		destination) if destination != null else PackedVector2Array()
 	_ok(destination != null and guides.size() == 1 and pointer_trace != null
 		and pointer_trace.visible and _same_path(pointer_trace.points, carry),
-		"the fixed basket pointer reuses the held crop and shared destination")
+		"the still basket pointer reuses the held crop's clear route and resolver")
 	var held_at := held.global_position
 	var held_scale := held.scale
 	await get_tree().create_timer(0.65).timeout
@@ -638,7 +1168,7 @@ func _the_matching_basket_stays_marked_without_motion() -> void:
 	var held := _in_hand()
 	_ok(held != null and held.global_position.distance_to(origin + Vector2(0, -46)) < 0.5
 		and held.scale.distance_to(Vector2(1.12, 1.12)) < 0.001
-		and held.z_index >= 2 and held.get_node_or_null("HeldCue") != null,
+		and held.z_index >= 2 and held.get_node_or_null("HarvestTargetVisual/HeldCue") != null,
 		"the strawberry is immediately shown in its final held pose")
 	if held == null:
 		await _close()
@@ -687,6 +1217,57 @@ func _the_matching_basket_stays_marked_without_motion() -> void:
 	_ok(not cue.visible and _in_hand() == null and receipt != null and receipt.visible,
 		"the static answer clears and a fixed check confirms the instant landing")
 	await _close()
+
+
+## Three quick real deliveries replace the still receipt before its expiry.
+## The discarded receipts must not leave timer callbacks holding freed Nodes.
+func _rapid_still_landings_replace_their_receipts() -> void:
+	await _open_low_motion("harvest_07")
+	var previous_receipt_id := 0
+	var basket: Node2D = null
+	for i in range(3):
+		var tomato := _find("", "tomato")
+		_ok(tomato != null, "rapid still landing %d has a ready tomato" % i)
+		if tomato == null:
+			break
+		await _stroke(_move_for(tomato))
+		var held := _in_hand()
+		basket = _level.call("_destination_for", held) if held != null else null
+		_ok(basket != null, "rapid still landing %d resolves its real basket" % i)
+		if basket == null:
+			break
+		await _tap(basket.global_position)
+		var receipt: Node2D = basket.get("_accepted_cue") as Node2D
+		_ok(receipt != null and is_instance_valid(receipt) and receipt.visible,
+			"each rapid still landing has a current visible receipt")
+		if previous_receipt_id != 0:
+			_ok(instance_from_id(previous_receipt_id) == null,
+				"the next landing frees the replaced receipt")
+		previous_receipt_id = receipt.get_instance_id() if receipt != null else 0
+		_ok(_in_hand() == null and _picked_total() == i + 1,
+			"each rapid still landing clears the held crop and counts once")
+	await get_tree().create_timer(0.82).timeout
+	_ok(basket != null and basket.get("_accepted_cue") == null
+		and instance_from_id(previous_receipt_id) == null,
+		"the last still receipt expires and clears its owner")
+	_ok(_picked_total() == 3 and int(_level.get("_order_index")) == 0,
+		"receipt expiry does not alter delivery or advance the unfinished order")
+	await _close()
+
+	# Also leave while a receipt is pending: its lifetime ends with the basket.
+	await _open_low_motion("harvest_07")
+	var tomato := _find("", "tomato")
+	if tomato != null:
+		await _stroke(_move_for(tomato))
+		basket = _level.call("_destination_for", _in_hand())
+		if basket != null:
+			await _tap(basket.global_position)
+			var receipt: Node2D = basket.get("_accepted_cue") as Node2D
+			previous_receipt_id = receipt.get_instance_id() if receipt != null else 0
+	await _close()
+	await get_tree().create_timer(0.82).timeout
+	_ok(previous_receipt_id != 0 and instance_from_id(previous_receipt_id) == null,
+		"leaving the page also cancels the pending receipt lifetime")
 
 
 ## A wrong basket says no and gives it back. Nothing is ever lost.
@@ -1000,18 +1581,58 @@ func _the_help_points_to_the_matching_basket() -> void:
 
 func _assert_help_points_at(expected: Node2D, crop_name: String) -> void:
 	_level.call("_point_at_the_baskets")
-	var field: Node = _level.get("_field")
-	var guide: Node = field.get_child(field.get_child_count() - 1) \
-		if field != null and field.get_child_count() > 0 else null
+	var guide := _level.get("_basket_pointer") as Node
 	var steps: Variant = guide.get("_steps") if guide != null else []
 	var pointed := Vector2.ZERO
+	var route_path := PackedVector2Array()
 	if steps is Array and not steps.is_empty():
 		var step: Dictionary = steps[0]
 		pointed = step.get("then", Vector2.ZERO)
-	_ok(pointed.distance_to(expected.global_position) < 0.5,
-		"the help finger points %s at its matching basket" % crop_name)
+		route_path = step.get("path", PackedVector2Array())
+	var path_matches_step := not route_path.is_empty() \
+		and pointed.distance_to(route_path[route_path.size() - 1]) < 0.5
+	var endpoint_ok := _guide_point_points_into_basket(pointed, expected)
+	if not endpoint_ok or not path_matches_step:
+		print("help endpoint debug crop=%s guide=%s steps=%s path=%s pointed=%s" % [
+			crop_name, str(guide), str(steps), str(route_path), str(pointed)])
+	_ok(endpoint_ok and path_matches_step,
+		"the help finger points %s into its matching basket mouth" % crop_name)
+	_ok(_level.call("_basket_for", expected.global_position) == expected,
+		"the matching basket keeps its original hit-centre resolver")
 	if guide != null and guide.has_method("skip"):
 		guide.call("skip")
+
+
+func _guide_endpoint_points_into_basket(trace: Line2D, basket: Node2D) -> bool:
+	if trace == null or trace.points.size() < 2 or basket == null:
+		print("guide endpoint missing trace/basket trace=%s basket=%s" % [
+			str(trace), str(basket)])
+		return false
+	return _guide_point_points_into_basket(
+		trace.points[trace.points.size() - 1], basket)
+
+
+func _guide_point_points_into_basket(point: Vector2, basket: Node2D) -> bool:
+	if basket == null:
+		return false
+	var art := basket.get_node_or_null("HarvestBasket3DArt") as TextureRect
+	var sample := basket.get("_label") as Control
+	if art == null or sample == null or art.texture == null:
+		print("guide endpoint missing basket visual basket=%s art=%s sample=%s texture=%s" % [
+			basket.id, str(art), str(sample), str(art.texture) if art != null else "none"])
+		return false
+	var basket_bounds: Rect2 = _level.call("_world_art_bounds", art)
+	var sample_bounds := sample.get_global_rect()
+	var inside_art := basket_bounds.has_point(point)
+	var above_sample := point.y < sample_bounds.position.y
+	var clear_of_center := point.distance_to(basket.global_position) > 30.0
+	var result := inside_art and above_sample and clear_of_center
+	if not result:
+		print("guide endpoint debug basket=%s point=%s center=%s art=%s sample=%s size=%s checks=%s/%s/%s" % [
+			basket.id, str(point), str(basket.global_position), str(basket_bounds),
+			str(sample_bounds), str(basket.get("_size")), str(inside_art),
+			str(above_sample), str(clear_of_center)])
+	return result
 
 
 ## An unripe one shakes its head, and that is all it does.
@@ -1162,7 +1783,103 @@ func _nothing_is_planted_closer_than_a_thumb() -> void:
 		_ok(closest >= floor_px - 0.5,
 			"%s: the closest two things on the bed are %.0fpx apart (%s), floor is %.0f"
 				% [level_id, closest, pair, floor_px])
+		_assert_crop_art_layout(level_id, targets)
 		await _close()
+
+
+## The art can be smaller than the input circle, but each visible crop must
+## still answer at its centre and on its own side of a neighbour's midpoint.
+func _assert_crop_art_layout(level_id: String, targets: Array) -> void:
+	if level_id == "harvest_08":
+		_ok(targets.size() == 18, "the celebration retains all 18 targets across orders")
+	var config: Dictionary = _level.level_data.get("config", {})
+	var box: Rect2 = _level.call("_planting_bounds", config)
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	var station_left := view.x
+	for basket in _baskets():
+		station_left = minf(station_left, basket.position.x - float(basket.get("_size")) * 0.64)
+	for target in targets:
+		_ok(box.grow(0.5).has_point(target.position),
+			"%s: crop centre is inside its final planting rectangle" % level_id)
+		_ok(is_equal_approx(target.radius, float(_level.call("_reach", target.crop))),
+			"%s: visual scale preserves the crop touch radius" % level_id)
+		var mound: CanvasItem = target.get_meta("visual_mound", null) as CanvasItem
+		_ok(mound != null and mound.visible == target.visible,
+			"%s: contact patch follows the current order visibility" % level_id)
+		if _baskets().size() >= 3:
+			_ok(target.position.x + 64.0 + 14.0 <= station_left + 0.5,
+				"%s: crop footprint clears the three basket station" % level_id)
+		if not target.visible:
+			continue
+		_ok(_level.call("_nearest", target.global_position) == target,
+			"%s: a visible crop answers at its centre" % level_id)
+		var neighbour: Node2D = null
+		var closest := INF
+		for other in targets:
+			if other == target or not other.visible:
+				continue
+			var gap: float = target.position.distance_to(other.position)
+			if gap < closest:
+				closest = gap
+				neighbour = other
+		if neighbour != null:
+			var edge: Vector2 = target.global_position.lerp(neighbour.global_position, 0.4)
+			if edge.distance_to(target.global_position) <= target.radius:
+				_ok(_level.call("_nearest", edge) == target,
+					"%s: the crop side of a midpoint answers to that crop" % level_id)
+	if level_id == "harvest_08":
+		_assert_celebration_row_balance(targets, view)
+
+
+## The multi-order celebration must use all four tablet rows without disturbing
+## its established three-row widescreen ownership map. Check each order against
+## the actual target visibility, including the persistent clutter stone.
+func _assert_celebration_row_balance(targets: Array, view: Vector2) -> void:
+	var wide := view.x / maxf(view.y, 1.0) >= 1.55
+	var expected_by_phase: Array = []
+	if wide:
+		expected_by_phase = [[1, 3, 4], [2, 3, 1], [3, 2, 0]]
+	else:
+		expected_by_phase = [[2, 2, 2, 2], [2, 1, 2, 1], [1, 1, 2, 1]]
+	var orders: Array = _level.get("_orders")
+	_ok(orders.size() == expected_by_phase.size(),
+		"harvest_08 retains three measured order phases")
+	for phase in range(mini(orders.size(), expected_by_phase.size())):
+		if int(_level.get("_order_index")) != phase:
+			_level.set("_order_index", phase)
+			_level.call("_load_order")
+		var actual := _visible_row_counts(targets)
+		var expected: Array = expected_by_phase[phase]
+		_ok(actual == expected,
+			"harvest_08 phase %d visible rows are %s (expected %s)"
+			% [phase + 1, str(actual), str(expected)])
+
+
+func _visible_row_counts(targets: Array) -> Array[int]:
+	var ordered: Array[int] = []
+	for index in range(targets.size()):
+		ordered.append(index)
+	ordered.sort_custom(func(a: int, b: int) -> bool:
+			return (targets[a] as Node2D).position.y \
+				< (targets[b] as Node2D).position.y)
+	var row_ids: Array[int] = []
+	row_ids.resize(targets.size())
+	var row_id := -1
+	var previous_y := -INF
+	for index in ordered:
+		var target := targets[index] as Node2D
+		if row_id < 0 or target.position.y - previous_y \
+				> HarvestAction.VISUAL_ROW_BALANCE_BAND:
+			row_id += 1
+		row_ids[index] = row_id
+		previous_y = target.position.y
+	var counts: Array[int] = []
+	counts.resize(row_id + 1)
+	counts.fill(0)
+	for index in range(targets.size()):
+		if (targets[index] as Node2D).visible:
+			counts[row_ids[index]] += 1
+	return counts
 
 
 ## A stone is moved out of the way. It is not picked, not counted, not sorted.
@@ -1325,8 +2042,10 @@ func _one_finger_at_a_time() -> void:
 		"holding quiets the demo -- exactly one finger remains")
 	if held != null and guides.size() == 1:
 		var want: Node2D = _level.call("_destination_for", held)
-		_ok(_guide_then(guides[0]).distance_to(want.global_position) < 0.5,
-			"and it points at the matching basket, not the plant")
+		_ok(want != null and _guide_point_points_into_basket(
+			_guide_then(guides[0]), want)
+			and _level.call("_basket_for", want.global_position) == want,
+			"and it points into the matching basket, not the plant")
 	var before := _live_guides().size()
 	_level.call("_show_the_move")
 	for i in range(6):
@@ -1336,8 +2055,9 @@ func _one_finger_at_a_time() -> void:
 		"help while holding replaces its basket finger instead of stacking another")
 	if held != null and after.size() == 1:
 		var want2: Node2D = _level.call("_destination_for", held)
-		_ok(want2 != null and _guide_then(after[0]).distance_to(
-			want2.global_position) < 0.5,
+		_ok(want2 != null and _guide_point_points_into_basket(
+			_guide_then(after[0]), want2)
+			and _level.call("_basket_for", want2.global_position) == want2,
 			"and that finger also answers which basket")
 		if want2 != null:
 			await _tap(want2.global_position)

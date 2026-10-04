@@ -1,0 +1,50 @@
+{
+  "status": "isolated source candidate; not adopted by runtime or formal page",
+  "generator": "build_plant_bed_r5.py",
+  "blender_version": "5.2.2 LTS",
+  "plant": {
+    "file": "strawberry_plant.glb",
+    "ground_pivot_m": [
+      0,
+      0,
+      0
+    ],
+    "fruit_slot_node": "FruitSlot | strawberry GLB center",
+    "fruit_slot_local_m": [
+      0.05,
+      -0.365,
+      0.235
+    ],
+    "interaction_owner": "HarvestTarget",
+    "fruit_geometry_exported": false,
+    "mesh_primitive_count": 2,
+    "triangle_estimate": 4026,
+    "sha256": "6a9de7eb7362e73b60d490fc9aaf02c363b33b681dafad7a62149e3b1cc4d349"
+  },
+  "bed": {
+    "file": "strawberry_bed.glb",
+    "texture_file": "strawberry_loam_texture.png",
+    "texture_sha256": "5de5bcd08da46dc6fcb791231c1c8b069c369ac4f49a41fdcc5eee0cbc89e888",
+    "dimensions_m": [
+      8.8,
+      4.4,
+      0.09
+    ],
+    "max_surface_height_m": 0.09,
+    "closed_bottom_or_skirt": false,
+    "edge_transition": "open ground-level edge with eight short two-leaf overlaps",
+    "texture_edge_blend": "low-contrast soil mottling fades to meadow green near the perimeter",
+    "continuous_single_mound": true,
+    "mesh_primitive_count": 2,
+    "triangle_estimate": 3616,
+    "per_target_pads_or_overlay_strips": false,
+    "sha256": "543b734f3ebc3405eae293955c1d7437a5f3322bb13a28c48935ef93bc1e9949"
+  },
+  "preview": {
+    "plant_count": 15,
+    "layout": "five columns by three rows; plants are positioned by bed-mesh ray hits",
+    "fruit_slot_markers": 15,
+    "markers_exported": false
+  },
+  "review": "r5 Blender-only candidate; actual Godot page screenshot is still required"
+}

@@ -348,10 +348,18 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 		# and the money must not share a picture, or "I spent it" and "I lost
 		# it" become the same event to a six-year-old.
 		"star_coin":
-			_lit_circle(p, c, s * 0.36, Color(1.0, 0.78, 0.22))
-			_circle(p, c, s * 0.29, Color(1.0, 0.90, 0.50))
-			_poly(p, Shapes.star_points(c, s * 0.21, 0.44, 5), Color(1.0, 0.72, 0.14))
-			_poly(p, Shapes.star_points(c, s * 0.13, 0.46, 5), Color(1.0, 0.94, 0.72))
+			if s <= 32.0:
+				# At 14px the nested rim and two outlined stars merge into ink.
+				# Keep the coin boundary and one contrasting star at native size.
+				Shapes.lit(p, Shapes.circle_points(c, s * 0.40),
+					Color(1.0, 0.82, 0.30), 0.55)
+				Shapes.fill(p, Shapes.star_points(c, s * 0.26, 0.44, 5),
+					Color(0.61, 0.39, 0.10), 0.0)
+			else:
+				_lit_circle(p, c, s * 0.36, Color(1.0, 0.78, 0.22))
+				_circle(p, c, s * 0.29, Color(1.0, 0.90, 0.50))
+				_poly(p, Shapes.star_points(c, s * 0.21, 0.44, 5), Color(1.0, 0.72, 0.14))
+				_poly(p, Shapes.star_points(c, s * 0.13, 0.46, 5), Color(1.0, 0.94, 0.72))
 		"heart":
 			_poly(p, PackedVector2Array([
 				c + Vector2(0, s * 0.34), c + Vector2(-s * 0.36, -s * 0.04),
@@ -612,33 +620,38 @@ static func _draw(icon_name: String, p: Control, s: float) -> bool:
 		"guide_hand":
 			# The first teaching hand was one cream bar plus a circle. At lesson
 			# size it read as a lollipop or mouse cursor, not a hand. Keep the
-			# actual hand warm and immediately recognisable, then give it a blue
-			# little-hero sleeve. That makes the index, thumb and palm legible
+			# actual glove warm and immediately recognisable, then give it a blue
+			# little-hero sleeve. A soft glove reads more like a friendly teaching
+			# tool than a large skin-coloured cursor, while its index and thumb stay
+			# legible
 			# before a child has learned the game's visual vocabulary.
-			var skin := Color(1.0, 0.79, 0.59)
-			var sleeve := Color(0.27, 0.64, 0.95)
-			var cuff := Color(1.0, 0.73, 0.24)
+			var glove := Color(1.0, 0.94, 0.74)
+			var sleeve := Color(0.24, 0.57, 0.84)
+			var cuff := Color(1.0, 0.72, 0.25)
 			var palm := c + Vector2(s * 0.12, s * 0.11)
 			var fingertip := guide_hand_tip(s)
 			# Sleeve and cuff sit behind the hand, angled toward the lower-right so
 			# the fingertip can land cleanly on a crop or button without covering it.
 			Shapes.lit(p, Shapes.taper(palm + Vector2(s * 0.13, s * 0.14),
-				c + Vector2(s * 0.36, s * 0.38), s * 0.31, s * 0.29), sleeve, 1.0)
+				c + Vector2(s * 0.36, s * 0.38), s * 0.31, s * 0.29), sleeve, 0.55)
 			Shapes.lit(p, Shapes.taper(palm + Vector2(s * 0.12, s * 0.13),
-				palm + Vector2(s * 0.25, s * 0.26), s * 0.33, s * 0.31), cuff, 1.0)
+				palm + Vector2(s * 0.25, s * 0.26), s * 0.33, s * 0.31), cuff, 0.48)
 			Shapes.lit(p, Shapes.blob(palm, Vector2(s * 0.22, s * 0.19),
-				Shapes.rng_for("guide_hand_palm"), 0.06, 4, 20), skin, 1.0)
+				Shapes.rng_for("guide_hand_palm"), 0.06, 4, 20), glove, 0.50)
 			# One extended index gives the instruction its verb; a round palm alone
 			# is a mitten, and a row of tiny fingers turns to visual noise at 4:3.
+			# Its seam meets the already inked palm, so it needs only a light inner
+			# outline.  A full second ink stroke made the small shared guide hand look
+			# like separate blocks rather than one friendly hand.
 			Shapes.lit(p, Shapes.taper(palm + Vector2(-s * 0.09, -s * 0.10),
 				fingertip + Vector2(s * 0.026, s * 0.053), s * 0.18, s * 0.13),
-				skin, 1.0)
+				glove, 0.34)
 			Shapes.lit(p, Shapes.circle_points(fingertip, s * 0.078, 16),
-				skin.lightened(0.03), 1.0)
+				glove.lightened(0.03), 0.50)
 			# A side thumb stops the long finger from reading as an arrow or wand.
 			Shapes.lit(p, Shapes.taper(palm + Vector2(-s * 0.10, s * 0.06),
 				palm + Vector2(-s * 0.27, s * 0.13), s * 0.15, s * 0.105),
-				skin.darkened(0.03), 0.9)
+				glove.darkened(0.03), 0.32)
 			# A tiny sleeve gleam feels heroic without becoming a second icon.
 			Shapes.fill(p, Shapes.oval_points(c + Vector2(s * 0.32, s * 0.34),
 				Vector2(s * 0.045, s * 0.024), 12), Color(1.0, 1.0, 1.0, 0.72), 0.0)

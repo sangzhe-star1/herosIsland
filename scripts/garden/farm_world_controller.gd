@@ -391,7 +391,6 @@ func _draw_ground() -> void:
 	# feel lived in without ever making a child wonder whether a carrot is
 	# behind a decoration.
 	FarmWorldArt.add_ground_dressing(_ground, _art_safe_rects())
-	_draw_plot_clearings()
 
 	# A path from the gate up between the beds, so the farm reads as a place
 	# somebody walks around rather than as a green rectangle with things on it.
@@ -418,38 +417,25 @@ func _draw_ground() -> void:
 
 	# Flowers, in a fixed pattern rather than scattered. Nothing in this garden
 	# is random -- see offline_growth.gd on why weeds are not either.
+	var protected := _art_safe_rects()
 	for i in range(24):
 		var at := Vector2(
 			140.0 + fmod(float(i) * 337.0, world.x - 280.0),
 			120.0 + fmod(float(i) * 611.0, world.y - 240.0))
-		if Layout.bed_block(Layout.places_for_plots()).grow(70.0).has_point(at):
+		var flower_footprint := Rect2(at - Vector2.ONE * 9.0,
+			Vector2.ONE * 18.0)
+		var touches_target := false
+		for target in protected:
+			if flower_footprint.intersects(target.grow(22.0)):
+				touches_target = true
+				break
+		if touches_target:
 			continue
 		var tint: Color = [Color(0.96, 0.72, 0.78), Color(0.98, 0.86, 0.52),
 			Color(0.80, 0.78, 0.96)][i % 3]
 		Shapes.fill(_ground, Shapes.circle_points(at, 9.0), tint, 1.0)
 		Shapes.fill(_ground, Shapes.circle_points(at, 4.0),
 			Color(1.0, 0.94, 0.62), 1.0)
-
-
-## A garden is a place the grass has been cleared back from, not six brown
-## cards laid on one green floor. These low-contrast islands sit below the
-## paths and beds, move with the world, and deliberately have no outline or
-## input of their own. Their seed is the plot index: a refresh must never make
-## a child's farm rearrange its grass.
-func _draw_plot_clearings() -> void:
-	var box := Layout.plot_box()
-	for i in range(Layout.places_for_plots()):
-		var rng := RandomNumberGenerator.new()
-		# Match PlotView's fixed contour seed. The clearing is the same patch of
-		# ground at a gentler scale, so its edge should nest with the grass rim
-		# instead of making a second, unrelated scalloped halo.
-		rng.seed = 32_557 + i * 7_919
-		var island := Shapes.blob(Layout.plot_at(i),
-			Vector2(box.x * 0.58, box.y * 0.64), rng, 0.08, 5, 28)
-		# This is a trampled area, not a second bright outline around the bed.
-		# Stay close to the meadow so the soil, crop and care state remain the
-		# things a child sees first.
-		Shapes.fill(_ground, island, Color(0.68, 0.82, 0.53), 0.0)
 
 
 func _fence_post(at: Vector2) -> void:
@@ -473,8 +459,9 @@ func _draw_buildings() -> void:
 		# that is COMING, never a thing that is refused. No padlock exists
 		# anywhere on this farm.
 		var locked_here: bool = Level.level() < int(f.get("level", 0))
+		var facility_id := str(f.get("id", ""))
 		var hut := Node2D.new()
-		hut.name = "Facility_%s" % str(f.get("id", "place"))
+		hut.name = "Facility_%s" % facility_id
 		hut.position = at
 		_buildings.add_child(hut)
 
@@ -482,17 +469,20 @@ func _draw_buildings() -> void:
 		# FarmWorldArt owns the visual shell only. Layout still owns this box,
 		# and facility_under() still uses that same box for its hit area, so a
 		# richer landmark cannot create a second kind of door to maintain.
-		FarmWorldArt.draw_facility(hut, str(f.get("id", "")), box, locked_here)
+		FarmWorldArt.draw_facility(hut, facility_id, box, locked_here)
 
 		var art_size := minf(box.y * 0.42, box.x * 0.36)
+		# These three destinations use the building's own picture as its wordless
+		# action cue: basket at the barn, a finished dish at the kitchen entrance,
+		# and a heart above the order checklist. It stays within the existing
+		# facility art and does not create another control or tap target.
 		var art := UiKit.picture(str(f.get("icon", "star")), art_size)
 		if art != null:
 			art.position = FarmWorldArt.facility_icon_anchor(box,
-				str(f.get("id", ""))) - Vector2.ONE * art_size * 0.5
+				facility_id) - Vector2.ONE * art_size * 0.5
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			art.modulate.a = 0.45 if locked_here else 1.0
 			hut.add_child(art)
-
 
 ## Every visible place a child can act on, in world coordinates. This feeds
 ## only the passive art layer; facility_under() and bed_under() keep their own

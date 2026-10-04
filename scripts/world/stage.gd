@@ -412,7 +412,7 @@ func _build_ground() -> void:
 func _build_grass(base: float) -> void:
 	# Tufts, thinning with distance from the camera. Placed with the seeded rng
 	# so the meadow is the same meadow every time.
-	for i in range(120):
+	for i in range(int(round(120.0 * style.grass_tuft_density))):
 		var y: float = base + pow(_rng.randf(), 0.7) * (view_h - base + 60.0)
 		var depth: float = (y - base) / maxf(view_h - base, 1.0)
 		var x: float = _rng.randf_range(-BLEED, view_w + BLEED)
@@ -422,7 +422,7 @@ func _build_grass(base: float) -> void:
 			Vector2(x + h * 0.28, y),
 		]), style.ground_bottom.lerp(style.ground_top, 0.35 + depth * 0.4), 0.0)
 		blade.z_index = -1
-	for i in range(22):
+	for i in range(int(round(22.0 * style.flower_density))):
 		var y: float = base + pow(_rng.randf(), 0.6) * (view_h - base + 40.0)
 		var x: float = _rng.randf_range(-BLEED, view_w + BLEED)
 		var petal: Color = [Color(1.0, 0.86, 0.34), Color(0.98, 0.62, 0.72),

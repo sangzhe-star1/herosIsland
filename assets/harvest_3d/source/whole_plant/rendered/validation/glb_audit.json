@@ -1,0 +1,2705 @@
+{
+  "plant001.glb": {
+    "path": "plant001.glb",
+    "bytes": 228956,
+    "sha256": "78bade20a687d95f3c2e5188fa9649413133831f3f02c15d09ebe079900f267e",
+    "summary": {
+      "nodes": 6,
+      "meshes": 5,
+      "materials": 6,
+      "unique_mesh_triangles": 9116,
+      "unique_mesh_vertices": 7114,
+      "unique_mesh_primitives": 18,
+      "unique_color_0_primitives": 0,
+      "instanced_scene_triangles": 9116,
+      "instanced_scene_vertices": 7114,
+      "instanced_scene_primitives": 18,
+      "instanced_color_0_primitives": 0,
+      "static_scene_triangles": 7276,
+      "static_scene_primitives": 2,
+      "target_scene_triangles": 1840,
+      "targets": 4,
+      "unique_target_names": 4,
+      "textures": 0,
+      "images": 0,
+      "cameras": 0,
+      "lights": 0,
+      "extensions_used": [],
+      "extensions_required": [],
+      "extensions_present": []
+    },
+    "hierarchy": [
+      {
+        "id": 5,
+        "name": "Plant01",
+        "path": "Plant01",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": null
+      },
+      {
+        "id": 0,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "Plant01/HarvestTarget Tomato P01 F01",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 0
+      },
+      {
+        "id": 1,
+        "name": "HarvestTarget Tomato P01 F02",
+        "path": "Plant01/HarvestTarget Tomato P01 F02",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 1
+      },
+      {
+        "id": 2,
+        "name": "HarvestTarget Tomato P01 F03",
+        "path": "Plant01/HarvestTarget Tomato P01 F03",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 2
+      },
+      {
+        "id": 3,
+        "name": "HarvestTarget Tomato P01 F04",
+        "path": "Plant01/HarvestTarget Tomato P01 F04",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 3
+      },
+      {
+        "id": 4,
+        "name": "Plant01 | static geometry",
+        "path": "Plant01/Plant01 | static geometry",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 4
+      }
+    ],
+    "targets": [
+      {
+        "id": 0,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "Plant01/HarvestTarget Tomato P01 F01",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 0
+      },
+      {
+        "id": 1,
+        "name": "HarvestTarget Tomato P01 F02",
+        "path": "Plant01/HarvestTarget Tomato P01 F02",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 1
+      },
+      {
+        "id": 2,
+        "name": "HarvestTarget Tomato P01 F03",
+        "path": "Plant01/HarvestTarget Tomato P01 F03",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 2
+      },
+      {
+        "id": 3,
+        "name": "HarvestTarget Tomato P01 F04",
+        "path": "Plant01/HarvestTarget Tomato P01 F04",
+        "parent": "Plant01",
+        "parent_id": 5,
+        "depth": 1,
+        "mesh": 3
+      }
+    ],
+    "duplicate_target_names": [],
+    "duplicate_node_names": [],
+    "default_scene": 0,
+    "scene_roots": [
+      "Plant01"
+    ],
+    "unreachable_node_ids": [],
+    "materials": [
+      {
+        "id": 0,
+        "name": "Tomato | ripe red",
+        "baseColorFactor": [
+          0.800000011920929,
+          0.029999999329447746,
+          0.01600000075995922,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.7900000214576721,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 1,
+        "name": "Tomato | shoulder red",
+        "baseColorFactor": [
+          0.800000011920929,
+          0.029999999329447746,
+          0.01600000075995922,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.7900000214576721,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 2,
+        "name": "Calyx | fresh green",
+        "baseColorFactor": [
+          0.10999999940395355,
+          0.28999999165534973,
+          0.03500000014901161,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8700000047683716,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 3,
+        "name": "Vine | deep green",
+        "baseColorFactor": [
+          0.07000000029802322,
+          0.2150000035762787,
+          0.02500000037252903,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8999999761581421,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 4,
+        "name": "Leaf | garden green",
+        "baseColorFactor": [
+          0.10499999672174454,
+          0.32499998807907104,
+          0.04500000178813934,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8799999952316284,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 5,
+        "name": "Basket | honey straw",
+        "baseColorFactor": [
+          0.5899999737739563,
+          0.3149999976158142,
+          0.10000000149011612,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8600000143051147,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      }
+    ],
+    "meshes": [
+      {
+        "id": 0,
+        "name": "HarvestTarget Tomato P01 F01 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 0,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 1,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 2,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 3,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 1,
+        "name": "HarvestTarget Tomato P01 F02 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 0,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 1,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 2,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 3,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "HarvestTarget Tomato P01 F03 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 0,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 1,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 2,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 3,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "HarvestTarget Tomato P01 F04 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 0,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 1,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 2,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 3,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Plant01 | compound serrated leaves Mesh",
+        "triangles": 7276,
+        "vertices": 5634,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 5574,
+            "triangles": 7208,
+            "material": 4,
+            "material_name": "Leaf | garden green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 60,
+            "triangles": 68,
+            "material": 5,
+            "material_name": "Basket | honey straw",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      }
+    ],
+    "instances": [
+      {
+        "node": 0,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "Plant01/HarvestTarget Tomato P01 F01",
+        "mesh": 0,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 1,
+        "name": "HarvestTarget Tomato P01 F02",
+        "path": "Plant01/HarvestTarget Tomato P01 F02",
+        "mesh": 1,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 2,
+        "name": "HarvestTarget Tomato P01 F03",
+        "path": "Plant01/HarvestTarget Tomato P01 F03",
+        "mesh": 2,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 3,
+        "name": "HarvestTarget Tomato P01 F04",
+        "path": "Plant01/HarvestTarget Tomato P01 F04",
+        "mesh": 3,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 4,
+        "name": "Plant01 | static geometry",
+        "path": "Plant01/Plant01 | static geometry",
+        "mesh": 4,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 7276,
+        "vertices": 5634,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0
+      }
+    ],
+    "images": [],
+    "cameras": [],
+    "lights": [],
+    "notes": [
+      "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+      "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+      "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+      "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+    ]
+  },
+  "plant001_body.glb": {
+    "path": "plant001_body.glb",
+    "bytes": 180912,
+    "sha256": "8da428b2f5091355adcced7b1121954638a8d2551c32aa131bc274edb66109e5",
+    "summary": {
+      "nodes": 2,
+      "meshes": 1,
+      "materials": 2,
+      "unique_mesh_triangles": 7276,
+      "unique_mesh_vertices": 5634,
+      "unique_mesh_primitives": 2,
+      "unique_color_0_primitives": 0,
+      "instanced_scene_triangles": 7276,
+      "instanced_scene_vertices": 5634,
+      "instanced_scene_primitives": 2,
+      "instanced_color_0_primitives": 0,
+      "static_scene_triangles": 7276,
+      "static_scene_primitives": 2,
+      "target_scene_triangles": 0,
+      "targets": 0,
+      "unique_target_names": 0,
+      "textures": 0,
+      "images": 0,
+      "cameras": 0,
+      "lights": 0,
+      "extensions_used": [],
+      "extensions_required": [],
+      "extensions_present": []
+    },
+    "hierarchy": [
+      {
+        "id": 1,
+        "name": "Plant01",
+        "path": "Plant01",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": null
+      },
+      {
+        "id": 0,
+        "name": "Plant01 | static geometry",
+        "path": "Plant01/Plant01 | static geometry",
+        "parent": "Plant01",
+        "parent_id": 1,
+        "depth": 1,
+        "mesh": 0
+      }
+    ],
+    "targets": [],
+    "duplicate_target_names": [],
+    "duplicate_node_names": [],
+    "default_scene": 0,
+    "scene_roots": [
+      "Plant01"
+    ],
+    "unreachable_node_ids": [],
+    "materials": [
+      {
+        "id": 0,
+        "name": "Leaf | garden green",
+        "baseColorFactor": [
+          0.10499999672174454,
+          0.32499998807907104,
+          0.04500000178813934,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8799999952316284,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 1,
+        "name": "Basket | honey straw",
+        "baseColorFactor": [
+          0.5899999737739563,
+          0.3149999976158142,
+          0.10000000149011612,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8600000143051147,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      }
+    ],
+    "meshes": [
+      {
+        "id": 0,
+        "name": "Plant01 | compound serrated leaves Mesh",
+        "triangles": 7276,
+        "vertices": 5634,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 5574,
+            "triangles": 7208,
+            "material": 0,
+            "material_name": "Leaf | garden green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 60,
+            "triangles": 68,
+            "material": 1,
+            "material_name": "Basket | honey straw",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      }
+    ],
+    "instances": [
+      {
+        "node": 0,
+        "name": "Plant01 | static geometry",
+        "path": "Plant01/Plant01 | static geometry",
+        "mesh": 0,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 7276,
+        "vertices": 5634,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0
+      }
+    ],
+    "images": [],
+    "cameras": [],
+    "lights": [],
+    "notes": [
+      "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+      "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+      "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+      "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+    ]
+  },
+  "tomato_fruit.glb": {
+    "path": "tomato_fruit.glb",
+    "bytes": 15260,
+    "sha256": "5babf2850fb897705b150430362e83864344ee2f0e6086c301a7cac16e6556bd",
+    "summary": {
+      "nodes": 1,
+      "meshes": 1,
+      "materials": 4,
+      "unique_mesh_triangles": 460,
+      "unique_mesh_vertices": 370,
+      "unique_mesh_primitives": 4,
+      "unique_color_0_primitives": 0,
+      "instanced_scene_triangles": 460,
+      "instanced_scene_vertices": 370,
+      "instanced_scene_primitives": 4,
+      "instanced_color_0_primitives": 0,
+      "static_scene_triangles": 0,
+      "static_scene_primitives": 0,
+      "target_scene_triangles": 460,
+      "targets": 1,
+      "unique_target_names": 1,
+      "textures": 0,
+      "images": 0,
+      "cameras": 0,
+      "lights": 0,
+      "extensions_used": [],
+      "extensions_required": [],
+      "extensions_present": []
+    },
+    "hierarchy": [
+      {
+        "id": 0,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "HarvestTarget Tomato P01 F01",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": 0
+      }
+    ],
+    "targets": [
+      {
+        "id": 0,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "HarvestTarget Tomato P01 F01",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": 0
+      }
+    ],
+    "duplicate_target_names": [],
+    "duplicate_node_names": [],
+    "default_scene": 0,
+    "scene_roots": [
+      "HarvestTarget Tomato P01 F01"
+    ],
+    "unreachable_node_ids": [],
+    "materials": [
+      {
+        "id": 0,
+        "name": "Tomato | ripe red",
+        "baseColorFactor": [
+          0.800000011920929,
+          0.029999999329447746,
+          0.01600000075995922,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.7900000214576721,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 1,
+        "name": "Tomato | shoulder red",
+        "baseColorFactor": [
+          0.800000011920929,
+          0.029999999329447746,
+          0.01600000075995922,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.7900000214576721,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 2,
+        "name": "Calyx | fresh green",
+        "baseColorFactor": [
+          0.10999999940395355,
+          0.28999999165534973,
+          0.03500000014901161,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8700000047683716,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 3,
+        "name": "Vine | deep green",
+        "baseColorFactor": [
+          0.07000000029802322,
+          0.2150000035762787,
+          0.02500000037252903,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8999999761581421,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      }
+    ],
+    "meshes": [
+      {
+        "id": 0,
+        "name": "HarvestTarget Tomato P01 F01 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 0,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 1,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 2,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 3,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      }
+    ],
+    "instances": [
+      {
+        "node": 0,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "HarvestTarget Tomato P01 F01",
+        "mesh": 0,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      }
+    ],
+    "images": [],
+    "cameras": [],
+    "lights": [],
+    "notes": [
+      "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+      "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+      "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+      "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+    ]
+  },
+  "basket.glb": {
+    "path": "basket.glb",
+    "bytes": 269144,
+    "sha256": "901ad1618351b92bff63ea5360e1171b41a65dac902634affc5998728a6fd482",
+    "summary": {
+      "nodes": 2,
+      "meshes": 1,
+      "materials": 3,
+      "unique_mesh_triangles": 14642,
+      "unique_mesh_vertices": 7434,
+      "unique_mesh_primitives": 3,
+      "unique_color_0_primitives": 0,
+      "instanced_scene_triangles": 14642,
+      "instanced_scene_vertices": 7434,
+      "instanced_scene_primitives": 3,
+      "instanced_color_0_primitives": 0,
+      "static_scene_triangles": 14642,
+      "static_scene_primitives": 3,
+      "target_scene_triangles": 0,
+      "targets": 0,
+      "unique_target_names": 0,
+      "textures": 0,
+      "images": 0,
+      "cameras": 0,
+      "lights": 0,
+      "extensions_used": [],
+      "extensions_required": [],
+      "extensions_present": []
+    },
+    "hierarchy": [
+      {
+        "id": 1,
+        "name": "Basket",
+        "path": "Basket",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": null
+      },
+      {
+        "id": 0,
+        "name": "Basket | static geometry",
+        "path": "Basket/Basket | static geometry",
+        "parent": "Basket",
+        "parent_id": 1,
+        "depth": 1,
+        "mesh": 0
+      }
+    ],
+    "targets": [],
+    "duplicate_target_names": [],
+    "duplicate_node_names": [],
+    "default_scene": 0,
+    "scene_roots": [
+      "Basket"
+    ],
+    "unreachable_node_ids": [],
+    "materials": [
+      {
+        "id": 0,
+        "name": "Basket | sunlit weave",
+        "baseColorFactor": [
+          0.7300000190734863,
+          0.4350000023841858,
+          0.1599999964237213,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8799999952316284,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 1,
+        "name": "Basket | shadow weave",
+        "baseColorFactor": [
+          0.4300000071525574,
+          0.23499999940395355,
+          0.07000000029802322,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8999999761581421,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 2,
+        "name": "Basket | honey straw",
+        "baseColorFactor": [
+          0.5899999737739563,
+          0.3149999976158142,
+          0.10000000149011612,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8600000143051147,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      }
+    ],
+    "meshes": [
+      {
+        "id": 0,
+        "name": "Basket | chunky braided rim Mesh",
+        "triangles": 14642,
+        "vertices": 7434,
+        "primitive_count": 3,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 4166,
+            "triangles": 8272,
+            "material": 0,
+            "material_name": "Basket | sunlit weave",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 2636,
+            "triangles": 5194,
+            "material": 1,
+            "material_name": "Basket | shadow weave",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 632,
+            "triangles": 1176,
+            "material": 2,
+            "material_name": "Basket | honey straw",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      }
+    ],
+    "instances": [
+      {
+        "node": 0,
+        "name": "Basket | static geometry",
+        "path": "Basket/Basket | static geometry",
+        "mesh": 0,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 14642,
+        "vertices": 7434,
+        "primitive_count": 3,
+        "color_0_primitive_count": 0
+      }
+    ],
+    "images": [],
+    "cameras": [],
+    "lights": [],
+    "notes": [
+      "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+      "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+      "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+      "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+    ]
+  },
+  "whole_plant_scene.glb": {
+    "path": "whole_plant_scene.glb",
+    "bytes": 1118596,
+    "sha256": "123cfab7a4150110e8af29ca208b46dda6a8250d4870e46f3fb791620f64718c",
+    "summary": {
+      "nodes": 23,
+      "meshes": 17,
+      "materials": 9,
+      "unique_mesh_triangles": 49094,
+      "unique_mesh_vertices": 34151,
+      "unique_mesh_primitives": 59,
+      "unique_color_0_primitives": 0,
+      "instanced_scene_triangles": 49094,
+      "instanced_scene_vertices": 34151,
+      "instanced_scene_primitives": 59,
+      "instanced_color_0_primitives": 0,
+      "static_scene_triangles": 43574,
+      "static_scene_primitives": 11,
+      "target_scene_triangles": 5520,
+      "targets": 12,
+      "unique_target_names": 12,
+      "textures": 0,
+      "images": 0,
+      "cameras": 0,
+      "lights": 0,
+      "extensions_used": [],
+      "extensions_required": [],
+      "extensions_present": []
+    },
+    "hierarchy": [
+      {
+        "id": 22,
+        "name": "Root",
+        "path": "Root",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": null
+      },
+      {
+        "id": 1,
+        "name": "Basket",
+        "path": "Root/Basket",
+        "parent": "Root",
+        "parent_id": 22,
+        "depth": 1,
+        "mesh": null
+      },
+      {
+        "id": 0,
+        "name": "Basket | static geometry",
+        "path": "Root/Basket/Basket | static geometry",
+        "parent": "Basket",
+        "parent_id": 1,
+        "depth": 2,
+        "mesh": 0
+      },
+      {
+        "id": 3,
+        "name": "GardenBed",
+        "path": "Root/GardenBed",
+        "parent": "Root",
+        "parent_id": 22,
+        "depth": 1,
+        "mesh": null
+      },
+      {
+        "id": 2,
+        "name": "GardenBed | static geometry",
+        "path": "Root/GardenBed/GardenBed | static geometry",
+        "parent": "GardenBed",
+        "parent_id": 3,
+        "depth": 2,
+        "mesh": 1
+      },
+      {
+        "id": 9,
+        "name": "Plant01",
+        "path": "Root/Plant01",
+        "parent": "Root",
+        "parent_id": 22,
+        "depth": 1,
+        "mesh": null
+      },
+      {
+        "id": 4,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F01",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 2
+      },
+      {
+        "id": 5,
+        "name": "HarvestTarget Tomato P01 F02",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F02",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 3
+      },
+      {
+        "id": 6,
+        "name": "HarvestTarget Tomato P01 F03",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F03",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 4
+      },
+      {
+        "id": 7,
+        "name": "HarvestTarget Tomato P01 F04",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F04",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 5
+      },
+      {
+        "id": 8,
+        "name": "Plant01 | static geometry",
+        "path": "Root/Plant01/Plant01 | static geometry",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 6
+      },
+      {
+        "id": 15,
+        "name": "Plant02",
+        "path": "Root/Plant02",
+        "parent": "Root",
+        "parent_id": 22,
+        "depth": 1,
+        "mesh": null
+      },
+      {
+        "id": 10,
+        "name": "HarvestTarget Tomato P02 F01",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F01",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 7
+      },
+      {
+        "id": 11,
+        "name": "HarvestTarget Tomato P02 F02",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F02",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 8
+      },
+      {
+        "id": 12,
+        "name": "HarvestTarget Tomato P02 F03",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F03",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 9
+      },
+      {
+        "id": 13,
+        "name": "HarvestTarget Tomato P02 F04",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F04",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 10
+      },
+      {
+        "id": 14,
+        "name": "Plant02 | static geometry",
+        "path": "Root/Plant02/Plant02 | static geometry",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 11
+      },
+      {
+        "id": 21,
+        "name": "Plant03",
+        "path": "Root/Plant03",
+        "parent": "Root",
+        "parent_id": 22,
+        "depth": 1,
+        "mesh": null
+      },
+      {
+        "id": 16,
+        "name": "HarvestTarget Tomato P03 F01",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F01",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 12
+      },
+      {
+        "id": 17,
+        "name": "HarvestTarget Tomato P03 F02",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F02",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 13
+      },
+      {
+        "id": 18,
+        "name": "HarvestTarget Tomato P03 F03",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F03",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 14
+      },
+      {
+        "id": 19,
+        "name": "HarvestTarget Tomato P03 F04",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F04",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 15
+      },
+      {
+        "id": 20,
+        "name": "Plant03 | static geometry",
+        "path": "Root/Plant03/Plant03 | static geometry",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 16
+      }
+    ],
+    "targets": [
+      {
+        "id": 4,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F01",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 2
+      },
+      {
+        "id": 5,
+        "name": "HarvestTarget Tomato P01 F02",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F02",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 3
+      },
+      {
+        "id": 6,
+        "name": "HarvestTarget Tomato P01 F03",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F03",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 4
+      },
+      {
+        "id": 7,
+        "name": "HarvestTarget Tomato P01 F04",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F04",
+        "parent": "Plant01",
+        "parent_id": 9,
+        "depth": 2,
+        "mesh": 5
+      },
+      {
+        "id": 10,
+        "name": "HarvestTarget Tomato P02 F01",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F01",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 7
+      },
+      {
+        "id": 11,
+        "name": "HarvestTarget Tomato P02 F02",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F02",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 8
+      },
+      {
+        "id": 12,
+        "name": "HarvestTarget Tomato P02 F03",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F03",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 9
+      },
+      {
+        "id": 13,
+        "name": "HarvestTarget Tomato P02 F04",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F04",
+        "parent": "Plant02",
+        "parent_id": 15,
+        "depth": 2,
+        "mesh": 10
+      },
+      {
+        "id": 16,
+        "name": "HarvestTarget Tomato P03 F01",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F01",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 12
+      },
+      {
+        "id": 17,
+        "name": "HarvestTarget Tomato P03 F02",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F02",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 13
+      },
+      {
+        "id": 18,
+        "name": "HarvestTarget Tomato P03 F03",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F03",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 14
+      },
+      {
+        "id": 19,
+        "name": "HarvestTarget Tomato P03 F04",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F04",
+        "parent": "Plant03",
+        "parent_id": 21,
+        "depth": 2,
+        "mesh": 15
+      }
+    ],
+    "duplicate_target_names": [],
+    "duplicate_node_names": [],
+    "default_scene": 0,
+    "scene_roots": [
+      "Root"
+    ],
+    "unreachable_node_ids": [],
+    "materials": [
+      {
+        "id": 0,
+        "name": "Basket | sunlit weave",
+        "baseColorFactor": [
+          0.7300000190734863,
+          0.4350000023841858,
+          0.1599999964237213,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8799999952316284,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 1,
+        "name": "Basket | shadow weave",
+        "baseColorFactor": [
+          0.4300000071525574,
+          0.23499999940395355,
+          0.07000000029802322,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8999999761581421,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 2,
+        "name": "Basket | honey straw",
+        "baseColorFactor": [
+          0.5899999737739563,
+          0.3149999976158142,
+          0.10000000149011612,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8600000143051147,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 3,
+        "name": "Leaf | garden green",
+        "baseColorFactor": [
+          0.10499999672174454,
+          0.32499998807907104,
+          0.04500000178813934,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8799999952316284,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 4,
+        "name": "Soil | warm loam",
+        "baseColorFactor": [
+          0.28999999165534973,
+          0.14499999582767487,
+          0.06700000166893005,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.9399999976158142,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 5,
+        "name": "Tomato | ripe red",
+        "baseColorFactor": [
+          0.800000011920929,
+          0.029999999329447746,
+          0.01600000075995922,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.7900000214576721,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 6,
+        "name": "Tomato | shoulder red",
+        "baseColorFactor": [
+          0.800000011920929,
+          0.029999999329447746,
+          0.01600000075995922,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.7900000214576721,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 7,
+        "name": "Calyx | fresh green",
+        "baseColorFactor": [
+          0.10999999940395355,
+          0.28999999165534973,
+          0.03500000014901161,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8700000047683716,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 8,
+        "name": "Vine | deep green",
+        "baseColorFactor": [
+          0.07000000029802322,
+          0.2150000035762787,
+          0.02500000037252903,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8999999761581421,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      }
+    ],
+    "meshes": [
+      {
+        "id": 0,
+        "name": "Basket | chunky braided rim Mesh",
+        "triangles": 14642,
+        "vertices": 7434,
+        "primitive_count": 3,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 4166,
+            "triangles": 8272,
+            "material": 0,
+            "material_name": "Basket | sunlit weave",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 2636,
+            "triangles": 5194,
+            "material": 1,
+            "material_name": "Basket | shadow weave",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 632,
+            "triangles": 1176,
+            "material": 2,
+            "material_name": "Basket | honey straw",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 1,
+        "name": "Fringe | loose green leaf clusters Mesh",
+        "triangles": 7104,
+        "vertices": 5377,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 4416,
+            "triangles": 5376,
+            "material": 3,
+            "material_name": "Leaf | garden green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 961,
+            "triangles": 1728,
+            "material": 4,
+            "material_name": "Soil | warm loam",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "HarvestTarget Tomato P01 F01 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "HarvestTarget Tomato P01 F02 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "HarvestTarget Tomato P01 F03 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "name": "HarvestTarget Tomato P01 F04 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "Plant01 | compound serrated leaves Mesh",
+        "triangles": 7276,
+        "vertices": 5634,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 5574,
+            "triangles": 7208,
+            "material": 3,
+            "material_name": "Leaf | garden green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 60,
+            "triangles": 68,
+            "material": 2,
+            "material_name": "Basket | honey straw",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "name": "HarvestTarget Tomato P02 F01 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "name": "HarvestTarget Tomato P02 F02 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "name": "HarvestTarget Tomato P02 F03 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "name": "HarvestTarget Tomato P02 F04 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "name": "Plant02 | compound serrated leaves Mesh",
+        "triangles": 7276,
+        "vertices": 5630,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 5570,
+            "triangles": 7208,
+            "material": 3,
+            "material_name": "Leaf | garden green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 60,
+            "triangles": 68,
+            "material": 2,
+            "material_name": "Basket | honey straw",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "name": "HarvestTarget Tomato P03 F01 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "name": "HarvestTarget Tomato P03 F02 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "name": "HarvestTarget Tomato P03 F03 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "name": "HarvestTarget Tomato P03 F04 Mesh",
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 113,
+            "triangles": 208,
+            "material": 5,
+            "material_name": "Tomato | ripe red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 49,
+            "triangles": 80,
+            "material": 6,
+            "material_name": "Tomato | shoulder red",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 2,
+            "mode": 4,
+            "vertices": 160,
+            "triangles": 140,
+            "material": 7,
+            "material_name": "Calyx | fresh green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 3,
+            "mode": 4,
+            "vertices": 48,
+            "triangles": 32,
+            "material": 8,
+            "material_name": "Vine | deep green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "name": "Plant03 | compound serrated leaves Mesh",
+        "triangles": 7276,
+        "vertices": 5636,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 5576,
+            "triangles": 7208,
+            "material": 3,
+            "material_name": "Leaf | garden green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          },
+          {
+            "id": 1,
+            "mode": 4,
+            "vertices": 60,
+            "triangles": 68,
+            "material": 2,
+            "material_name": "Basket | honey straw",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      }
+    ],
+    "instances": [
+      {
+        "node": 0,
+        "name": "Basket | static geometry",
+        "path": "Root/Basket/Basket | static geometry",
+        "mesh": 0,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 14642,
+        "vertices": 7434,
+        "primitive_count": 3,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 2,
+        "name": "GardenBed | static geometry",
+        "path": "Root/GardenBed/GardenBed | static geometry",
+        "mesh": 1,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 7104,
+        "vertices": 5377,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 4,
+        "name": "HarvestTarget Tomato P01 F01",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F01",
+        "mesh": 2,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 5,
+        "name": "HarvestTarget Tomato P01 F02",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F02",
+        "mesh": 3,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 6,
+        "name": "HarvestTarget Tomato P01 F03",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F03",
+        "mesh": 4,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 7,
+        "name": "HarvestTarget Tomato P01 F04",
+        "path": "Root/Plant01/HarvestTarget Tomato P01 F04",
+        "mesh": 5,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 8,
+        "name": "Plant01 | static geometry",
+        "path": "Root/Plant01/Plant01 | static geometry",
+        "mesh": 6,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 7276,
+        "vertices": 5634,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 10,
+        "name": "HarvestTarget Tomato P02 F01",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F01",
+        "mesh": 7,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 11,
+        "name": "HarvestTarget Tomato P02 F02",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F02",
+        "mesh": 8,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 12,
+        "name": "HarvestTarget Tomato P02 F03",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F03",
+        "mesh": 9,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 13,
+        "name": "HarvestTarget Tomato P02 F04",
+        "path": "Root/Plant02/HarvestTarget Tomato P02 F04",
+        "mesh": 10,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 14,
+        "name": "Plant02 | static geometry",
+        "path": "Root/Plant02/Plant02 | static geometry",
+        "mesh": 11,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 7276,
+        "vertices": 5630,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 16,
+        "name": "HarvestTarget Tomato P03 F01",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F01",
+        "mesh": 12,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 17,
+        "name": "HarvestTarget Tomato P03 F02",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F02",
+        "mesh": 13,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 18,
+        "name": "HarvestTarget Tomato P03 F03",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F03",
+        "mesh": 14,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 19,
+        "name": "HarvestTarget Tomato P03 F04",
+        "path": "Root/Plant03/HarvestTarget Tomato P03 F04",
+        "mesh": 15,
+        "multiplicity": 1,
+        "target": true,
+        "triangles": 460,
+        "vertices": 370,
+        "primitive_count": 4,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 20,
+        "name": "Plant03 | static geometry",
+        "path": "Root/Plant03/Plant03 | static geometry",
+        "mesh": 16,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 7276,
+        "vertices": 5636,
+        "primitive_count": 2,
+        "color_0_primitive_count": 0
+      }
+    ],
+    "images": [],
+    "cameras": [],
+    "lights": [],
+    "notes": [
+      "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+      "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+      "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+      "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+    ]
+  }
+}

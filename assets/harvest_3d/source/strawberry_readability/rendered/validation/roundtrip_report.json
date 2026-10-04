@@ -1,0 +1,657 @@
+{
+  "source": "/private/tmp/heroes-strawberry-readable-final-Apujha/strawberry.glb",
+  "source_sha256": "eb33862a529ba8d182d7d76363931f3173453175da2d02dfd1db9205ace29ae7",
+  "blender_version": "5.2.2 LTS",
+  "import_method": "bpy.ops.import_scene.gltf, default importer options",
+  "imported_images": [],
+  "materials": [
+    {
+      "name": "Leaf | sunlit green",
+      "use_nodes": true,
+      "base_color_default": [
+        0.23999999463558197,
+        0.47999998927116394,
+        0.10999999940395355,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Leaf | meadow green",
+      "use_nodes": true,
+      "base_color_default": [
+        0.11999999731779099,
+        0.3400000035762787,
+        0.07000000029802322,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Strawberry | ripe berry",
+      "use_nodes": true,
+      "base_color_default": [
+        0.8799999952316284,
+        0.054999999701976776,
+        0.07500000298023224,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Seed | pale gold",
+      "use_nodes": true,
+      "base_color_default": [
+        0.9399999976158142,
+        0.7300000190734863,
+        0.30000001192092896,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    }
+  ],
+  "mesh_reviews": [
+    {
+      "mesh": "Strawberry | green crown Mesh",
+      "users": 1,
+      "vertices": 340,
+      "triangles": 544,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999999105930288,
+        1.0000000949948982
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 130,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Strawberry | green crown Mesh.001",
+      "users": 1,
+      "vertices": 340,
+      "triangles": 544,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999999003484795,
+        1.0000000838190282
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 130,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Strawberry | green crown Mesh.002",
+      "users": 1,
+      "vertices": 340,
+      "triangles": 544,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998826533487,
+        1.000000091269608
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 130,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Strawberry | green crown Mesh.003",
+      "users": 1,
+      "vertices": 340,
+      "triangles": 544,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999999133869968,
+        1.0000001052394454
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 130,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Strawberry | green crown Mesh.004",
+      "users": 1,
+      "vertices": 340,
+      "triangles": 544,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999999105930288,
+        1.0000001052394454
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 130,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Strawberry | green crown Mesh.005",
+      "users": 1,
+      "vertices": 340,
+      "triangles": 544,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999878928058,
+        1.0000000884756406
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 130,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Strawberry | green crown Mesh.006",
+      "users": 1,
+      "vertices": 340,
+      "triangles": 544,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999999143183195,
+        1.0000000819563832
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 130,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Strawberry | heart-shaped berry Mesh",
+      "users": 1,
+      "vertices": 360,
+      "triangles": 636,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999999143183195,
+        1.0000000966247125
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 80,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.008",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.009",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.010",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.011",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.012",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.013",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.014",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.015",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.016",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.017",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.018",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.019",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.020",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "球体.021",
+      "users": 1,
+      "vertices": 75,
+      "triangles": 100,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999880823571,
+        1.0000000745058033
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 48,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    }
+  ],
+  "hierarchy": [
+    {
+      "name": "Strawberry | green crown",
+      "type": "MESH",
+      "path": "Strawberry | green crown",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | green crown.001",
+      "type": "MESH",
+      "path": "Strawberry | green crown.001",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | green crown.002",
+      "type": "MESH",
+      "path": "Strawberry | green crown.002",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | green crown.003",
+      "type": "MESH",
+      "path": "Strawberry | green crown.003",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | green crown.004",
+      "type": "MESH",
+      "path": "Strawberry | green crown.004",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | green crown.005",
+      "type": "MESH",
+      "path": "Strawberry | green crown.005",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | green crown.006",
+      "type": "MESH",
+      "path": "Strawberry | green crown.006",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | heart-shaped berry",
+      "type": "MESH",
+      "path": "Strawberry | heart-shaped berry",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed",
+      "type": "MESH",
+      "path": "Strawberry | seed",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.001",
+      "type": "MESH",
+      "path": "Strawberry | seed.001",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.002",
+      "type": "MESH",
+      "path": "Strawberry | seed.002",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.003",
+      "type": "MESH",
+      "path": "Strawberry | seed.003",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.004",
+      "type": "MESH",
+      "path": "Strawberry | seed.004",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.005",
+      "type": "MESH",
+      "path": "Strawberry | seed.005",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.006",
+      "type": "MESH",
+      "path": "Strawberry | seed.006",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.007",
+      "type": "MESH",
+      "path": "Strawberry | seed.007",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.008",
+      "type": "MESH",
+      "path": "Strawberry | seed.008",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.009",
+      "type": "MESH",
+      "path": "Strawberry | seed.009",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.010",
+      "type": "MESH",
+      "path": "Strawberry | seed.010",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.011",
+      "type": "MESH",
+      "path": "Strawberry | seed.011",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.012",
+      "type": "MESH",
+      "path": "Strawberry | seed.012",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Strawberry | seed.013",
+      "type": "MESH",
+      "path": "Strawberry | seed.013",
+      "parent": null,
+      "negative_world_determinant": false
+    }
+  ],
+  "limits": [
+    "Offline Blender import review; not a Godot screenshot or gameplay test.",
+    "Boundary edges may be intentional leaf surfaces; numeric normal findings require visual review.",
+    "Visibility counts record per-object render flags; they do not prove input/hit-test behavior."
+  ],
+  "summary": {
+    "imported_mesh_nodes": 22,
+    "unique_imported_meshes": 22,
+    "imported_materials": 4,
+    "target_mesh_nodes": 0,
+    "image_texture_nodes": 0,
+    "meshes_with_color_attributes": 0,
+    "nonfinite_positions": 0,
+    "nonfinite_corner_normals": 0,
+    "zero_corner_normals": 0,
+    "unique_mesh_degenerate_triangles": 0,
+    "unique_mesh_triangles_opposed_to_corner_normals": 0
+  },
+  "review_camera": {
+    "resolution": [
+      1280,
+      720
+    ],
+    "location": [
+      5.15634298324585,
+      -6.866285800933838,
+      5.746434688568115
+    ],
+    "rotation_euler": [
+      1.0303770303726196,
+      3.883390320424951e-08,
+      0.6435012817382812
+    ],
+    "ortho_scale": 2.986849069595337
+  },
+  "full_render": "/private/tmp/heroes-strawberry-readable-final-Apujha/validation/roundtrip_full_16x9.png",
+  "source_sha256_after_review": "eb33862a529ba8d182d7d76363931f3173453175da2d02dfd1db9205ace29ae7",
+  "source_unchanged": true
+}

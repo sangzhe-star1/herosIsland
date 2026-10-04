@@ -19,6 +19,7 @@ const Layout := preload("res://scripts/garden/farm_layout.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
+const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
 
 const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
 const NOON := 1_699_963_200
@@ -35,7 +36,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 931
+const CHECKS_EXPECTED := 1098
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -69,7 +70,7 @@ func _ready() -> void:
 	print("asked %d questions" % _asked)
 	print("GARDEN TOUCH PROBE %s\n"
 		% ("PASSED" if _failures.is_empty() else "FAILED"))
-	get_tree().quit(1 if _failures.size() > 0 else 0)
+	await ProbeLifecycle.finish(self, 1 if _failures.size() > 0 else 0)
 
 
 func _run_on_a(window: Vector2i) -> void:
@@ -106,7 +107,8 @@ func _run_on_a(window: Vector2i) -> void:
 	await _a_ripe_bed_comes_out_when_pulled()
 	await _the_garden_moves_while_he_watches()
 	await _the_board_never_runs_dry()
-	await _the_market_shows_what_things_are_worth()
+	await _the_market_shows_what_things_are_worth(view)
+	await _market_refusals_and_recipe_refills_keep_state()
 	await _gold_shines_and_the_dog_says_hello()
 	await _the_day_has_its_own_little_jobs()
 	await _gold_blessing_from_the_days_care()
@@ -352,13 +354,15 @@ func _tap(at: Vector2) -> void:
 	await get_tree().process_frame
 
 
-func _finger(from: Vector2, to: Vector2) -> void:
+func _finger(from: Vector2, to: Vector2, after_press: Callable = Callable()) -> void:
 	var down := InputEventScreenTouch.new()
 	down.index = 0
 	down.pressed = true
 	down.position = _glass(from)
 	Input.parse_input_event(down)
 	await get_tree().process_frame
+	if after_press.is_valid():
+		await after_press.call()
 
 	var last := from
 	for step in range(1, 8):
@@ -609,6 +613,9 @@ func _overflow_harvests_show_their_real_landing_places() -> void:
 		# UiKit's picture is 30px wide and sits six pixels above the shelf,
 		# so this is the centre of the basket the child actually sees.
 		visible_basket_landing = (overflow as Control).position + Vector2(15.0, 15.0)
+		var door := _find_named(_garden, "DecoDoor") as Control
+		_ok(door == null or not (overflow as Control).get_global_rect().intersects(door.get_global_rect()),
+			"the decorating door does not hide the partial overflow basket")
 	_ok(visible_basket_landing != Vector2.INF
 		and visible_basket_landing.distance_to(partial_landing) < 0.5,
 		"the spill receipt lands on the visible centre of the overflow basket")
@@ -653,6 +660,9 @@ func _overflow_harvests_show_their_real_landing_places() -> void:
 		"the shelf redraws both spilled crop kinds under the fixed basket")
 	if overflow is Control:
 		visible_basket_landing = (overflow as Control).position + Vector2(15.0, 15.0)
+		var door := _find_named(_garden, "DecoDoor") as Control
+		_ok(door == null or not (overflow as Control).get_global_rect().intersects(door.get_global_rect()),
+			"the decorating door does not hide the full overflow basket")
 	_ok(visible_basket_landing != Vector2.INF
 		and visible_basket_landing.distance_to(partial_landing) < 0.5,
 		"a new crop row grows left without moving the visible basket rim")
@@ -1401,6 +1411,9 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 				if not beds.is_empty() else null
 			_ok(beacon != null and farm_world.bed_under(_bed(0)) == 0,
 				"the harvest flag points to the same bed without changing its hit target")
+			var status_badge: Node = beds[0].get("_badge") if not beds.is_empty() else null
+			_ok(status_badge is CanvasItem and not (status_badge as CanvasItem).visible,
+				"the primary harvest flag replaces its duplicate state badge")
 			var other_beacons := 0
 			for i in range(1, beds.size()):
 				if beds[i].get_node_or_null("TaskBeacon/TaskBeaconFlag") != null:
@@ -2193,10 +2206,14 @@ func _ripen(index: int, crop_id: String, cycle: int) -> void:
 ## and pinned on the other.
 func _roomiest_side() -> float:
 	var cam = _camera()
-	var left := Layout.clamp_centre(
-		cam.centre - Vector2(160.0, 0.0) / maxf(cam.zoom, 0.05),
+	# A finger dragged left moves the camera right (and vice versa).  The old
+	# opening frame happened to start far enough from the left edge that testing
+	# the opposite direction still worked; the base-aware frame can start exactly
+	# at that edge, so select the direction that actually has world left to pan.
+	var right := Layout.clamp_centre(
+		cam.centre + Vector2(160.0, 0.0) / maxf(cam.zoom, 0.05),
 		cam.window.size, cam.zoom)
-	return -1.0 if not is_equal_approx(left.x, cam.centre.x) else 1.0
+	return -1.0 if not is_equal_approx(right.x, cam.centre.x) else 1.0
 
 
 ## The pull. A ripe bed, a bare hand, and the carrot's own move -- up.
@@ -2553,13 +2570,63 @@ func _the_board_never_runs_dry() -> void:
 ## take things back OUT, one at a time. "Sell three, keep nine" is the number
 ## sense the whole barn-to-purse loop teaches, and a trapdoor that swallowed
 ## whole piles taught none of it.
-func _the_market_shows_what_things_are_worth() -> void:
+func _market_item(items: Array, crop_id: String) -> Dictionary:
+	for item in items:
+		if str(item.get("key", "")) == crop_id:
+			return item
+	return {}
+
+
+func _drag_market_crop_to_box(crop_id: String, refresh_mid_drag: bool = false) -> void:
+	var field_value: Variant = _garden.get("_market_field")
+	if not (field_value is DragField):
+		_ok(false, "the market has a real crop drag field")
+		return
+	var field := field_value as DragField
+	var item := _market_item(field.items(), crop_id)
+	var slots := field.slots()
+	if item.is_empty() or slots.is_empty():
+		_ok(false, "the stocked crop and its box slot are both present")
+		return
+	var card := item.get("node") as Node2D
+	var box := (slots[0] as Dictionary).get("node") as Node2D
+	if card == null or box == null:
+		_ok(false, "the crop card and box have visible drag nodes")
+		return
+	# DragField lifts the piece by 34px above the finger; aim the finger below
+	# the slot so the piece itself lands in its centre, just as a child would.
+	var after_press := Callable()
+	if refresh_mid_drag:
+		after_press = func():
+			_ok(not field.held().is_empty(),
+				"a real market touch holds the crop before the refresh")
+			_garden.call("_queue_rebuild")
+			for frame in range(3):
+				await get_tree().process_frame
+			_ok(is_instance_valid(field) and not field.is_queued_for_deletion()
+					and _garden.get("_market_field") == field
+					and is_instance_valid(card),
+				"a clock refresh keeps the market card and drag field alive mid-drag")
+			_ok(bool(_garden.get("_rebuild_queued")),
+				"the market refresh remains pending until the finger releases")
+	await _finger(card.get_global_transform_with_canvas().origin,
+		box.get_global_transform_with_canvas().origin + Vector2(0.0, 34.0), after_press)
+	if refresh_mid_drag:
+		_ok(not is_instance_valid(field)
+				and _garden.get("_market_field") is DragField,
+			"the pending market refresh finishes after the crop lands")
+
+
+func _the_market_shows_what_things_are_worth(view: Vector2) -> void:
 	var scene: Node = _garden
 	# The barn arrives with whatever the sections before this one left in it;
 	# every number below is written against an exactly-twelve barn, so it is
 	# emptied first -- the same courtesy every other ripening here pays.
 	SaveManager.data["farm"]["warehouse"] = {}
 	Barn.put("carrot", 12)
+	Barn.put("corn", 3)
+	Barn.put("strawberry", 2)
+	Barn.put("tomato", 1)
 	SaveManager.save_game()
 	scene.call("_open_panel", "market")
 	await get_tree().process_frame
@@ -2567,20 +2634,150 @@ func _the_market_shows_what_things_are_worth() -> void:
 	_ok(bool(_garden.get("_market_open")),
 		"the market did not open, so this proves nothing")
 
+	# The receipt and the barn shelf are one glanceable screen in both window
+	# shapes. Check the actual controls and the card bounds rather than trusting
+	# that a panel with the right dimensions happened to stay on the glass.
+	var screen := Rect2(Vector2.ZERO, view)
+	var shelf_surface: Node = _find_named(scene, "MarketBarnShelf")
+	var receipt_surface: Node = _find_named(scene, "MarketReceipt")
+	var drop_hint: Node = _find_named(scene, "MarketDropHint")
+	var total_label: Node = _garden.get("_market_total")
+	var sell_button: Node = (_garden.get("_panel_buttons") as Dictionary).get("sell")
+	_ok(_visible_control_inside(shelf_surface, screen),
+		"the barn shelf stays fully on the glass")
+	_ok(_visible_control_inside(receipt_surface, screen),
+		"the receipt stays fully on the glass")
+	_ok(_horizontal_gutter(shelf_surface, receipt_surface) >= 8.0,
+		"the shelf and receipt leave their eight-pixel divider")
+	_ok(_visible_control_inside(drop_hint, screen)
+			and _control_contains(receipt_surface, drop_hint),
+		"the empty-box hint sits inside the receipt before anything is dragged")
+	_ok(_visible_control_inside(sell_button, screen),
+		"the sale action stays fully reachable on the glass")
+	_ok(_control_contains(receipt_surface, sell_button),
+		"the whole sale action fits inside the receipt counter")
+	_ok(_vertical_gutter(sell_button, _garden.get("_shelf")) >= 8.0,
+		"the sale action keeps eight pixels above the tool dock")
+	_ok(_visible_control_inside(total_label, screen),
+		"the quoted total stays on the glass")
+	_ok(_horizontal_gutter(total_label, sell_button) >= 2.0,
+		"the quote and sale action have a clear two-pixel gutter")
+	var market_field_value: Variant = _garden.get("_market_field")
+	var market_field := market_field_value as DragField
+	var market_items: Array = market_field.items() if market_field != null else []
+	_ok(market_items.size() == 4,
+		"the four stocked crops all have shelf cards")
+	for market_item in market_items:
+		var card := market_item.get("node") as Node2D
+		var card_centre: Vector2 = card.get_global_transform_with_canvas().origin
+		var card_rect := Rect2(card_centre - Vector2(48.0, 36.0), Vector2(96.0, 72.0))
+		_ok((shelf_surface as Control).get_global_rect().encloses(card_rect),
+			"each thumb-sized crop card sits inside the barn shelf")
+
 	var unit := int(GameData.market_price("carrot"))
 	var price: Node = _find_named(scene, "UnitPrice_carrot")
 	_ok(price is Label and (price as Label).text == str(unit),
 		"the carrot chip says what ONE carrot is worth")
 
 	# The pile, dragged in: the box holds all twelve, exactly as it always
-	# did -- the steppers are an addition, not a replacement.
-	scene.call("_on_market_drop", {"key": "carrot"}, true, true)
+	# did -- the real DragField path also marks its crop as placed in the box.
+	await _drag_market_crop_to_box("carrot", true)
+	market_field = _garden.get("_market_field") as DragField
+	drop_hint = _find_named(scene, "MarketDropHint")
+	market_items = market_field.items() if market_field != null else []
+	var carrot_item: Dictionary = _market_item(market_items, "carrot")
+	var carrot_node := carrot_item.get("node") as Node2D
+	var box_slot: Dictionary = carrot_item.get("slot", {})
+	var box_node := box_slot.get("node") as Node2D
+	await get_tree().create_timer(0.18).timeout
+	_ok(bool(carrot_item.get("placed", false))
+			and int(box_slot.get("held", 0)) == 1
+			and carrot_node.position.distance_to(box_node.position) < 2.0,
+		"the actual drag places the carrot card in the box slot")
+	var rows_scroll: Node = _find_named(scene, "MarketReceiptRows")
+	_ok(rows_scroll is Control and (rows_scroll as Control).visible
+			and drop_hint is Control and not (drop_hint as Control).visible,
+		"a filled box replaces its hint with visible receipt rows")
+	for crop_id in ["corn", "strawberry", "tomato"]:
+		await _drag_market_crop_to_box(str(crop_id))
 	await get_tree().process_frame
+	await get_tree().process_frame
+	var before_refresh := _find_named(scene, "MarketReceiptRows") as ScrollContainer
+	before_refresh.scroll_vertical = 10000
+	await get_tree().process_frame
+	var receipt_offset := before_refresh.scroll_vertical
+	# The resize path rebuilds presentation from the basket dictionary. Force the
+	# same rebuild here while four crops are boxed, then verify DragField's slot
+	# bookkeeping is reconstructed alongside the receipt rows.
+	scene.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	market_field = _garden.get("_market_field") as DragField
+	market_items = market_field.items() if market_field != null else []
+	carrot_item = _market_item(market_items, "carrot")
+	carrot_node = carrot_item.get("node") as Node2D
+	box_slot = carrot_item.get("slot", {})
+	box_node = box_slot.get("node") as Node2D
+	var every_crop_restored := market_items.size() == 4
+	for market_item in market_items:
+		var restored_slot: Dictionary = market_item.get("slot", {})
+		var restored_card := market_item.get("node") as Node2D
+		every_crop_restored = every_crop_restored \
+			and bool(market_item.get("placed", false)) \
+			and restored_slot.get("node") == box_node \
+			and restored_card.position.distance_to(box_node.position) < 2.0
+	_ok(every_crop_restored and int(box_slot.get("held", -1)) == 4,
+		"a market rebuild restores every crop to its shared box slot")
+	rows_scroll = _find_named(scene, "MarketReceiptRows")
+	_ok(receipt_offset > 0 and rows_scroll is ScrollContainer
+			and (rows_scroll as ScrollContainer).scroll_vertical == receipt_offset,
+		"a rebuilt long receipt keeps the row the child was reading")
+	(rows_scroll as ScrollContainer).scroll_vertical = 0
+	await get_tree().process_frame
+	drop_hint = _find_named(scene, "MarketDropHint")
+	total_label = _garden.get("_market_total")
+	sell_button = (_garden.get("_panel_buttons") as Dictionary).get("sell")
+	var rows_list_value: Variant = _garden.get("_market_rows_list")
+	var rows_list := rows_list_value as VBoxContainer
+	var receipt_scroll := rows_scroll as ScrollContainer
+	_ok(rows_list != null and rows_list.get_child_count() == 4,
+		"one receipt row appears for each crop in the box")
+	_ok(rows_list != null and receipt_scroll != null
+			and rows_list.size.y > receipt_scroll.size.y,
+		"the receipt content grows beyond its viewport instead of covering the action")
+	_ok(receipt_scroll != null and receipt_scroll.clip_contents,
+		"overflowing receipt rows stay clipped inside their scroll area")
 	_ok(int(_garden.get("_market_sell").get("carrot", 0)) == 12,
 		"dragging the pile in offers the whole pile, as always")
 	var count: Node = _find_named(scene, "BoxCount_carrot")
 	_ok(count is Label and (count as Label).text == "x12",
 		"and the box says what it holds")
+	_ok(count is Control and _visible_control_inside(count, screen)
+			and _control_contains(rows_scroll, count),
+		"the crop count stays visible inside the scrollable receipt")
+	var expected_quote := 12 * unit \
+		+ 3 * int(GameData.market_price("corn")) \
+		+ 2 * int(GameData.market_price("strawberry")) \
+		+ int(GameData.market_price("tomato"))
+	_ok(str((_garden.get("_market_total") as Label).text)
+			== str(expected_quote),
+		"the fixed quote matches every crop in the box")
+	# The total briefly scales for its price-change feedback. Let that visual
+	# response finish before comparing its bounds across a scroll movement.
+	await get_tree().create_timer(0.18).timeout
+	var total_before_scroll := (_garden.get("_market_total") as Control).get_global_rect()
+	var sell_before_scroll := (sell_button as Control).get_global_rect()
+	if receipt_scroll != null:
+		receipt_scroll.scroll_vertical = 10000
+		await get_tree().process_frame
+	_ok(receipt_scroll != null and receipt_scroll.scroll_vertical > 0
+			and (_garden.get("_market_total") as Control).get_global_rect()
+				== total_before_scroll
+			and (sell_button as Control).get_global_rect() == sell_before_scroll,
+		"scrolling a long receipt leaves its total and sale button fixed")
+	if receipt_scroll != null:
+		receipt_scroll.scroll_vertical = 0
+		await get_tree().process_frame
 
 	# One back out. The box counts down, and the shelf chip answers with what
 	# is still on the shelf -- the pair of numbers IS the decision.
@@ -2623,16 +2820,31 @@ func _the_market_shows_what_things_are_worth() -> void:
 	shelf = _find_named(scene, "PileCount_carrot")
 	_ok(shelf is Label and (shelf as Label).text == "x12",
 		"and the shelf chip is whole again")
+	_ok(not bool(carrot_item.get("placed", true))
+			and int(box_slot.get("held", -1)) == 3
+			and carrot_node.position.distance_to(carrot_item["home"]) < 2.0
+			and carrot_node.scale.is_equal_approx(Vector2.ONE)
+			and carrot_node.z_index == 0,
+		"taking the last carrot out returns its card and releases one box slot")
+	for crop_id in ["corn", "strawberry", "tomato"]:
+		_garden.call("_market_step", str(crop_id), -Barn.count(str(crop_id)))
+	await get_tree().process_frame
+	_ok(int(box_slot.get("held", -1)) == 0,
+		"returning every boxed crop frees the shared slot")
+	_ok(rows_scroll is Control and not (rows_scroll as Control).visible
+			and drop_hint is Control and (drop_hint as Control).visible,
+		"an emptied receipt returns to its clear drop hint")
 
 	# The whole point: box five, sell, and SEVEN are still his.
-	scene.call("_on_market_drop", {"key": "carrot"}, true, true)
+	await _drag_market_crop_to_box("carrot")
 	minus = _find_named(scene, "BoxMinus_carrot")
 	if minus is Button:
 		for i in range(7):
 			(minus as Button).emit_signal("pressed")
 	await get_tree().process_frame
 	var purse_before := Coins.balance()
-	scene.call("_sell_pressed")
+	var sell_rect := (sell_button as Button).get_global_rect()
+	await _tap(sell_rect.get_center())
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_ok(Coins.balance() == purse_before + 5 * unit,
@@ -2641,11 +2853,251 @@ func _the_market_shows_what_things_are_worth() -> void:
 		"and the seven he kept are still in the barn")
 	_ok(_garden.get("_market_sell").is_empty(),
 		"the box is empty after the sale, whatever it sold")
+	var empty_receipt := _find_named(scene, "MarketReceiptRows") as ScrollContainer
+	_ok(empty_receipt != null and empty_receipt.scroll_vertical == 0,
+		"an empty receipt starts at the top after a sale")
+	# A second finger may close the panel while the first still holds produce.
+	# Its eventual drop must not refill the selection that closing cleared.
+	var closing_field := _garden.get("_market_field") as DragField
+	var closing_item := _market_item(closing_field.items(), "carrot")
+	var closing_card := closing_item.get("node") as Node2D
+	var closing_box := (closing_field.slots()[0] as Dictionary).get("node") as Node2D
+	await _finger(closing_card.get_global_transform_with_canvas().origin,
+		closing_box.get_global_transform_with_canvas().origin + Vector2(0.0, 34.0), func():
+			_ok(not closing_field.held().is_empty(),
+				"the closing regression starts with a crop actually held")
+			_garden.call("_close_panels")
+			_ok(not bool(_garden.get("_market_open")),
+				"closing the market takes effect while a crop is still held"))
+	_ok(_garden.get("_market_sell").is_empty(),
+		"releasing a crop after closing cannot refill the forgotten sale basket")
+	scene.call("_open_panel", "market")
+	for frame in range(3):
+		await get_tree().process_frame
+	_ok(_garden.get("_market_sell").is_empty(),
+		"a new market visit starts with an empty sale basket after that release")
 	# The market STAYS open in real play, but a probe that leaves a 780x430
 	# sheet of blocker standing over the middle of the farm blocks every tap
 	# the sections after it make -- close it the way the child would.
 	scene.call("_close_panels")
 	await get_tree().process_frame
+
+
+## Identify the existing recipe notification by its caption and dish name,
+## without adding test-only names or state to the product component.
+func _recipe_lesson_cards(recipe_name_key: String = "") -> Array[Control]:
+	var cards: Array[Control] = []
+	var layer := _find_named(_garden, "HarvestFeedbackLayer")
+	if layer == null:
+		return cards
+	for child in layer.get_children():
+		if not (child is Panel):
+			continue
+		var has_caption := false
+		var has_dish := recipe_name_key == ""
+		for label in child.get_children():
+			if label is Label:
+				has_caption = has_caption \
+					or label.text == I18n.t("garden.recipe_learned")
+				if recipe_name_key != "":
+					has_dish = has_dish or label.text == I18n.t(recipe_name_key)
+		if has_caption and has_dish:
+			cards.append(child as Control)
+	return cards
+
+
+func _new_recipe_lesson_card(recipe_name_key: String,
+		previous_ids: Array[int]) -> Control:
+	for card in _recipe_lesson_cards(recipe_name_key):
+		if card.get_instance_id() not in previous_ids:
+			return card
+	return null
+
+
+## Every refill fixture starts one strawberry short of its recipe and with
+## exactly the other two outside the full barn. Opening a panel must not
+## already unlock it; only the tested sale or resume moves those ingredients.
+func _stage_recipe_refill() -> void:
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["warehouse_cap"] = Farm.WAREHOUSE_START
+	farm["warehouse"] = {"carrot": Farm.WAREHOUSE_START - 1, "strawberry": 1}
+	farm["harvest_basket"] = {"strawberry": 2}
+	farm["unlocked_recipes"] = []
+	SaveManager.save_game()
+
+
+## A refused sale, an immediate refill, and a storage-only app resume. These
+## three regressions restore their complete save so later sections inherit
+## neither the synthetic legacy crop nor a reset recipe ledger or coin purse.
+func _market_refusals_and_recipe_refills_keep_state() -> void:
+	var Recipes := preload("res://scripts/garden/recipe_manager.gd")
+	var saved_data: Dictionary = SaveManager.data.duplicate(true)
+	var previous_notices: Array[int] = []
+	for card in _recipe_lesson_cards():
+		previous_notices.append(card.get_instance_id())
+	var seen_notices: Array[int] = previous_notices.duplicate()
+	# Stable, empty beds prevent an unrelated growth transition from serving as
+	# the reason for the storage-only resume to redraw its furniture.
+	var quiet_plots: Array = []
+	for plot in _plots():
+		var quiet: Dictionary = Farm.fresh_plot(quiet_plots.size())
+		quiet["plot_id"] = str(plot.get("plot_id", quiet["plot_id"]))
+		quiet["state"] = Farm.TILLED
+		quiet_plots.append(quiet)
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["plots"] = quiet_plots
+	farm["warehouse"] = {"probe_zero_price_crop": 2}
+	farm["harvest_basket"] = {}
+	farm["unlocked_recipes"] = []
+	SaveManager.save_game()
+	_garden.call("_open_panel", "market")
+	for frame in range(3):
+		await get_tree().process_frame
+	var legacy_crop := "probe_zero_price_crop"
+	_ok(GameData.get_crop(legacy_crop).is_empty()
+			and int(GameData.market_price(legacy_crop)) == 0,
+		"the refused-sale fixture is a real unknown crop with a zero market price")
+	await _drag_market_crop_to_box(legacy_crop)
+	var field := _garden.get("_market_field") as DragField
+	var item := _market_item(field.items(), legacy_crop) if field != null else {}
+	var card := item.get("node") as Node2D
+	var slot: Dictionary = item.get("slot", {})
+	var home: Vector2 = item.get("home", Vector2.INF)
+	_ok(int(_garden.get("_market_sell").get(legacy_crop, 0)) == 2
+			and bool(item.get("placed", false)) and int(slot.get("held", 0)) == 1,
+		"the real touch puts the complete legacy pile in the sale box")
+	var row_entry: Dictionary = _garden.get("_market_rows").get(legacy_crop, {})
+	var row := row_entry.get("row") as Control
+	var count := row_entry.get("count") as Label
+	_ok(is_instance_valid(row) and is_instance_valid(count) and count.text == "x2",
+		"the legacy pile owns a live receipt row before attempting the sale")
+	var sell := (_garden.get("_panel_buttons") as Dictionary).get("sell") as Button
+	_ok(is_instance_valid(sell), "the zero-price sale still has its real sale button")
+	var purse_before := Coins.balance()
+	if is_instance_valid(sell):
+		await _tap(sell.get_global_rect().get_center())
+	_ok(int(_garden.get("_market_sell").get(legacy_crop, 0)) == 2
+			and Barn.count(legacy_crop) == 2 and Coins.balance() == purse_before,
+		"a refused zero-price sale keeps its selected quantity, produce and purse")
+	var kept_entry: Dictionary = _garden.get("_market_rows").get(legacy_crop, {})
+	_ok(is_instance_valid(row) and is_instance_valid(count)
+			and kept_entry.get("row") == row and kept_entry.get("count") == count,
+		"the refused sale preserves the same row and count references")
+	_ok(is_instance_valid(card) and bool(item.get("placed", false))
+			and int(slot.get("held", 0)) == 1
+			and card.position.distance_to(slot.get("at", Vector2.INF)) < 2.0,
+		"the refused sale keeps its crop card in the same live box slot")
+	var minus := _find_named(_garden, "BoxMinus_%s" % legacy_crop) as Button
+	_ok(is_instance_valid(minus), "the preserved legacy row still has its minus button")
+	if is_instance_valid(minus):
+		for step in range(2):
+			await _tap(minus.get_global_rect().get_center())
+	_ok(not _garden.get("_market_sell").has(legacy_crop)
+			and not _garden.get("_market_rows").has(legacy_crop)
+			and not is_instance_valid(row),
+		"minus to zero removes the selected legacy pile and its old receipt row")
+	_ok(is_instance_valid(card) and not bool(item.get("placed", true))
+			and int(slot.get("held", -1)) == 0
+			and card.position.distance_to(home) < 2.0
+			and card.scale.is_equal_approx(Vector2.ONE),
+		"minus to zero after a refused sale returns the card to its original shelf")
+	# Keep the immediate assertion above: finishing an old snap tween must not
+	# be allowed to undo the child's rapid return to the shelf afterward either.
+	await get_tree().create_timer(0.22).timeout
+	_ok(is_instance_valid(card) and not bool(item.get("placed", true))
+			and card.position.distance_to(home) < 2.0
+			and card.scale.is_equal_approx(Vector2.ONE),
+		"an unfinished snap cannot later pull the returned card off its shelf")
+
+	_stage_recipe_refill()
+	_garden.call("_open_panel", "market")
+	for frame in range(3):
+		await get_tree().process_frame
+	_ok(Barn.total() == Barn.cap() and Barn.count("strawberry") == 1
+			and Barn.count("strawberry", Barn.BASKET) == 2
+			and not Recipes.is_unlocked("strawberry_soup"),
+		"a full barn and two waiting strawberries have not yet earned the soup")
+	await _drag_market_crop_to_box("carrot")
+	_ok(int(_garden.get("_market_sell").get("carrot", 0)) == Farm.WAREHOUSE_START - 1,
+		"the real carrot drag selects only the pile whose sale will free space")
+	sell = (_garden.get("_panel_buttons") as Dictionary).get("sell") as Button
+	_ok(is_instance_valid(sell), "the full-barn refill uses the real sale action")
+	purse_before = Coins.balance()
+	if is_instance_valid(sell):
+		await _tap(sell.get_global_rect().get_center())
+	for frame in range(3):
+		await get_tree().process_frame
+	_ok(Barn.count("strawberry") == 3 and Barn.count("strawberry", Barn.BASKET) == 0,
+		"selling another crop immediately tips both waiting strawberries into the barn")
+	_ok(Recipes.is_unlocked("strawberry_soup"),
+		"the sale refill teaches strawberry soup without a manual recipe check")
+	_ok(Barn.count("carrot") == 0 and Coins.balance() == purse_before \
+			+ (Farm.WAREHOUSE_START - 1) * int(GameData.market_price("carrot")),
+		"the refill still pays exactly the sold carrot pile and consumes no strawberries")
+	var sale_notice := _new_recipe_lesson_card("recipe.strawberry_soup", seen_notices)
+	_ok(is_instance_valid(sale_notice)
+			and sale_notice.get_parent() == _find_named(_garden, "HarvestFeedbackLayer"),
+		"the newly earned soup uses the existing collection feedback layer")
+	if is_instance_valid(sale_notice):
+		seen_notices.append(sale_notice.get_instance_id())
+	_garden.call("_queue_rebuild")
+	for frame in range(3):
+		await get_tree().process_frame
+	_ok(is_instance_valid(sale_notice) and not sale_notice.is_queued_for_deletion(),
+		"the sale-earned recipe notification survives a later furniture rebuild")
+
+	_stage_recipe_refill()
+	_garden.call("_open_panel", "barn")
+	for frame in range(3):
+		await get_tree().process_frame
+	_ok(Barn.total() == Barn.cap() and not Recipes.is_unlocked("strawberry_soup"),
+		"the storage-only resume starts with a full barn and an unknown soup")
+	var beds_before: String = str(_garden.call("_how_the_beds_look"))
+	var play_before := _garden.get("_play") as Control
+	var play_id := play_before.get_instance_id() if is_instance_valid(play_before) else 0
+	# Space appears while the app is paused; resume is responsible for settling
+	# the waiting basket and notifying the current screen about that change.
+	Barn.take("carrot", 2)
+	SaveManager.save_game()
+	_ok(Barn.total() == Barn.cap() - 2 and Barn.count("strawberry") == 1
+			and Barn.count("strawberry", Barn.BASKET) == 2,
+		"the paused fixture has storage room but has not manually tipped its basket")
+	var resume_changes: Array[bool] = []
+	var observe_resume := func(changed: bool): resume_changes.append(changed)
+	GameManager.farm_resumed.connect(observe_resume)
+	GameManager._notification(NOTIFICATION_APPLICATION_RESUMED)
+	for frame in range(3):
+		await get_tree().process_frame
+	GameManager.farm_resumed.disconnect(observe_resume)
+	_ok(resume_changes.size() == 1 and resume_changes[0],
+		"the real application resume announces a changed farm after its storage refill")
+	_ok(_garden.call("_how_the_beds_look") == beds_before,
+		"the storage-only resume leaves every bed's visible fingerprint unchanged")
+	var play_after := _garden.get("_play") as Control
+	_ok(is_instance_valid(play_after) and play_after.get_instance_id() != play_id,
+		"resume refreshes the furniture even when its beds did not change")
+	_ok(Barn.count("strawberry") == 3 and Barn.count("strawberry", Barn.BASKET) == 0
+			and Recipes.is_unlocked("strawberry_soup"),
+		"the resumed warehouse refill and soup knowledge agree on their new state")
+	var resume_notice := _new_recipe_lesson_card("recipe.strawberry_soup", seen_notices)
+	_ok(is_instance_valid(resume_notice)
+			and resume_notice.get_parent() == _find_named(_garden, "HarvestFeedbackLayer")
+			and resume_notice.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"the resume-earned recipe notification is passive collection feedback")
+	_garden.call("_queue_rebuild")
+	for frame in range(3):
+		await get_tree().process_frame
+	_ok(is_instance_valid(resume_notice) and not resume_notice.is_queued_for_deletion(),
+		"the resume-earned notification also survives the next furniture rebuild")
+
+	for notice in _recipe_lesson_cards():
+		if notice.get_instance_id() not in previous_notices:
+			notice.queue_free()
+	SaveManager.data = saved_data
+	SaveManager.save_game()
+	_garden.call("_close_panels")
+	for frame in range(3):
+		await get_tree().process_frame
 
 
 ## Gold, and the dog. Two rare treats, and the same question about both: does
@@ -2927,6 +3379,8 @@ func _gold_blessing_from_the_days_care() -> void:
 ## empty.
 func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
 	var scene: Node = _garden
+	_ok(OS.is_debug_build(),
+		"orphan-art checks run with a debug engine that exposes node lifetime counts")
 	var levels: Array = GameData.get_levels_for_mode("harvest")
 	_ok(not levels.is_empty(), "the harvest challenge has levels to show")
 	var door: Node = _find_named(scene, "HarvestChallenge")
@@ -2961,6 +3415,7 @@ func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
 	_ok(not first_crop.is_empty() and next_card != null
 			and str(next_card.get_meta("shows", "")) == first_crop,
 		"a fresh garden previews the first challenge crop '%s'" % first_crop)
+	await _challenge_preview_keeps_its_art_owned(scene, first_crop)
 
 	# One star lands on the first harvest level: the tally moves to one, and
 	# the door keeps standing in its slot -- the number is the promise.
@@ -3004,6 +3459,26 @@ func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
 	next_card = _find_named(scene, "ChallengeNext")
 	_ok(next_card != null and str(next_card.get_meta("shows", "")) == "star",
 		"a completed harvest shelf previews a star, not a stale crop")
+	await _challenge_preview_keeps_its_art_owned(scene, "star")
+
+
+## A crop preview used to build its fallback star and then overwrite the
+## variable. Those unparented shapes survived every refresh and screen exit.
+## Exercise both the crop and completion paths through the real rebuild.
+func _challenge_preview_keeps_its_art_owned(scene: Node, expected: String) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var orphans_before := int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
+	for refresh in range(8):
+		scene.call("_rebuild")
+		await get_tree().process_frame
+		await get_tree().process_frame
+	var card: Node = _find_named(scene, "ChallengeNext")
+	_ok(card != null and str(card.get_meta("shows", "")) == expected
+			and card.get_child_count() == 1,
+		"repeated refreshes leave exactly the selected '%s' picture in its card" % expected)
+	_ok(int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)) == orphans_before,
+		"repeated '%s' previews never accumulate unparented art nodes" % expected)
 
 
 ## Care with moves of its own: water pours DOWN, a weed pulls UP like a

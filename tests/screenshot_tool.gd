@@ -1,4 +1,6 @@
 extends Node
+
+const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
 ## Renders one scene to a PNG and quits. Development tool for eyeballing
 ## screens without a person at the keyboard:
 ##
@@ -24,7 +26,7 @@ func _ready() -> void:
 
 	if scene_path == "" or out_path == "":
 		push_error("screenshot_tool: set SHOT_SCENE and SHOT_PATH")
-		get_tree().quit(2)
+		await ProbeLifecycle.finish(self, 2)
 		return
 
 	var want := Vector2i(1280, 720)
@@ -46,18 +48,48 @@ func _ready() -> void:
 
 	if level_id != "":
 		GameManager.current_level_id = level_id
+		SaveManager.clear_harvest_checkpoint(level_id)
+		var asked_order := OS.get_environment("SHOT_ORDER_INDEX")
+		if asked_order != "":
+			SaveManager.set_harvest_checkpoint({"level_id": level_id,
+				"order_index": int(asked_order), "delivered": {}})
+	if OS.get_environment("SHOT_SKIP_TUTORIAL") == "1":
+		_mark_all_harvest_lessons_taught()
+	if OS.get_environment("SHOT_DIFFICULTY") != "":
+		SaveManager.set_setting("difficulty", int(OS.get_environment("SHOT_DIFFICULTY")))
+	SaveManager.set_setting("reduce_motion", OS.get_environment("SHOT_REDUCE_MOTION") == "1")
 
 	var packed: PackedScene = load(scene_path)
 	if packed == null:
 		push_error("screenshot_tool: cannot load %s" % scene_path)
-		get_tree().quit(2)
+		await ProbeLifecycle.finish(self, 2)
 		return
 	add_child(packed.instantiate())
 
 	await get_tree().create_timer(wait).timeout
-	await RenderingServer.frame_post_draw
+	RenderingServer.force_draw(false)
 
 	var image := get_viewport().get_texture().get_image()
+	var has_content := ProbeLifecycle.image_has_content(image)
 	var err := image.save_png(out_path)
+	if has_content:
+		print("screenshot_tool: CONTENT PASSED")
+	else:
+		print("screenshot_tool: CONTENT FAILED (blank or transparent capture)")
 	print("screenshot_tool: %s -> %s (%s)" % [scene_path, out_path, error_string(err)])
-	get_tree().quit(0 if err == OK else 1)
+	await ProbeLifecycle.finish(self, 0 if err == OK and has_content else 1)
+
+
+## A screenshot called "skip tutorial" must not leave the gesture lesson for
+## whichever level was selected. Key lessons from the same level data as the
+## game, so new harvest gestures are skipped here without another fixture list.
+func _mark_all_harvest_lessons_taught() -> void:
+	var learned: Array = []
+	for level in GameData.levels:
+		if str(level.get("game_type", "")) != "harvest_action":
+			continue
+		var config: Dictionary = level.get("config", {})
+		var lesson := str(config.get("teaches", ""))
+		if lesson != "" and not learned.has(lesson):
+			learned.append(lesson)
+	SaveManager.set_setting("harvest_taught", learned)

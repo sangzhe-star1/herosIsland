@@ -1,0 +1,388 @@
+{
+  "version": 1,
+  "sprite_size": 512,
+  "assets": [
+    {
+      "id": "carrot",
+      "file": "sprites/carrot.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "golden_carrot",
+      "file": "sprites/golden_carrot.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "potato",
+      "file": "sprites/potato.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "tomato",
+      "file": "sprites/tomato.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "strawberry",
+      "file": "sprites/strawberry.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "corn",
+      "file": "sprites/corn.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "orange",
+      "file": "sprites/orange.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "apple",
+      "file": "sprites/apple.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "peas",
+      "file": "sprites/peas.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "pumpkin",
+      "file": "sprites/pumpkin.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "watermelon",
+      "file": "sprites/watermelon.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "broccoli",
+      "file": "sprites/broccoli.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "lettuce",
+      "file": "sprites/lettuce.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "grape",
+      "file": "sprites/grape.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "wheat",
+      "file": "sprites/wheat.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "stone",
+      "file": "sprites/stone.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "bug",
+      "file": "sprites/bug.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; all assets share the same Blender world scale and camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy"
+    },
+    {
+      "id": "basket_empty",
+      "file": "sprites/basket_empty.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; same Blender world scale and studio camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy",
+      "kind": "supporting environment prop"
+    },
+    {
+      "id": "soil_grass_patch",
+      "file": "sprites/soil_grass_patch.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "origin": "ground center at z=0; same Blender world scale and studio camera",
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "camera": "fixed 3/4 orthographic",
+      "style": "rounded matte toy",
+      "kind": "supporting environment prop"
+    }
+  ],
+  "render": {
+    "engine": "Blender Cycles",
+    "resolution": [
+      512,
+      512
+    ],
+    "transparent": true,
+    "camera": "fixed 3/4 orthographic",
+    "ortho_scale": 2.6,
+    "ground_pivot_pixel": [
+      256,
+      467
+    ],
+    "pivot_offset_from_texture_center_px": [
+      0,
+      211
+    ],
+    "contact_shadow": "short radial alpha mesh; no scene background plane"
+  }
+}

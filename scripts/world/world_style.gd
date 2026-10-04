@@ -56,6 +56,11 @@ var band_colors: Array[Color] = [
 var ground_top := Color(0.52, 0.76, 0.48)
 var ground_bottom := Color(0.36, 0.62, 0.36)
 var ground_kind := "grass"              # "grass" | "road" | "plaza" | "sand" | "arena"
+## A screen may need a calmer or denser meadow without forking Stage.  Keeping
+## these as style data lets a harvest field lower decorative clutter while the
+## garden and ordinary worlds retain their existing grass treatment.
+var grass_tuft_density := 1.0
+var flower_density := 1.0
 
 # --- what lives here ---
 ## Props scattered on the ground line, drawn by Stage. Kept small: a world is

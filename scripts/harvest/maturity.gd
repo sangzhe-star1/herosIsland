@@ -62,7 +62,7 @@ const LOOK := {
 	UNRIPE: {"scale": 0.60, "tint": Color(0.86, 1.0, 0.86), "halo": "none",
 		"sway": 0.0, "wash": Color(0.32, 0.72, 0.28, 0.80)},
 	ALMOST: {"scale": 0.80, "tint": Color(0.94, 1.0, 0.90), "halo": "none",
-		"sway": 0.0, "wash": Color(0.55, 0.78, 0.30, 0.42)},
+		"sway": 0.0, "wash": Color(0.45, 0.84, 0.24, 0.72)},
 	READY: {"scale": 1.0, "tint": Color(1, 1, 1), "halo": "soft",
 		"sway": 3.5, "wash": Color(0, 0, 0, 0)},
 	GOLDEN: {"scale": 1.06, "tint": Color(1.0, 0.92, 0.55), "halo": "star",

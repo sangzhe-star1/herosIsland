@@ -1,0 +1,1100 @@
+{
+  "path": "strawberry.glb",
+  "bytes": 145644,
+  "sha256": "eb33862a529ba8d182d7d76363931f3173453175da2d02dfd1db9205ace29ae7",
+  "summary": {
+    "nodes": 22,
+    "meshes": 22,
+    "materials": 4,
+    "unique_mesh_triangles": 5844,
+    "unique_mesh_vertices": 3790,
+    "unique_mesh_primitives": 22,
+    "unique_color_0_primitives": 0,
+    "instanced_scene_triangles": 5844,
+    "instanced_scene_vertices": 3790,
+    "instanced_scene_primitives": 22,
+    "instanced_color_0_primitives": 0,
+    "static_scene_triangles": 5844,
+    "static_scene_primitives": 22,
+    "target_scene_triangles": 0,
+    "targets": 0,
+    "unique_target_names": 0,
+    "textures": 0,
+    "images": 0,
+    "cameras": 0,
+    "lights": 0,
+    "extensions_used": [],
+    "extensions_required": [],
+    "extensions_present": []
+  },
+  "hierarchy": [
+    {
+      "id": 0,
+      "name": "Strawberry | green crown",
+      "path": "Strawberry | green crown",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 0
+    },
+    {
+      "id": 1,
+      "name": "Strawberry | green crown.001",
+      "path": "Strawberry | green crown.001",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 1
+    },
+    {
+      "id": 2,
+      "name": "Strawberry | green crown.002",
+      "path": "Strawberry | green crown.002",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 2
+    },
+    {
+      "id": 3,
+      "name": "Strawberry | green crown.003",
+      "path": "Strawberry | green crown.003",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 3
+    },
+    {
+      "id": 4,
+      "name": "Strawberry | green crown.004",
+      "path": "Strawberry | green crown.004",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 4
+    },
+    {
+      "id": 5,
+      "name": "Strawberry | green crown.005",
+      "path": "Strawberry | green crown.005",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 5
+    },
+    {
+      "id": 6,
+      "name": "Strawberry | green crown.006",
+      "path": "Strawberry | green crown.006",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 6
+    },
+    {
+      "id": 7,
+      "name": "Strawberry | heart-shaped berry",
+      "path": "Strawberry | heart-shaped berry",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 7
+    },
+    {
+      "id": 8,
+      "name": "Strawberry | seed",
+      "path": "Strawberry | seed",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 8
+    },
+    {
+      "id": 9,
+      "name": "Strawberry | seed.001",
+      "path": "Strawberry | seed.001",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 9
+    },
+    {
+      "id": 10,
+      "name": "Strawberry | seed.002",
+      "path": "Strawberry | seed.002",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 10
+    },
+    {
+      "id": 11,
+      "name": "Strawberry | seed.003",
+      "path": "Strawberry | seed.003",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 11
+    },
+    {
+      "id": 12,
+      "name": "Strawberry | seed.004",
+      "path": "Strawberry | seed.004",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 12
+    },
+    {
+      "id": 13,
+      "name": "Strawberry | seed.005",
+      "path": "Strawberry | seed.005",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 13
+    },
+    {
+      "id": 14,
+      "name": "Strawberry | seed.006",
+      "path": "Strawberry | seed.006",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 14
+    },
+    {
+      "id": 15,
+      "name": "Strawberry | seed.007",
+      "path": "Strawberry | seed.007",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 15
+    },
+    {
+      "id": 16,
+      "name": "Strawberry | seed.008",
+      "path": "Strawberry | seed.008",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 16
+    },
+    {
+      "id": 17,
+      "name": "Strawberry | seed.009",
+      "path": "Strawberry | seed.009",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 17
+    },
+    {
+      "id": 18,
+      "name": "Strawberry | seed.010",
+      "path": "Strawberry | seed.010",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 18
+    },
+    {
+      "id": 19,
+      "name": "Strawberry | seed.011",
+      "path": "Strawberry | seed.011",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 19
+    },
+    {
+      "id": 20,
+      "name": "Strawberry | seed.012",
+      "path": "Strawberry | seed.012",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 20
+    },
+    {
+      "id": 21,
+      "name": "Strawberry | seed.013",
+      "path": "Strawberry | seed.013",
+      "parent": null,
+      "parent_id": null,
+      "depth": 0,
+      "mesh": 21
+    }
+  ],
+  "targets": [],
+  "duplicate_target_names": [],
+  "duplicate_node_names": [],
+  "default_scene": 0,
+  "scene_roots": [
+    "Strawberry | green crown",
+    "Strawberry | green crown.001",
+    "Strawberry | green crown.002",
+    "Strawberry | green crown.003",
+    "Strawberry | green crown.004",
+    "Strawberry | green crown.005",
+    "Strawberry | green crown.006",
+    "Strawberry | heart-shaped berry",
+    "Strawberry | seed",
+    "Strawberry | seed.001",
+    "Strawberry | seed.002",
+    "Strawberry | seed.003",
+    "Strawberry | seed.004",
+    "Strawberry | seed.005",
+    "Strawberry | seed.006",
+    "Strawberry | seed.007",
+    "Strawberry | seed.008",
+    "Strawberry | seed.009",
+    "Strawberry | seed.010",
+    "Strawberry | seed.011",
+    "Strawberry | seed.012",
+    "Strawberry | seed.013"
+  ],
+  "unreachable_node_ids": [],
+  "materials": [
+    {
+      "id": 0,
+      "name": "Leaf | sunlit green",
+      "baseColorFactor": [
+        0.23999999463558197,
+        0.47999998927116394,
+        0.10999999940395355,
+        1
+      ],
+      "baseColorFactor_explicit": true,
+      "baseColorTexture": null,
+      "roughness": 0.8399999737739563,
+      "metallic": 0,
+      "alphaMode": "OPAQUE",
+      "extensions": []
+    },
+    {
+      "id": 1,
+      "name": "Leaf | meadow green",
+      "baseColorFactor": [
+        0.11999999731779099,
+        0.3400000035762787,
+        0.07000000029802322,
+        1
+      ],
+      "baseColorFactor_explicit": true,
+      "baseColorTexture": null,
+      "roughness": 0.8399999737739563,
+      "metallic": 0,
+      "alphaMode": "OPAQUE",
+      "extensions": []
+    },
+    {
+      "id": 2,
+      "name": "Strawberry | ripe berry",
+      "baseColorFactor": [
+        0.8799999952316284,
+        0.054999999701976776,
+        0.07500000298023224,
+        1
+      ],
+      "baseColorFactor_explicit": true,
+      "baseColorTexture": null,
+      "roughness": 0.800000011920929,
+      "metallic": 0,
+      "alphaMode": "OPAQUE",
+      "extensions": []
+    },
+    {
+      "id": 3,
+      "name": "Seed | pale gold",
+      "baseColorFactor": [
+        0.9399999976158142,
+        0.7300000190734863,
+        0.30000001192092896,
+        1
+      ],
+      "baseColorFactor_explicit": true,
+      "baseColorTexture": null,
+      "roughness": 0.75,
+      "metallic": 0,
+      "alphaMode": "OPAQUE",
+      "extensions": []
+    }
+  ],
+  "meshes": [
+    {
+      "id": 0,
+      "name": "Strawberry | green crown Mesh",
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 340,
+          "triangles": 544,
+          "material": 0,
+          "material_name": "Leaf | sunlit green",
+          "attributes": [
+            "NORMAL",
+            "POSITION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Strawberry | green crown Mesh.001",
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 340,
+          "triangles": 544,
+          "material": 1,
+          "material_name": "Leaf | meadow green",
+          "attributes": [
+            "NORMAL",
+            "POSITION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Strawberry | green crown Mesh.002",
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 340,
+          "triangles": 544,
+          "material": 0,
+          "material_name": "Leaf | sunlit green",
+          "attributes": [
+            "NORMAL",
+            "POSITION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Strawberry | green crown Mesh.003",
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 340,
+          "triangles": 544,
+          "material": 1,
+          "material_name": "Leaf | meadow green",
+          "attributes": [
+            "NORMAL",
+            "POSITION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Strawberry | green crown Mesh.004",
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 340,
+          "triangles": 544,
+          "material": 0,
+          "material_name": "Leaf | sunlit green",
+          "attributes": [
+            "NORMAL",
+            "POSITION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Strawberry | green crown Mesh.005",
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 340,
+          "triangles": 544,
+          "material": 1,
+          "material_name": "Leaf | meadow green",
+          "attributes": [
+            "NORMAL",
+            "POSITION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Strawberry | green crown Mesh.006",
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 340,
+          "triangles": 544,
+          "material": 0,
+          "material_name": "Leaf | sunlit green",
+          "attributes": [
+            "NORMAL",
+            "POSITION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Strawberry | heart-shaped berry Mesh",
+      "triangles": 636,
+      "vertices": 360,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 360,
+          "triangles": 636,
+          "material": 2,
+          "material_name": "Strawberry | ripe berry",
+          "attributes": [
+            "NORMAL",
+            "POSITION"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "球体.008",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "球体.009",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "球体.010",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "球体.011",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "球体.012",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "球体.013",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "球体.014",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "球体.015",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "name": "球体.016",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "球体.017",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "球体.018",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "球体.019",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "球体.020",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "球体.021",
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0,
+      "primitives": [
+        {
+          "id": 0,
+          "mode": 4,
+          "vertices": 75,
+          "triangles": 100,
+          "material": 3,
+          "material_name": "Seed | pale gold",
+          "attributes": [
+            "NORMAL",
+            "POSITION",
+            "TEXCOORD_0"
+          ]
+        }
+      ]
+    }
+  ],
+  "instances": [
+    {
+      "node": 0,
+      "name": "Strawberry | green crown",
+      "path": "Strawberry | green crown",
+      "mesh": 0,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 1,
+      "name": "Strawberry | green crown.001",
+      "path": "Strawberry | green crown.001",
+      "mesh": 1,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 2,
+      "name": "Strawberry | green crown.002",
+      "path": "Strawberry | green crown.002",
+      "mesh": 2,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 3,
+      "name": "Strawberry | green crown.003",
+      "path": "Strawberry | green crown.003",
+      "mesh": 3,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 4,
+      "name": "Strawberry | green crown.004",
+      "path": "Strawberry | green crown.004",
+      "mesh": 4,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 5,
+      "name": "Strawberry | green crown.005",
+      "path": "Strawberry | green crown.005",
+      "mesh": 5,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 6,
+      "name": "Strawberry | green crown.006",
+      "path": "Strawberry | green crown.006",
+      "mesh": 6,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 544,
+      "vertices": 340,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 7,
+      "name": "Strawberry | heart-shaped berry",
+      "path": "Strawberry | heart-shaped berry",
+      "mesh": 7,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 636,
+      "vertices": 360,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 8,
+      "name": "Strawberry | seed",
+      "path": "Strawberry | seed",
+      "mesh": 8,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 9,
+      "name": "Strawberry | seed.001",
+      "path": "Strawberry | seed.001",
+      "mesh": 9,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 10,
+      "name": "Strawberry | seed.002",
+      "path": "Strawberry | seed.002",
+      "mesh": 10,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 11,
+      "name": "Strawberry | seed.003",
+      "path": "Strawberry | seed.003",
+      "mesh": 11,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 12,
+      "name": "Strawberry | seed.004",
+      "path": "Strawberry | seed.004",
+      "mesh": 12,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 13,
+      "name": "Strawberry | seed.005",
+      "path": "Strawberry | seed.005",
+      "mesh": 13,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 14,
+      "name": "Strawberry | seed.006",
+      "path": "Strawberry | seed.006",
+      "mesh": 14,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 15,
+      "name": "Strawberry | seed.007",
+      "path": "Strawberry | seed.007",
+      "mesh": 15,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 16,
+      "name": "Strawberry | seed.008",
+      "path": "Strawberry | seed.008",
+      "mesh": 16,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 17,
+      "name": "Strawberry | seed.009",
+      "path": "Strawberry | seed.009",
+      "mesh": 17,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 18,
+      "name": "Strawberry | seed.010",
+      "path": "Strawberry | seed.010",
+      "mesh": 18,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 19,
+      "name": "Strawberry | seed.011",
+      "path": "Strawberry | seed.011",
+      "mesh": 19,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 20,
+      "name": "Strawberry | seed.012",
+      "path": "Strawberry | seed.012",
+      "mesh": 20,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    },
+    {
+      "node": 21,
+      "name": "Strawberry | seed.013",
+      "path": "Strawberry | seed.013",
+      "mesh": 21,
+      "multiplicity": 1,
+      "target": false,
+      "triangles": 100,
+      "vertices": 75,
+      "primitive_count": 1,
+      "color_0_primitive_count": 0
+    }
+  ],
+  "images": [],
+  "cameras": [],
+  "lights": [],
+  "notes": [
+    "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+    "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+    "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+    "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+  ]
+}

@@ -1,0 +1,5 @@
+__pycache__/
+*.blend1
+rendered_geometry/
+rendered_profile/
+review/generated/

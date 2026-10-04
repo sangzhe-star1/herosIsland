@@ -1,0 +1,844 @@
+{
+  "source": "/opt/heroesIsland/assets/harvest_3d/source/whole_plant/rendered/whole_plant_scene.glb",
+  "source_sha256": "123cfab7a4150110e8af29ca208b46dda6a8250d4870e46f3fb791620f64718c",
+  "blender_version": "5.2.2 LTS",
+  "import_method": "bpy.ops.import_scene.gltf, default importer options",
+  "imported_images": [],
+  "materials": [
+    {
+      "name": "Basket | sunlit weave",
+      "use_nodes": true,
+      "base_color_default": [
+        0.7300000190734863,
+        0.4350000023841858,
+        0.1599999964237213,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Basket | shadow weave",
+      "use_nodes": true,
+      "base_color_default": [
+        0.4300000071525574,
+        0.23499999940395355,
+        0.07000000029802322,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Basket | honey straw",
+      "use_nodes": true,
+      "base_color_default": [
+        0.5899999737739563,
+        0.3149999976158142,
+        0.10000000149011612,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Leaf | garden green",
+      "use_nodes": true,
+      "base_color_default": [
+        0.10499999672174454,
+        0.32499998807907104,
+        0.04500000178813934,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Soil | warm loam",
+      "use_nodes": true,
+      "base_color_default": [
+        0.28999999165534973,
+        0.14499999582767487,
+        0.06700000166893005,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Tomato | ripe red",
+      "use_nodes": true,
+      "base_color_default": [
+        0.800000011920929,
+        0.029999999329447746,
+        0.01600000075995922,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Tomato | shoulder red",
+      "use_nodes": true,
+      "base_color_default": [
+        0.800000011920929,
+        0.029999999329447746,
+        0.01600000075995922,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Calyx | fresh green",
+      "use_nodes": true,
+      "base_color_default": [
+        0.10999999940395355,
+        0.28999999165534973,
+        0.03500000014901161,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    },
+    {
+      "name": "Vine | deep green",
+      "use_nodes": true,
+      "base_color_default": [
+        0.07000000029802322,
+        0.2150000035762787,
+        0.02500000037252903,
+        1.0
+      ],
+      "base_color_linked": false,
+      "base_color_link_sources": [],
+      "image_texture_nodes": [],
+      "vertex_color_nodes": []
+    }
+  ],
+  "mesh_reviews": [
+    {
+      "mesh": "Basket | chunky braided rim Mesh",
+      "users": 1,
+      "vertices": 7434,
+      "triangles": 14642,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998249113407,
+        1.0000001700900467
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 120,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Fringe | loose green leaf clusters Mesh",
+      "users": 1,
+      "vertices": 5377,
+      "triangles": 7104,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999851861492,
+        1.0000001583248253
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 3264,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P01 F01 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P01 F02 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P01 F03 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P01 F04 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Plant01 | compound serrated leaves Mesh",
+      "users": 1,
+      "vertices": 5634,
+      "triangles": 7276,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998475839104,
+        1.0000001677835686
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 3654,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P02 F01 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P02 F02 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P02 F03 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P02 F04 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Plant02 | compound serrated leaves Mesh",
+      "users": 1,
+      "vertices": 5630,
+      "triangles": 7276,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998642974696,
+        1.0000001677835686
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 3650,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P03 F01 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P03 F02 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P03 F03 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "HarvestTarget Tomato P03 F04 Mesh",
+      "users": 1,
+      "vertices": 370,
+      "triangles": 460,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.9999998563434825,
+        1.0000001490116008
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 220,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    },
+    {
+      "mesh": "Plant03 | compound serrated leaves Mesh",
+      "users": 1,
+      "vertices": 5636,
+      "triangles": 7276,
+      "nonfinite_positions": 0,
+      "nonfinite_corner_normals": 0,
+      "zero_corner_normals": 0,
+      "corner_normal_length_range": [
+        0.999999816097767,
+        1.0000001677835686
+      ],
+      "degenerate_triangles": 0,
+      "triangles_opposed_to_corner_normals": 0,
+      "boundary_edges": 3656,
+      "edges_with_more_than_two_faces": 0,
+      "color_attributes": []
+    }
+  ],
+  "hierarchy": [
+    {
+      "name": "Root",
+      "type": "EMPTY",
+      "path": "Root",
+      "parent": null,
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Basket",
+      "type": "EMPTY",
+      "path": "Root/Basket",
+      "parent": "Root",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Basket | static geometry",
+      "type": "MESH",
+      "path": "Root/Basket/Basket | static geometry",
+      "parent": "Basket",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "GardenBed",
+      "type": "EMPTY",
+      "path": "Root/GardenBed",
+      "parent": "Root",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "GardenBed | static geometry",
+      "type": "MESH",
+      "path": "Root/GardenBed/GardenBed | static geometry",
+      "parent": "GardenBed",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Plant01",
+      "type": "EMPTY",
+      "path": "Root/Plant01",
+      "parent": "Root",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P01 F01",
+      "type": "MESH",
+      "path": "Root/Plant01/HarvestTarget Tomato P01 F01",
+      "parent": "Plant01",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P01 F02",
+      "type": "MESH",
+      "path": "Root/Plant01/HarvestTarget Tomato P01 F02",
+      "parent": "Plant01",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P01 F03",
+      "type": "MESH",
+      "path": "Root/Plant01/HarvestTarget Tomato P01 F03",
+      "parent": "Plant01",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P01 F04",
+      "type": "MESH",
+      "path": "Root/Plant01/HarvestTarget Tomato P01 F04",
+      "parent": "Plant01",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Plant01 | static geometry",
+      "type": "MESH",
+      "path": "Root/Plant01/Plant01 | static geometry",
+      "parent": "Plant01",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Plant02",
+      "type": "EMPTY",
+      "path": "Root/Plant02",
+      "parent": "Root",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P02 F01",
+      "type": "MESH",
+      "path": "Root/Plant02/HarvestTarget Tomato P02 F01",
+      "parent": "Plant02",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P02 F02",
+      "type": "MESH",
+      "path": "Root/Plant02/HarvestTarget Tomato P02 F02",
+      "parent": "Plant02",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P02 F03",
+      "type": "MESH",
+      "path": "Root/Plant02/HarvestTarget Tomato P02 F03",
+      "parent": "Plant02",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P02 F04",
+      "type": "MESH",
+      "path": "Root/Plant02/HarvestTarget Tomato P02 F04",
+      "parent": "Plant02",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Plant02 | static geometry",
+      "type": "MESH",
+      "path": "Root/Plant02/Plant02 | static geometry",
+      "parent": "Plant02",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Plant03",
+      "type": "EMPTY",
+      "path": "Root/Plant03",
+      "parent": "Root",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P03 F01",
+      "type": "MESH",
+      "path": "Root/Plant03/HarvestTarget Tomato P03 F01",
+      "parent": "Plant03",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P03 F02",
+      "type": "MESH",
+      "path": "Root/Plant03/HarvestTarget Tomato P03 F02",
+      "parent": "Plant03",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P03 F03",
+      "type": "MESH",
+      "path": "Root/Plant03/HarvestTarget Tomato P03 F03",
+      "parent": "Plant03",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "HarvestTarget Tomato P03 F04",
+      "type": "MESH",
+      "path": "Root/Plant03/HarvestTarget Tomato P03 F04",
+      "parent": "Plant03",
+      "negative_world_determinant": false
+    },
+    {
+      "name": "Plant03 | static geometry",
+      "type": "MESH",
+      "path": "Root/Plant03/Plant03 | static geometry",
+      "parent": "Plant03",
+      "negative_world_determinant": false
+    }
+  ],
+  "limits": [
+    "Offline Blender import review; not a Godot screenshot or gameplay test.",
+    "Boundary edges may be intentional leaf surfaces; numeric normal findings require visual review.",
+    "Visibility counts record per-object render flags; they do not prove input/hit-test behavior."
+  ],
+  "summary": {
+    "imported_mesh_nodes": 17,
+    "unique_imported_meshes": 17,
+    "imported_materials": 9,
+    "target_mesh_nodes": 12,
+    "image_texture_nodes": 0,
+    "meshes_with_color_attributes": 0,
+    "nonfinite_positions": 0,
+    "nonfinite_corner_normals": 0,
+    "zero_corner_normals": 0,
+    "unique_mesh_degenerate_triangles": 0,
+    "unique_mesh_triangles_opposed_to_corner_normals": 0
+  },
+  "pose_contract_review": {
+    "contract_sha256": "b4bf67ac883c975e4bf787992879d9f615de49b4c8aed774020997262e98cff4",
+    "checked_targets": 12,
+    "passed": true,
+    "targets": [
+      {
+        "target": "HarvestTarget Tomato P01 F01",
+        "local_center_m": [
+          -0.4299999177455902,
+          -0.4300000071525574,
+          0.7900000214576721
+        ],
+        "position_error_m": 8.940696716308594e-08,
+        "scale_error": 3.371747880871523e-07,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P01 F02",
+        "local_center_m": [
+          0.3800000548362732,
+          -0.4000000059604645,
+          1.0800000429153442
+        ],
+        "position_error_m": 5.960464477539063e-08,
+        "scale_error": 1.6858739404357614e-07,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P01 F03",
+        "local_center_m": [
+          -0.3299998939037323,
+          -0.3199999928474426,
+          1.3799999952316284
+        ],
+        "position_error_m": 1.1920928955078125e-07,
+        "scale_error": 1.6858739404357614e-07,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P01 F04",
+        "local_center_m": [
+          0.34000006318092346,
+          -0.27000001072883606,
+          1.649999976158142
+        ],
+        "position_error_m": 5.960464477539063e-08,
+        "scale_error": 1.6858739404357614e-07,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P02 F01",
+        "local_center_m": [
+          -0.429999977350235,
+          -0.429999977350235,
+          0.7900000214576721
+        ],
+        "position_error_m": 4.2146848510894035e-08,
+        "scale_error": 0.0,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P02 F02",
+        "local_center_m": [
+          0.37999996542930603,
+          -0.3999999463558197,
+          1.0800000429153442
+        ],
+        "position_error_m": 6.664001874625056e-08,
+        "scale_error": 0.0,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P02 F03",
+        "local_center_m": [
+          -0.32999998331069946,
+          -0.31999996304512024,
+          1.3799999952316284
+        ],
+        "position_error_m": 4.2146848510894035e-08,
+        "scale_error": 0.0,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P02 F04",
+        "local_center_m": [
+          0.3399999737739563,
+          -0.26999998092651367,
+          1.649999976158142
+        ],
+        "position_error_m": 4.2146848510894035e-08,
+        "scale_error": 0.0,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P03 F01",
+        "local_center_m": [
+          -0.4300000071525574,
+          -0.4300000071525574,
+          0.7900000214576721
+        ],
+        "position_error_m": 0.0,
+        "scale_error": 0.0,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P03 F02",
+        "local_center_m": [
+          0.37999996542930603,
+          -0.40000003576278687,
+          1.0800000429153442
+        ],
+        "position_error_m": 4.2146848510894035e-08,
+        "scale_error": 0.0,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P03 F03",
+        "local_center_m": [
+          -0.33000004291534424,
+          -0.3199999928474426,
+          1.3799999952316284
+        ],
+        "position_error_m": 2.9802322387695312e-08,
+        "scale_error": 0.0,
+        "parent_matches": true,
+        "passed": true
+      },
+      {
+        "target": "HarvestTarget Tomato P03 F04",
+        "local_center_m": [
+          0.3400000035762787,
+          -0.27000004053115845,
+          1.649999976158142
+        ],
+        "position_error_m": 2.9802322387695312e-08,
+        "scale_error": 0.0,
+        "parent_matches": true,
+        "passed": true
+      }
+    ]
+  },
+  "review_camera": {
+    "resolution": [
+      1280,
+      720
+    ],
+    "location": [
+      10.63630485534668,
+      -14.370142936706543,
+      11.647461891174316
+    ],
+    "rotation_euler": [
+      1.0303770303726196,
+      1.0058384702915646e-07,
+      0.6435011625289917
+    ],
+    "ortho_scale": 8.707852363586426
+  },
+  "full_render": "/private/tmp/heroes-roundtrip-frozen-final-FXdtmH/roundtrip_full_16x9.png",
+  "single_target_hide": {
+    "target": "HarvestTarget Tomato P01 F04",
+    "before": {
+      "mesh_nodes_with_render_enabled": 17,
+      "target_mesh_nodes_with_render_enabled": 12,
+      "target_names_with_render_enabled": [
+        "HarvestTarget Tomato P01 F01",
+        "HarvestTarget Tomato P01 F02",
+        "HarvestTarget Tomato P01 F03",
+        "HarvestTarget Tomato P01 F04",
+        "HarvestTarget Tomato P02 F01",
+        "HarvestTarget Tomato P02 F02",
+        "HarvestTarget Tomato P02 F03",
+        "HarvestTarget Tomato P02 F04",
+        "HarvestTarget Tomato P03 F01",
+        "HarvestTarget Tomato P03 F02",
+        "HarvestTarget Tomato P03 F03",
+        "HarvestTarget Tomato P03 F04"
+      ]
+    },
+    "after": {
+      "mesh_nodes_with_render_enabled": 16,
+      "target_mesh_nodes_with_render_enabled": 11,
+      "target_names_with_render_enabled": [
+        "HarvestTarget Tomato P01 F01",
+        "HarvestTarget Tomato P01 F02",
+        "HarvestTarget Tomato P01 F03",
+        "HarvestTarget Tomato P02 F01",
+        "HarvestTarget Tomato P02 F02",
+        "HarvestTarget Tomato P02 F03",
+        "HarvestTarget Tomato P02 F04",
+        "HarvestTarget Tomato P03 F01",
+        "HarvestTarget Tomato P03 F02",
+        "HarvestTarget Tomato P03 F03",
+        "HarvestTarget Tomato P03 F04"
+      ]
+    },
+    "changed_object_states": [
+      "HarvestTarget Tomato P01 F04"
+    ],
+    "only_selected_target_changed": true,
+    "mesh_data_pointer_unchanged": true
+  },
+  "hidden_target_render": "/private/tmp/heroes-roundtrip-frozen-final-FXdtmH/roundtrip_one_target_hidden_16x9.png",
+  "basket_only_render": "/private/tmp/heroes-roundtrip-frozen-final-FXdtmH/roundtrip_basket_only_16x9.png",
+  "basket_subtree_meshes": [
+    "Root/Basket/Basket | static geometry"
+  ],
+  "basket_subtree_suspicious_names": [],
+  "source_sha256_after_review": "123cfab7a4150110e8af29ca208b46dda6a8250d4870e46f3fb791620f64718c",
+  "source_unchanged": true
+}

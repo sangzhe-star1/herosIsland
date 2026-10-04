@@ -25,6 +25,7 @@ const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
+const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const Stroke := preload("res://scripts/garden/continuous_action_controller.gd")
@@ -40,7 +41,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 703
+const CHECKS_EXPECTED := 734
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -58,6 +59,7 @@ func _ready() -> void:
 	print("\n=== farm world probe ===")
 	_the_layout_is_legal()
 	_the_stroke_bookkeeping_refuses_seconds()
+	_golden_state_is_a_visual_input()
 	for shape in SHAPES:
 		_shape = "%dx%d" % [shape.x, shape.y]
 		await _run_on_a(shape)
@@ -87,6 +89,8 @@ func _run_on_a(window: Vector2i) -> void:
 	await get_tree().process_frame
 
 	await _every_bed_is_on_the_glass_when_he_walks_in(view)
+	await _golden_refresh_updates_the_live_plot()
+	await _the_opening_view_keeps_a_complete_base_landmark()
 	await _the_two_coordinate_spaces_agree()
 	await _dragging_the_grass_moves_the_farm()
 	await _dragging_from_a_bed_moves_the_farm_too()
@@ -171,6 +175,47 @@ func _camera() -> FarmCamera:
 
 func _plots() -> Array:
 	return SaveManager.data["farm"]["plots"]
+
+
+## Golden is rendered by PlotView, so its value must participate in the
+## incremental refresh key. Otherwise the crop can change rarity without the
+## existing bed ever rebuilding its artwork.
+func _golden_state_is_a_visual_input() -> void:
+	var ordinary := Farm.fresh_plot(0)
+	ordinary["state"] = Farm.GROWING
+	ordinary["crop_id"] = "strawberry"
+	ordinary["growth_stage"] = 1
+	var rare: Dictionary = ordinary.duplicate(true)
+	rare["golden"] = true
+	var bed := PlotView.new()
+	_ok(bed.call("_fingerprint", ordinary)
+		!= bed.call("_fingerprint", rare),
+		"golden rarity changes the PlotView incremental redraw fingerprint")
+	bed.free()
+
+
+func _golden_refresh_updates_the_live_plot() -> void:
+	var original: Dictionary = _plots()[0].duplicate(true)
+	_set_bed(0, {"state": Farm.GROWING, "crop_id": "strawberry",
+		"growth_stage": 1, "planted_at": NOON - 300, "golden": false})
+	_world().refresh(_plots())
+	await get_tree().process_frame
+	var beds: Array = _world().get("_beds")
+	var planting: Node = beds[0].get("_planting")
+	var ordinary_children := planting.get_child_count()
+	_plots()[0]["golden"] = true
+	_world().refresh(_plots())
+	await get_tree().process_frame
+	_ok(planting.get_child_count() > ordinary_children,
+		"a growing golden crop adds its backlight on the already-open bed")
+	_plots()[0]["golden"] = false
+	_world().refresh(_plots())
+	await get_tree().process_frame
+	_ok(planting.get_child_count() == ordinary_children,
+		"clearing golden rarity removes the stale backlight on refresh")
+	_plots()[0] = original
+	_world().refresh(_plots())
+	await get_tree().process_frame
 
 
 ## Design coordinates to window pixels. The 4:3 tablet's window is 1024x768
@@ -329,6 +374,25 @@ func _every_bed_is_on_the_glass_when_he_walks_in(view: Vector2) -> void:
 		_ok(at.y - half.y > 96.0 and at.y + half.y < view.y - 168.0,
 			"bed %d is between the top bar and the shelf" % i)
 	_ok(_camera().is_home(), "and that is the view he was given")
+	await get_tree().process_frame
+
+
+## The first picture is a farm, not a floating set of beds. The landmark must
+## be complete on the glass rather than merely having its centre technically
+## visible at an edge behind the HUD.
+func _the_opening_view_keeps_a_complete_base_landmark() -> void:
+	var landmark := Layout.facility(Layout.HOME_LANDMARK)
+	_ok(not landmark.is_empty(), "the opening view has a stable base landmark")
+	if landmark.is_empty():
+		return
+	var box := Layout.facility_size(landmark)
+	var bounds := Rect2(Layout.facility_at(landmark) - box * 0.5, box)
+	_ok(Layout.home_block(_plots().size()).encloses(bounds),
+		"the opening composition includes the whole base landmark")
+	for point in [bounds.position, Vector2(bounds.end.x, bounds.position.y),
+			bounds.end, Vector2(bounds.position.x, bounds.end.y)]:
+		_ok(_camera().inside(_camera().world_to_screen(point)),
+			"the complete base landmark stays on the farm glass")
 	await get_tree().process_frame
 
 
@@ -719,17 +783,26 @@ func _the_furniture_is_not_a_hole_in_the_farm(view: Vector2) -> void:
 	await _tap(orders_at)
 	_ok(bool(_garden.get("_orders_open")), "the order board opens")
 
-	# Park a bed under the middle of the window, which the board's sheet covers
-	# on every screen shape this island runs on.
+	# Bring the lower-row beds into the board area.  On a tall screen the world
+	# clamp may stop a bed a little below the literal window centre, so find the
+	# real bed that the existing GUI blocker covers instead of assuming a camera
+	# centre the world is not allowed to reach.
 	_camera().look_at(Layout.plot_at(4))
 	_camera().apply(_world())
 	await get_tree().process_frame
-	var covered := _world().bed_under(wc)
-	_ok(covered == 4, "a bed is parked under the open board")
+	var covered := -1
+	var covered_at := Vector2.ZERO
+	for i in range(_plots().size()):
+		var candidate := _world().bed_screen_position(i)
+		if _camera().inside(candidate) and bool(_world().call("_blocked", candidate)):
+			covered = i
+			covered_at = candidate
+			break
+	_ok(covered >= 0, "a bed is parked under the open board")
 	if covered >= 0:
 		var state := str(_plots()[covered].get("state", ""))
 		var under_board: Vector2 = _camera().centre
-		await _double_tap(wc)
+		await _double_tap(covered_at)
 		_ok(str(_plots()[covered].get("state", "")) == state,
 			"pressing the board does not reach the bed behind it")
 		_ok(_camera().centre.is_equal_approx(under_board),

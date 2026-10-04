@@ -33,8 +33,8 @@ const RING_SHOWN := 3.0
 ## Wet earth and dry earth. Far enough apart in LIGHTNESS, not just in hue,
 ## that they still read as different to eyes that do not separate red from
 ## green -- 0.30 against 0.45 in value.
-const EARTH_WET := Color(0.42, 0.29, 0.20)
-const EARTH_DRY := Color(0.62, 0.49, 0.36)
+const EARTH_WET := Color(0.57, 0.40, 0.25)
+const EARTH_DRY := Color(0.68, 0.52, 0.36)
 const GRASS := Color(0.44, 0.66, 0.36)
 
 var index := 0
@@ -57,6 +57,12 @@ var _action_feedback: Node2D
 ## subtree. `_draw_badge()` deliberately clears `_overlay` on every state
 ## change; a world-level pointer must survive that inexpensive redraw.
 var _task_beacon: Node2D
+## A task flag already says the one action this bed wants.  Keep the normal
+## state badge in the tree for stable refresh/test geometry, but let it yield
+## visually while that stronger, page-derived instruction is present.  This is
+## only a presentation priority; FarmWorld still owns the one task route and
+## this PlotView still owns no input or state rules.
+var _task_beacon_active := false
 var _badge: Node2D
 var _ring: Node2D
 var _ring_left := 0.0
@@ -171,13 +177,14 @@ func refresh(plot: Dictionary, force: bool = false) -> void:
 
 
 func _fingerprint(plot: Dictionary) -> String:
-	return "%s/%s/%d/%.3f/%s/%s" % [
+	return "%s/%s/%d/%.3f/%s/%s/%s" % [
 		str(plot.get("state", "")),
 		str(plot.get("crop_id", "")),
 		int(plot.get("growth_stage", 0)),
 		float(plot.get("growth_progress", 0.0)),
 		str(plot.get("care_event", "")),
 		"dry" if float(plot.get("water_level", 1.0)) <= 0.35 else "wet",
+		"golden" if bool(plot.get("golden", false)) else "ordinary",
 	]
 
 
@@ -193,9 +200,11 @@ func _draw_ground(plot: Dictionary) -> void:
 		else (EARTH_DRY if thirsty else EARTH_WET)
 	# A narrow rim is enough to say "grass meets soil". A wide saturated ring
 	# made the two world layers compete with the crop for attention.
-	var grass_island := _patch_blob(_box * 0.50)
+	var grass_island := _patch_blob(_box * 0.49)
 
-	Shapes.ground_shadow(_ground, Vector2(0, _box.y * 0.42), _box.x * 0.82, 0.14)
+	# A small contact shadow is enough to seat a bed. A giant ellipse around
+	# every plot made the opening view read as six separate UI cards.
+	Shapes.ground_shadow(_ground, Vector2(0, _box.y * 0.40), _box.x * 0.64, 0.07)
 
 	if not tilled:
 		# Untouched grass, with the tufts that say it has never been turned.
@@ -208,35 +217,23 @@ func _draw_ground(plot: Dictionary) -> void:
 				Color(0.34, 0.56, 0.28), 0.0)
 		return
 
-	# A soft grass rim and an irregular soil island say "a patch of earth" much
-	# more clearly than a dark rounded rectangle says it. Keep both unoutlined:
-	# the crop, care badge and contact shadow already carry the interaction
-	# contrast; an ink perimeter turned the old ground into a wooden crate.
-	Shapes.fill(_ground, grass_island, Color(0.55, 0.72, 0.39), 0.0)
-	var soil_island := _patch_blob(_box * 0.46)
+	# The bed has a very small raised edge: a warm side wall, then its sunlit
+	# top. This gives the crop somewhere to grow *from* without turning every
+	# plot into a dark sticker or introducing a second 3D scene system.
+	# Everything stays unoutlined; the crop and its care signal keep the only
+	# strong contrast a young player needs to find the next action.
+	# This rim is only the grass pressed down around the bed. It intentionally
+	# stays close to the world meadow instead of becoming another green island.
+	Shapes.fill(_ground, grass_island, Color(0.70, 0.83, 0.56), 0.0)
+	var soil_side := _patch_blob(_box * 0.448, Vector2(1.5, 4.5))
+	Shapes.fill(_ground, soil_side, earth.darkened(0.10), 0.0)
+	var soil_island := _patch_blob(_box * 0.435, Vector2(-1.0, -2.0))
 	Shapes.lit(_ground, soil_island, earth, 0.0)
 
-	# Turned earth: short, staggered mounds and crumbs. They never bridge the
-	# whole island, so they read as loose soil rather than wooden slats.
-	var shade := earth.darkened(0.08)
-	var lit := earth.lightened(0.10)
-	var mounds := [
-		[Vector2(-42.0, -29.0), Vector2(31.0, 5.0)],
-		[Vector2(30.0, -23.0), Vector2(27.0, 5.0)],
-		[Vector2(-7.0, -3.0), Vector2(40.0, 6.0)],
-		[Vector2(-48.0, 23.0), Vector2(26.0, 5.0)],
-		[Vector2(43.0, 27.0), Vector2(31.0, 5.0)],
-	]
-	for mound in mounds:
-		var at: Vector2 = mound[0]
-		var radii: Vector2 = mound[1]
-		Shapes.fill(_ground, Shapes.oval_points(at + Vector2(1.5, 2.5), radii),
-			shade, 0.0)
-		Shapes.fill(_ground, Shapes.oval_points(at + Vector2(-1.0, -1.0),
-			Vector2(radii.x * 0.84, radii.y * 0.55)), lit, 0.0)
-
-	# Crumbs. Fixed positions, not scattered -- nothing in this garden is
-	# random, for the same reason the weeds are not (offline_growth.gd).
+	# Crumbs are enough surface detail at this scale. The old broad horizontal
+	# mounds read as wooden slats, then fought the crop's silhouette. Fixed
+	# positions keep this a familiar patch of earth rather than visual noise.
+	var shade := earth.darkened(0.05)
 	for i in range(9):
 		var at := Vector2(
 			-_box.x * 0.36 + fmod(float(i) * 47.0, _box.x * 0.72),
@@ -250,10 +247,12 @@ func _draw_ground(plot: Dictionary) -> void:
 ## Fixed organic outlines let soil be a little irregular without jumping when
 ## the farm refreshes. The plot index is stable across saves and camera moves,
 ## which makes the shape part of the place rather than an animation.
-func _patch_blob(radii: Vector2) -> PackedVector2Array:
+func _patch_blob(radii: Vector2, centre: Vector2 = Vector2.ZERO) -> PackedVector2Array:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 32_557 + index * 7_919
-	return Shapes.blob(Vector2.ZERO, radii, rng, 0.08, 5, 28)
+	# Gentle, high-resolution contours read as turned earth. Large scallops made
+	# the old beds look like six unrelated rock stickers from the overview.
+	return Shapes.blob(centre, radii, rng, 0.035, 4, 42)
 
 
 ## Water is an action a child already understands from the earth itself.  These
@@ -289,19 +288,36 @@ func _draw_planting(plot: Dictionary) -> void:
 	var done := Growth.fraction_done(plot, crop)
 	var ripe := Farm.is_ready(plot)
 	var stage := int(plot.get("growth_stage", 0))
+	var golden := bool(plot.get("golden", false))
 
 	if stage <= 0 and done <= 0.0:
 		# A seed in the ground: a little mound, and nothing above it. The bed
 		# has to look DIFFERENT from turned-and-empty or he will plant again.
 		Shapes.fill(_planting, Shapes.oval_points(Vector2(0, 6),
 			Vector2(26, 13)), EARTH_WET.lightened(0.14), 0.0)
+		if golden:
+			# Even the buried seed keeps its quiet golden promise. The brighter
+			# halo and stars wait until the crop is ready to pick.
+			Shapes.glow(_planting, Vector2(0, 6), 50.0,
+				Color(1.0, 0.82, 0.20), 5, 0.42)
 		return
 
+	# The crop gets the same short, soft contact shadow as every other object in
+	# the farm. The bitmap can keep its clear child-friendly outline without
+	# reading as a sticker dropped on the soil.
+	Shapes.ground_shadow(_planting, Vector2(2, 17), 62.0, 0.12)
 	# A dark hollow under the plant, so it is growing OUT of the bed rather than
 	# resting on top of it. Cheap, and it is most of what makes the crop look
 	# planted at the smallest zoom.
 	Shapes.fill(_planting, Shapes.oval_points(Vector2(0, 12),
 		Vector2(30, 11)), EARTH_WET.darkened(0.18), 0.0)
+	if golden and not ripe:
+		# A gentle backlight carries the rare identity through the growing
+		# stages without competing with the ripe state's four stars. It stays
+		# broad and soft so it reads around the crop at overview zoom without
+		# turning the whole berry or leaf into a yellow block.
+		Shapes.glow(_planting, Vector2(0, -10), 96.0,
+			Color(1.0, 0.78, 0.16), 5, 0.78)
 
 	var art_size := 46.0 + 58.0 * done
 	var plant := UiKit.picture(str(crop.get("icon", "sprout")), art_size)
@@ -316,7 +332,7 @@ func _draw_planting(plot: Dictionary) -> void:
 			if not bool(plot.get("golden", false)):
 				_draw_ready_glints()
 
-	if ripe and bool(plot.get("golden", false)):
+	if ripe and golden:
 		# Bright enough to see from the far side of the farm at the smallest
 		# zoom -- the first version was a 0.30-alpha halo and was, in the
 		# screenshot, completely invisible. Four little stars on top, because a
@@ -432,6 +448,10 @@ func _draw_badge(plot: Dictionary) -> void:
 		art.position = Vector2(-20, -20)
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge.add_child(art)
+	# The flag carries this same current action for the one primary task.  Hiding
+	# the duplicate badge there removes a competing circle without removing any
+	# hit target or the state picture from all the other beds.
+	badge.visible = not _task_beacon_active
 	_badge = badge
 
 
@@ -440,6 +460,9 @@ func _draw_badge(plot: Dictionary) -> void:
 ## it. A Node2D plus mouse-ignoring art has no hit shape and cannot change the
 ## forgiving bed hit test below it.
 func set_task_beacon(icon: String, tint: Color) -> void:
+	_task_beacon_active = icon != ""
+	if _badge != null and is_instance_valid(_badge):
+		_badge.visible = not _task_beacon_active
 	if _task_beacon == null or not is_instance_valid(_task_beacon):
 		return
 	for child in _task_beacon.get_children():

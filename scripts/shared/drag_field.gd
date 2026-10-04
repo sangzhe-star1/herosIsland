@@ -79,6 +79,20 @@ func held() -> Dictionary:
 	return _held
 
 
+## A caller returning a placed item owns its new position immediately.
+## Stop our earlier lift/snap animations before they can overwrite that move.
+func cancel_item_motion(item: Dictionary) -> void:
+	_cancel_item_tween(item, "position_tween")
+	_cancel_item_tween(item, "scale_tween")
+
+
+func _cancel_item_tween(item: Dictionary, key: String) -> void:
+	var moving := item.get(key) as Tween
+	if moving != null and moving.is_valid():
+		moving.kill()
+	item.erase(key)
+
+
 ## Everything placed where it belongs?
 func complete() -> bool:
 	for item in _items:
@@ -141,8 +155,10 @@ func _grab(at: Vector2) -> bool:
 	var node2: Node2D = best["node"]
 	_grab_offset = node2.position - at
 	node2.z_index = 50
+	cancel_item_motion(best)
 	if Juice.motion_enabled():
 		var t := node2.create_tween()
+		best["scale_tween"] = t
 		t.tween_property(node2, "scale", Vector2(LIFT, LIFT), 0.12)\
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	else:
@@ -175,8 +191,10 @@ func _release(at: Vector2) -> void:
 	if not is_instance_valid(node):
 		return
 	node.z_index = 0
+	_cancel_item_tween(item, "scale_tween")
 	if Juice.motion_enabled():
 		var t := node.create_tween()
+		item["scale_tween"] = t
 		t.tween_property(node, "scale", Vector2.ONE, 0.12)
 	else:
 		node.scale = Vector2.ONE
@@ -224,8 +242,10 @@ func _click_in(item: Dictionary, slot: Dictionary) -> void:
 	var node: Node2D = item["node"]
 	var target: Vector2 = (slot["node"] as Node2D).position \
 		+ Vector2(0, float(slot.get("offset_y", 0.0)))
+	_cancel_item_tween(item, "position_tween")
 	if Juice.motion_enabled():
 		var t := node.create_tween()
+		item["position_tween"] = t
 		t.tween_property(node, "position", target, 0.16)\
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	else:
@@ -240,8 +260,10 @@ func _click_in(item: Dictionary, slot: Dictionary) -> void:
 ## with everything exactly as it was.
 func _float_home(item: Dictionary) -> void:
 	var node: Node2D = item["node"]
+	_cancel_item_tween(item, "position_tween")
 	if Juice.motion_enabled():
 		var t := node.create_tween()
+		item["position_tween"] = t
 		t.tween_property(node, "position", item["home"], HOME)\
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	else:

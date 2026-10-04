@@ -1,0 +1,46 @@
+[
+  {
+    "ground_pivot_pixel" : [
+      256,
+      467
+    ],
+    "hasAlpha" : true,
+    "id" : "carrot",
+    "resolution" : [
+      512,
+      512
+    ],
+    "runtime_72_geometry_size" : [
+      43.3125,
+      108.5625
+    ],
+    "solid_geometry_bounds_alpha_gt_0_5" : [
+      194,
+      82,
+      347,
+      467
+    ]
+  },
+  {
+    "ground_pivot_pixel" : [
+      256,
+      467
+    ],
+    "hasAlpha" : true,
+    "id" : "golden_carrot",
+    "resolution" : [
+      512,
+      512
+    ],
+    "runtime_72_geometry_size" : [
+      43.3125,
+      108.5625
+    ],
+    "solid_geometry_bounds_alpha_gt_0_5" : [
+      194,
+      82,
+      347,
+      467
+    ]
+  }
+]

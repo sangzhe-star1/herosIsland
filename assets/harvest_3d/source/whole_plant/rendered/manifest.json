@@ -1,0 +1,594 @@
+{
+  "status": "离线美术候选；未接 Godot，不含经济或输入改动",
+  "source_generator": {
+    "path": "build_whole_plant.py",
+    "sha256": "496164cc88da01b59257e477dfb3d83f363765e43ded4035321bba83ca3b2e19",
+    "blender_version": "5.2.2 LTS"
+  },
+  "leaf_surface_preparation": [
+    {
+      "object": "Plant01 | thick curved leaves",
+      "vertices_before": 1440,
+      "vertices_after": 1272,
+      "faces_before": 1176,
+      "triangles_before_thickness": 2184,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P01 F01 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P01 F02 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P01 F03 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P01 F04 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "Plant02 | thick curved leaves",
+      "vertices_before": 1440,
+      "vertices_after": 1272,
+      "faces_before": 1176,
+      "triangles_before_thickness": 2184,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P02 F01 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P02 F02 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P02 F03 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P02 F04 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "Plant03 | thick curved leaves",
+      "vertices_before": 1440,
+      "vertices_after": 1272,
+      "faces_before": 1176,
+      "triangles_before_thickness": 2184,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P03 F01 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P03 F02 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P03 F03 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    },
+    {
+      "object": "HarvestTarget Tomato P03 F04 | raised calyx",
+      "vertices_before": 60,
+      "vertices_after": 36,
+      "faces_before": 30,
+      "triangles_before_thickness": 40,
+      "method": "先焊叶端和删退化面，再固定三角曲面、重算法线，最后 Solidify"
+    }
+  ],
+  "topology_cleanup": [
+    {
+      "object": "Basket | static geometry",
+      "merged_vertices": 0,
+      "removed_faces": 0
+    },
+    {
+      "object": "GardenBed | static geometry",
+      "merged_vertices": 768,
+      "removed_faces": 0
+    },
+    {
+      "object": "HarvestTarget Tomato P01 F01",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P01 F02",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P01 F03",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P01 F04",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "Plant01 | static geometry",
+      "merged_vertices": 0,
+      "removed_faces": 0
+    },
+    {
+      "object": "HarvestTarget Tomato P02 F01",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P02 F02",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P02 F03",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P02 F04",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "Plant02 | static geometry",
+      "merged_vertices": 0,
+      "removed_faces": 0
+    },
+    {
+      "object": "HarvestTarget Tomato P03 F01",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P03 F02",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P03 F03",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "HarvestTarget Tomato P03 F04",
+      "merged_vertices": 16,
+      "removed_faces": 16
+    },
+    {
+      "object": "Plant03 | static geometry",
+      "merged_vertices": 0,
+      "removed_faces": 0
+    }
+  ],
+  "source_dependencies": [
+    {
+      "path": "inputs/tomato_seed.blend",
+      "sha256": "6a51f89ea367fa3e9f744ed6c06ac18b1b8efbe0fd757cb140779c2e09574037"
+    },
+    {
+      "path": "inputs/curved_leaf_source.py",
+      "sha256": "333c3eaa9fadd70393db833661c90c077d36c3e17069939eb4f3e6ed6fbecc03"
+    },
+    {
+      "path": "inputs/plant_builder_source.py",
+      "sha256": "0b2ea4250ff15dd4a969591104e02c6b01d7b1e66140c5e0df6d8bb1148226e1"
+    }
+  ],
+  "validation_provider": {
+    "expected_relative_path": "../validation/audit_glb.py",
+    "sha256": "fb8e6d9b0c438cfc11b24978d40fb4b8205b21216564f0011e3375a9f00994f7"
+  },
+  "reuse": {
+    "plant": "v28 roots, curved stems and independent targets; v33 curved_leaf_mesh",
+    "basket": "v28 Basket group; original handle ring vertices repaired and decorative contents removed; no wood supports",
+    "bed": "v28 original passive bed, compressed depth/height; no v33 puff perimeter"
+  },
+  "files": {
+    "plant001.glb": {
+      "sha256": "78bade20a687d95f3c2e5188fa9649413133831f3f02c15d09ebe079900f267e",
+      "bytes": 228956,
+      "summary": {
+        "nodes": 6,
+        "meshes": 5,
+        "materials": 6,
+        "unique_mesh_triangles": 9116,
+        "unique_mesh_vertices": 7114,
+        "unique_mesh_primitives": 18,
+        "unique_color_0_primitives": 0,
+        "instanced_scene_triangles": 9116,
+        "instanced_scene_vertices": 7114,
+        "instanced_scene_primitives": 18,
+        "instanced_color_0_primitives": 0,
+        "static_scene_triangles": 7276,
+        "static_scene_primitives": 2,
+        "target_scene_triangles": 1840,
+        "targets": 4,
+        "unique_target_names": 4,
+        "textures": 0,
+        "images": 0,
+        "cameras": 0,
+        "lights": 0,
+        "extensions_used": [],
+        "extensions_required": [],
+        "extensions_present": []
+      }
+    },
+    "plant001_body.glb": {
+      "sha256": "8da428b2f5091355adcced7b1121954638a8d2551c32aa131bc274edb66109e5",
+      "bytes": 180912,
+      "summary": {
+        "nodes": 2,
+        "meshes": 1,
+        "materials": 2,
+        "unique_mesh_triangles": 7276,
+        "unique_mesh_vertices": 5634,
+        "unique_mesh_primitives": 2,
+        "unique_color_0_primitives": 0,
+        "instanced_scene_triangles": 7276,
+        "instanced_scene_vertices": 5634,
+        "instanced_scene_primitives": 2,
+        "instanced_color_0_primitives": 0,
+        "static_scene_triangles": 7276,
+        "static_scene_primitives": 2,
+        "target_scene_triangles": 0,
+        "targets": 0,
+        "unique_target_names": 0,
+        "textures": 0,
+        "images": 0,
+        "cameras": 0,
+        "lights": 0,
+        "extensions_used": [],
+        "extensions_required": [],
+        "extensions_present": []
+      }
+    },
+    "tomato_fruit.glb": {
+      "sha256": "5babf2850fb897705b150430362e83864344ee2f0e6086c301a7cac16e6556bd",
+      "bytes": 15260,
+      "summary": {
+        "nodes": 1,
+        "meshes": 1,
+        "materials": 4,
+        "unique_mesh_triangles": 460,
+        "unique_mesh_vertices": 370,
+        "unique_mesh_primitives": 4,
+        "unique_color_0_primitives": 0,
+        "instanced_scene_triangles": 460,
+        "instanced_scene_vertices": 370,
+        "instanced_scene_primitives": 4,
+        "instanced_color_0_primitives": 0,
+        "static_scene_triangles": 0,
+        "static_scene_primitives": 0,
+        "target_scene_triangles": 460,
+        "targets": 1,
+        "unique_target_names": 1,
+        "textures": 0,
+        "images": 0,
+        "cameras": 0,
+        "lights": 0,
+        "extensions_used": [],
+        "extensions_required": [],
+        "extensions_present": []
+      }
+    },
+    "basket.glb": {
+      "sha256": "901ad1618351b92bff63ea5360e1171b41a65dac902634affc5998728a6fd482",
+      "bytes": 269144,
+      "summary": {
+        "nodes": 2,
+        "meshes": 1,
+        "materials": 3,
+        "unique_mesh_triangles": 14642,
+        "unique_mesh_vertices": 7434,
+        "unique_mesh_primitives": 3,
+        "unique_color_0_primitives": 0,
+        "instanced_scene_triangles": 14642,
+        "instanced_scene_vertices": 7434,
+        "instanced_scene_primitives": 3,
+        "instanced_color_0_primitives": 0,
+        "static_scene_triangles": 14642,
+        "static_scene_primitives": 3,
+        "target_scene_triangles": 0,
+        "targets": 0,
+        "unique_target_names": 0,
+        "textures": 0,
+        "images": 0,
+        "cameras": 0,
+        "lights": 0,
+        "extensions_used": [],
+        "extensions_required": [],
+        "extensions_present": []
+      }
+    },
+    "whole_plant_scene.glb": {
+      "sha256": "123cfab7a4150110e8af29ca208b46dda6a8250d4870e46f3fb791620f64718c",
+      "bytes": 1118596,
+      "summary": {
+        "nodes": 23,
+        "meshes": 17,
+        "materials": 9,
+        "unique_mesh_triangles": 49094,
+        "unique_mesh_vertices": 34151,
+        "unique_mesh_primitives": 59,
+        "unique_color_0_primitives": 0,
+        "instanced_scene_triangles": 49094,
+        "instanced_scene_vertices": 34151,
+        "instanced_scene_primitives": 59,
+        "instanced_color_0_primitives": 0,
+        "static_scene_triangles": 43574,
+        "static_scene_primitives": 11,
+        "target_scene_triangles": 5520,
+        "targets": 12,
+        "unique_target_names": 12,
+        "textures": 0,
+        "images": 0,
+        "cameras": 0,
+        "lights": 0,
+        "extensions_used": [],
+        "extensions_required": [],
+        "extensions_present": []
+      }
+    }
+  },
+  "ground_pivot": "独立 GLB 根节点原点=(0,0,0)，Blender Z-up 导出 glTF Y-up",
+  "png_contract": {
+    "size_px": [
+      512,
+      512
+    ],
+    "world0_px": [
+      256,
+      467
+    ],
+    "camera": "全景相同正交 3/4 方向，按物件改变 ortho_scale；1024 审图 pivot=(512,934)",
+    "whole_plant": "plant001_512.png",
+    "passive_body": "plant001_body_512.png",
+    "single_target_fruit": "tomato_fruit_512.png",
+    "basket": "basket_512.png",
+    "single_target_fruit_pixel_center_512": [
+      256.0,
+      368.369
+    ],
+    "contact_shadow_baked": false,
+    "runtime_contact_shadow": "复用既有 Shapes.ground_shadow；透明PNG不含接地阴影",
+    "ortho_spans_m": {
+      "plant001": 2.95,
+      "tomato_fruit": 1.08,
+      "basket": 1.94
+    },
+    "plant001_yaw_radians": -0.1,
+    "plant001_scale": [
+      1,
+      1,
+      1
+    ],
+    "fruit_mesh_center_above_png_ground_m": 0.232,
+    "fruit_glb_pivot": "果实中心；PNG world0是果底接触线，故显式抬升.232m",
+    "projected_fruit_anchors": [
+      {
+        "name": "HarvestTarget Tomato P01 F01",
+        "pixel_center_512": [
+          150.882,
+          348.231
+        ],
+        "plant_local_center_m": [
+          -0.4300000071525574,
+          -0.4300000071525574,
+          0.7900000214576721
+        ],
+        "scale": [
+          1.1299999952316284,
+          1.1299999952316284,
+          1.1299999952316284
+        ]
+      },
+      {
+        "name": "HarvestTarget Tomato P01 F02",
+        "pixel_center_512": [
+          262.141,
+          341.192
+        ],
+        "plant_local_center_m": [
+          0.3799999952316284,
+          -0.4000000059604645,
+          1.0800000429153442
+        ],
+        "scale": [
+          1.1299999952316284,
+          1.1299999952316284,
+          1.1299999952316284
+        ]
+      },
+      {
+        "name": "HarvestTarget Tomato P01 F03",
+        "pixel_center_512": [
+          176.44,
+          254.838
+        ],
+        "plant_local_center_m": [
+          -0.33000001311302185,
+          -0.3199999928474426,
+          1.3799999952316284
+        ],
+        "scale": [
+          1.1299999952316284,
+          1.1299999952316284,
+          1.1299999952316284
+        ]
+      },
+      {
+        "name": "HarvestTarget Tomato P01 F04",
+        "pixel_center_512": [
+          271.27,
+          242.842
+        ],
+        "plant_local_center_m": [
+          0.3400000035762787,
+          -0.27000001072883606,
+          1.649999976158142
+        ],
+        "scale": [
+          1.1299999952316284,
+          1.1299999952316284,
+          1.1299999952316284
+        ]
+      }
+    ],
+    "pickup_semantics": "四果整株只作审图；运行候选需分开株身和单果，采摘仅移动单果"
+  },
+  "target_ownership": "每株四个独立 HarvestTarget 子网格；枝叶、果梗、木支架归 Plant 静态网格",
+  "known_limits": [
+    "全部图为离线 Cycles 图",
+    "尚未做真实页面 72–96px 目标和触控验收"
+  ],
+  "transparent_pngs": {
+    "tomato_fruit_512.png": {
+      "size": [
+        512,
+        512
+      ],
+      "alpha_bounds": [
+        148,
+        237,
+        364,
+        478
+      ],
+      "world0_px": [
+        256,
+        467
+      ],
+      "sha256": "8ca2490e6bb26d0d8c7f0a0faed76e1a9e35a02fe001c5ba72228c0792ed23b7",
+      "border_alpha_nonzero": false
+    },
+    "plant001_body_512.png": {
+      "size": [
+        512,
+        512
+      ],
+      "alpha_bounds": [
+        149,
+        122,
+        387,
+        468
+      ],
+      "world0_px": [
+        256,
+        467
+      ],
+      "sha256": "211cccc94dd5fd5da1efce2e993a20fcdf1d7194b9b66e7e432d8c48cd938b94",
+      "border_alpha_nonzero": false
+    },
+    "basket_512.png": {
+      "size": [
+        512,
+        512
+      ],
+      "alpha_bounds": [
+        91,
+        100,
+        421,
+        487
+      ],
+      "world0_px": [
+        256,
+        467
+      ],
+      "sha256": "3b5b029b3ea3b24b7aeb621021b2c3ed128ecef8554420d16275028a8f424af0",
+      "border_alpha_nonzero": false
+    },
+    "plant001_512.png": {
+      "size": [
+        512,
+        512
+      ],
+      "alpha_bounds": [
+        111,
+        122,
+        387,
+        468
+      ],
+      "world0_px": [
+        256,
+        467
+      ],
+      "sha256": "a6cad22aa030558f003d85eff6aa638135d8b150676135812c0a308288dfa32c",
+      "border_alpha_nonzero": false
+    },
+    "plant001_transparent.png": {
+      "size": [
+        1024,
+        1024
+      ],
+      "alpha_bounds": [
+        222,
+        244,
+        773,
+        934
+      ],
+      "world0_px": [
+        512,
+        934
+      ],
+      "sha256": "589de483f0f2e16fc20d2639da2e225ceeea07ac5e90116421c9c0642155a529",
+      "border_alpha_nonzero": false
+    }
+  },
+  "qa_contact_sheets": {
+    "small_scale_review.png": "48/72/96 refers to full transparent canvas, not runtime art_size",
+    "runtime_art_size_review.png": "runtime art_size72/90 with 144/180px canvas; current tomato/basket comparison"
+  }
+}

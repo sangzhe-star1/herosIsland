@@ -1,0 +1,47 @@
+{
+  "status": "isolated source candidate; not adopted by runtime or formal page",
+  "generator": "build_plant_bed_r3.py",
+  "blender_version": "5.2.2 LTS",
+  "plant": {
+    "file": "strawberry_plant.glb",
+    "ground_pivot_m": [
+      0,
+      0,
+      0
+    ],
+    "fruit_slot_node": "FruitSlot | strawberry GLB center",
+    "fruit_slot_local_m": [
+      0.05,
+      -0.365,
+      0.235
+    ],
+    "interaction_owner": "HarvestTarget",
+    "fruit_geometry_exported": false,
+    "mesh_primitive_count": 2,
+    "triangle_estimate": 4026,
+    "sha256": "47ac33eb704554e4bf725523eed5c479c6b76bf6bfcfe13b3d94b10d288473ac"
+  },
+  "bed": {
+    "file": "strawberry_bed.glb",
+    "dimensions_m": [
+      8.8,
+      4.4,
+      0.155
+    ],
+    "max_surface_height_m": 0.155,
+    "buried_skirt_depth_m": 0.035,
+    "edge_transition": "broad low-profile taper with 12 short two-leaf overlaps",
+    "continuous_single_mound": true,
+    "mesh_primitive_count": 2,
+    "triangle_estimate": 3648,
+    "per_target_pads_or_overlay_strips": false,
+    "sha256": "3b5174dafc14dfd6f4a992f784aad285b9b90d32be5d7109653571c0f6540d4c"
+  },
+  "preview": {
+    "plant_count": 15,
+    "layout": "five columns by three rows; plants are positioned by bed-mesh ray hits",
+    "fruit_slot_markers": 15,
+    "markers_exported": false
+  },
+  "review": "r3 Blender-only candidate; actual Godot page screenshot is still required"
+}

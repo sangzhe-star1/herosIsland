@@ -1,0 +1,177 @@
+{
+  "status": "同源作物/篮子/松土/环境已接正式2.5D树。当前 clean-ground-formal 快照基于 Action SHA 9a1cb6，1698触控、448三单检查/68次送篮与双比例截图门禁通过；中部空场仍未达到美术目标。真机性能、儿童识别与完整29项smoke仍未验证",
+  "clean_ground_formal": {
+    "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-clean-ground-formal-cbh297xi",
+    "report": "qa_logs/strawberry_readability_summary.json",
+    "action_sha256": "9a1cb6ced0cd546eaf86389deda9a99ca6e8fb777b2b8d9e20871d36f8a7c500",
+    "held_shot_sha256": "800385afef8b72b266772fd5d3741f2897c766e0d6e93b2150727b9ddcb6767c",
+    "recorded_input_hashes": 39,
+    "recorded_inputs_match_current_workspace": true,
+    "backgrounds": {
+      "16:9": {
+        "path": "assets/backgrounds/harvest_meadow.png",
+        "sha256": "f4a91d72ce9bdd606e7d450bba9677a84d0b61948582757ed19f87f0eefe5c4b"
+      },
+      "4:3": {
+        "path": "assets/backgrounds/harvest_meadow_4x3.png",
+        "sha256": "663fa1400fd39a23a2db994443b1bed1a82488ad570af1caf8b128161fb6e29e"
+      }
+    },
+    "successful_runs": 22,
+    "failed_runs": 0,
+    "touch_checks": 1698,
+    "completion_cases": 4,
+    "completion_orders": 12,
+    "completion_deliveries": 68,
+    "completion_checks": 448,
+    "gameplay_screenshots": 14,
+    "gameplay_content_gate_passes": 14,
+    "total_screenshots": 19,
+    "catalog_sizes_px": [24, 32, 48, 72, 96],
+    "visible_catalog_cells": 85,
+    "manual_visual_review": "16:9/4:3 screenshots are valid and held-state captures contain visible artwork; a large empty grass area remains through the middle of the scene, so composition is not accepted as final art.",
+    "limits": "The QA snapshot confirms current interaction paths and nonblank screenshots, not child recognition, target-device performance, or the full 29-item smoke suite. Runtime remains 2.5D; no real-time 3D ground layer has been adopted."
+  },
+  "readability_revision": {
+    "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-readable-final-vfsy2myx",
+    "report": "qa_logs/strawberry_readability_summary.json",
+    "touch_checks": 1706,
+    "touch_seconds": 49.8,
+    "gameplay_screenshots": 14,
+    "catalog_sizes_px": [
+      24,
+      32,
+      48,
+      72,
+      96
+    ],
+    "visible_catalog_cells": 85,
+    "crop_source_override": "assets/harvest_3d/source/strawberry_readability/rendered",
+    "target_sha256": "b6b561a389cd61be602c6eea300b8302b9410a5d927f7df4d12cbe18383517b8",
+    "touch_probe_sha256": "b7efac3d2f8a5a4e629c2f28ed09cde24ca8b3d7d7228cfb2f2b4122d496c5a0",
+    "catalog_fixture_sha256": "380bde99421d1ee9b8f1b33b2509d23aa52e68aa07217a15874e9fe535f0c1b5",
+    "limits": "页面及标签人工审图通过不代表儿童识别、目标设备性能或全量smoke通过；旧formal_input_hashes不覆盖当前Target/草莓修订",
+    "final_manual_review": "Independent review of 24/32px, h02 normal both ratios, h08 held 4:3, and orchard normal/held both ratios: strawberry/tomato distinguishable; short branch cues do not overlap adjacent fruits; no new screenshot blockers. Child recognition rate not measured."
+  },
+  "formal_qa": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-formal-art-6ykzg4kx",
+  "formal_touch_checks": 1584,
+  "formal_gameplay_screenshots": 30,
+  "invalid_original_catalogs": "正式快照中catalog-48/72/96保存成功但为空灰屏，不计视觉通过",
+  "visible_catalog_qa": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-catalog-visible-lx952xsc",
+  "visible_catalog_cells": 51,
+  "formal_input_hashes": {
+    "scripts/minigames/harvest_action.gd": "f103b681ba302b0142caa404f1e0a96a4b317b04c83c5f37d66e5f1a88bb3372",
+    "scripts/harvest/harvest_target.gd": "7bc45b80f21bb5a79ba7208140cb657bdda8f92a37c8e6feed52128bafb64618",
+    "scripts/harvest/harvest_basket.gd": "89d4a168dcabc63e74f1608e80066d8cbf0b05f279e94262e19ae3c7d8224ca4",
+    "scripts/harvest/harvest_visual_art.gd": "6fb5dbc6e2a52ac66db520d495075ad3e09b381538eb9d61e89f00e794fe9526",
+    "scripts/shared/tutorial_director.gd": "210478703b9ad1e1dd7a9bda1eb4aae8c0c2ef1b57b3dd43a3630fbe51cbe8c4",
+    "tests/harvest_touch_probe.gd": "522600c2cc882fa02a9d36c4bfea44453ef79226a0834debd57f907ec14c4e10",
+    "tests/harvest_probe.gd": "7df92e2e36aec1ddfd795aa289a2200b75e361715bc07bf4c634eeba90b05b80",
+    "tests/qa_run.py": "f49e0364a2a449e4923a9b262434f329785abe18e2feea234153f97bc2347327",
+    "assets/backgrounds/harvest_meadow.png": "f4a91d72ce9bdd606e7d450bba9677a84d0b61948582757ed19f87f0eefe5c4b"
+  },
+  "profile_blend_sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+  "environment_source": "assets/harvest_3d/source/whole_plant/environment_refined",
+  "crop_source": "assets/harvest_3d/source/catalog_profile_candidate",
+  "soil_source": "assets/harvest_3d/source/soil_cover_candidate",
+  "accepted_refined_qa": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-refined-art-63mo4s7f",
+  "accepted_held_qa": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-held-clearance-w_utxrh_",
+  "runtime_hashes": {
+    "assets/backgrounds/harvest_meadow_4x3.png": "663fa1400fd39a23a2db994443b1bed1a82488ad570af1caf8b128161fb6e29e",
+    "assets/harvest_3d/crops/potato.png": "c06157df7104320d97d17ec3654759b143f2779dedc70f1ecc3ed08c456f1b5a",
+    "assets/harvest_3d/crops/corn.png": "8166424fe7e114be55bcfaacd12e5d73e914d419978cf821cb7a5ffa34159086",
+    "assets/harvest_3d/crops/wheat.png": "760ac7d85f662c3cdc4f5d6d67bd4afd5ac974886a31ce26734c197445ab320d",
+    "assets/harvest_3d/crops/carrot.png": "db648b9a5e99225499935423d147e65547be02dec319552d87d6f11c57a020df",
+    "assets/harvest_3d/crops/tomato.png": "7116efc741f6644ec001af5258599e0b57bd5f16539fb79b584805fc5549852b",
+    "assets/harvest_3d/crops/grape.png": "501e0340a484a55add04b356c9033f7fa32bfc77400e2380d0ebe9d65a94c4d7",
+    "assets/harvest_3d/crops/golden_carrot.png": "f025a91847d23a82333810fe1b177a56288dde142e1aa6375bed4ec81a89cf74",
+    "assets/harvest_3d/crops/watermelon.png": "a4226688c27a2f6e4ca9803e3d2e69f007645e5fa91554f7542080202dc18f9e",
+    "assets/harvest_3d/crops/orange.png": "a271c775ceda2edb65f8e52948f492c7d113cb3d86b72f4dfe09b84a4be1867f",
+    "assets/harvest_3d/crops/apple.png": "7f57e3dc3c8c9e959e9d00995551c1f51e37f5fdd69c2cb36167b431178a42b3",
+    "assets/harvest_3d/crops/stone.png": "7d00c34ed0a70f7c2651b36869b4ff9071b40ea68cd85a573661c9cc80a7814c",
+    "assets/harvest_3d/crops/peas.png": "f856a1d31e69ec04b4f766c33c1370a4449910ba5313d0b82787d720d1fc9169",
+    "assets/harvest_3d/crops/bug.png": "5c6ba8517a3e3e725103be0383fdc2f80e3da0ae40d3f96210997c9052c75c41",
+    "assets/harvest_3d/crops/strawberry.png": "9c965bd5d7cf69cb3d1d21d376dc3d7fd6e0454ecdc8e3190f1004a7f3a8a04a",
+    "assets/harvest_3d/crops/lettuce.png": "cbc8fed72f6d3ce4008645c5b9ad565195564b52f0e49e1ca434a4384e5e8148",
+    "assets/harvest_3d/crops/pumpkin.png": "ecfcdf4c217b9d00b9093eb07474aa115043c39645adf29ee7da44689d5b8633",
+    "assets/harvest_3d/crops/broccoli.png": "683c821d5b6fc6d08e3e5062729eeeb5e6203467bad25bb14edc6c8c7057adc6",
+    "assets/harvest_3d/plants/tomato_body.png": "f1a24279ff376de06d91b7a496df47b54598e509b1bdf3c552c8bb7bdaf41e59",
+    "assets/harvest_3d/plants/tomato_fruit.png": "52d1c470aee5cc3233b77591a0dfa7fee9fd06fe2a1286aeec5ecb5fce6cc763",
+    "assets/harvest_3d/plants/tomato.json": "e6480a30250d9d4389de967e050d87995c613069f633f64958687a11ea1adf73",
+    "assets/harvest_3d/props/soil_grass_patch.png": "0fdf513fe0cae4428833fa3d74d37918ff663d7c4c0ea2c1821e6645aa35af38",
+    "assets/harvest_3d/props/basket_empty.png": "3133f9b097e2349b119158a7c838a243b619590b30b6e8fe656bcbf4adb9d0df",
+    "assets/harvest_3d/props/soil_cover.json": "6e283a6081470d6f156a3e6394907e1a233ee7b97c665f92190f75cb208738c0",
+    "assets/harvest_3d/props/basket_empty.json": "fba7078798c0ad3fb118f6efa859c8da74c19923be08f90cdcc17eedcef71df9",
+    "assets/harvest_3d/props/soil_cover.png": "0618d2054e754a516bbf658ff19ddc58fbb51ed50952fe22ea784a2b89c948cb"
+  },
+  "hashes": {
+    "tests/HarvestHeldShot.gd": "da355f3b44fb0247c926849d5e2c89c76f7b92893896559829c0d071351db29b",
+    "tests/HarvestEmptyShot.gd": "14655586079f5edd24ebec7070e7c6d773f759a0eead2ad9bed2de5520b3ad3b",
+    "tests/screenshot_tool.gd": "57c75ac18198c190be5976895c1317a482caf58ac602c913e09ccb34b6cd010e",
+    "tests/HarvestCompletionProbe.gd": "e3bb96883459a69f16629f9373b9d31419952a44e418fdbe8a7e92efa773fab5",
+    "tests/HarvestCompletionProbe.tscn": "d1442dbf45074869ebaab381efae0ecc86ca1c0774a89a7c8c82b726d72e2be0",
+    "scripts/harvest/harvest_target.gd": "b6b561a389cd61be602c6eea300b8302b9410a5d927f7df4d12cbe18383517b8",
+    "tests/harvest_touch_probe.gd": "b7efac3d2f8a5a4e629c2f28ed09cde24ca8b3d7d7228cfb2f2b4122d496c5a0",
+    "tests/HarvestCatalogShot.gd": "380bde99421d1ee9b8f1b33b2509d23aa52e68aa07217a15874e9fe535f0c1b5"
+  },
+  "completion_qa": {
+    "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-completion-clean-w_924pv9",
+    "command": "python3 tests/qa_run.py --name harvest-completion-clean --timeout 90 --expect HARVEST COMPLETION PROBE PASSED -- --audio-driver Dummy --rendering-driver opengl3 res://tests/HarvestCompletionProbe.tscn",
+    "exit": 0,
+    "elapsed_seconds": 17.4,
+    "checks": 448,
+    "cases": 4,
+    "window_motion_matrix": [
+      "1280x720 normal",
+      "1280x720 reduced motion",
+      "1024x768 normal",
+      "1024x768 reduced motion"
+    ],
+    "orders": 12,
+    "real_deliveries": 68,
+    "assertions": [
+      "gesture pick via actual InputEventScreenTouch/Drag",
+      "unique destination resolver and basket hit selection",
+      "exact order quantities and checkpoint transitions",
+      "golden carrot gift basket",
+      "ResultScreen and single GameManager completion",
+      "3-star save/reward path and disk reload",
+      "daily garden inventory/plots unchanged by challenge and numeric-semantic JSON reload"
+    ],
+    "probe_sha256": "e3bb96883459a69f16629f9373b9d31419952a44e418fdbe8a7e92efa773fab5",
+    "scene_sha256": "d1442dbf45074869ebaab381efae0ecc86ca1c0774a89a7c8c82b726d72e2be0",
+    "log": "qa_logs/run.log",
+    "clean_log_scan": [
+      "ERROR:",
+      "SCRIPT ERROR",
+      "Parse Error",
+      "ObjectDB",
+      "resources still in use"
+    ]
+  },
+  "screenshot_tool_verification": {
+    "script_sha256": "57c75ac18198c190be5976895c1317a482caf58ac602c913e09ccb34b6cd010e",
+    "check": "actual screenshot Image passes ProbeLifecycle.image_has_content before success marker and exit 0; blank images remain saved and exit 1",
+    "runs": [
+      {
+        "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-screenshot-tool-16x9-0xvpd085",
+        "window": "1280x720",
+        "viewport": "1280x720",
+        "exit": 0,
+        "marker": "screenshot_tool: CONTENT PASSED",
+        "png": "/private/tmp/harvest-screenshot-final-16x9.png",
+        "png_sha256": "cef677a2c19a3c867037b508c6878de8c11a60659739a17acb1a3871718d207a"
+      },
+      {
+        "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-harvest-screenshot-tool-4x3-1mo57wza",
+        "window": "1024x768",
+        "viewport": "1280x960",
+        "exit": 0,
+        "marker": "screenshot_tool: CONTENT PASSED",
+        "png": "/private/tmp/harvest-screenshot-final-4x3.png",
+        "png_sha256": "17bd575856e304dff9f0a68e497e603c94a2d77e102c134133962dba98e91c89"
+      }
+    ],
+    "scope": "These two clean h02 capture runs validate the updated screenshot guard. The 14-frame wide asset/state review is separately recorded in readability_revision; the latest fresh integration run may supersede these representative paths."
+  }
+}

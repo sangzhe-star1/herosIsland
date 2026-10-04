@@ -17,14 +17,21 @@ It is a single executable with no installer and no dependencies.
 **Pin this version.** Godot 4.x minor releases occasionally change API details.
 Finish the first release before upgrading.
 
-## 2. Verify it works (30 seconds)
+## 2. Verify it works
 
-Before anything else, run the smoke test. It boots every scene and every level
-headlessly, checks the data files agree, and fails loudly on any script error:
+Run the smoke suite to check scene startup, data consistency, progression and
+touch behavior. It copies the current project into a temporary directory with
+its own save directory, imports that copy and runs 29 probes serially:
 
 ```bash
 ./tests/run_smoke.sh
 ```
+
+Eight probes need a window. On Linux without a display, install/use xvfb to
+include them; otherwise the summary explicitly reports skipped probes. A full
+run requires `Suite finished: 29 passed, 0 skipped`. Allow several minutes for
+the suite. See [QA runner usage](docs/QA_RUNNER.md) for individual probes,
+timeouts, screenshot output and saved logs.
 
 **If it says "Could not find Godot":** you launched Godot straight from the
 download, so macOS is running it from a randomised read-only path (App
@@ -40,7 +47,7 @@ itself. Or point at it directly with
 
 It exists because this project was written without a running engine. A parser
 error in a file the boot screen never touches once blanked the whole game while
-every static check passed — this catches that class of fault in half a minute.
+every static check passed — actual engine startup catches that class of fault.
 
 **If it reports `Identifier "X" not declared in the current scope`:** that is
 Godot's class cache being stale, not a code bug. The editor rewrites the cache
@@ -344,13 +351,18 @@ folder for it to add another.
 
 ## 14. Where things stand
 
-Verified, in this order, after the rendering rewrite:
+Historical checks after the rendering rewrite:
 
 ```
 python3 tools_check.py     ->  0 errors, 186 warnings   (warnings are old debt)
-./tests/run_smoke.sh       ->  22 checkpoints, ending "All good."
+./tests/run_smoke.sh       ->  22 checkpoints (historical suite)
 ./tests/shots.sh           ->  21 screens rendered and looked at
 ```
+
+The current smoke manifest has 29 probes and reports passed/skipped counts.
+The isolated runner has passed its unit checks and a current-source 1094-check
+GardenTouchProbe run with two garden screenshots; the full 29-probe suite has
+not been rerun in this iteration. See [garden runtime evidence](docs/GARDEN_RUNTIME_QA_20261002.md).
 
 What has never happened: **a child has played it.** That is Phase 4 in
 `PLAN.md` and it is still the only thing that can tell you which levels are

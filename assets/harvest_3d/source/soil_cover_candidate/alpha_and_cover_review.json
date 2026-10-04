@@ -1,0 +1,139 @@
+{
+  "profile_sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+  "potato_sha256": "c06157df7104320d97d17ec3654759b143f2779dedc70f1ecc3ed08c456f1b5a",
+  "status": "Offline art evidence; requires real 16:9/4:3 scene integration",
+  "source_alpha": {
+    "old": {
+      "bbox_alpha_gt_0": [
+        103,
+        352,
+        412,
+        485
+      ],
+      "width": 309,
+      "height": 133,
+      "sha256": "98cb6beb27a7c1c86a55eae4d4d065a9738016677937316b0460cf514a31a679"
+    },
+    "revision": {
+      "bbox_alpha_gt_0": [
+        102,
+        407,
+        406,
+        496
+      ],
+      "width": 304,
+      "height": 89,
+      "sha256": "0618d2054e754a516bbf658ff19ddc58fbb51ed50952fe22ea784a2b89c948cb"
+    }
+  },
+  "sizes": {
+    "90": {
+      "old_f0.000": {
+        "canvas_size_float": 193.8640776699029,
+        "source_to_pixel_scale": 0.3786407766990291,
+        "container_scale": 1.0,
+        "soil_opacity": 1,
+        "soil_used_rect_relative_target": [
+          -58,
+          -1,
+          59,
+          49
+        ],
+        "potato_geometrically_uncovered_fraction": 0.23920510304219825
+      },
+      "old_f0.333": {
+        "canvas_size_float": 193.8640776699029,
+        "source_to_pixel_scale": 0.3786407766990291,
+        "container_scale": 0.9333333333333333,
+        "soil_opacity": 0.6666666666666667,
+        "soil_used_rect_relative_target": [
+          -54,
+          -2,
+          55,
+          46
+        ],
+        "potato_geometrically_uncovered_fraction": 0.28704612365063786
+      },
+      "revision_f0.000": {
+        "canvas_size_float": 197.05263157894737,
+        "source_to_pixel_scale": 0.3848684210526316,
+        "container_scale": 1.0,
+        "soil_opacity": 1,
+        "soil_used_rect_relative_target": [
+          -59,
+          19,
+          58,
+          53
+        ],
+        "potato_geometrically_uncovered_fraction": 0.584396467124632
+      },
+      "revision_f0.333": {
+        "canvas_size_float": 197.05263157894737,
+        "source_to_pixel_scale": 0.3848684210526316,
+        "container_scale": 0.9333333333333333,
+        "soil_opacity": 0.6666666666666667,
+        "soil_used_rect_relative_target": [
+          -55,
+          18,
+          54,
+          49
+        ],
+        "potato_geometrically_uncovered_fraction": 0.5765456329735035
+      }
+    },
+    "72": {
+      "old_f0.000": {
+        "canvas_size_float": 155.09126213592234,
+        "source_to_pixel_scale": 0.3029126213592233,
+        "container_scale": 1.0,
+        "soil_opacity": 1,
+        "soil_used_rect_relative_target": [
+          -46,
+          7,
+          47,
+          47
+        ],
+        "potato_geometrically_uncovered_fraction": 0.2419478527607362
+      },
+      "old_f0.333": {
+        "canvas_size_float": 155.09126213592234,
+        "source_to_pixel_scale": 0.3029126213592233,
+        "container_scale": 0.9333333333333333,
+        "soil_opacity": 0.6666666666666667,
+        "soil_used_rect_relative_target": [
+          -43,
+          7,
+          44,
+          44
+        ],
+        "potato_geometrically_uncovered_fraction": 0.28412576687116564
+      },
+      "revision_f0.000": {
+        "canvas_size_float": 157.6421052631579,
+        "source_to_pixel_scale": 0.3078947368421053,
+        "container_scale": 1.0,
+        "soil_opacity": 1,
+        "soil_used_rect_relative_target": [
+          -48,
+          24,
+          46,
+          51
+        ],
+        "potato_geometrically_uncovered_fraction": 0.584739263803681
+      },
+      "revision_f0.333": {
+        "canvas_size_float": 157.6421052631579,
+        "source_to_pixel_scale": 0.3078947368421053,
+        "container_scale": 0.9333333333333333,
+        "soil_opacity": 0.6666666666666667,
+        "soil_used_rect_relative_target": [
+          -44,
+          22,
+          43,
+          47
+        ],
+        "potato_geometrically_uncovered_fraction": 0.5674846625766872
+      }
+    }
+  }
+}

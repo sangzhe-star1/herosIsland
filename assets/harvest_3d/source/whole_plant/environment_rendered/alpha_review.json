@@ -1,0 +1,56 @@
+{
+  "tomato_fruit_512.png": {
+    "size": [
+      512,
+      512
+    ],
+    "alpha_bounds": [
+      148,
+      237,
+      364,
+      478
+    ],
+    "world0_px": [
+      256,
+      467
+    ],
+    "sha256": "52d1c470aee5cc3233b77591a0dfa7fee9fd06fe2a1286aeec5ecb5fce6cc763",
+    "border_alpha_nonzero": false
+  },
+  "plant001_body_512.png": {
+    "size": [
+      512,
+      512
+    ],
+    "alpha_bounds": [
+      149,
+      122,
+      387,
+      468
+    ],
+    "world0_px": [
+      256,
+      467
+    ],
+    "sha256": "f1a24279ff376de06d91b7a496df47b54598e509b1bdf3c552c8bb7bdaf41e59",
+    "border_alpha_nonzero": false
+  },
+  "basket_512.png": {
+    "size": [
+      512,
+      512
+    ],
+    "alpha_bounds": [
+      91,
+      100,
+      421,
+      487
+    ],
+    "world0_px": [
+      256,
+      467
+    ],
+    "sha256": "3133f9b097e2349b119158a7c838a243b619590b30b6e8fe656bcbf4adb9d0df",
+    "border_alpha_nonzero": false
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "body": "res://assets/harvest_3d/plants/tomato_body.png",
+  "fruit": "res://assets/harvest_3d/plants/tomato_fruit.png",
+  "body_world_size": 102.11538461538461,
+  "fruit_slot_pixel": [
+    271.27,
+    242.842
+  ],
+  "fruit_center_pixel": [
+    256.0,
+    368.369
+  ],
+  "body_ortho": 2.95,
+  "fruit_ortho": 1.08,
+  "slot_scale": 1.130000114440918,
+  "contact_shadow_baked": false,
+  "fruit_source_scale": 1.13
+}

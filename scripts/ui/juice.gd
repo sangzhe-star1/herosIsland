@@ -209,13 +209,13 @@ static func speed_lines(parent: Node, at: Vector2, direction: Vector2,
 
 ## Slow breathing loop for an idle character, so the screen is never fully
 ## still while waiting for the child to act.
-static func idle_bob(node: Node, height: float = 8.0, period: float = 1.8) -> void:
+static func idle_bob(node: Node, height: float = 8.0, period: float = 1.8) -> Tween:
 	if node == null or not is_instance_valid(node):
-		return
+		return null
 	if not node.has_method("create_tween"):
-		return
+		return null
 	if not motion_enabled():
-		return
+		return null
 
 	var origin: Vector2 = node.get("position")
 	var t: Tween = node.create_tween().set_loops()
@@ -223,6 +223,7 @@ static func idle_bob(node: Node, height: float = 8.0, period: float = 1.8) -> vo
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	t.tween_property(node, "position", origin, period * 0.5)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	return t
 
 
 ## The red "not this one" ring: a circle with a diagonal slash, bloomed over

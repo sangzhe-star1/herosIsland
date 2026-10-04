@@ -608,7 +608,8 @@ func _build_sticker(sticker: Dictionary) -> Control:
 		amount.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 		amount.add_theme_color_override("font_color", Palette.INK)
 		price.add_child(amount)
-		price.position = Vector2(48, 112)
+		# The body font makes this row 39px tall; leave room inside the 150px tile.
+		price.position = Vector2(48, 106)
 		tile.add_child(price)
 		# Opens the sheet; never buys. The sticker itself is handed over and
 		# taken back through the two callables, and the money never moves in

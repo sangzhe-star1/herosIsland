@@ -1,0 +1,51 @@
+{
+  "status": "Source r1 candidate; actual harvest art QA pending confirmation",
+  "asset": "soil_cover",
+  "revision": "semantic_r1",
+  "blender_version": "5.2.2 LTS",
+  "generator_sha256": "3d92f87c700545db3b2c2ee0edd7ef639397ed9fb2c5488c1e702a0e55f3c42d",
+  "ground_pivot_world": [
+    0,
+    0,
+    0
+  ],
+  "ground_pivot_pixel": [
+    256,
+    467
+  ],
+  "contact_shadow_baked": false,
+  "shadow_owner": "existing runtime ground mound",
+  "geometry": {
+    "SoilCover | shallow irregular mound": {
+      "vertices": 514,
+      "triangles": 1024,
+      "degenerate_triangles": 0,
+      "nonfinite_vertices": 0
+    }
+  },
+  "geometry_parameters": {
+    "mound_height": 0.24,
+    "rear_bias": 0.1,
+    "front_right_notch": 0.15,
+    "clod_count": 0
+  },
+  "integration_suggestion": {
+    "node": "existing HarvestTargetVisual/_cover",
+    "ground_anchor_relative_to_target": [
+      0,
+      42
+    ],
+    "apparent_width": "crop_size*1.30",
+    "normal_width": 117.0,
+    "dense_width": 93.6,
+    "preserve": [
+      "Target input/radius",
+      "sweep recognizer",
+      "uncover alpha/scale",
+      "order owner"
+    ]
+  },
+  "render_profile": "../catalog_profile_candidate/inputs/frozen_render_profile.blend",
+  "render_profile_sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+  "renders": {}
+}

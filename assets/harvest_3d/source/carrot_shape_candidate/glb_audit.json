@@ -1,0 +1,1158 @@
+[
+  {
+    "path": "/private/tmp/heroes-carrot-shape-20261002-gl614je2/carrot.glb",
+    "bytes": 208712,
+    "sha256": "fd579acb785d4690a804a15147f4c9cb30ad61ba8b819f1a64464674a464a608",
+    "summary": {
+      "nodes": 11,
+      "meshes": 10,
+      "materials": 5,
+      "unique_mesh_triangles": 10972,
+      "unique_mesh_vertices": 5952,
+      "unique_mesh_primitives": 10,
+      "unique_color_0_primitives": 0,
+      "instanced_scene_triangles": 10972,
+      "instanced_scene_vertices": 5952,
+      "instanced_scene_primitives": 10,
+      "instanced_color_0_primitives": 0,
+      "static_scene_triangles": 10972,
+      "static_scene_primitives": 10,
+      "target_scene_triangles": 0,
+      "targets": 0,
+      "unique_target_names": 0,
+      "textures": 0,
+      "images": 0,
+      "cameras": 0,
+      "lights": 0,
+      "extensions_used": [],
+      "extensions_required": [],
+      "extensions_present": []
+    },
+    "hierarchy": [
+      {
+        "id": 10,
+        "name": "carrot | ground pivot",
+        "path": "carrot | ground pivot",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": null
+      },
+      {
+        "id": 0,
+        "name": "Carrot | carrot crown leaf 0 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 0 | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 0
+      },
+      {
+        "id": 1,
+        "name": "Carrot | carrot crown leaf 1 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 1 | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 1
+      },
+      {
+        "id": 2,
+        "name": "Carrot | carrot crown leaf 2 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 2 | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 2
+      },
+      {
+        "id": 3,
+        "name": "Carrot | carrot crown leaf 3 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 3 | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 3
+      },
+      {
+        "id": 4,
+        "name": "Carrot | carrot crown leaf 4 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 4 | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 4
+      },
+      {
+        "id": 5,
+        "name": "Carrot | crown stems | export",
+        "path": "carrot | ground pivot/Carrot | crown stems | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 5
+      },
+      {
+        "id": 6,
+        "name": "Carrot | gentle short root crease 0 | export",
+        "path": "carrot | ground pivot/Carrot | gentle short root crease 0 | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 6
+      },
+      {
+        "id": 7,
+        "name": "Carrot | gentle short root crease 1 | export",
+        "path": "carrot | ground pivot/Carrot | gentle short root crease 1 | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 7
+      },
+      {
+        "id": 8,
+        "name": "Carrot | gentle short root crease 2 | export",
+        "path": "carrot | ground pivot/Carrot | gentle short root crease 2 | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 8
+      },
+      {
+        "id": 9,
+        "name": "Carrot | long softly tapered root | export",
+        "path": "carrot | ground pivot/Carrot | long softly tapered root | export",
+        "parent": "carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 9
+      }
+    ],
+    "targets": [],
+    "duplicate_target_names": [],
+    "duplicate_node_names": [],
+    "default_scene": 0,
+    "scene_roots": [
+      "carrot | ground pivot"
+    ],
+    "unreachable_node_ids": [],
+    "materials": [
+      {
+        "id": 0,
+        "name": "Leaf | meadow green",
+        "baseColorFactor": [
+          0.11999999731779099,
+          0.3400000035762787,
+          0.07000000029802322,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8399999737739563,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 1,
+        "name": "Leaf | sunlit green",
+        "baseColorFactor": [
+          0.23999999463558197,
+          0.47999998927116394,
+          0.10999999940395355,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8399999737739563,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 2,
+        "name": "Stem | soft green",
+        "baseColorFactor": [
+          0.11999999731779099,
+          0.30000001192092896,
+          0.054999999701976776,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8399999737739563,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 3,
+        "name": "Carrot | shallow root marking",
+        "baseColorFactor": [
+          0.7400000095367432,
+          0.0820000022649765,
+          0.0020000000949949026,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.9100000262260437,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 4,
+        "name": "Carrot | vivid matte orange",
+        "baseColorFactor": [
+          1,
+          0.2199999988079071,
+          0.007000000216066837,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.7900000214576721,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      }
+    ],
+    "meshes": [
+      {
+        "id": 0,
+        "name": "Carrot | carrot crown leaf 0 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 0,
+            "material_name": "Leaf | meadow green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 1,
+        "name": "Carrot | carrot crown leaf 1 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 1,
+            "material_name": "Leaf | sunlit green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Carrot | carrot crown leaf 2 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 0,
+            "material_name": "Leaf | meadow green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Carrot | carrot crown leaf 3 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 1,
+            "material_name": "Leaf | sunlit green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Carrot | carrot crown leaf 4 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 0,
+            "material_name": "Leaf | meadow green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "name": "Carrot | crown stems Curve",
+        "triangles": 640,
+        "vertices": 363,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 363,
+            "triangles": 640,
+            "material": 2,
+            "material_name": "Stem | soft green",
+            "attributes": [
+              "NORMAL",
+              "POSITION",
+              "TEXCOORD_0"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "Carrot | gentle short root crease 0 Curve",
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 1161,
+            "triangles": 2048,
+            "material": 3,
+            "material_name": "Carrot | shallow root marking",
+            "attributes": [
+              "NORMAL",
+              "POSITION",
+              "TEXCOORD_0"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "name": "Carrot | gentle short root crease 1 Curve",
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 1161,
+            "triangles": 2048,
+            "material": 3,
+            "material_name": "Carrot | shallow root marking",
+            "attributes": [
+              "NORMAL",
+              "POSITION",
+              "TEXCOORD_0"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "name": "Carrot | gentle short root crease 2 Curve",
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 1161,
+            "triangles": 2048,
+            "material": 3,
+            "material_name": "Carrot | shallow root marking",
+            "attributes": [
+              "NORMAL",
+              "POSITION",
+              "TEXCOORD_0"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "name": "Carrot | long softly tapered root Mesh.001",
+        "triangles": 1148,
+        "vertices": 576,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 576,
+            "triangles": 1148,
+            "material": 4,
+            "material_name": "Carrot | vivid matte orange",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      }
+    ],
+    "instances": [
+      {
+        "node": 0,
+        "name": "Carrot | carrot crown leaf 0 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 0 | export",
+        "mesh": 0,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 1,
+        "name": "Carrot | carrot crown leaf 1 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 1 | export",
+        "mesh": 1,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 2,
+        "name": "Carrot | carrot crown leaf 2 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 2 | export",
+        "mesh": 2,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 3,
+        "name": "Carrot | carrot crown leaf 3 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 3 | export",
+        "mesh": 3,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 4,
+        "name": "Carrot | carrot crown leaf 4 | export",
+        "path": "carrot | ground pivot/Carrot | carrot crown leaf 4 | export",
+        "mesh": 4,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 5,
+        "name": "Carrot | crown stems | export",
+        "path": "carrot | ground pivot/Carrot | crown stems | export",
+        "mesh": 5,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 640,
+        "vertices": 363,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 6,
+        "name": "Carrot | gentle short root crease 0 | export",
+        "path": "carrot | ground pivot/Carrot | gentle short root crease 0 | export",
+        "mesh": 6,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 7,
+        "name": "Carrot | gentle short root crease 1 | export",
+        "path": "carrot | ground pivot/Carrot | gentle short root crease 1 | export",
+        "mesh": 7,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 8,
+        "name": "Carrot | gentle short root crease 2 | export",
+        "path": "carrot | ground pivot/Carrot | gentle short root crease 2 | export",
+        "mesh": 8,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 9,
+        "name": "Carrot | long softly tapered root | export",
+        "path": "carrot | ground pivot/Carrot | long softly tapered root | export",
+        "mesh": 9,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 1148,
+        "vertices": 576,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      }
+    ],
+    "images": [],
+    "cameras": [],
+    "lights": [],
+    "notes": [
+      "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+      "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+      "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+      "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+    ]
+  },
+  {
+    "path": "/private/tmp/heroes-carrot-shape-20261002-gl614je2/golden_carrot.glb",
+    "bytes": 208880,
+    "sha256": "a77f187d143d2a81296c4f2a1c2eb57e885eb42be73b2d9142c33fba4f25a765",
+    "summary": {
+      "nodes": 11,
+      "meshes": 10,
+      "materials": 5,
+      "unique_mesh_triangles": 10972,
+      "unique_mesh_vertices": 5952,
+      "unique_mesh_primitives": 10,
+      "unique_color_0_primitives": 0,
+      "instanced_scene_triangles": 10972,
+      "instanced_scene_vertices": 5952,
+      "instanced_scene_primitives": 10,
+      "instanced_color_0_primitives": 0,
+      "static_scene_triangles": 10972,
+      "static_scene_primitives": 10,
+      "target_scene_triangles": 0,
+      "targets": 0,
+      "unique_target_names": 0,
+      "textures": 0,
+      "images": 0,
+      "cameras": 0,
+      "lights": 0,
+      "extensions_used": [],
+      "extensions_required": [],
+      "extensions_present": []
+    },
+    "hierarchy": [
+      {
+        "id": 10,
+        "name": "golden_carrot | ground pivot",
+        "path": "golden_carrot | ground pivot",
+        "parent": null,
+        "parent_id": null,
+        "depth": 0,
+        "mesh": null
+      },
+      {
+        "id": 0,
+        "name": "Golden carrot | carrot crown leaf 0 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 0 | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 0
+      },
+      {
+        "id": 1,
+        "name": "Golden carrot | carrot crown leaf 1 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 1 | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 1
+      },
+      {
+        "id": 2,
+        "name": "Golden carrot | carrot crown leaf 2 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 2 | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 2
+      },
+      {
+        "id": 3,
+        "name": "Golden carrot | carrot crown leaf 3 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 3 | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 3
+      },
+      {
+        "id": 4,
+        "name": "Golden carrot | carrot crown leaf 4 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 4 | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 4
+      },
+      {
+        "id": 5,
+        "name": "Golden carrot | crown stems | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | crown stems | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 5
+      },
+      {
+        "id": 6,
+        "name": "Golden carrot | gentle short root crease 0 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | gentle short root crease 0 | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 6
+      },
+      {
+        "id": 7,
+        "name": "Golden carrot | gentle short root crease 1 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | gentle short root crease 1 | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 7
+      },
+      {
+        "id": 8,
+        "name": "Golden carrot | gentle short root crease 2 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | gentle short root crease 2 | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 8
+      },
+      {
+        "id": 9,
+        "name": "Golden carrot | long softly tapered root | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | long softly tapered root | export",
+        "parent": "golden_carrot | ground pivot",
+        "parent_id": 10,
+        "depth": 1,
+        "mesh": 9
+      }
+    ],
+    "targets": [],
+    "duplicate_target_names": [],
+    "duplicate_node_names": [],
+    "default_scene": 0,
+    "scene_roots": [
+      "golden_carrot | ground pivot"
+    ],
+    "unreachable_node_ids": [],
+    "materials": [
+      {
+        "id": 0,
+        "name": "Leaf | meadow green",
+        "baseColorFactor": [
+          0.11999999731779099,
+          0.3400000035762787,
+          0.07000000029802322,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8399999737739563,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 1,
+        "name": "Leaf | sunlit green",
+        "baseColorFactor": [
+          0.23999999463558197,
+          0.47999998927116394,
+          0.10999999940395355,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8399999737739563,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 2,
+        "name": "Stem | soft green",
+        "baseColorFactor": [
+          0.11999999731779099,
+          0.30000001192092896,
+          0.054999999701976776,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.8399999737739563,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 3,
+        "name": "Golden carrot | shallow root marking",
+        "baseColorFactor": [
+          0.8199999928474426,
+          0.24500000476837158,
+          0.00800000037997961,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.9100000262260437,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      },
+      {
+        "id": 4,
+        "name": "Golden carrot | vivid matte orange",
+        "baseColorFactor": [
+          1,
+          0.6100000143051147,
+          0.05000000074505806,
+          1
+        ],
+        "baseColorFactor_explicit": true,
+        "baseColorTexture": null,
+        "roughness": 0.7900000214576721,
+        "metallic": 0,
+        "alphaMode": "OPAQUE",
+        "extensions": []
+      }
+    ],
+    "meshes": [
+      {
+        "id": 0,
+        "name": "Golden carrot | carrot crown leaf 0 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 0,
+            "material_name": "Leaf | meadow green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 1,
+        "name": "Golden carrot | carrot crown leaf 1 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 1,
+            "material_name": "Leaf | sunlit green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Golden carrot | carrot crown leaf 2 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 0,
+            "material_name": "Leaf | meadow green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Golden carrot | carrot crown leaf 3 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 1,
+            "material_name": "Leaf | sunlit green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Golden carrot | carrot crown leaf 4 Mesh.001",
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 306,
+            "triangles": 608,
+            "material": 0,
+            "material_name": "Leaf | meadow green",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "name": "Golden carrot | crown stems Curve",
+        "triangles": 640,
+        "vertices": 363,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 363,
+            "triangles": 640,
+            "material": 2,
+            "material_name": "Stem | soft green",
+            "attributes": [
+              "NORMAL",
+              "POSITION",
+              "TEXCOORD_0"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "Golden carrot | gentle short root crease 0 Curve",
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 1161,
+            "triangles": 2048,
+            "material": 3,
+            "material_name": "Golden carrot | shallow root marking",
+            "attributes": [
+              "NORMAL",
+              "POSITION",
+              "TEXCOORD_0"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "name": "Golden carrot | gentle short root crease 1 Curve",
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 1161,
+            "triangles": 2048,
+            "material": 3,
+            "material_name": "Golden carrot | shallow root marking",
+            "attributes": [
+              "NORMAL",
+              "POSITION",
+              "TEXCOORD_0"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "name": "Golden carrot | gentle short root crease 2 Curve",
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 1161,
+            "triangles": 2048,
+            "material": 3,
+            "material_name": "Golden carrot | shallow root marking",
+            "attributes": [
+              "NORMAL",
+              "POSITION",
+              "TEXCOORD_0"
+            ]
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "name": "Golden carrot | long softly tapered root Mesh.001",
+        "triangles": 1148,
+        "vertices": 576,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0,
+        "primitives": [
+          {
+            "id": 0,
+            "mode": 4,
+            "vertices": 576,
+            "triangles": 1148,
+            "material": 4,
+            "material_name": "Golden carrot | vivid matte orange",
+            "attributes": [
+              "NORMAL",
+              "POSITION"
+            ]
+          }
+        ]
+      }
+    ],
+    "instances": [
+      {
+        "node": 0,
+        "name": "Golden carrot | carrot crown leaf 0 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 0 | export",
+        "mesh": 0,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 1,
+        "name": "Golden carrot | carrot crown leaf 1 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 1 | export",
+        "mesh": 1,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 2,
+        "name": "Golden carrot | carrot crown leaf 2 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 2 | export",
+        "mesh": 2,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 3,
+        "name": "Golden carrot | carrot crown leaf 3 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 3 | export",
+        "mesh": 3,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 4,
+        "name": "Golden carrot | carrot crown leaf 4 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | carrot crown leaf 4 | export",
+        "mesh": 4,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 608,
+        "vertices": 306,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 5,
+        "name": "Golden carrot | crown stems | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | crown stems | export",
+        "mesh": 5,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 640,
+        "vertices": 363,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 6,
+        "name": "Golden carrot | gentle short root crease 0 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | gentle short root crease 0 | export",
+        "mesh": 6,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 7,
+        "name": "Golden carrot | gentle short root crease 1 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | gentle short root crease 1 | export",
+        "mesh": 7,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 8,
+        "name": "Golden carrot | gentle short root crease 2 | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | gentle short root crease 2 | export",
+        "mesh": 8,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 2048,
+        "vertices": 1161,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      },
+      {
+        "node": 9,
+        "name": "Golden carrot | long softly tapered root | export",
+        "path": "golden_carrot | ground pivot/Golden carrot | long softly tapered root | export",
+        "mesh": 9,
+        "multiplicity": 1,
+        "target": false,
+        "triangles": 1148,
+        "vertices": 576,
+        "primitive_count": 1,
+        "color_0_primitive_count": 0
+      }
+    ],
+    "images": [],
+    "cameras": [],
+    "lights": [],
+    "notes": [
+      "Unique mesh counts sum stored glTF mesh definitions once; identical definitions are not deduplicated.",
+      "Scene counts traverse the default scene and multiply node mesh instances; static excludes HarvestTarget nodes and their descendants.",
+      "Primitive counts are potential material surfaces, not measured runtime draw calls.",
+      "Godot vertex color rendering must be checked on imported active materials; GLB presence of COLOR_0 alone is insufficient."
+    ]
+  }
+]

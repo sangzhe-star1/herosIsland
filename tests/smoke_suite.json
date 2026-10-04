@@ -1,0 +1,305 @@
+{
+  "description": "Original smoke suite order. GUI probes require a display or xvfb. GardenProbe stays late and SaveProbe last because they reset the isolated save.",
+  "probes": [
+    {
+      "name": "SmokeTest",
+      "args": [
+        "--headless",
+        "res://tests/SmokeTest.tscn",
+        "--quit-after",
+        "3000"
+      ],
+      "expect": "SMOKE TEST PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "ProgressionProbe",
+      "args": [
+        "--headless",
+        "res://tests/ProgressionProbe.tscn"
+      ],
+      "expect": "PROGRESSION PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "TapProbe",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/TapProbe.tscn"
+      ],
+      "expect": "TAP PROBE PASSED",
+      "timeout": 240,
+      "window": true
+    },
+    {
+      "name": "DifficultyProbe",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/DifficultyProbe.tscn"
+      ],
+      "expect": "DIFFICULTY PROBE PASSED",
+      "timeout": 240,
+      "window": true
+    },
+    {
+      "name": "UpgradeProbe",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/UpgradeProbe.tscn"
+      ],
+      "expect": "UPGRADE PROBE PASSED",
+      "timeout": 240,
+      "window": true
+    },
+    {
+      "name": "EchoProbe",
+      "args": [
+        "--headless",
+        "res://tests/EchoProbe.tscn"
+      ],
+      "expect": "ECHO PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "VoiceCheck",
+      "args": [
+        "--headless",
+        "res://tests/VoiceCheck.tscn"
+      ],
+      "expect": "VOICE CHECK PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "ResultProbe",
+      "args": [
+        "--headless",
+        "res://tests/ResultProbe.tscn"
+      ],
+      "expect": "RESULT PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "BattleFeelProbe",
+      "args": [
+        "--headless",
+        "res://tests/BattleFeelProbe.tscn"
+      ],
+      "expect": "BATTLE FEEL PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "TouchProbe",
+      "args": [
+        "--headless",
+        "res://tests/TouchProbe.tscn"
+      ],
+      "expect": "TOUCH PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "StudioProbe",
+      "args": [
+        "--headless",
+        "res://tests/StudioProbe.tscn"
+      ],
+      "expect": "STUDIO PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "UnlockProbe",
+      "args": [
+        "--headless",
+        "res://tests/UnlockProbe.tscn"
+      ],
+      "expect": "UNLOCK PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "ShopProbe",
+      "args": [
+        "--headless",
+        "res://tests/ShopProbe.tscn"
+      ],
+      "expect": "SHOP PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "DuelLengthProbe",
+      "args": [
+        "--headless",
+        "res://tests/DuelLengthProbe.tscn"
+      ],
+      "expect": "DUEL LENGTH PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "MapProbe",
+      "args": [
+        "--headless",
+        "res://tests/MapProbe.tscn"
+      ],
+      "expect": "MAP PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "ParentGateProbe",
+      "args": [
+        "--headless",
+        "res://tests/ParentGateProbe.tscn"
+      ],
+      "expect": "PARENT GATE PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "AdventureProbe",
+      "args": [
+        "--headless",
+        "res://tests/AdventureProbe.tscn"
+      ],
+      "expect": "ADVENTURE PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "HeroHouseProbe",
+      "args": [
+        "--headless",
+        "res://tests/HeroHouseProbe.tscn"
+      ],
+      "expect": "HERO HOUSE PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "AlbumProbe",
+      "args": [
+        "--headless",
+        "res://tests/AlbumProbe.tscn"
+      ],
+      "expect": "ALBUM PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "GardenTouchProbe",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/GardenTouchProbe.tscn"
+      ],
+      "expect": "GARDEN TOUCH PROBE PASSED",
+      "timeout": 240,
+      "window": true
+    },
+    {
+      "name": "FarmWorldProbe",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/FarmWorldProbe.tscn"
+      ],
+      "expect": "FARM WORLD PROBE PASSED",
+      "timeout": 400,
+      "window": true
+    },
+    {
+      "name": "HarvestTouchProbe",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/HarvestTouchProbe.tscn"
+      ],
+      "expect": "HARVEST TOUCH PROBE PASSED",
+      "timeout": 300,
+      "window": true
+    },
+    {
+      "name": "TabletProbe",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/TabletProbe.tscn"
+      ],
+      "expect": "TABLET PROBE PASSED",
+      "timeout": 300,
+      "window": true
+    },
+    {
+      "name": "HomeProbe",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/HomeProbe.tscn"
+      ],
+      "expect": "HOME PROBE PASSED",
+      "timeout": 300,
+      "window": true
+    },
+    {
+      "name": "GardenProbe",
+      "args": [
+        "--headless",
+        "res://tests/GardenProbe.tscn"
+      ],
+      "expect": "GARDEN PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "HarvestProbe",
+      "args": [
+        "--headless",
+        "res://tests/HarvestProbe.tscn"
+      ],
+      "expect": "HARVEST PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "ClockProbe",
+      "args": [
+        "--headless",
+        "res://tests/ClockProbe.tscn"
+      ],
+      "expect": "CLOCK PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "NextProbe",
+      "args": [
+        "--headless",
+        "res://tests/NextProbe.tscn"
+      ],
+      "expect": "NEXT PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
+      "name": "SaveProbe",
+      "args": [
+        "--headless",
+        "res://tests/SaveProbe.tscn"
+      ],
+      "expect": "SAVE PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    }
+  ]
+}

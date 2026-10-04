@@ -48,6 +48,15 @@ const THUMB_APART := 92.0
 ## touch probe has insisted on this number since the four-bed garden.
 const EDGE := 60.0
 
+## The opening view needs one familiar piece of the base as well as the live
+## beds.  The warehouse is present from the first visit and shares the beds'
+## vertical band, so it gives the child an honest "this is my farm" landmark
+## without making the first frame zoom all the way out to the seed shop or a
+## distant, still-locked building.  This is presentation geometry only: it
+## does not make the warehouse a task, alter its hit box, or give it any new
+## rule.
+const HOME_LANDMARK := "warehouse"
+
 ## Fallbacks, used only when the layout file is missing entirely. They are not
 ## a second copy of the design -- GameData shouts about an empty layout at boot
 ## -- they exist so that a missing file draws a small wrong farm instead of
@@ -158,16 +167,35 @@ static func facility_size(f: Dictionary) -> Vector2:
 
 ## The rectangle the child's own beds occupy, edges included.
 ##
-## THE ONE RECTANGLE THAT DECIDES THE DEFAULT VIEW. A child who opens the farm
-## and cannot see his beds has to go looking for them, and a six-year-old who
-## drags the ground the wrong way twice concludes the game is broken. So the
-## opening view is whatever zoom fits this box, and never anything closer.
+## THE RECTANGLE THAT KEEPS EVERY BED IN THE OPENING VIEW. A child who opens
+## the farm and cannot see his beds has to go looking for them, and a
+## six-year-old who drags the ground the wrong way twice concludes the game is
+## broken. `home_block()` adds the one stable base landmark to this safety box
+## when it composes the actual opening picture.
 static func bed_block(count: int) -> Rect2:
 	var half := plot_box() * 0.5
 	var box := Rect2(plot_at(0) - half, plot_box())
 	for i in range(1, maxi(count, 1)):
 		box = box.merge(Rect2(plot_at(i) - half, plot_box()))
 	return box
+
+
+## The opening postcard: every live bed and one complete, stable base landmark.
+##
+## `bed_block()` remains the gameplay answer used by the layout checks.  This
+## extra pure composition rectangle is only for the camera's first/home frame;
+## keeping it here means the centre and the zoom can never disagree about what
+## that frame promises to show.  A layout without the named landmark falls
+## back to the original bed-only frame rather than inventing a substitute.
+static func home_block(count: int) -> Rect2:
+	var frame := bed_block(count)
+	var landmark := facility(HOME_LANDMARK)
+	if landmark.is_empty():
+		return frame
+	var landmark_box := facility_size(landmark)
+	var landmark_rect := Rect2(facility_at(landmark) - landmark_box * 0.5,
+		landmark_box)
+	return frame.merge(landmark_rect)
 
 
 ## The window the world is drawn into, given the whole screen. The top bar and
@@ -177,14 +205,15 @@ static func window_rect(view: Vector2, top_bar: float, shelf: float) -> Rect2:
 		Vector2(view.x, maxf(120.0, view.y - top_bar - shelf)))
 
 
-## The closest zoom at which every bed is still on the glass at once.
+## The closest zoom at which every bed and the opening base landmark are still
+## on the glass at once.
 ##
 ## Walks the steps from closest to furthest and takes the first that fits, so a
 ## roomier screen gets a bigger farm rather than the same small one. Falls back
 ## to the smallest step when nothing fits -- showing most of the farm beats
 ## showing a corner of it.
 static func default_zoom(window: Vector2, count: int) -> float:
-	var block := bed_block(count).size
+	var block := home_block(count).size
 	# Room for the beds AND for the margin either side. Leaving EDGE out of this
 	# is not a rounding error: at 4:3 the window is 240px taller, the next zoom
 	# step up fits by arithmetic, and the outermost bed's edge lands 25px from
@@ -201,7 +230,7 @@ static func default_zoom(window: Vector2, count: int) -> float:
 
 
 static func default_centre(count: int) -> Vector2:
-	return bed_block(count).get_center()
+	return home_block(count).get_center()
 
 
 ## Where the camera's centre is allowed to be, so that the edge of the world is

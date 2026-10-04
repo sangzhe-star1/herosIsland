@@ -1,0 +1,30 @@
+{
+  "status": "candidate_only_not_whole_page_art_accepted",
+  "runtime_replacement": false,
+  "original_candidate_directory": "/private/tmp/heroes-carrot-shape-20261002-gl614je2",
+  "source_reference": "../build_pack.py",
+  "source_reference_sha256_at_archive": "4200d6c8ed8b5393e7ddb60e3e7e27dcd223cd86d1e675c8e59be1b557a0abab",
+  "source_base": "Shared material/model helpers, camera, softbox, AgX and radial alpha shadow from the project harvest sprite source",
+  "archive_timestamp": "2026-10-02T08:55:17.496504-07:00",
+  "blender_version": "5.2.2 LTS",
+  "render": {
+    "engine": "Cycles",
+    "samples": 32,
+    "resolution": [
+      512,
+      512
+    ],
+    "transparent": true,
+    "ground_pivot_pixel": [
+      256,
+      467
+    ],
+    "ortho_scale": 2.6
+  },
+  "archive_work": "Copy existing generated sources/outputs/evidence; no Blender rebuild, Godot run or test execution",
+  "excluded": [
+    "*.blend1",
+    "build.log",
+    "__pycache__"
+  ]
+}

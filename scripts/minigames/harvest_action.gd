@@ -35,6 +35,10 @@ const Fit := preload("res://scripts/shared/screen_fit.gd")
 const Hints := preload("res://scripts/shared/hint_director.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
+const FarmWorldArt := preload("res://scripts/garden/farm_world_art.gd")
+const HarvestVisualArt := preload("res://scripts/harvest/harvest_visual_art.gd")
+const HarvestRoute := preload("res://scripts/harvest/harvest_route.gd")
+const HARVEST_BACKDROP := preload("res://assets/backgrounds/harvest_meadow.png")
 
 ## Where the basket sits, against the design size. Bottom right, clear of the
 ## targets, in the corner a right thumb rests in.
@@ -45,6 +49,20 @@ const BASKET_AT := Vector2(1140, 600)
 ## basket count, so three baskets still end up smaller than one -- smaller is
 ## not the failure, indistinguishable is (see _build_baskets).
 const BASKET_SIZE := 150.0
+## The shared tutorial is intentionally quieter on a crop-sized target than it
+## is on the island's large buttons. Keeping this one named scale makes both
+## the opening lesson and a later basket reminder read as one visual system.
+const HARVEST_TUTORIAL_VISUAL_SCALE := 0.76
+## The order is read from across a room and the touch probe holds this lower
+## bound at both aspect ratios. The meadow must solve its hierarchy through
+## placement and contrast, not by making the order itself illegible.
+const ORDER_SAMPLE_SIZE := 80.0
+const ORDER_COUNT_SIZE := 32
+## A lifted crop should stay visually attached to the plant it came from.
+## Small alpha-edge overlaps are cheaper than a large sideways jump.
+const HELD_SHIFT_LIMIT := 48.0
+const HELD_SHIFT_STEP := 16.0
+const HELD_SHIFT_MOVE_WEIGHT := 0.50
 
 ## What a crop's reach is when harvest_crops.json does not say. Every crop in
 ## the catalogue does say, so this is only ever the answer for a crop_id that
@@ -72,6 +90,7 @@ var _targets: Array[Node2D] = []
 var _baskets: Array[Node2D] = []
 var _tally: HBoxContainer
 var _tally_pips: Array = []
+var _order_customer: Control
 ## A small, wordless route through a multi-order level. It deliberately lives
 ## in the existing HUD rather than becoming a second order-board component.
 var _order_strip: HBoxContainer
@@ -144,8 +163,9 @@ func setup_level() -> void:
 	_exceptions = config.get("exceptions", [])
 	_sort_hinted = false
 
-	_stage = build_world(self, 0.30)
+	_stage = _build_harvest_stage(config)
 	_field = UiKit.play_area(self, true)
+	_add_harvest_backdrop()
 	_field.gui_input.connect(_on_field_input)
 
 	_lay_out(config)
@@ -163,6 +183,50 @@ func setup_level() -> void:
 	_build_brave_clock()
 
 
+## The harvest camera looks down into a low meadow, while the ordinary park
+## camera looks across a broad lawn. Reuse Stage and WorldStyle, but locally
+## raise their horizon so crops grow out of land instead of open sky.
+func _build_harvest_stage(config: Dictionary) -> Stage:
+	var style := WorldStyle.for_world(str(level_data.get("world", "sunny_park")) )
+	style.apply_config(config)
+	style.calm = 0.30
+	style.horizon = 0.38
+	style.prop_band = 0.12
+	style.props = []
+	style.prop_density = 0.0
+	style.grass_tuft_density = 1.18
+	style.flower_density = 0.10
+	# Coloured pollen dots read as loose stickers in a deliberately quiet
+	# harvest meadow. Weather still owns its real rain/snow motes.
+	if str(config.get("weather", "")) == "":
+		style.mote_kind = "none"
+	return Stage.build(self, style, str(level_data.get("id", "harvest")))
+
+
+## A user-approved artwork layer is scoped to this fixed harvest screen only.
+## It is passive, covers the procedural Stage beneath it, and leaves every
+## crop, basket and gesture node in the existing `_field` above it. FarmWorld
+## deliberately does not use it because its camera can pan and zoom.
+func _add_harvest_backdrop() -> void:
+	var backdrop := TextureRect.new()
+	backdrop.name = "HarvestMeadowBackdrop"
+	backdrop.texture = HARVEST_BACKDROP
+	# The expanded tablet viewport needs its own same-camera field framing.
+	# Keep selection passive, with the established backdrop as a fallback.
+	var tablet_backdrop := "res://assets/backgrounds/harvest_meadow_4x3.png"
+	var viewport_size := get_viewport_rect().size
+	if viewport_size.x / viewport_size.y < 1.55 \
+			and ResourceLoader.exists(tablet_backdrop):
+		backdrop.texture = load(tablet_backdrop) as Texture2D
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	backdrop.z_index = -20
+	_field.add_child(backdrop)
+	_field.move_child(backdrop, 0)
+
+
 ## The last row of the difficulty table: at 勇敢 a small clock runs, purely to
 ## watch -- no countdown, nothing lost when it grows. The brave child gets one
 ## more thing to think about ("how fast was I?"), the other two tiers never
@@ -178,10 +242,12 @@ func _build_brave_clock() -> void:
 	_clock.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)
 	UiKit.on_art(_clock, 6)
 	_clock.add_theme_color_override("font_color", Color(1, 1, 1, 0.92))
-	_clock.position = Vector2(148, 44)
+	# A fourth order sample can widen the folder on brave. Put the clock in
+	# the free upper-right HUD corner so the folder never clips its digits.
+	_clock.position = Vector2(get_viewport_rect().size.x - 172.0, 40.0)
 	_clock.size = Vector2(140, 34)
 	_clock.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_clock)
+	_hud.add_child(_clock)
 
 
 func _process(delta: float) -> void:
@@ -230,24 +296,31 @@ func _lay_out(config: Dictionary) -> void:
 	# Spacing against the WIDEST crop on this field, reach against each crop's
 	# own. A pumpkin and a strawberry spaced for the strawberry would have the
 	# pumpkin swallowing presses aimed at the berry next to it.
-	var spots := _plan_positions(count, _bed(), _spread(config) * 2.0 + 20.0)
+	var spots := _plan_positions(count, _planting_bounds(config),
+		_spread(config) * 2.0 + 20.0)
+	var art_scale := _crop_art_scale_for_spacing(spots)
+	spots = _assign_visual_spots(plan, spots, art_scale, config)
 	var next := 0
 
 	# The earth is drawn from the same spots the crops are planted on, so
 	# every mound below sits under exactly one crop.
-	_draw_bed(spots)
+	var mound_layers := _draw_bed(spots, _root_widths_for_plan(plan, art_scale))
 
 	for entry in plan:
 		var crop: Dictionary = _tuned(entry["crop"])
 		var step: String = entry["step"]
 		for i in range(int(entry["count"])):
-			var at: Vector2 = spots[next] if next < spots.size() \
+			var spot_index := next
+			var at: Vector2 = spots[spot_index] if spot_index < spots.size() \
 				else _bed().position + _bed().size * 0.5
 			next += 1
 			var node: Node2D = Target.new()
 			node.position = at
 			_field.add_child(node)
-			node.build(crop, step, _reach(crop))
+			node.build(crop, step, _reach(crop), art_scale)
+			if spot_index < mound_layers.size():
+				node.set_meta("visual_mound", mound_layers[spot_index])
+			_add_passive_plant(node, art_scale)
 			node.picked.connect(_on_picked)
 			node.refused.connect(_on_refused)
 			_targets.append(node)
@@ -261,6 +334,364 @@ func _lay_out(config: Dictionary) -> void:
 		_orders = [{"requirements": config.get("order", [])}]
 	_restore_checkpoint()
 	_load_order()
+
+
+## Pictures shrink in dense rows; touch radii and gesture distances stay in
+## the crop data. The nearest target rule still chooses the same target.
+func _crop_art_scale_for_spacing(spots: Array) -> float:
+	var closest := INF
+	for i in range(spots.size()):
+		var a: Vector2 = spots[i]
+		for j in range(i + 1, spots.size()):
+			var b: Vector2 = spots[j]
+			closest = minf(closest, a.distance_to(b))
+	return 0.8 if closest < 112.0 else 1.0
+
+
+## Refine seeded slot ownership using the visible artwork for every order.
+## The existing positions, radius, RNG and input rules stay authoritative.
+
+const VISUAL_SLOT_MAX_SWAPS := 4
+const VISUAL_SLOT_OVERLAP_ALLOWANCE := 0.05
+const VISUAL_SLOT_EDGE_WEIGHT := 12.0
+const VISUAL_SLOT_BASKET_WEIGHT := 6.0
+const VISUAL_SLOT_ROOT_MARGIN := 12.0
+const VISUAL_ROW_BALANCE_WEIGHT := 2.0
+const VISUAL_ROW_BALANCE_BAND := 72.0
+
+
+func _assign_visual_spots(plan: Array, spots: Array, art_scale: float,
+		config: Dictionary) -> Array:
+	var orders := _visual_order_requirements(config)
+	var items := _visual_slot_items(plan, art_scale, orders)
+	var count := items.size()
+	if count != spots.size() or count < 2:
+		return spots
+	var row_count := _visual_row_count(spots)
+	var visible_masks := _visual_slot_visibility(plan, orders)
+	var obstacles := _visual_basket_obstacles(config)
+	var screen := get_viewport_rect()
+	var terms := _visual_pair_terms(items, orders.size(), visible_masks,
+		_visual_row_balance_enabled(str(level_data.get("id", "")), row_count))
+	var unary: Array = []
+	var assignment: Array[int] = []
+	for i in range(count):
+		assignment.append(i)
+		var costs: Array[float] = []
+		for spot in spots:
+			costs.append(_visual_fixed_cost(items[i], spot, screen, obstacles,
+				orders.size()))
+		unary.append(costs)
+
+	# Cache the current pair costs. A candidate swap computes only its new
+	# contributions, rather than rescoring the entire n-by-n assignment.
+	var pair_costs: Array = []
+	for i in range(count):
+		var row: Array[float] = []
+		row.resize(count)
+		row.fill(0.0)
+		pair_costs.append(row)
+	for i in range(count):
+		for j in range(i + 1, count):
+			var cost := _visual_pair_cost(terms, count, i, j, spots[i], spots[j])
+			pair_costs[i][j] = cost
+			pair_costs[j][i] = cost
+
+	# Fixed cap: O(4*n^3*p^2), p <= 3 parts per current target. A tie retains
+	# the existing seeded assignment, and this function never reads the picker.
+	for pass_index in range(VISUAL_SLOT_MAX_SWAPS):
+		var best_delta := -0.00001
+		var best_a := -1
+		var best_b := -1
+		for i in range(count):
+			for j in range(i + 1, count):
+				var a: int = assignment[i]
+				var b: int = assignment[j]
+				var delta: float = unary[i][b] - unary[i][a] \
+					+ unary[j][a] - unary[j][b]
+				delta += _visual_pair_cost(terms, count, i, j, spots[b], spots[a]) \
+					- float(pair_costs[i][j])
+				for k in range(count):
+					if k == i or k == j:
+						continue
+					var at: Vector2 = spots[assignment[k]]
+					delta += _visual_pair_cost(terms, count, i, k, spots[b], at) \
+						- float(pair_costs[i][k])
+					delta += _visual_pair_cost(terms, count, j, k, spots[a], at) \
+						- float(pair_costs[j][k])
+				if delta < best_delta - 0.00001:
+					best_delta = delta
+					best_a = i
+					best_b = j
+		if best_a < 0:
+			break
+		var old_slot: int = assignment[best_a]
+		assignment[best_a] = assignment[best_b]
+		assignment[best_b] = old_slot
+		for changed in [best_a, best_b]:
+			for k in range(count):
+				if changed == k:
+					continue
+				var cost := _visual_pair_cost(terms, count, changed, k,
+					spots[assignment[changed]], spots[assignment[k]])
+				pair_costs[changed][k] = cost
+				pair_costs[k][changed] = cost
+	var out: Array = []
+	for slot in assignment:
+		out.append(spots[slot])
+	return out
+
+
+func _visual_order_requirements(config: Dictionary) -> Array:
+	var definitions: Array = config.get("orders", [])
+	if definitions.is_empty():
+		definitions = [{"requirements": config.get("order", [])}]
+	var orders: Array = []
+	for definition in definitions:
+		orders.append(_requirements_for_order(definition))
+	return orders
+
+
+func _visual_slot_items(plan: Array, art_scale: float, orders: Array) -> Array:
+	var items: Array = []
+	for entry in plan:
+		var crop: Dictionary = entry["crop"]
+		var step := Maturity.normalise(str(entry["step"]))
+		var id := str(crop.get("id", ""))
+		var visible: Array[bool] = []
+		for wanted in orders:
+			visible.append(_crop_is_available_for_order(crop, step, wanted, {}))
+		var plant := HarvestVisualArt.plant_layout(id, art_scale)
+		var parts: Array = []
+		var root_at := Vector2(0.0, 42.0)
+		var root_width := 48.0
+		var root_visible: Array[bool] = visible.duplicate()
+		var look := Maturity.look(step, crop)
+		var maturity_scale := float(look.get("scale", 1.0))
+		if not plant.is_empty():
+			# A picked target is freed, while its field-sibling plant remains.
+			# Conservatively retain the body's first-visible phase onward; this
+			# also covers partial-order surplus without another state controller.
+			var persistent: Array[bool] = []
+			var has_appeared := false
+			for phase_visible in visible:
+				has_appeared = has_appeared or phase_visible
+				persistent.append(has_appeared)
+			parts.append({"rect": HarvestVisualArt.texture_used_bounds(plant["body"],
+				plant["body_size"], plant["slot_pixel"]),
+				"visible": persistent, "importance": 1.0})
+			parts.append({"rect": HarvestVisualArt.texture_used_bounds(plant["fruit"],
+				float(plant["fruit_size"]) * maturity_scale,
+				plant["fruit_center_pixel"]), "visible": visible, "importance": 1.0})
+			root_at = plant["ground_at"]
+			root_width = clampf(HarvestVisualArt.texture_ground_width(plant["body"],
+				plant["body_size"]) + 4.0, 48.0, 86.0)
+			root_visible = persistent
+		else:
+			var size := 90.0 * maturity_scale * clampf(art_scale, 0.6, 1.0)
+			var texture := HarvestVisualArt.crop_texture(id)
+			var rect := HarvestVisualArt.texture_used_bounds(texture, size,
+				Vector2(256.0, HarvestVisualArt.GROUND_ORIGIN_PIXEL_Y), root_at)
+			if texture == null:
+				rect = Rect2(Vector2.ONE * (-size * 0.5), Vector2.ONE * size)
+			parts.append({"rect": rect, "visible": visible, "importance": 1.0})
+			if str(crop.get("recogniser", "")) == Gesture.SWEEP \
+					and str(crop.get("sweep_cover", "soil")) == "soil":
+				var cover := HarvestVisualArt.soil_cover_layout(size)
+				if not cover.is_empty():
+					parts.append({"rect": cover["rect"], "visible": visible,
+						"importance": 1.0})
+			root_width = clampf(HarvestVisualArt.crop_ground_width(id, size) + 4.0,
+				48.0, 86.0)
+		# Include the actual hollow at +3px and the 0.92*width ground shadow
+		# at +6px (outer y radius 0.15*0.92*width), not only the lit oval.
+		var root_bottom := maxf(11.0, 6.0 + root_width * 0.138)
+		parts.append({"rect": Rect2(root_at + Vector2(-root_width * 0.5 - 4.0, -10.0),
+			Vector2(root_width + 8.0, root_bottom + 10.0)),
+			"visible": root_visible, "importance": 0.4,
+			"root": true})
+		for instance_index in range(int(entry["count"])):
+			items.append(parts)
+	return items
+
+
+func _visual_basket_obstacles(config: Dictionary) -> Array:
+	var definitions: Array = config.get("baskets", [])
+	var count := maxi(definitions.size(), 1)
+	var soil := _bed().grow(CROP_HALF + 14.0)
+	var size := minf(BASKET_SIZE, soil.size.y / float(count) * 0.72)
+	var texture := HarvestVisualArt.prop_texture("basket_empty")
+	var basket := HarvestVisualArt.texture_used_bounds(texture, size,
+		Vector2(256.0, HarvestVisualArt.GROUND_ORIGIN_PIXEL_Y),
+		Vector2(0.0, size * 0.52))
+	if texture == null:
+		basket = Rect2(Vector2(-size * 0.65, -size * 0.8),
+			Vector2(size * 1.3, size * 1.4))
+	var obstacles: Array = []
+	for at in _basket_positions(count, soil):
+		obstacles.append(Rect2(basket.position + at, basket.size))
+	return obstacles
+
+
+func _visual_slot_visibility(plan: Array, orders: Array) -> Array:
+	var masks: Array = []
+	for entry in plan:
+		var crop: Dictionary = entry["crop"]
+		var step := Maturity.normalise(str(entry["step"]))
+		var mask: Array[bool] = []
+		for wanted in orders:
+			mask.append(_crop_is_available_for_order(crop, step, wanted, {}))
+		for _instance_index in range(int(entry["count"])):
+			masks.append(mask.duplicate())
+	return masks
+
+
+func _visual_row_count(spots: Array) -> int:
+	var ordered: Array = spots.duplicate()
+	ordered.sort_custom(func(a, b): return (a as Vector2).y < (b as Vector2).y)
+	var rows := 0
+	var previous_y := -INF
+	for value in ordered:
+		var point: Vector2 = value
+		if rows == 0 or point.y - previous_y > VISUAL_ROW_BALANCE_BAND:
+			rows += 1
+		previous_y = point.y
+	return rows
+
+
+func _visual_row_balance_enabled(id: String, row_count: int) -> bool:
+	# This correction has only been A/B validated on the celebration level's
+	# multi-phase ownership map. Keep the scope explicit until another four-row
+	# level has its own aspect-ratio and touch review.
+	return id == "harvest_08" and row_count >= 4
+
+
+func _visual_pair_terms(items: Array, phase_count: int, visible_masks: Array,
+		balance_rows: bool) -> Array:
+	var count := items.size()
+	var terms: Array = []
+	terms.resize(count * count)
+	for i in range(count):
+		for j in range(i + 1, count):
+			var pair: Array = []
+			for a in items[i]:
+				for b in items[j]:
+					var common := 0
+					for phase in range(phase_count):
+						if a["visible"][phase] and b["visible"][phase]:
+							common += 1
+					if common > 0:
+						pair.append({"a": a["rect"], "b": b["rect"],
+							"weight": float(common) / float(maxi(phase_count, 1)) \
+							* minf(float(a["importance"]), float(b["importance"]))})
+			if balance_rows:
+				var co_visible_phases := 0
+				for phase in range(phase_count):
+					if visible_masks[i][phase] and visible_masks[j][phase]:
+						co_visible_phases += 1
+				if co_visible_phases > 0:
+					pair.append({"row_balance": true,
+						"weight": float(co_visible_phases)})
+			terms[i * count + j] = pair
+	return terms
+
+
+func _visual_pair_cost(terms: Array, count: int, i: int, j: int,
+		a_at: Vector2, b_at: Vector2) -> float:
+	if i > j:
+		return _visual_pair_cost(terms, count, j, i, b_at, a_at)
+	var cost := 0.0
+	var pair: Array = terms[i * count + j]
+	for term in pair:
+		if bool(term.get("row_balance", false)):
+			if absf(a_at.y - b_at.y) <= VISUAL_ROW_BALANCE_BAND:
+				cost += float(term["weight"]) * VISUAL_ROW_BALANCE_WEIGHT
+			continue
+		var a: Rect2 = term["a"]
+		var b: Rect2 = term["b"]
+		cost += _visual_overlap_loss(Rect2(a.position + a_at, a.size),
+			Rect2(b.position + b_at, b.size)) * float(term["weight"])
+	return cost
+
+
+func _visual_fixed_cost(parts: Array, at: Vector2, screen: Rect2,
+		obstacles: Array, phase_count: int) -> float:
+	var cost := 0.0
+	for part in parts:
+		var active := 0
+		for visible in part["visible"]:
+			if visible:
+				active += 1
+		if active == 0:
+			continue
+		var local_rect: Rect2 = part["rect"]
+		var rect := Rect2(local_rect.position + at, local_rect.size)
+		var allowed := screen.grow(-VISUAL_SLOT_ROOT_MARGIN) \
+			if bool(part.get("root", false)) else screen
+		var outside := 1.0 - rect.intersection(allowed).get_area() \
+			/ maxf(rect.get_area(), 1.0)
+		var weight := float(active) / float(maxi(phase_count, 1))
+		cost += maxf(outside, 0.0) * VISUAL_SLOT_EDGE_WEIGHT * weight
+		for obstacle in obstacles:
+			cost += _visual_overlap_loss(rect, obstacle) \
+				* VISUAL_SLOT_BASKET_WEIGHT * weight
+	return cost
+
+
+func _visual_overlap_loss(a: Rect2, b: Rect2) -> float:
+	if not a.intersects(b):
+		return 0.0
+	var smaller := minf(a.get_area(), b.get_area())
+	if smaller <= 0.0:
+		return 0.0
+	return maxf(a.intersection(b).get_area() / smaller \
+		- VISUAL_SLOT_OVERLAP_ALLOWANCE, 0.0)
+
+func _root_widths_for_plan(plan: Array, art_scale: float) -> Array:
+	var widths: Array = []
+	for entry in plan:
+		var crop: Dictionary = entry["crop"]
+		var look := Maturity.look(str(entry["step"]), crop)
+		var size := 90.0 * float(look.get("scale", 1.0)) * art_scale
+		var id := str(crop.get("id", ""))
+		var plant := HarvestVisualArt.plant_layout(id, art_scale)
+		var footprint := HarvestVisualArt.crop_ground_width(id, size)
+		if not plant.is_empty():
+			footprint = HarvestVisualArt.texture_ground_width(plant["body"], plant["body_size"])
+		var width := clampf(footprint + 4.0, 48.0, 86.0)
+		for i in range(int(entry["count"])):
+			widths.append(width)
+	return widths
+
+
+func _add_passive_plant(target: Node2D, art_scale: float) -> void:
+	var plant := HarvestVisualArt.plant_layout(str(target.crop.get("id", "")), art_scale)
+	if plant.is_empty():
+		return
+	var body := Node2D.new()
+	body.name = "HarvestPlantBody"
+	body.position = target.position
+	body.z_index = -1
+	_field.add_child(body)
+	var art := HarvestVisualArt.anchored_sprite(plant["body"], plant["body_size"],
+		plant["slot_pixel"], Vector2.ZERO, "HarvestPlantBody3DArt")
+	body.add_child(art)
+	target.set_meta("visual_plant", body)
+	# A fruit must visibly clear the plant even when its detached render is
+	# much smaller than the body's canvas. Use their actual alpha extents and
+	# the same final held scale; do not alter planting or touch coordinates.
+	var body_bounds := HarvestVisualArt.texture_used_bounds(plant["body"],
+		plant["body_size"], plant["slot_pixel"])
+	var look := Maturity.look(target.step, target.crop)
+	var fruit_bounds := HarvestVisualArt.texture_used_bounds(plant["fruit"],
+		float(plant["fruit_size"]) * float(look.get("scale", 1.0)),
+		plant["fruit_center_pixel"])
+	target.set_meta("visual_lift_clearance", maxf(46.0,
+		fruit_bounds.end.y * Target.HELD_SCALE - body_bounds.position.y + 16.0))
+	var mound: Node2D = target.get_meta("visual_mound") as Node2D \
+		if target.has_meta("visual_mound") else null
+	if mound != null:
+		mound.position += Vector2(plant["ground_at"]) - Vector2(0.0, 42.0)
 
 
 ## Rows four, five and six of the difficulty table, folded into the crop's own
@@ -315,22 +746,33 @@ func _clear_checkpoint() -> void:
 	SaveManager.clear_harvest_checkpoint(str(level_data.get("id", "")))
 
 
+func _requirements_for_order(order: Dictionary) -> Dictionary:
+	var wanted: Dictionary = {}
+	for entry in order.get("requirements", []):
+		wanted[str(entry.get("crop_id", ""))] = int(entry.get("count", 1))
+	if difficulty() == BRAVE:
+		for entry in order.get("brave_extra", []):
+			wanted[str(entry.get("crop_id", ""))] = int(entry.get("count", 1))
+	return wanted
+
+
+func _crop_is_available_for_order(crop: Dictionary, step: String,
+		wanted: Dictionary, picked: Dictionary) -> bool:
+	if "clutter" in crop.get("tags", []):
+		return true
+	if not Maturity.pickable(step, _allowed):
+		return true
+	var crop_id := str(crop.get("id", ""))
+	return wanted.has(crop_id) and int(picked.get(crop_id, 0)) \
+		< int(wanted[crop_id])
+
+
 func _load_order() -> void:
 	_wanted.clear()
 	_picked.clear()
 	if _order_index >= _orders.size():
 		return
-	var order: Dictionary = _orders[_order_index]
-	for entry in order.get("requirements", []):
-		_wanted[str(entry.get("crop_id", ""))] = int(entry.get("count", 1))
-	# Row seven of the difficulty table: at 勇敢, an order may carry one extra
-	# line, written in the level's data as `brave_extra` -- typically the
-	# golden one, which also has to go in the RIGHT basket. The other two
-	# tiers never see the line at all. Data decides what the exception is;
-	# difficulty only decides whether it is asked.
-	if difficulty() == BRAVE:
-		for entry in order.get("brave_extra", []):
-			_wanted[str(entry.get("crop_id", ""))] = int(entry.get("count", 1))
+	_wanted.merge(_requirements_for_order(_orders[_order_index]))
 	_refresh_order_targets()
 	_rebuild_order_strip()
 
@@ -344,13 +786,7 @@ func _load_order() -> void:
 func _target_is_available_now(target: Node2D) -> bool:
 	if target == null or not is_instance_valid(target) or target.taken:
 		return false
-	if _is_clutter(target):
-		return true
-	if not Maturity.pickable(target.step, _allowed):
-		return true                         # visible decoys stay teachable
-	var crop_id := str(target.crop.get("id", ""))
-	return _wanted.has(crop_id) and int(_picked.get(crop_id, 0)) \
-		< int(_wanted[crop_id])
+	return _crop_is_available_for_order(target.crop, target.step, _wanted, _picked)
 
 
 ## Multi-order fields are planted once for a stable layout, but only the crops
@@ -360,7 +796,15 @@ func _refresh_order_targets() -> void:
 	for target in _targets:
 		if not is_instance_valid(target) or target.taken:
 			continue
-		target.visible = _target_is_available_now(target)
+		var available := _target_is_available_now(target)
+		target.visible = available
+		var mound: Variant = target.get_meta("visual_mound", null)
+		if mound is CanvasItem:
+			(mound as CanvasItem).visible = available
+		var plant: Variant = target.get_meta("visual_plant") \
+			if target.has_meta("visual_plant") else null
+		if plant is CanvasItem:
+			(plant as CanvasItem).visible = available
 
 
 ## How far from the middle of a target a press still counts.
@@ -398,43 +842,17 @@ func _spread(config: Dictionary) -> float:
 	return harder(widest, 0.77)
 
 
-## The patch of earth things grow in.
-##
-## Carrots do not hang in the sky. The first cut scattered targets across the
-## whole play area and they floated in the clouds, which is funny for about a
-## second and then reads as broken -- a six-year-old knows perfectly well where
-## a carrot lives.
-##
-## So the bed is a real rectangle of turned earth, sitting ON the world's ground
-## line, and everything is planted inside it. Measured off the stage rather than
-## off 720: the ground moves down on a tablet and the bed has to move with it.
-## Where the targets may be planted -- the middles, not the picture edges.
-##
-## Two rows of crops need about 380px of height, which is more than the world's
-## near-ground strip has (the horizon sits around 78% of the way down). So the
-## field starts above the horizon and runs to just short of the bottom edge,
-## the way a field seen from slightly above does. Fractions of the real screen
-## rather than numbers against 720: on a tablet the whole thing moves down with
-## the ground it is drawn on.
-##
-## Inset by half a crop on every side, so nothing is drawn hanging over the
-## edge of its own soil.
+## The bed rectangle anchors basket stations and the right-hand planting limit.
+## Crop centres use a wider, screen-relative meadow band so the order card and
+## baskets keep their space while the field uses the open grass between them.
 const CROP_HALF := 62.0
 
-## How far down the screen the soil starts.
-##
-## Was 0.50, which leaves a 16:9 screen 176px of planting height -- two rows and
-## no room between them. 丰收庆典 puts eighteen things on that strip and the
-## grid could only get them 92px apart, exactly the floor, with the branches
-## over the apple trees poking up out of the soil into the sky.
-##
-## Was 0.44 next: 60px more earth and the same complaint one level later -- the
-## top half of the screen is sky the game never uses while the bottom strip
-## holds every target, the tally and the baskets shoulder to shoulder. 0.36
-## gives a 16:9 field ~277px of planting height: two roomy rows with air
-## between them, and the soil still starts below the horizon so it reads as a
-## field seen from slightly above. A tablet had the room already and keeps it.
-const BED_TOP := 0.36
+## Basket stations remain anchored to the lower field reference. Crop centres
+## use a separate screen-relative meadow band without moving the baskets.
+const BED_TOP := 0.43
+## Includes the order folder's card and shadow in the authored 1280-wide HUD.
+const HARVEST_HUD_SAFE_BOTTOM := 204.0
+const HARVEST_HUD_TOUCH_MARGIN := 24.0
 
 
 func _bed() -> Rect2:
@@ -446,71 +864,152 @@ func _bed() -> Rect2:
 		view.y - top - 60.0 - CROP_HALF * 2.0)
 
 
-func _draw_bed(mounds: Array) -> void:
-	# The soil is the planting box grown back out by the inset, so the crops sit
-	# ON it rather than at its edges.
-	var box := _bed().grow(CROP_HALF + 14.0)
+## Three destinations extend further into the meadow than a basket column.
+## Plan the grid in its final rectangle so every 92px gap survives; moving or
+## squeezing an already jittered grid could violate that spacing floor.
+func _planting_bounds(config: Dictionary) -> Rect2:
+	var bed := _bed()
+	var view := get_viewport_rect().size
+	var y_bounds := _safe_meadow_y_bounds(view.y, _spread(config))
+	var box := Rect2(Vector2(bed.position.x, y_bounds.x),
+		Vector2(bed.size.x, maxf(y_bounds.y - y_bounds.x, 0.0)))
+	for entry in config.get("targets", []):
+		if not HarvestVisualArt.plant_layout(str(entry.get("crop_id", "")), 1.0).is_empty():
+			# Reserve the passive plant root shadow before planning any points.
+			box.size.y = maxf(box.size.y - 8.0, 0.0)
+			break
+	var specs: Array = config.get("baskets", [])
+	if specs.size() < 3:
+		return box
+	var soil := _bed().grow(CROP_HALF + 14.0)
+	var span := soil.size.y / float(specs.size())
+	var basket_size := minf(BASKET_SIZE, span * 0.72)
+	var right := box.end.x
+	for basket_at in _basket_positions(specs.size(), soil):
+		right = minf(right, basket_at.x - basket_size * 0.64 - 14.0 - CROP_HALF - 2.0)
+	# Keep the 180px transparent crop canvas inside the window and preserve a
+	# broad clear lane beside the basket column.
+	var left := 102.0
+	return Rect2(Vector2(left, box.position.y), Vector2(right - left, box.size.y))
+
+
+static func _safe_meadow_y_bounds(view_height: float, max_touch_radius: float) -> Vector2:
+	var top := maxf(view_height * 0.34,
+		HARVEST_HUD_SAFE_BOTTOM + max_touch_radius + HARVEST_HUD_TOUCH_MARGIN)
+	# Let the lower row use more of the field. The former 76% cutoff left a
+	# conspicuous empty strip below the crops, while the plant-root artwork still
+	# has room before the viewport edge at 81%.
+	return Vector2(top, maxf(top, view_height * 0.81))
+
+
+func _draw_bed(mounds: Array, root_widths: Array = []) -> Array:
+	# Crop positions and hit testing share the final planting rectangle. The scene is
+	# part of the same park as the garden, not a brown panel placed over it: each
+	# crop gets a small root patch, while Stage keeps one continuous meadow.
 	var soil := Node2D.new()
 	soil.z_index = -5
 	_field.add_child(soil)
-	# Body and ink edge first: everything below tints the inside and leaves
-	# this rim alone, which is what seats the soil INTO the meadow instead of
-	# sticking it on top like a card.
-	Shapes.fill(soil, Shapes.rounded_rect(box.position, box.size, 46.0),
-		Color(0.47, 0.33, 0.22), 1.0)
-	# Light from above: a translucent vertical gradient over the body. Alpha,
-	# not opaque, so the rim above keeps its ink.
-	Shapes.gradient_quad(soil, box.position + Vector2(8, 8), box.size - Vector2(16, 16),
-		Color(0.62, 0.47, 0.31, 0.5), Color(0.30, 0.20, 0.12, 0.5))
-	# Furrows the garden way: soft lit ridges with shade beneath, never
-	# reaching the sides. Three hard dark bars right across would be slats,
-	# and slats would make this a vegetable crate -- see plot_view.gd.
-	var shade := Color(0.36, 0.25, 0.16, 0.55)
-	var lit := Color(0.60, 0.45, 0.30, 0.55)
-	for i in range(3):
-		var y: float = box.position.y + box.size.y * (float(i) + 1.0) / float(3 + 1)
-		var wide: float = box.size.x * (0.72 if i == 1 else 0.60)
-		Shapes.fill(soil, Shapes.oval_points(Vector2(
-			box.position.x + box.size.x * 0.5, y + 4.0),
-			Vector2(wide * 0.5, 7.0), 26), shade, 0.0)
-		Shapes.fill(soil, Shapes.oval_points(Vector2(
-			box.position.x + box.size.x * 0.5, y - 2.0),
-			Vector2(wide * 0.5, 4.5), 26), lit, 0.0)
-	# Crumbs. One fixed seed, so every entry into the level photographs the
-	# same earth -- nothing in the planted rows is random, and the dirt they
-	# sit in should not be either.
-	var rng := Shapes.rng_for("harvest_soil")
-	for i in range(14):
-		var at := Vector2(
-			box.position.x + 40.0 + fmod(float(i) * 173.0, box.size.x - 80.0),
-			box.position.y + 30.0 + fmod(float(i) * 97.0, box.size.y - 60.0))
-		Shapes.fill(soil, Shapes.blob(at,
-			Vector2(4.0 + float(i % 3) * 1.6, 3.0 + float(i % 2) * 1.2),
-			rng), shade, 0.0)
-	# A mound and a contact shadow under every planting. The missing contact
-	# shadow is the number-one reason a cutout looks pasted on -- this is the
-	# line between "pictures of carrots" and "carrots in the ground".
-	for at in mounds:
-		var centre: Vector2 = at
-		Shapes.ground_shadow(soil, centre + Vector2(0, 30), 92.0, 0.18)
-		Shapes.fill(soil, Shapes.oval_points(centre + Vector2(0, 20),
-			Vector2(48, 13), 26), Color(0.36, 0.25, 0.16, 0.9), 0.0)
+	# These are a little darker than the grass, not opaque brown labels. The
+	# shadow and low-contrast warm earth say "rooted" while leaving the meadow
+	# visually continuous behind the crop art.
+	var earth_shadow := Color(0.34, 0.28, 0.17, 0.32 * 0.85)
+	var earth_lit := Color(0.62, 0.48, 0.29, 0.39 * 0.85)
+	var earth_hollow := Color(0.25, 0.20, 0.13, 0.13 * 0.85)
+	# The procedural Stage fallback benefits from a faint row cue. The selected
+	# meadow backdrop already carries its own ground depth; adding another band
+	# on top made it read as a translucent sticker, so keep only the root marks.
+	var backdrop := _field.get_node_or_null("HarvestMeadowBackdrop") as TextureRect
+	if backdrop == null or backdrop.texture == null:
+		_draw_meadow_rows(soil, mounds)
+	# The source crop art's roots sit near +42 rather than at its centre, so the
+	# soft soil is visibly below the crop instead of looking like a badge stuck
+	# on its middle.
+	const FOOT_Y := 42.0
+	var patches: Array = []
+	for i in range(mounds.size()):
+		var at: Vector2 = mounds[i]
+		var width: float = float(root_widths[i]) if i < root_widths.size() else 72.0
+		var mound := Node2D.new()
+		mound.name = "HarvestMound"
+		mound.position = at
+		soil.add_child(mound)
+		patches.append(mound)
+		# A separate 3D grass pad reads as a little platform against the
+		# watercolor meadow. Keep the contact detail in this page's flat paint
+		# language until a same-source 3D ground plane replaces the backdrop.
+		Shapes.ground_shadow(mound, Vector2(2.0, FOOT_Y + 6.0), width * 0.92, 0.065)
+		Shapes.fill(mound, Shapes.oval_points(Vector2(2.0, FOOT_Y + 3.0),
+			Vector2(width * 0.5, 8.0), 24), earth_hollow, 0.0)
+		Shapes.fill(mound, Shapes.oval_points(Vector2(1.0, FOOT_Y),
+			Vector2(width * 0.48, 8.0), 24), earth_shadow, 0.0)
+		Shapes.lit(mound, Shapes.oval_points(Vector2(-2.0, FOOT_Y - 4.0),
+			Vector2(width * 0.48, 6.0), 24), earth_lit, 0.0)
+	return patches
+
+
+## Two or three loose rows organise a busy order. They are grass pressed by
+## gardening, not closed soil panels: their colour stays close to Stage's
+## meadow and their edges leave the screen instead of becoming another card.
+func _draw_meadow_rows(parent: Node2D, mounds: Array) -> void:
+	var ordered: Array = mounds.duplicate()
+	ordered.sort_custom(func(a, b): return a.y < b.y)
+	var rows: Array = []
+	var wanted_rows := clampi(int(ceil(float(ordered.size()) / 5.0)), 1, 3)
+	var gaps: Array = []
+	for i in range(maxi(ordered.size() - 1, 0)):
+		gaps.append({"after": i, "size": ordered[i + 1].y - ordered[i].y})
+	gaps.sort_custom(func(a, b): return float(a["size"]) > float(b["size"]))
+	var starts: Dictionary = {0: true}
+	for i in range(mini(wanted_rows - 1, gaps.size())):
+		starts[int(gaps[i]["after"]) + 1] = true
+	for i in range(ordered.size()):
+		if starts.has(i):
+			rows.append([])
+		(rows[rows.size() - 1] as Array).append(ordered[i])
+
+	for row in rows:
+		if row.size() < 2:
+			continue
+		var y := 0.0
+		var left := INF
+		var right := -INF
+		for member in row:
+			var at: Vector2 = member
+			y += at.y
+			left = minf(left, at.x)
+			right = maxf(right, at.x)
+		y = y / float(row.size()) + 42.0
+		# Follow only the crop roots, not the whole viewport: a full-width
+		# ribbon reads as lawn striping and competes with the plants.
+		var run := maxf(right - left, 1.0)
+		# End underneath the outer root patches instead of exposing capped tips.
+		var inset := minf(14.0, run * 0.12)
+		var x0 := left + inset
+		var x1 := right - inset
+		var bend := clampf(run * 0.025, 8.0, 18.0)
+		var sweep := PackedVector2Array([
+			Vector2(x0, y + 2.0),
+			Vector2(lerpf(x0, x1, 0.34), y - bend),
+			Vector2(lerpf(x0, x1, 0.68), y + bend * 0.55),
+			Vector2(x1, y - 1.0),
+		])
+		Shapes.fill(parent, Shapes.ribbon(sweep, 56.0),
+			Color(0.38, 0.58, 0.34, 0.10), 0.0)
+		Shapes.fill(parent, Shapes.ribbon(sweep, 22.0),
+			Color(0.72, 0.83, 0.50, 0.06), 0.0)
 
 
 ## Where everything on this level goes: a jittered grid, worked out in one go.
 ##
 ## WHY A GRID AND NOT SIXTY RANDOM DARTS
 ##
-## This used to throw a dart at the bed, check it was `apart` from everything
-## already down, and after sixty misses take the roomiest miss -- however bad.
-## On a crowded level that is most of them: 丰收庆典 puts eighteen things on a
-## strip 796 by 176 and darts left two of them 57px apart, which is closer than
-## a six-year-old can aim. The docstring above `_lay_out` has said "a loose
-## grid" since the day it was written; the code underneath it never was one.
+## The former random placement could pack two centres 57px apart on crowded
+## orders, closer than a six-year-old can aim. Use a balanced grid and reduce
+## the requested spacing only as far as the 92px touch-centre floor.
 ##
-## A grid packs what a bed can actually hold. Eighteen at 92px apart needs nine
-## columns by two rows, and 796 by 176 is exactly nine by two -- the same bed
-## the darts could not manage.
+## A grid packs what the meadow can actually hold. Its row count is chosen for
+## the screen shape and target count, then balanced rows are centred so a short
+## row never leaves a lonely crop at one edge.
 ##
 ## THE FLOOR, AND WHY IT IS NOT TWICE THE REACH
 ##
@@ -525,36 +1024,38 @@ func _draw_bed(mounds: Array) -> void:
 ## the floor. Jitter is whatever is left over above the floor, which is what
 ## keeps a field of carrots from looking like a spreadsheet.
 func _plan_positions(count: int, box: Rect2, wanted: float) -> Array:
-	var apart := wanted
-	while apart > THUMB_APART and not _grid_holds(count, box, apart):
-		apart -= 4.0
-	apart = maxf(apart, THUMB_APART)
-
-	var cols: int = maxi(1, int(floor(box.size.x / apart)) + 1)
-	var rows: int = maxi(1, int(ceil(float(count) / float(cols))))
-	var span := Vector2(float(cols - 1) * apart, float(rows - 1) * apart)
-	var origin: Vector2 = box.position + (box.size - span) * 0.5
+	var view := get_viewport_rect().size
+	var preferred_rows := _preferred_grid_rows(count, view.x / maxf(view.y, 1.0))
+	var fitted := _fit_grid_shape(count, box, wanted, preferred_rows)
+	var apart := float(fitted["apart"])
+	var rows := int(fitted["rows"])
+	var slots := _balanced_grid_points(count, box, apart, rows)
 
 	# Shuffled, so that "the third one along is always the golden carrot" is
 	# not a thing a child can learn instead of looking.
-	var slots: Array = []
-	for i in range(cols * rows):
-		slots.append(origin + Vector2(float(i % cols) * apart,
-			float(i / cols) * apart))
 	_picker.shuffle(slots)
 
 	# Half the slack, each way, so two neighbours can lose at most the whole
-	# slack between them and still clear the floor.
+	# spacing above the floor and still clear it. Use the widest row to keep
+	# every shuffled point inside the same safe jitter envelope.
 	var jitter: float = maxf(0.0, (apart - THUMB_APART) * 0.5)
+	var row_counts := _balanced_row_counts(count, rows)
+	var widest := 0
+	for row_count in row_counts:
+		widest = maxi(widest, row_count)
+	var jitter_x := minf(jitter,
+		maxf(0.0, box.size.x - float(maxi(widest - 1, 0)) * apart) * 0.5)
+	var jitter_y := minf(jitter,
+		maxf(0.0, box.size.y - float(rows - 1) * apart) * 0.5)
 	var out: Array = []
 	for i in range(mini(count, slots.size())):
 		var at: Vector2 = slots[i]
-		if jitter > 0.0:
-			at += Vector2(_picker.number(-jitter, jitter),
-				_picker.number(-jitter, jitter))
+		if jitter_x > 0.0 or jitter_y > 0.0:
+			at += Vector2(_picker.number(-jitter_x, jitter_x),
+				_picker.number(-jitter_y, jitter_y))
 		# Kept inside the planting rectangle. The jitter is what stops the
 		# field looking like a spreadsheet, and on a short bed it is also what
-		# would tip the top row up onto the grass above the soil. Clamping only
+		# would tip the top row outside the safe meadow band. Clamping only
 		# ever moves a crop back towards the middle, so it cannot bring two of
 		# them closer than the grid already allows.
 		at.x = clampf(at.x, box.position.x, box.end.x)
@@ -570,14 +1071,108 @@ func _plan_positions(count: int, box: Rect2, wanted: float) -> Array:
 	return out
 
 
-## Does a grid at this spacing have room for them all?
-func _grid_holds(count: int, box: Rect2, apart: float) -> bool:
-	var cols: int = maxi(1, int(floor(box.size.x / apart)) + 1)
-	var rows: int = maxi(1, int(floor(box.size.y / apart)) + 1)
-	return cols * rows >= count
+## Screens with more width get fewer rows; a tall 4:3 screen can use another
+## row before the field becomes too wide to scan. Small orders remain legible.
+static func _preferred_grid_rows(count: int, aspect: float) -> int:
+	if count <= 1:
+		return 1
+	if aspect >= 1.55:
+		if count <= 4:
+			return 1
+		if count <= 12:
+			return 2
+		if count <= 18:
+			return 3
+		return 4
+	if count <= 3:
+		return 1
+	if count <= 6:
+		return 2
+	if count <= 12:
+		return 3
+	return 4
+
+
+## Rows share extras symmetrically when possible: 11 becomes 4/3/4 and 18 in
+## four rows becomes 5/4/4/5. The result is deterministic and easy to probe.
+static func _balanced_row_counts(count: int, rows: int) -> Array[int]:
+	var safe_rows := maxi(rows, 1)
+	var result: Array[int] = []
+	result.resize(safe_rows)
+	result.fill(int(floor(float(count) / float(safe_rows))))
+	var extras := count % safe_rows
+	var order: Array[int] = []
+	if safe_rows % 2 == 1 and extras % 2 == 1:
+		order.append(int(floor(float(safe_rows) * 0.5)))
+	var left := 0
+	var right := safe_rows - 1
+	while left <= right:
+		if left == right:
+			if not order.has(left):
+				order.append(left)
+		else:
+			if not order.has(left):
+				order.append(left)
+			if not order.has(right):
+				order.append(right)
+		left += 1
+		right -= 1
+	for i in range(extras):
+		result[order[i]] += 1
+	return result
+
+
+## Pick the requested row count while preserving the 92px touch-centre floor.
+## If the box is unusually narrow or short, add rows before declaring it full.
+static func _fit_grid_shape(count: int, box: Rect2, wanted: float,
+		preferred_rows: int) -> Dictionary:
+	var max_rows := maxi(1, int(floor(box.size.y / THUMB_APART)) + 1)
+	var rows := clampi(preferred_rows, 1, max_rows)
+	while true:
+		var apart := maxf(wanted, THUMB_APART)
+		while apart > THUMB_APART and not _grid_shape_holds(count, box, apart, rows):
+			apart -= 4.0
+		apart = maxf(apart, THUMB_APART)
+		if _grid_shape_holds(count, box, apart, rows) or rows >= max_rows:
+			return {"rows": rows, "apart": apart}
+		rows += 1
+	return {"rows": rows, "apart": THUMB_APART}
+
+
+## Does this balanced row shape fit at the requested centre spacing?
+static func _grid_shape_holds(count: int, box: Rect2, apart: float,
+		rows: int) -> bool:
+	if count <= 0 or rows <= 0 or apart <= 0.0:
+		return count <= 0
+	var row_counts := _balanced_row_counts(count, rows)
+	var widest := 0
+	for row_count in row_counts:
+		widest = maxi(widest, row_count)
+	var span_x := float(maxi(widest - 1, 0)) * apart
+	var span_y := float(maxi(rows - 1, 0)) * apart
+	return span_x <= box.size.x and span_y <= box.size.y
+
+
+## One centred point row by row. Unequal rows naturally stagger by half a slot,
+## giving diagonally adjacent crops more than the 92px centre minimum.
+static func _balanced_grid_points(count: int, box: Rect2, apart: float,
+		rows: int) -> Array:
+	var row_counts := _balanced_row_counts(count, rows)
+	var out: Array = []
+	var span_y := float(maxi(rows - 1, 0)) * apart
+	var first_y := box.position.y + (box.size.y - span_y) * 0.5
+	for row_index in range(row_counts.size()):
+		var row_count := int(row_counts[row_index])
+		var span_x := float(maxi(row_count - 1, 0)) * apart
+		var first_x := box.position.x + (box.size.x - span_x) * 0.5
+		for column in range(row_count):
+			out.append(Vector2(first_x + float(column) * apart,
+				first_y + float(row_index) * apart))
+	return out
 
 
 func _build_hud(config: Dictionary) -> void:
+	_order_customer = null
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	_hud = Control.new()
@@ -586,22 +1181,46 @@ func _build_hud(config: Dictionary) -> void:
 	_hud.theme = UiKit.theme()
 	layer.add_child(_hud)
 
-	var back := UiKit.back_button(func(): quit_level())
+	var back := UiKit.back_button(func(): quit_level(), Vector2(84, 68))
 	back.position = Vector2(24, 24)
 	_hud.add_child(back)
+
+	# The order card is a folder with a page tab, not another floating status
+	# panel. Add the tab first so the card naturally overlaps its lower edge;
+	# both are passive HUD paint and the field keeps the same input path.
+	var folder_tab := Panel.new()
+	folder_tab.name = "OrderFolderTab"
+	folder_tab.position = Vector2(190.0, 0.0)
+	folder_tab.custom_minimum_size = Vector2(120.0, 28.0)
+	folder_tab.size = folder_tab.custom_minimum_size
+	folder_tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tab_style := StyleBoxFlat.new()
+	tab_style.bg_color = Color(0.84, 0.69, 0.43)
+	tab_style.set_corner_radius_all(10)
+	tab_style.border_color = Color(0.56, 0.41, 0.24, 0.68)
+	tab_style.set_border_width_all(1)
+	tab_style.shadow_color = Color(0.12, 0.10, 0.06, 0.16)
+	tab_style.shadow_size = 7
+	tab_style.shadow_offset = Vector2(0.0, 3.0)
+	folder_tab.add_theme_stylebox_override("panel", tab_style)
+	_hud.add_child(folder_tab)
 
 	# What the order wants, as pictures and pips. No sentence to read. The route
 	# lives in the same vertical group, so a taller tally on a narrow tablet can
 	# never overlap the current-order marker. The whole group rides on one
 	# parchment card, so the tally never has to argue with the sun behind it.
 	var order_card := UiKit.card(Color(0.99, 0.97, 0.90))
-	order_card.position = Vector2(204, 14)
+	order_card.position = Vector2(156, 14)
+	var folder_style := UiKit.panel_style(Color(0.99, 0.97, 0.90), 24)
+	folder_style.border_color = Color(0.63, 0.49, 0.29, 0.42)
+	folder_style.set_border_width_all(1)
+	order_card.add_theme_stylebox_override("panel", folder_style)
 	# A look, not a button: the tally was untouchable before and stays that
 	# way, so every press still falls through to the field.
 	order_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(order_card)
-	var order_hud := VBoxContainer.new()
-	order_hud.add_theme_constant_override("separation", 24)
+	var order_hud := HBoxContainer.new()
+	order_hud.add_theme_constant_override("separation", 18)
 	order_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	order_card.add_child(order_hud)
 
@@ -618,6 +1237,7 @@ func _build_hud(config: Dictionary) -> void:
 	var face: Control = UiKit.picture(str(config.get("customer_icon", "")), 72.0)
 	if face != null:
 		face.name = "OrderCustomer"
+		_order_customer = face
 		order_row.add_child(face)
 
 	_tally = HBoxContainer.new()
@@ -628,7 +1248,11 @@ func _build_hud(config: Dictionary) -> void:
 	_order_strip = HBoxContainer.new()
 	_order_strip.add_theme_constant_override("separation", 14)
 	_order_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	order_hud.add_child(_order_strip)
+	var route_wrap := CenterContainer.new()
+	route_wrap.custom_minimum_size = Vector2(142, 112)
+	route_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	route_wrap.add_child(_order_strip)
+	order_hud.add_child(route_wrap)
 	_rebuild_tally()
 	_rebuild_order_strip()
 
@@ -680,14 +1304,45 @@ func _build_baskets(config: Dictionary) -> void:
 	# 0.45 and not 0.5: half the spacing would put two reaches exactly edge to
 	# edge, and a press landing on that seam belongs to nobody in particular.
 	var reach: float = minf(size * 0.9, span * 0.45)
-	var middle: float = soil.position.y + soil.size.y * 0.5
-	var top: float = middle - span * (count - 1.0) * 0.5
+	var positions := _basket_positions(spec.size(), soil)
+	FarmWorldArt.draw_harvest_basket_station(_field, positions, size)
 	for i in range(spec.size()):
 		var node: Node2D = Basket.new()
-		node.position = Vector2(view.x - 150.0, top + span * float(i))
+		node.position = positions[i]
 		_field.add_child(node)
 		node.build(spec[i], size, reach)
 		_baskets.append(node)
+
+
+## A vertical stack made the baskets look like a toolbar clipped onto the
+## meadow. Two or three real destinations fit in a shallow collection nook,
+## still outside the crop bed and further apart than their independently
+## measured reaches. One basket stays exactly where the original simple level
+## taught it.
+func _basket_positions(count: int, soil: Rect2) -> Array:
+	var view := get_viewport_rect().size
+	var middle := soil.position.y + soil.size.y * 0.5
+	if count <= 1:
+		return [Vector2(view.x - 150.0, middle)]
+	if count == 2:
+		var span := soil.size.y * 0.5
+		return [
+			Vector2(view.x - 150.0, middle - span * 0.5),
+			Vector2(view.x - 150.0, middle + span * 0.5),
+		]
+	if count == 3:
+		return [
+			Vector2(view.x - 270.0, soil.position.y + soil.size.y * 0.60),
+			Vector2(view.x - 100.0, soil.position.y + soil.size.y * 0.60),
+			Vector2(view.x - 185.0, soil.position.y + soil.size.y * 0.88),
+		]
+	# Current level data stops at three baskets. Keep an honest, reachable
+	# fallback if a future author adds more before designing a new station.
+	var positions: Array = []
+	for i in range(count):
+		positions.append(Vector2(view.x - 150.0,
+			soil.position.y + soil.size.y * (float(i) + 0.5) / float(count)))
+	return positions
 
 
 func _rebuild_tally() -> void:
@@ -698,11 +1353,14 @@ func _rebuild_tally() -> void:
 		var crop: Dictionary = Crops.get_crop(str(crop_id))
 		var box := VBoxContainer.new()
 		box.alignment = BoxContainer.ALIGNMENT_CENTER
-		var art: Control = UiKit.picture(str(crop.get("asset", "")), 80.0)
+		var art: Control = HarvestVisualArt.crop_badge(str(crop.get("id", crop_id)),
+			ORDER_SAMPLE_SIZE, "OrderCrop3DBadge")
+		if art == null:
+			art = UiKit.picture(str(crop.get("asset", "")), ORDER_SAMPLE_SIZE)
 		if art != null:
 			box.add_child(art)
 		var count := UiKit.title("%d/%d" % [int(_picked.get(crop_id, 0)),
-			int(_wanted[crop_id])], 32)
+			int(_wanted[crop_id])], ORDER_COUNT_SIZE)
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(count)
 		_tally.add_child(box)
@@ -911,6 +1569,8 @@ func _take_in_hand(target: Node2D) -> void:
 	# It rises where it grew. See HarvestTarget.lift for why it does not travel
 	# somewhere tidier: a picked strawberry parked on the soil is indis-
 	# tinguishable from a strawberry still growing on the soil.
+	if target.has_meta("visual_plant"):
+		target.set_meta("visual_held_shift", _clear_held_plant_shift(target))
 	target.lift()
 	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 	# The one basket that can take this crop starts breathing. Highlighting every
@@ -927,6 +1587,107 @@ func _take_in_hand(target: Node2D) -> void:
 		_sort_hinted = true
 		AudioManager.say("harvest_two_baskets")
 		_point_at_the_baskets()
+
+
+## Keep a detached fruit near its growing point while clearing neighbouring
+## artwork. This uses the existing field and changes only the held transform.
+func _clear_held_plant_shift(target: Node2D) -> Vector2:
+	var art: TextureRect = target.get("_art") as TextureRect
+	if art == null:
+		return Vector2.ZERO
+	var obstacles: Array[Rect2] = []
+	for child in _field.get_children():
+		var body_art := child.get_node_or_null("HarvestPlantBody3DArt") as TextureRect
+		if body_art != null and body_art.is_visible_in_tree():
+			obstacles.append(_world_art_bounds(body_art).grow(4.0))
+	for other: Node2D in _targets:
+		var other_art: TextureRect = other.get("_art") as TextureRect
+		if other_art != null and other_art.is_visible_in_tree():
+			obstacles.append(_world_art_bounds(other_art).grow(4.0))
+	for basket: Node2D in _baskets:
+		var basket_art := basket.get_node_or_null("HarvestBasket3DArt") as TextureRect
+		if basket_art != null:
+			obstacles.append(_world_art_bounds(basket_art).grow(8.0))
+	# Score the actual visible crop silhouette, not the oversized square implied
+	# by held_art_radius(). The latter made a 1px alpha-bound intersection look
+	# like a collision across most of a 100x100 disk and could push fruit 128px
+	# away from its rooted plant. Predict the existing lift and held scale here.
+	var fruit_bounds := _scale_rect_about_point(_world_art_bounds(art),
+		target.global_position, Target.HELD_SCALE).grow(3.0)
+	fruit_bounds.position.y -= target.held_lift_height()
+	var screen := get_viewport_rect().grow(-24.0)
+	var best := Vector2.ZERO
+	var best_score := INF
+	var candidates: Array[float] = [0.0]
+	var steps := int(ceil(HELD_SHIFT_LIMIT / HELD_SHIFT_STEP))
+	for step_index in range(1, steps + 1):
+		var offset := minf(float(step_index) * HELD_SHIFT_STEP, HELD_SHIFT_LIMIT)
+		candidates.append(-offset)
+		candidates.append(offset)
+	for x in candidates:
+		var shift := Vector2(x, 0.0)
+		var bounds := Rect2(fruit_bounds.position + shift, fruit_bounds.size)
+		var move_cost_per_pixel := maxf(minf(bounds.size.x, bounds.size.y), 1.0) \
+			* HELD_SHIFT_MOVE_WEIGHT
+		var score := absf(x) * move_cost_per_pixel
+		if not screen.encloses(bounds):
+			score += 100000.0
+		for obstacle in obstacles:
+			if bounds.intersects(obstacle):
+				score += bounds.intersection(obstacle).get_area()
+		if score < best_score:
+			best_score = score
+			best = shift
+	return best
+
+
+func _scale_rect_about_point(bounds: Rect2, origin: Vector2, factor: float) -> Rect2:
+	var corners: Array[Vector2] = [
+		bounds.position,
+		Vector2(bounds.end.x, bounds.position.y),
+		bounds.end,
+		Vector2(bounds.position.x, bounds.end.y),
+	]
+	var first := origin + (corners[0] - origin) * factor
+	var result := Rect2(first, Vector2.ZERO)
+	for index in range(1, corners.size()):
+		var point := origin + (corners[index] - origin) * factor
+		result = result.expand(point)
+	return result
+
+
+func _world_art_bounds(art: TextureRect) -> Rect2:
+	if art.texture == null:
+		return Rect2()
+	var image := art.texture.get_image()
+	if image == null or image.is_empty():
+		return art.get_global_transform() * Rect2(Vector2.ZERO, art.size)
+	var used := Rect2(image.get_used_rect())
+	if used.size.x <= 0.0 or used.size.y <= 0.0:
+		return Rect2()
+	# Crop and plant sprites can be anchored to a Blender source pixel rather
+	# than centred in their canvas. Measure the real alpha bounds in the
+	# TextureRect's local coordinates; applying a centered source anchor here
+	# moves the route obstacle away from the image that is actually on screen.
+	var factor := art.size / Vector2(image.get_size())
+	var local := Rect2(used.position * factor, used.size * factor)
+	var transform := art.get_global_transform()
+	var corners: Array[Vector2] = [
+		transform * local.position,
+		transform * Vector2(local.end.x, local.position.y),
+		transform * local.end,
+		transform * Vector2(local.position.x, local.end.y),
+	]
+	var left := corners[0].x
+	var top := corners[0].y
+	var right := corners[0].x
+	var bottom := corners[0].y
+	for corner in corners:
+		left = minf(left, corner.x)
+		top = minf(top, corner.y)
+		right = maxf(right, corner.x)
+		bottom = maxf(bottom, corner.y)
+	return Rect2(Vector2(left, top), Vector2(right - left, bottom - top))
 
 
 ## He tapped somewhere with a crop in his hand.
@@ -965,13 +1726,92 @@ func _point_at_the_baskets() -> void:
 		return
 	_clear_basket_pointer()
 	var hand := Tutorial.new()
+	# The crops are deliberately compact here, so reuse the lesson director at
+	# its compact scale instead of allowing the global hero glove to hide the
+	# destination basket.
+	hand.set_visual_scale(HARVEST_TUTORIAL_VISUAL_SCALE)
+	hand.set_look_radius(_in_hand.held_art_radius() + 12.0)
+	hand.set_route_visible_in_motion(true)
+	var hint_anchor := _held_crop_hint_anchor(_in_hand)
+	var route_start: Vector2 = hint_anchor["world"]
+	hand.follow_look_target(_in_hand, hint_anchor["local"])
 	_basket_pointer = hand
 	_field.add_child(hand)
-	hand.add_step(_in_hand.global_position, destination.global_position, 1.1)
-	hand.finished.connect(func():
-		if _basket_pointer == hand:
-			_basket_pointer = null)
+	hand.add_path(route_start,
+		_basket_hint_route(_in_hand, destination), 1.1)
+	hand.finished.connect(_on_basket_pointer_finished.bind(hand.get_instance_id()))
 	hand.play()
+
+
+## Route and LOOK share the visible held-fruit anchor. In motion mode the
+## target is still at the start of its lift when this runs, so plan from its
+## settled pose; reduced motion has already placed it there synchronously.
+func _held_crop_hint_anchor(target: Node2D) -> Dictionary:
+	var art := target.get("_art") as TextureRect
+	if art == null or art.texture == null:
+		return {"world": target.global_position, "local": Vector2.ZERO}
+	var local_anchor := target.to_local(_world_art_bounds(art).get_center())
+	var held_origin := target.global_position
+	if Juice.motion_enabled():
+		held_origin += target.held_lift_displacement()
+	var parent := target.get_parent() as CanvasItem
+	var parent_transform := parent.get_global_transform() \
+		if parent != null else Transform2D.IDENTITY
+	var held_visual_offset := parent_transform.basis_xform(
+		local_anchor * Target.HELD_SCALE)
+	return {"world": held_origin + held_visual_offset, "local": local_anchor}
+
+
+## Keep the temporary basket route clear of live crop silhouettes. The real
+## gesture, basket resolver and accepted target remain owned by HarvestAction.
+func _basket_hint_route(target: Node2D, destination: Node2D) -> PackedVector2Array:
+	var obstacles: Array = []
+	# Picking removes the fruit from `_targets`, but its plant is deliberately
+	# left rooted in the field. Keep that sibling in the route geometry so the
+	# basket pointer does not draw through the crop he just picked.
+	var held_plant: Node2D
+	if target.has_meta("visual_plant"):
+		held_plant = target.get_meta("visual_plant") as Node2D
+	if held_plant != null:
+		var held_body_art := held_plant.get_node_or_null(
+			"HarvestPlantBody3DArt") as TextureRect
+		if held_body_art != null and held_body_art.is_visible_in_tree():
+			obstacles.append(_world_art_bounds(held_body_art))
+	for other: Node2D in _targets:
+		if other == target or not other.is_visible_in_tree():
+			continue
+		var fruit_art := other.get("_art") as TextureRect
+		if fruit_art != null and fruit_art.is_visible_in_tree():
+			obstacles.append(_world_art_bounds(fruit_art))
+		var plant: Variant = other.get_meta("visual_plant") \
+			if other.has_meta("visual_plant") else null
+		if plant is Node2D:
+			var body_art := (plant as Node2D).get_node_or_null(
+				"HarvestPlantBody3DArt") as TextureRect
+			if body_art != null and body_art.is_visible_in_tree():
+				obstacles.append(_world_art_bounds(body_art))
+	for basket: Node2D in _baskets:
+		if basket == destination:
+			continue
+		var basket_art := basket.get_node_or_null("HarvestBasket3DArt") as TextureRect
+		if basket_art != null and basket_art.is_visible_in_tree():
+			obstacles.append(_world_art_bounds(basket_art))
+	var start: Vector2 = _held_crop_hint_anchor(target)["world"]
+	# The teaching hand points into the basket mouth, not at its stitched-on
+	# sample tag. `_basket_for()` and the real hit radius continue to use the
+	# basket origin; this is only the route's visual endpoint.
+	var finish := destination.global_position
+	finish.y -= maxf(float(destination.get("_size")) * 0.38, 30.0)
+	var route_bounds := _field.get_global_transform() * Rect2(Vector2.ZERO, _field.size)
+	var route := HarvestRoute.avoid_rectangles(start, finish, obstacles, 14.0,
+		route_bounds.grow(-24.0))
+	return route
+
+
+func _on_basket_pointer_finished(pointer_id: int) -> void:
+	if is_instance_valid(_basket_pointer) \
+			and _basket_pointer.get_instance_id() == pointer_id:
+		_basket_pointer = null
 
 
 func _clear_basket_pointer() -> void:
@@ -1065,6 +1905,11 @@ func _nearest(at: Vector2) -> Node2D:
 # --- what a pick means ----------------------------------------------------
 
 func _on_picked(target: Node2D) -> void:
+	var mound: Variant = target.get_meta("visual_mound", null)
+	var plant: Variant = target.get_meta("visual_plant") \
+		if target.has_meta("visual_plant") else null
+	if mound is CanvasItem and not (plant is CanvasItem):
+		(mound as CanvasItem).visible = false
 	AudioManager.play_sfx("res://assets/audio/correct.ogg")
 	Juice.burst(_field, target.global_position, 16)
 
@@ -1137,6 +1982,7 @@ func _after_a_pick(target: Node2D) -> void:
 			+ int(_picked[filled])
 	_order_index += 1
 	_save_checkpoint()
+	_show_customer_happy()
 
 	if _order_index < _orders.size():
 		AudioManager.play_sfx("res://assets/audio/coin.ogg")
@@ -1175,6 +2021,41 @@ func _celebrate_order_done() -> void:
 	t.tween_interval(0.5)
 	t.tween_property(party, "modulate:a", 0.0, 0.25)
 	t.tween_callback(party.queue_free)
+
+
+## The customer is the third beat of an order: the same face that wanted the
+## crops gets a small heart when they arrive. Attach it to the existing avatar
+## so it follows the HUD at every aspect ratio and cannot cover the field.
+## Reduced-motion mode keeps the heart still while preserving the feedback.
+func _show_customer_happy() -> void:
+	if _order_customer == null or not is_instance_valid(_order_customer):
+		return
+	var heart: Control = UiKit.picture("heart", 40.0)
+	if heart == null:
+		return
+	heart.name = "CustomerHappyHeart"
+	heart.size = Vector2(40.0, 40.0)
+	heart.position = Vector2(42.0, -10.0)
+	heart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heart.z_index = 4
+	heart.pivot_offset = heart.size * 0.5
+	_order_customer.add_child(heart)
+	if not Juice.motion_enabled():
+		var lifetime := heart.create_tween()
+		lifetime.tween_interval(0.8)
+		lifetime.tween_callback(heart.queue_free)
+		return
+	heart.modulate.a = 0.0
+	heart.scale = Vector2(0.55, 0.55)
+	var reaction := heart.create_tween()
+	reaction.tween_property(heart, "position", Vector2(44.0, -34.0), 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	reaction.parallel().tween_property(heart, "modulate:a", 1.0, 0.12)
+	reaction.parallel().tween_property(heart, "scale", Vector2.ONE, 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	reaction.tween_interval(0.34)
+	reaction.tween_property(heart, "modulate:a", 0.0, 0.20)
+	reaction.tween_callback(heart.queue_free)
 
 
 func _order_filled() -> bool:
@@ -1272,6 +2153,9 @@ func _show_the_move(node: Node2D = null) -> void:
 	if node == null:
 		return
 	var hand := Tutorial.new()
+	# This is the same shared gesture teacher used across the game, just scaled
+	# to the 90px crop vocabulary on the harvest meadow.
+	hand.set_visual_scale(HARVEST_TUTORIAL_VISUAL_SCALE)
 	_demo = hand
 	_field.add_child(hand)
 	hand.add_path(node.global_position, _gesture_path(node), 1.2)
