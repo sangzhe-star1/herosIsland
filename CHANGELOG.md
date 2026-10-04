@@ -99,7 +99,7 @@ PNG（可选导 GLB）、写 manifest 条目、顺手跑 alpha 毛边和锚点�
 ### 数字
 
 `tools_check.py` 0 errors / 203 warnings（主干 204）；`./tests/run_smoke.sh`
-→ __SUITE__。截图：商店、小屋、订单板、菜园 1280×720，小屋 iPad，都看过。
+→ 30 passed, 0 skipped。截图：商店、小屋、订单板、菜园 1280×720，小屋 iPad，都看过。
 
 ## 9 月的六个提交，事后补记 — 3 September 至 4 October 2026
 

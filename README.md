@@ -405,7 +405,7 @@ Verified on 4 October 2026, on this branch rebased onto the 3D-art commit:
 
 ```
 python3 tools_check.py     ->  0 errors, 203 warnings   (warnings are old debt)
-./tests/run_smoke.sh       ->  Suite finished: __SUITE__
+./tests/run_smoke.sh       ->  Suite finished: 30 passed, 0 skipped
 ```
 
 The suite copies the project to a temporary directory with its own save,
