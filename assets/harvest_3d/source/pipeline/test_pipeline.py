@@ -43,8 +43,16 @@ for rid, r in recipes.items():
     ok(r.get('id') == rid, '%s.json: id %r is not the file name' % (rid, r.get('id')))
     ok(r.get('model') in models, '%s.json: model %r has no models/%s.py' % (rid, r.get('model'), r.get('model')))
     ok(r.get('kind') in ('crop', 'prop'), '%s.json: kind %r is not crop or prop' % (rid, r.get('kind')))
-    ok(str(r.get('install', '')).startswith(('crops/', 'props/')),
-       '%s.json: install %r must land in crops/ or props/' % (rid, r.get('install')))
+    ok(r.get('install') is None or str(r['install']).startswith(('crops/', 'props/')),
+       '%s.json: install %r must land in crops/ or props/, or be null with a _note' % (rid, r.get('install')))
+    ok(r.get('install') is not None or r.get('_note'),
+       '%s.json: a recipe that installs nothing must say why in _note' % rid)
+    if 'ortho_scale' in r:
+        ok(isinstance(r['ortho_scale'], (int, float)) and 0.5 < r['ortho_scale'] < 10,
+           '%s.json: ortho_scale %r is not a sane span in metres' % (rid, r['ortho_scale']))
+    if r.get('model') == 'from_glb':
+        glb = (HERE / str(r.get('params', {}).get('file', ''))).resolve()
+        ok(glb.is_file(), '%s.json: from_glb file %s is missing' % (rid, glb))
     sh = r.get('shadow', {})
     ok(isinstance(sh.get('baked'), bool) and len(sh.get('size', [])) == 2,
        '%s.json: shadow needs {"baked": bool, "size": [sx, sy]}' % rid)
@@ -64,8 +72,9 @@ recipe_props = {k for k, r in recipes.items() if r['kind'] == 'prop'}
 ok(recipe_props <= set(runtime_props),
    'props with a recipe but unknown to the runtime: %s' % sorted(recipe_props - set(runtime_props)))
 for rid, r in recipes.items():
-    ok((GAME / 'assets/harvest_3d' / r['install']).exists(),
-       '%s: installed sprite %s is missing from the game' % (rid, r['install']))
+    if r.get('install'):
+        ok((GAME / 'assets/harvest_3d' / r['install']).exists(),
+           '%s: installed sprite %s is missing from the game' % (rid, r['install']))
 
 # 3. palette keys
 for m in models:

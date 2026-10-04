@@ -1,29 +1,74 @@
 {
-  "_comment": "The numbers every harvest sprite is rendered and placed by. studio.py builds the camera from this and refuses to render if the ground origin does not land on ground_pivot_pixel; harvest_visual_art.gd reads the same pivot (GROUND_ORIGIN_PIXEL_Y = 467). Change it in both places or in neither.",
+  "_comment": "The numbers every harvest sprite is rendered and placed by. studio.py builds the camera from this and refuses to render if the ground origin does not land on ground_pivot_pixel; harvest_visual_art.gd reads the same pivot (GROUND_ORIGIN_PIXEL_Y = 467). Change it in both places or in neither. The rig comes from the frozen profile .blend that rendered every shipped sprite (catalog_profile_candidate, 3 October); 'legacy' is the original sprite-pack rig, kept for comparison only.",
   "sprite_size": 512,
-  "ground_pivot_pixel": [256, 467],
-  "camera": {
-    "type": "ORTHO",
-    "ortho_scale": 2.6,
-    "location": [4.3, -7.2, 6.73],
-    "target": [0.0, 0.0, 1.28],
-    "lens": 50
+  "ground_pivot_pixel": [
+    256,
+    467
+  ],
+  "ortho_scale": 2.6,
+  "rig": "profile",
+  "profile": {
+    "blend": "../catalog_profile_candidate/inputs/frozen_render_profile.blend",
+    "sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+    "light_types": [
+      "AREA",
+      "AREA",
+      "SUN"
+    ],
+    "view_transform": "Standard",
+    "exposure": -0.2,
+    "contact_shadow_baked": false,
+    "_what": "world 'soft blue sky', Sun key 1.1 + Area fill 240 + Area rim 180, Standard view at -0.2 EV, Cycles 24 samples; the camera keeps its orientation and is slid in its own plane until the world origin lands on ground_pivot_pixel"
   },
-  "light": {
-    "type": "AREA",
-    "shape": "DISK",
-    "size": 7.0,
-    "energy": 1000,
-    "location": [-3.0, -4.0, 12.0],
-    "target": [0.0, 0.0, 1.55]
-  },
-  "world": {"background": [0.55, 0.58, 0.6], "strength": 0.62},
-  "render": {
-    "engine": "CYCLES",
-    "samples": 32,
-    "denoise": true,
-    "view_transform": "AgX",
-    "transparent_max_bounces": 8
+  "legacy": {
+    "camera": {
+      "type": "ORTHO",
+      "ortho_scale": 2.6,
+      "location": [
+        4.3,
+        -7.2,
+        6.73
+      ],
+      "target": [
+        0.0,
+        0.0,
+        1.28
+      ],
+      "lens": 50
+    },
+    "light": {
+      "type": "AREA",
+      "shape": "DISK",
+      "size": 7.0,
+      "energy": 1000,
+      "location": [
+        -3.0,
+        -4.0,
+        12.0
+      ],
+      "target": [
+        0.0,
+        0.0,
+        1.55
+      ]
+    },
+    "world": {
+      "background": [
+        0.55,
+        0.58,
+        0.6
+      ],
+      "strength": 0.62
+    },
+    "render": {
+      "engine": "CYCLES",
+      "samples": 32,
+      "denoise": true,
+      "view_transform": "AgX",
+      "transparent_max_bounces": 8
+    },
+    "contact_shadow_baked": true,
+    "_what": "build_pack.py's own rig: one warm softbox, AgX, baked radial shadow. Not what the game ships."
   },
   "audit": {
     "lowest_solid_row_min": 427,
@@ -32,6 +77,9 @@
     "edge_margin_px": 1,
     "black_fringe_max_fraction": 0.01,
     "solid_alpha": 250,
-    "semi_alpha": [12, 160]
+    "semi_alpha": [
+      12,
+      160
+    ]
   }
 }

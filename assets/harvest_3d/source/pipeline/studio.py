@@ -12,11 +12,14 @@ and where the PNG is installed. build.py walks the recipes.
 
 Nothing here knows about any particular crop.
 """
+import hashlib
 import json
 import math
 from pathlib import Path
 
 import bpy
+import bmesh  # noqa: E402  (bpy must be imported first in module mode)
+from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Vector
 
 HERE = Path(__file__).resolve().parent
@@ -27,27 +30,127 @@ PALETTE = json.loads((HERE / 'palette.json').read_text())['materials']
 class Studio:
     """Scene, rig, palette and primitives. One per build run."""
 
-    def __init__(self, contract=CONTRACT, palette=PALETTE):
+    def __init__(self, contract=CONTRACT, palette=PALETTE, rig=None):
         self.contract = contract
         self.size = int(contract['sprite_size'])
-        self._reset_scene()
-        self._render_settings()
+        self.rig = rig or contract.get('rig', 'profile')
+        if self.rig == 'profile':
+            self._open_profile(contract['profile'])
+        elif self.rig == 'legacy':
+            self._reset_scene()
+            self._legacy_render_settings(contract['legacy'])
+        else:
+            raise RuntimeError('studio: rig must be "profile" or "legacy", not %r' % self.rig)
+        self.shadow_default_baked = bool(contract[self.rig].get('contact_shadow_baked', False))
+        self._png_settings()
         self.M = {key: self.material(spec['label'], tuple(spec['color']),
                                      float(spec.get('roughness', 0.84)))
                   for key, spec in palette.items()}
         self.shadow_mat = self._soft_shadow_material()
-        self.studio_coll = bpy.data.collections.new('STUDIO | shared render rig')
-        self.scene.collection.children.link(self.studio_coll)
-        self.camera = self._camera()
-        self.light = self._light()
+        if self.rig == 'legacy':
+            self.studio_coll = bpy.data.collections.new('STUDIO | shared render rig')
+            self.scene.collection.children.link(self.studio_coll)
+            self.camera = self._camera()
+            self.light = self._light()
         bpy.context.view_layer.update()
-        self.pivot_px = self._pivot_pixel()
+        self.pivot_px = self._frame_ground()
         wanted = list(contract['ground_pivot_pixel'])
         if self.pivot_px != wanted:
             raise RuntimeError(
                 'studio: world origin projects to pixel %s, the contract says %s. '
                 'The camera moved; fix contract.json or the camera, not the game.'
                 % (self.pivot_px, wanted))
+
+    # --- the frozen profile: the rig that rendered every shipped sprite ------------
+
+    def _open_profile(self, spec):
+        path = (HERE / spec['blend']).resolve()
+        if not path.exists():
+            raise RuntimeError('studio: frozen profile %s is missing' % path)
+        sha = hashlib.sha256(path.read_bytes()).hexdigest()
+        if sha != spec['sha256']:
+            raise RuntimeError('studio: %s has sha %s, the contract froze %s. A different '
+                               'profile is a different look; update both or neither.'
+                               % (path.name, sha[:12], spec['sha256'][:12]))
+        bpy.ops.wm.open_mainfile(filepath=str(path), load_ui=False, use_scripts=False)
+        self.scene = bpy.context.scene
+        camera = self.scene.camera
+        if camera is None or camera.type != 'CAMERA':
+            raise RuntimeError('studio: the profile has no active camera')
+        lamps = [o for o in self.scene.objects if o.type == 'LIGHT' and not o.hide_render]
+        if sorted(o.data.type for o in lamps) != sorted(spec['light_types']):
+            raise RuntimeError('studio: profile lights are %s, the contract froze %s'
+                               % (sorted(o.data.type for o in lamps), spec['light_types']))
+        if self.scene.world is None:
+            raise RuntimeError('studio: the profile has no World')
+        view = self.scene.view_settings
+        if view.view_transform != spec['view_transform'] \
+                or abs(view.exposure - float(spec['exposure'])) > 1e-6:
+            raise RuntimeError('studio: profile colour management is %s @ %.2f EV, the '
+                               'contract froze %s @ %.2f' % (view.view_transform, view.exposure,
+                                                            spec['view_transform'], spec['exposure']))
+        keep = set(lamps + [camera])
+        matrices = {o: o.matrix_world.copy() for o in keep}
+        # The profile is a whole review scene; only its light and eye come along.
+        for obj in list(self.scene.objects):
+            if obj not in keep:
+                bpy.data.objects.remove(obj, do_unlink=True)
+        for coll in list(bpy.data.collections):
+            if not coll.all_objects:
+                bpy.data.collections.remove(coll)
+        self.studio_coll = bpy.data.collections.new('STUDIO | frozen profile camera and lamps')
+        self.scene.collection.children.link(self.studio_coll)
+        for obj in keep:
+            obj.parent = None
+            obj.matrix_world = matrices[obj]
+            for coll in list(obj.users_collection):
+                coll.objects.unlink(obj)
+            self.studio_coll.objects.link(obj)
+        self.scene.camera = camera
+        self.camera = camera
+        self.light = lamps
+        # Direct RGBA export: no compositor graph between Cycles and the PNG.
+        self.scene.render.use_compositing = False
+
+    def _png_settings(self):
+        s = self.scene
+        s.render.resolution_x = s.render.resolution_y = self.size
+        s.render.resolution_percentage = 100
+        s.render.pixel_aspect_x = s.render.pixel_aspect_y = 1.0
+        s.render.film_transparent = True
+        s.render.use_border = False
+        s.render.use_crop_to_border = False
+        s.render.image_settings.file_format = 'PNG'
+        s.render.image_settings.color_mode = 'RGBA'
+        s.render.image_settings.color_depth = '8'
+
+    def _frame_ground(self, span=None):
+        """Slide the camera in its own plane until the world origin lands on the
+        pivot pixel. Orientation and lights are never touched; `span` is the
+        orthographic width in metres, the contract's unless an asset asks for
+        its own (the basket ships at 1.94, the plant body at 2.95)."""
+        cam = self.camera
+        span = float(span or self.contract['ortho_scale'])
+        px, py = self.contract['ground_pivot_pixel']
+        origin = Vector((0, 0, 0))
+        rotation = cam.matrix_world.to_quaternion()
+        cam.data.type = 'ORTHO'
+        cam.data.ortho_scale = span
+        bpy.context.view_layer.update()
+        projected = world_to_camera_view(self.scene, cam, origin)
+        right = rotation @ Vector((1, 0, 0))
+        up = rotation @ Vector((0, 1, 0))
+        shift = right * ((projected.x - px / self.size) * span)
+        shift += up * ((projected.y - (1 - py / self.size)) * span)
+        framed = cam.matrix_world.copy()
+        framed.translation += shift
+        cam.matrix_world = framed
+        bpy.context.view_layer.update()
+        actual = world_to_camera_view(self.scene, cam, origin)
+        pixel = (actual.x * self.size, (1 - actual.y) * self.size)
+        if max(abs(pixel[0] - px), abs(pixel[1] - py)) > 0.001:
+            raise RuntimeError('studio: ground pivot calibration failed: %r' % (pixel,))
+        return [round(pixel[0]), round(pixel[1])]
 
     # --- scene -----------------------------------------------------------------
 
@@ -59,19 +162,12 @@ class Studio:
                 bpy.data.collections.remove(coll)
         self.scene = bpy.context.scene
 
-    def _render_settings(self):
-        c = self.contract
+    def _legacy_render_settings(self, c):
         s = self.scene
         s.render.engine = c['render']['engine']
         s.cycles.samples = int(c['render']['samples'])
         s.cycles.use_denoising = bool(c['render']['denoise'])
         s.cycles.transparent_max_bounces = int(c['render']['transparent_max_bounces'])
-        s.render.resolution_x = s.render.resolution_y = self.size
-        s.render.resolution_percentage = 100
-        s.render.image_settings.file_format = 'PNG'
-        s.render.image_settings.color_mode = 'RGBA'
-        s.render.image_settings.color_depth = '8'
-        s.render.film_transparent = True
         s.view_settings.view_transform = c['render']['view_transform']
         s.world.color = (0.10, 0.10, 0.10)
         s.world.use_nodes = True
@@ -91,7 +187,7 @@ class Studio:
             .to_track_quat('-Z', 'Y').to_euler()
 
     def _camera(self):
-        c = self.contract['camera']
+        c = self.contract['legacy']['camera']
         data = bpy.data.cameras.new('Studio | fixed 3-4 orthographic')
         cam = bpy.data.objects.new('Studio | fixed 3-4 orthographic', data)
         self.studio_coll.objects.link(cam)
@@ -104,7 +200,7 @@ class Studio:
         return cam
 
     def _light(self):
-        c = self.contract['light']
+        c = self.contract['legacy']['light']
         data = bpy.data.lights.new('Studio | large warm softbox', c['type'])
         lamp = bpy.data.objects.new('Studio | large warm softbox', data)
         self.studio_coll.objects.link(lamp)
@@ -114,14 +210,6 @@ class Studio:
         data.size = float(c['size'])
         self._aim(lamp, c['target'])
         return lamp
-
-    def _pivot_pixel(self):
-        """Where the world origin lands in the sprite. The game's ground line."""
-        cam = self.camera
-        scale = cam.data.ortho_scale
-        p = cam.matrix_world.inverted() @ Vector((0, 0, 0))
-        return [round((p.x / scale + .5) * self.size),
-                round((.5 - p.y / scale) * self.size)]
 
     # --- materials -------------------------------------------------------------
 
@@ -289,6 +377,55 @@ class Studio:
                       tuple((len(profile) - 1) * segments + j for j in range(segments))])
         return self.mesh(name, verts, faces, mat, True)
 
+    # --- mesh repair the readable strawberry and the whole plant rely on ----------
+
+    @staticmethod
+    def prepare_leaf_surface(obj):
+        """Weld leaf tips and fix the triangulation BEFORE solidify, so the thick
+        edge cannot fold over at a shared end point (whole_plant's fix)."""
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1e-6)
+        collapsed = [f for f in bm.faces if f.calc_area() < 1e-12]
+        if collapsed:
+            bmesh.ops.delete(bm, geom=collapsed, context='FACES_ONLY')
+        bmesh.ops.triangulate(bm, faces=list(bm.faces), quad_method='BEAUTY', ngon_method='BEAUTY')
+        bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+        bm.normal_update()
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.update()
+
+    @staticmethod
+    def apply_modifier(obj, name, **settings):
+        mod = obj.modifiers.get(name)
+        if mod is None:
+            raise RuntimeError('%s has no modifier %r' % (obj.name, name))
+        for key, value in settings.items():
+            setattr(mod, key, value)
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+
+    @staticmethod
+    def readable_cleanup(obj, sharp_degrees=55.0):
+        """Merge doubles, drop collapsed faces, triangulate, fix normals, and
+        mark edges sharp above `sharp_degrees` so a thin leaf edge does not
+        smooth across a crease (strawberry_readability's pass)."""
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1e-6)
+        collapsed = [f for f in bm.faces if f.calc_area() < 1e-12]
+        if collapsed:
+            bmesh.ops.delete(bm, geom=collapsed, context='FACES_ONLY')
+        bmesh.ops.triangulate(bm, faces=list(bm.faces), quad_method='BEAUTY', ngon_method='BEAUTY')
+        bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+        for edge in bm.edges:
+            edge.smooth = not edge.is_manifold or edge.calc_face_angle(0) < math.radians(sharp_degrees)
+        bm.normal_update()
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.update()
+
     # --- an asset: build, shadow, collect ----------------------------------------
 
     def asset(self, asset_id, build, shadow):
@@ -305,7 +442,7 @@ class Studio:
         before = set(bpy.data.objects)
         build()
         made = set(bpy.data.objects) - before
-        if shadow.get('baked', True):
+        if shadow.get('baked', self.shadow_default_baked):
             verts = [(-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)]
             o = self.mesh('Shadow | ' + asset_id, verts, [(0, 1, 2, 3)],
                           self.shadow_mat, False)
@@ -314,7 +451,7 @@ class Studio:
             for poly in o.data.polygons:
                 for li in poly.loop_indices:
                     uvs.data[li].uv = uvmap[o.data.loops[li].vertex_index]
-            sx, sy = shadow.get('size', [.4, .28])
+            sx, sy = shadow.get('size', shadow.get('_legacy_size', [.4, .28]))
             o.scale = (sx, sy, 1)
             o.location = (0, .08, .012)
             made.add(o)
@@ -324,12 +461,18 @@ class Studio:
             coll.objects.link(o)
         return coll
 
-    def render(self, coll, path, all_colls):
-        """Render one collection alone to `path`."""
+    def render(self, coll, path, all_colls, ortho_scale=None):
+        """Render one collection alone to `path`, framed at `ortho_scale`
+        (the contract's by default); the pivot pixel is re-proved either way."""
         for other in all_colls:
             other.hide_render = other is not coll
+        pivot = self._frame_ground(ortho_scale)
+        if pivot != list(self.contract['ground_pivot_pixel']):
+            raise RuntimeError('studio: %s framed at %s puts the origin on %s'
+                               % (coll.name, ortho_scale, pivot))
         self.scene.render.filepath = str(path)
         bpy.ops.render.render(write_still=True)
+        return float(self.camera.data.ortho_scale)
 
     def export_glb(self, coll, path, all_colls):
         """The same asset as a GLB, Z-up to Y-up, origin at the ground pivot."""

@@ -10,6 +10,8 @@
              loads) and write the sidecar <id>.json for a prop whose shadow
              is not baked
   --blend    save the whole studio as rendered/harvest_studio.blend
+  --rig      "profile" (default: the frozen profile every shipped sprite was
+             rendered with) or "legacy" (build_pack.py's softbox + baked shadow)
 
 After rendering it writes rendered/manifest.json and runs audit.py on the
 result with the system python (Blender's python has no Pillow), so one
@@ -33,13 +35,15 @@ from studio import Studio, CONTRACT  # noqa: E402
 
 def parse_args(argv):
     opts = {'only': None, 'out': HERE.parent / 'rendered', 'glb': False,
-            'install': False, 'blend': False}
+            'install': False, 'blend': False, 'rig': None}
     it = iter(argv)
     for a in it:
         if a == '--only':
             opts['only'] = next(it).split(',')
         elif a == '--out':
             opts['out'] = Path(next(it)).expanduser()
+        elif a == '--rig':
+            opts['rig'] = next(it)
         elif a in ('--glb', '--install', '--blend'):
             opts[a[2:]] = True
         else:
@@ -81,7 +85,7 @@ def main(argv):
     sprites = out / 'sprites'
     sprites.mkdir(parents=True, exist_ok=True)
     recipes = load_recipes(opts['only'])
-    S = Studio()
+    S = Studio(rig=opts['rig'])
     colls = {}
     for r in recipes:
         model = load_model(r['model'])
@@ -91,15 +95,17 @@ def main(argv):
     for r in recipes:
         coll = colls[r['id']]
         png = sprites / (r['id'] + '.png')
-        S.render(coll, png, list(colls.values()))
+        span = S.render(coll, png, list(colls.values()), r.get('ortho_scale'))
         entry = {
             'id': r['id'], 'kind': r['kind'], 'model': r['model'],
             'params': r.get('params', {}),
             'file': 'sprites/' + png.name, 'resolution': [S.size, S.size],
+            'ortho_scale': span,
             'ground_pivot_pixel': S.pivot_px,
             'pivot_offset_from_texture_center_px': [S.pivot_px[0] - S.size // 2,
                                                     S.pivot_px[1] - S.size // 2],
-            'contact_shadow_baked': bool(r.get('shadow', {}).get('baked', True)),
+            'contact_shadow_baked': bool(r.get('shadow', {}).get('baked', S.shadow_default_baked)),
+            'rig': S.rig,
             'install': r.get('install'),
         }
         if r.get('footprint_reaches_edge'):
@@ -121,6 +127,9 @@ def main(argv):
     if opts['install']:
         game = HERE.parent.parent
         for r, entry in zip(recipes, manifest):
+            if not r.get('install'):
+                print('NOT INSTALLED', r['id'], '(recipe has no install path)', flush=True)
+                continue
             target = game / r['install']
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(sprites / (r['id'] + '.png'), target)

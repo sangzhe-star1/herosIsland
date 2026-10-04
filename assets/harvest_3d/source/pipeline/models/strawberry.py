@@ -1,25 +1,55 @@
-"""Strawberry
+"""Strawberry (readable)
 
-Geometry only. Camera, light, palette, shadow and output live in studio.py;
-this file is the one place that decides what a strawberry LOOKS like. Everything
-it needs comes in through `S` (the studio) and `P` (the recipe's params).
-Moved verbatim from build_pack.py so the render is unchanged.
+The strawberry the game ships: strawberry_readability/build_strawberry.py
+took the sprite-pack berry and, without a new asset, widened the shoulder and
+lengthened the tip (so it stops reading as a small tomato), lifted the seven
+crown leaves, and laid fourteen seeds on the camera-facing skin where the
+frozen camera can see them. That script edited the old mesh in place; this
+builds the same result directly, so the numbers below are its numbers.
 """
 import math
-import random
+
+from mathutils import Matrix, Vector
+
+# The eight rings of the berry after the readability pass (z, radius).
+PROFILE = [(.035,.026),(.17,.095),(.33,.235),(.56,.405),
+           (.73,.445),(.85,.400),(.94,.255),(1.02,.075)]
+# Seeds sit in four rows on the side the frozen camera looks at.
+VIEW_ANGLE = math.atan2(-9.8, 6.7)
+SEED_ROWS = [(.26,[-.58,0,.58]),(.44,[-.77,-.24,.29,.79]),
+             (.65,[-.70,-.18,.33,.82]),(.82,[-.45,.13,.64])]
+
+
+def _radius_and_slope(z):
+    for (za,ra),(zb,rb) in zip(PROFILE, PROFILE[1:]):
+        if za <= z <= zb:
+            slope = (rb-ra)/(zb-za)
+            return ra+(z-za)*slope, slope
+    raise ValueError('seed off the berry: z=%r' % z)
 
 
 def build(S, P):
     M, uv, mesh, tube, leaf, fruit_mesh, lathe, material = (
         S.M, S.uv, S.mesh, S.tube, S.leaf, S.fruit_mesh, S.lathe, S.material)
-    # Rounded, tapered berry with a broad shoulder and softly pointed tip.
-    lathe('Strawberry | heart-shaped berry',(0,0,0),[(.035,.045),(.11,.15),(.26,.29),(.43,.40),(.62,.43),(.78,.36),(.90,.22),(.94,.08)],M['strawberry'],40,.025)
+    berry_mat = material('Strawberry | ripe berry (readable)', (.88,.055,.075), .80)
+    parts = [lathe('Strawberry | heart-shaped berry', (0,0,0), PROFILE, berry_mat, 40, .025)]
     for i in range(7):
-        a=2*math.pi*i/7
-        leaf('Strawberry | green crown',(0,0,.90),(math.cos(a),math.sin(a)),.34,.135,M['leaf'] if i%2 else M['leaf2'],.42)
-    # Pale seeds set on the visible front curve.
-    for row,(z,rad,count) in enumerate(((.19,.22,5),(.38,.34,6),(.59,.36,6),(.76,.25,4))):
-        for j in range(count):
-            x=rad*math.cos(2*math.pi*j/count+row*.34)
-            yy=-rad*math.sqrt(max(.035,1-(x/rad)**2))-.012
-            uv('Strawberry | seed', (x,yy,z),(.027,.016,.043),M['seed'],10,6)
+        a = 2*math.pi*i/7
+        crown = leaf('Strawberry | green crown', (0,0,1.00), (math.cos(a),math.sin(a)),
+                     .34, .135, M['leaf'] if i%2 else M['leaf2'], .42)
+        S.prepare_leaf_surface(crown)
+        S.apply_modifier(crown, 'Soft leaf thickness', thickness=.028, offset=0)
+        parts.append(crown)
+    for z, offsets in SEED_ROWS:
+        radius, slope = _radius_and_slope(z)
+        for offset in offsets:
+            angle = VIEW_ANGLE + offset
+            outward = Vector((math.cos(angle), math.sin(angle), -slope)).normalized()
+            tangent = Vector((math.sin(angle), -math.cos(angle), 0))
+            upward = tangent.cross(outward).normalized()
+            seed = uv('Strawberry | seed', (0,0,0), (.027*1.25,.016*1.30,.043*1.18), M['seed'], 10, 6)
+            seed.location = Vector((radius*math.cos(angle), radius*math.sin(angle), z)) + outward*.009
+            seed.rotation_euler = Matrix((tangent, outward, upward)).transposed().to_euler()
+            parts.append(seed)
+    for part in parts:
+        S.readable_cleanup(part)

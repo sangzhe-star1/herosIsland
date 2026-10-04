@@ -1,14 +1,18 @@
 {
   "id": "basket_empty",
   "kind": "prop",
-  "model": "basket_empty",
-  "params": {},
+  "model": "from_glb",
+  "params": {
+    "file": "../../runtime/basket.glb"
+  },
   "shadow": {
-    "baked": true,
+    "baked": false,
     "size": [
       0.5,
       0.32
     ]
   },
-  "install": "props/basket_empty.png"
+  "install": "props/basket_empty.png",
+  "_source": "whole_plant/ basket: the GLB the runtime ships, rendered through the same frozen profile at its own 1.94 m span (environment_rendered/manifest.json png_contract)",
+  "ortho_scale": 1.94
 }

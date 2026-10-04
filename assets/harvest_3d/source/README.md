@@ -1,10 +1,11 @@
 # Harvest sprite pack
 
 > **Rebuilding or adding a sprite: use [pipeline/](pipeline/README.md).** One
-> studio, one recipe per asset, one command that renders, audits and draws the
-> contact sheet. `build_pack.py` below is the original one-file pack the
-> pipeline's models were moved out of; it stays until the pipeline's first
-> render on the Mac has been diffed against `../crops/`.
+> studio (the frozen profile that rendered what ships), one recipe per asset,
+> one command that renders, audits and draws the contact sheet. It reproduces
+> every PNG in `../crops/` to within one pixel. `build_pack.py` below is the
+> original one-file pack the pipeline's models were moved out of, kept as
+> history; its own rig (softbox, AgX) is not what the game shows.
 
 This Blender render source covers the 17 IDs in `data/harvest_crops.json` (including `stone` and `bug`), plus two optional environment sprites: an empty basket and a small soil/grass patch.
 

@@ -4,7 +4,7 @@
   "model": "strawberry",
   "params": {},
   "shadow": {
-    "baked": true,
+    "baked": false,
     "size": [
       0.34,
       0.24

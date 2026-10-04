@@ -4,11 +4,12 @@
   "model": "broccoli",
   "params": {},
   "shadow": {
-    "baked": true,
+    "baked": false,
     "size": [
       0.45,
       0.3
     ]
   },
-  "install": "crops/broccoli.png"
+  "install": "crops/broccoli.png",
+  "_note": "The shipped broccoli is the one catalog crop whose faint radial shadow did not make it into the PNG (bbox stops at the stem); rendered the same way so the game keeps the picture it has."
 }

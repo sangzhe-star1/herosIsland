@@ -28,3 +28,5 @@ tmp/
 
 # Python bytecode from tests/qa_run.py
 __pycache__/
+# pipeline output; the game loads the copies in crops/ and props/
+assets/harvest_3d/source/rendered/

@@ -10,6 +10,7 @@
       0.32
     ]
   },
-  "install": "props/soil_grass_patch.png",
-  "footprint_reaches_edge": true
+  "install": null,
+  "footprint_reaches_edge": true,
+  "_note": "The shipped props/soil_grass_patch.png predates the pipeline and no source records its exact geometry (the sprite-pack model renders 7 px narrower). Rendered for the sheet, never installed over the shipped file until someone decides which patch is right."
 }

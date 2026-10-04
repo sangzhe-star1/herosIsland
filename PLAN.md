@@ -109,15 +109,16 @@ These are yours to make. Nothing below has been changed without asking.
    for (basket, bed, crop, contact shadow) rendered through one camera.
    Separately: the harvest page is rendered and the garden is drawn flat, and
    a child walks between them. One style, or a reason for two.
-5. **The asset pipeline now has a reusable shape; it has not been run yet.**
-   `assets/harvest_3d/source/pipeline/` is one studio (`studio.py`, camera
-   and light from `contract.json`), one palette, one model file per asset
-   (moved verbatim out of `build_pack.py`) and one recipe per asset; `build.py`
-   renders, writes the manifest and runs the Pillow audit and contact sheet
-   in one command. The sandbox has no Blender, so the first real run is on
-   the Mac: `blender -b -P .../pipeline/build.py`, then diff against the PNGs
-   in `assets/harvest_3d/crops/`. The old fifteen scripts stay until that
-   diff is clean; `soil_cover` still comes from the frozen GLB profile.
+5. **The asset pipeline is one studio and nineteen recipes, and it has been
+   run.** `assets/harvest_3d/source/pipeline/` opens the frozen render profile
+   every shipped sprite came from, frames its camera on the (256, 467) pivot,
+   and renders one model per recipe; `build.py` also writes the manifest and
+   runs the Pillow audit and contact sheet. Rendered in the sandbox through
+   `pip install bpy`: all seventeen crops match `assets/harvest_3d/crops/` to
+   0 or 1 pixel, the basket to its alpha box. What is left: retire the fifteen
+   old scripts (keep the frozen profile .blend they share), move `soil_cover`
+   onto a recipe, and decide which `soil_grass_patch` is right, since the
+   shipped one has no recorded source.
 6. **The save file has two version fields.** `SAVE_VERSION` is written on
    every save and never read. `FARM_SAVE_VERSION` is the one migrations use.
    Folding them into one is a small change, but it touches every existing save,

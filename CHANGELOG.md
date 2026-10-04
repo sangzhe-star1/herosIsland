@@ -96,29 +96,45 @@ PNG（可选导 GLB）、写 manifest 条目、顺手跑 alpha 毛边和锚点�
 第 4 条待决事项（3D 到底停在哪一层）仍然要你定；但管线本身不用等它，两个答案
 用的是同一套几何，所以同一天把它搭起来了：
 
-### 丰收素材管线 `assets/harvest_3d/source/pipeline/`
+### 丰收素材管线 `assets/harvest_3d/source/pipeline/`，而且在沙箱里跑通了
 
-- `contract.json`：512 px、锚点 (256, 467)、相机、灯、渲染参数、审图容差，一处
-  写数字；`studio.py` 开场就验算世界原点落在哪个像素，不是 (256, 467) 直接拒绝
-  渲染——这个数字和 `harvest_visual_art.gd` 的 `GROUND_ORIGIN_PIXEL_Y` 是同一个。
-- `palette.json` 39 种材质按键名给；`models/<名>.py` 18 个只管形状（从
-  `build_pack.py` 原样搬出，渲染不变）；`recipes/<id>.json` 19 份说用哪个模型、
-  什么参数、阴影烘不烘、装到哪——金胡萝卜是 `carrot` 加 `{"golden": true}`，
-  不是第二个模型。
-- `build.py` 一条命令：渲染、写 manifest、可选 GLB、可选装进 `crops/ props/`
-  （阴影不烘的 prop 自动写旁车 JSON），结尾用系统 python 跑 `audit.py`。
-- `audit.py` 不需要 Blender：尺寸、空图、贴边、最低实心行是否在接地带
-  (427..503)、脚印中心偏移 ≤ 90 px、半透明像素发黑（毛边）比例，再画一张带
-  接地线的联系表。对现有 17 张作物图和 3 张道具图跑过，全过；联系表看过，每张
-  都站在线上。
-- `test_pipeline.py`：配方 ↔ `harvest_crops.json` ↔ `CROP_IDS` 三方一致、调色板
-  键齐全、锚点和运行时同数、现货审图通过，再**故意弄坏三次**（下沉 60 px、
-  整圈黑毛边、空图）确认审图会拒。`tools_check.py` 多一条静态规则：每个作物
-  既要有 PNG 也要有配方。
+你问能不能直接执行：能。Blender 有 PyPI 的 `bpy` 轮子（5.0.1，Python 3.11），
+沙箱装上后 CPU Cycles 四核 47 秒出全部 19 张。于是不是"写好等你跑"，而是
+跑了、和 `crops/` 里现货逐像素比过：
 
-沙箱没有 Blender，所以第一次真渲染在你的 Mac 上：
-`blender -b -P assets/harvest_3d/source/pipeline/build.py`，然后和 `crops/` 里
-现有的 PNG 做 diff，应该只剩噪点。十五个旧脚本在那之前不删。
+| 精灵 | 与现货不同的像素（共 262,144） |
+|---|---|
+| apple, bug, corn, golden_carrot, lettuce, orange, potato, stone, strawberry, watermelon | 0 |
+| broccoli, carrot, grape, peas, pumpkin, tomato, wheat | 1 |
+| basket_empty | 344（alpha 外框完全相同，是着色噪点） |
+
+比对的过程查清了现货到底是怎么来的，这些写进了 `pipeline/README.md`：
+
+- **机位不是 `build_pack.py` 的。** 签入的 `harvest_sprite_pack.blend` 用暖色
+  柔光箱 + AgX，渲出来又暗又褐；现货 17 张作物全部出自 10 月 3 日的冻结配置
+  `catalog_profile_candidate/inputs/frozen_render_profile.blend`（整株评审场的
+  天空、Sun 主光 1.1、两盏 Area 补光、Standard 视图 −0.2 EV、24 采样）。
+  `studio.py` 现在打开这份配置、核对 SHA、只留相机和灯，再把相机在自己的平面里
+  平移到原点落在 (256, 467)。
+- **几何有三处不是原包。** 胡萝卜和金胡萝卜是长根候选；草莓是"可辨识"修订
+  （加宽肩、抬高莓叶、14 颗种子铺在镜头这面）。三者都成了 `models/` 里的模型，
+  草莓直接按那组数字建，不再去改旧网格。
+- **阴影其实烘进去了。** 目录导出器把原包的径向阴影片设成隐藏，但隐藏的片
+  还是渲染了：现货每张作物接地线下方都有一条约 22% alpha 的淡影，alpha 外框到
+  486 行而实心像素止于 467 行。两处例外：草莓（源里把片删了）和西兰花（没有）。
+  配方逐个写明，运行时"作物自带接地影"的默认假设因此是对的。
+- **道具。** `basket_empty` 就是运行时在用的整株篮子 GLB，按它自己的 1.94 m
+  跨度渲——所以配方多了 `from_glb` 模型和按资产的 `ortho_scale`。
+  `soil_grass_patch` 没有任何记录说明它是怎么来的（原包模型窄 7 px），配方只
+  渲进联系表、不覆盖现货。`soil_cover` 仍走 `soil_cover_candidate` 的冻结 GLB。
+
+管线本身：`contract.json` 一处写数字；`palette.json` 39 种材质；`models/` 19 个
+只管形状；`recipes/` 19 份说模型、参数、阴影、跨度、装到哪；`build.py` 一条
+命令渲染 + manifest + 可选 GLB + 可选装进 `crops/ props/` + 末尾审图；
+`audit.py` 不需要 Blender（尺寸、空图、贴边、接地带、脚印中心、毛边、联系表）；
+`test_pipeline.py` 三方一致 + 现货审图 + 故意弄坏三次。`tools_check.py` 多一条
+静态规则：每个作物既要有 PNG 也要有配方（抽掉一份立刻报错）。
+`.gitignore` 加了 `source/rendered/`。
 
 ### 数字
 
