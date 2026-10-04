@@ -36,7 +36,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1148
+const CHECKS_EXPECTED := 1158
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -118,6 +118,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _a_bed_paid_twice_is_freed_not_frozen()
 	await _a_card_he_cannot_fill_still_answers()
 	await _the_lesson_clock_is_the_carrots_alone()
+	await _the_bed_grows_the_same_crop_the_harvest_page_shows()
 
 	_close()
 
@@ -1978,6 +1979,54 @@ func _the_lesson_clock_is_the_carrots_alone() -> void:
 		"课上那颗胡萝卜还是 6 秒")
 	_garden.set("_lesson_running", false)
 	_garden.set("_tutorial_growth", 0)
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+
+## One carrot, not two: the bed draws the same rendered sprite the harvest
+## page uses, standing with its root in the hollow, the golden one in gold,
+## and a seedling smaller than a ripe plant. A child walks between the two
+## rooms; the vegetable must not change species on the way.
+func _the_bed_grows_the_same_crop_the_harvest_page_shows() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	var plots: Array = farm["plots"]
+	for index in [0, 1, 2]:
+		var fresh: Dictionary = Farm.fresh_plot(index)
+		fresh["state"] = Farm.READY if index < 2 else Farm.GROWING
+		fresh["crop_id"] = "carrot"
+		fresh["growth_stage"] = 4 if index < 2 else 1
+		fresh["growth_progress"] = 1.0 if index < 2 else 0.2
+		fresh["golden"] = index == 1
+		fresh["plant_cycle_id"] = 7000 + index
+		plots[index] = fresh
+	farm["plots"] = plots
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var beds: Array = _garden.get("_world").get("_beds")
+	var ripe := _find_named(beds[0].get("_planting"), "Crop3D") as TextureRect
+	var golden := _find_named(beds[1].get("_planting"), "Crop3D") as TextureRect
+	var young := _find_named(beds[2].get("_planting"), "Crop3D") as TextureRect
+	_ok(ripe != null and ripe.texture != null
+		and ripe.texture.resource_path == "res://assets/harvest_3d/crops/carrot.png",
+		"a ripe carrot bed shows the harvest page's rendered carrot, not the flat icon")
+	_ok(golden != null and golden.texture != null
+		and golden.texture.resource_path == "res://assets/harvest_3d/crops/golden_carrot.png",
+		"...and the rare bed shows the golden render")
+	if ripe != null:
+		var root := ripe.position + Vector2(ripe.size.x * 0.5,
+			ripe.size.y * 467.0 / 512.0)
+		_ok(root.distance_to(Vector2(0.0, 12.0)) < 1.0,
+			"the render's ground pivot stands in the bed's hollow (%s)" % root)
+		_ok(ripe.pivot_offset.is_equal_approx(root - ripe.position),
+			"...and it sways about its root, not its corner")
+	_ok(ripe != null and young != null and young.size.y < ripe.size.y * 0.7,
+		"a seedling is drawn clearly smaller than the ripe plant")
+	for index in [0, 1, 2]:
+		plots[index] = Farm.fresh_plot(index)
+	farm["plots"] = plots
 	SaveManager.save_game()
 	_garden.call("_rebuild")
 	await get_tree().process_frame

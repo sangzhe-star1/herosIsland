@@ -26,6 +26,16 @@ extends Node2D
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
+const Art := preload("res://scripts/harvest/harvest_visual_art.gd")
+
+## Where the plant comes out of the earth: the centre of the dark hollow
+## drawn in _draw_planting. The rendered crop's ground pivot is pinned here,
+## so a carrot stands IN the bed the way it stands in the harvest page.
+const PLANT_ROOT := Vector2(0.0, 12.0)
+## How much bigger than the old flat icon the rendered crop is drawn, and the
+## most it may stand above its bed, both as multiples of the growth size.
+const CROP_PRESENCE := 1.3
+const CROP_TALLEST := 1.55
 
 ## How long the progress ring stays up after a press.
 const RING_SHOWN := 3.0
@@ -320,9 +330,9 @@ func _draw_planting(plot: Dictionary) -> void:
 			Color(1.0, 0.78, 0.16), 5, 0.78)
 
 	var art_size := 46.0 + 58.0 * done
-	var plant := UiKit.picture(str(crop.get("icon", "sprout")), art_size)
+	var plant := _crop_art(str(crop.get("id", plot.get("crop_id", ""))),
+		str(crop.get("icon", "sprout")), golden, art_size)
 	if plant != null:
-		plant.position = Vector2(-art_size * 0.5, -art_size * 0.5 - 6.0)
 		plant.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_planting.add_child(plant)
 		if ripe:
@@ -350,6 +360,36 @@ func _draw_planting(plot: Dictionary) -> void:
 			_draw_weeds()
 		Growth.CARE_BUG:
 			_draw_bugs()
+
+
+## The crop itself: the same rendered sprite the harvest page uses, so a
+## child walking from the garden to the harvest level sees one carrot, not a
+## flat sticker in one room and a toy in the next. Its ground pivot sits on
+## the hollow and it rotates about its root when it sways. A crop with no
+## render yet (none today; the pipeline covers all seventeen) falls back to
+## the drawn icon, floating as it used to.
+func _crop_art(crop_id: String, icon: String, golden: bool, art_size: float) -> Control:
+	var texture: Texture2D = Art.crop_texture("golden_" + crop_id) if golden else null
+	if texture == null:
+		texture = Art.crop_texture(crop_id)
+	if texture != null:
+		# The render fills about half its canvas, so it is drawn larger than
+		# the flat icon was to hold the same presence from across the farm;
+		# the tall ones (carrot, wheat) are then held to a height the bed can
+		# carry, so a ripe carrot does not stand into the next row.
+		var world := art_size * CROP_PRESENCE
+		var seen := Art.texture_used_bounds(texture, world,
+			Vector2(Art.SOURCE_CANVAS_SIZE * 0.5, Art.GROUND_ORIGIN_PIXEL_Y))
+		var tallest := art_size * CROP_TALLEST
+		if seen.size.y > tallest:
+			world *= tallest / seen.size.y
+		var sprite := Art.grounded_sprite(texture, world, PLANT_ROOT, "Crop3D")
+		sprite.pivot_offset = PLANT_ROOT - sprite.position
+		return sprite
+	var picture := UiKit.picture(icon, art_size)
+	if picture != null:
+		picture.position = Vector2(-art_size * 0.5, -art_size * 0.5 - 6.0)
+	return picture
 
 
 ## A normal ripe crop earns two pale, four-point glints rather than the rare

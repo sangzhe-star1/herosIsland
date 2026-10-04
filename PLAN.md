@@ -107,8 +107,10 @@ These are yours to make. Nothing below has been changed without asking.
    in `assets/harvest_3d/` passed and are in the harvest levels. Either stop
    runtime 3D there, or reopen it only with the four-piece kit the plan asks
    for (basket, bed, crop, contact shadow) rendered through one camera.
-   Separately: the harvest page is rendered and the garden is drawn flat, and
-   a child walks between them. One style, or a reason for two.
+   The second half is done on 4 October: the garden's beds (and the bear's)
+   now grow the same rendered crop the harvest page shows, rooted in the
+   hollow; the flat icons remain only on chips and badges, as interface
+   rather than world. What is still yours: whether runtime 3D stays closed.
 5. **The asset pipeline is one studio and nineteen recipes, and it has been
    run.** `assets/harvest_3d/source/pipeline/` opens the frozen render profile
    every shipped sprite came from, frames its camera on the (256, 467) pivot,

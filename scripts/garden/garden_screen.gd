@@ -43,6 +43,7 @@ const Market := preload("res://scripts/garden/farm_market_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
+const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
@@ -2165,9 +2166,20 @@ func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
 		destination_at: Vector2, destination: String, node_prefix: String) -> void:
 	var crop_id := str(receipt.get("crop_id", ""))
 	var crop: Dictionary = GameData.get_crop(crop_id)
-	var art := UiKit.picture(str(crop.get("icon", "basket")), 44.0)
+	# The same rendered crop the bed showed, so what flies is what he picked.
+	var golden := bool(receipt.get("golden", false))
+	var texture: Texture2D = HarvestArt.crop_texture("golden_" + crop_id) if golden else null
+	if texture == null:
+		texture = HarvestArt.crop_texture(crop_id)
+	var art: Control = HarvestArt.grounded_sprite(texture, 44.0, Vector2.ZERO) \
+		if texture != null else UiKit.picture(str(crop.get("icon", "basket")), 44.0)
 	if art == null:
 		return
+	if texture != null:
+		# grounded_sprite anchors by the root; the flight is placed by its
+		# centre like every picture before it, so bring the root to the centre.
+		art.position = Vector2(-22.0, -22.0) - art.position
+		art.pivot_offset = Vector2(-22.0, -22.0) - art.position
 	art.name = "%s_%s" % [node_prefix, crop_id]
 	art.set_meta("crop_id", crop_id)
 	art.set_meta("amount", amount)
@@ -2186,7 +2198,9 @@ func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
 		# The one that came up gold flies gold: the same flight, telling the
 		# same story, in the colour the bed promised.
 		art.modulate = Color(1.0, 0.85, 0.35)
-	art.position = _bed_centre(index) - Vector2(22, 22)
+	var root_offset: Vector2 = art.position + Vector2(22, 22) \
+		if texture != null else Vector2.ZERO
+	art.position = _bed_centre(index) - Vector2(22, 22) + root_offset
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_harvest_feedback_layer().add_child(art)
 	# When one crop batch splits, the little x2 / x1 tags answer the question
@@ -2199,7 +2213,7 @@ func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
 		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		art.add_child(count)
 	var t := art.create_tween()
-	t.tween_property(art, "position", destination_at - Vector2(22, 22), 0.4)\
+	t.tween_property(art, "position", destination_at - Vector2(22, 22) + root_offset, 0.4)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	t.parallel().tween_property(art, "scale", Vector2(0.5, 0.5), 0.4)
 	t.tween_callback(art.queue_free)
