@@ -1,0 +1,14 @@
+{
+  "id": "peas",
+  "kind": "crop",
+  "model": "peas",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.48,
+      0.24
+    ]
+  },
+  "install": "crops/peas.png"
+}

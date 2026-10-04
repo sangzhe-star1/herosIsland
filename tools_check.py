@@ -1396,6 +1396,28 @@ if os.path.exists("data/harvest_crops.json"):
                           f"-- '{gesture}' is a '{want}'. The finger would "
                           f"draw one move and the game would want another")
 
+# --- 5r½. every harvest crop has its picture AND the recipe that made it
+#
+# The harvest page draws each crop from assets/harvest_3d/crops/<id>.png, and
+# a missing file is a blank square the child taps at. The PNGs come out of
+# one studio (assets/harvest_3d/source/pipeline); a PNG with no recipe is a
+# picture nobody can re-render when the palette changes, which is how the
+# fifteen one-off scripts happened. test_pipeline.py checks the rest.
+if os.path.exists("data/harvest_crops.json"):
+    for crop in json.load(open("data/harvest_crops.json")):
+        crop_id = str(crop.get("id", ""))
+        if crop_id == "":
+            continue
+        if not os.path.exists(f"assets/harvest_3d/crops/{crop_id}.png"):
+            errors.append(f"harvest_crops.json: '{crop_id}' has no "
+                          f"assets/harvest_3d/crops/{crop_id}.png -- the harvest "
+                          f"page would show a blank where the crop should be")
+        if not os.path.exists(f"assets/harvest_3d/source/pipeline/recipes/{crop_id}.json"):
+            errors.append(f"harvest_crops.json: '{crop_id}' has no recipe in "
+                          f"assets/harvest_3d/source/pipeline/recipes/ -- its "
+                          f"picture cannot be re-rendered when the palette or "
+                          f"camera changes")
+
 # --- 5s. no basket in a sorting level quietly takes everything
 #
 # HarvestBasket.takes() reads an empty `accepts_tags` as "no rule, take

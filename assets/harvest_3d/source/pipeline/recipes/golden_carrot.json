@@ -1,0 +1,16 @@
+{
+  "id": "golden_carrot",
+  "kind": "crop",
+  "model": "carrot",
+  "params": {
+    "golden": true
+  },
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.36,
+      0.24
+    ]
+  },
+  "install": "crops/golden_carrot.png"
+}

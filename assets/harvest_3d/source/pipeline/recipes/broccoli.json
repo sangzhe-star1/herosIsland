@@ -1,0 +1,14 @@
+{
+  "id": "broccoli",
+  "kind": "crop",
+  "model": "broccoli",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.45,
+      0.3
+    ]
+  },
+  "install": "crops/broccoli.png"
+}

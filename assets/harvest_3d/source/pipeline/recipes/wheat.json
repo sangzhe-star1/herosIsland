@@ -1,0 +1,14 @@
+{
+  "id": "wheat",
+  "kind": "crop",
+  "model": "wheat",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.43,
+      0.26
+    ]
+  },
+  "install": "crops/wheat.png"
+}

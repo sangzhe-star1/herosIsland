@@ -1,0 +1,14 @@
+{
+  "id": "pumpkin",
+  "kind": "crop",
+  "model": "pumpkin",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.32
+    ]
+  },
+  "install": "crops/pumpkin.png"
+}

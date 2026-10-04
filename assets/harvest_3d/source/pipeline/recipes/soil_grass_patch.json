@@ -1,0 +1,15 @@
+{
+  "id": "soil_grass_patch",
+  "kind": "prop",
+  "model": "soil_grass_patch",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.32
+    ]
+  },
+  "install": "props/soil_grass_patch.png",
+  "footprint_reaches_edge": true
+}

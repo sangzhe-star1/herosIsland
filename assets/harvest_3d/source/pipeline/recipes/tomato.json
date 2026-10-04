@@ -1,0 +1,14 @@
+{
+  "id": "tomato",
+  "kind": "crop",
+  "model": "tomato",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.4,
+      0.28
+    ]
+  },
+  "install": "crops/tomato.png"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "lettuce",
+  "kind": "crop",
+  "model": "lettuce",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.48,
+      0.3
+    ]
+  },
+  "install": "crops/lettuce.png"
+}

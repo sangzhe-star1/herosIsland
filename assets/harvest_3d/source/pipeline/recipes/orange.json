@@ -1,0 +1,14 @@
+{
+  "id": "orange",
+  "kind": "crop",
+  "model": "orange",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.4,
+      0.28
+    ]
+  },
+  "install": "crops/orange.png"
+}

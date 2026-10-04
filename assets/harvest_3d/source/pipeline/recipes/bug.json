@@ -1,0 +1,14 @@
+{
+  "id": "bug",
+  "kind": "crop",
+  "model": "bug",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.38,
+      0.25
+    ]
+  },
+  "install": "crops/bug.png"
+}

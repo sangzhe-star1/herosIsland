@@ -1,0 +1,14 @@
+{
+  "id": "potato",
+  "kind": "crop",
+  "model": "potato",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.47,
+      0.3
+    ]
+  },
+  "install": "crops/potato.png"
+}

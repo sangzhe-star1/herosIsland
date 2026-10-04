@@ -1,0 +1,14 @@
+{
+  "id": "apple",
+  "kind": "crop",
+  "model": "apple",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.4,
+      0.28
+    ]
+  },
+  "install": "crops/apple.png"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "corn",
+  "kind": "crop",
+  "model": "corn",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.4,
+      0.27
+    ]
+  },
+  "install": "crops/corn.png"
+}

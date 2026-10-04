@@ -1,0 +1,356 @@
+{
+  "_comment": "One toy palette for every harvest asset. Keys are what the models ask for (M['leaf']); change a colour here and every asset that uses it re-renders in step. Roughness 0.84 is the matte toy default.",
+  "materials": {
+    "leaf": {
+      "label": "Leaf | meadow green",
+      "color": [
+        0.12,
+        0.34,
+        0.07
+      ],
+      "roughness": 0.84
+    },
+    "leaf2": {
+      "label": "Leaf | sunlit green",
+      "color": [
+        0.24,
+        0.48,
+        0.11
+      ],
+      "roughness": 0.84
+    },
+    "leafdark": {
+      "label": "Leaf | deep green",
+      "color": [
+        0.055,
+        0.21,
+        0.035
+      ],
+      "roughness": 0.84
+    },
+    "stem": {
+      "label": "Stem | soft green",
+      "color": [
+        0.12,
+        0.3,
+        0.055
+      ],
+      "roughness": 0.84
+    },
+    "white": {
+      "label": "Eye | warm white",
+      "color": [
+        0.96,
+        0.91,
+        0.75
+      ],
+      "roughness": 0.56
+    },
+    "black": {
+      "label": "Charcoal | soft",
+      "color": [
+        0.055,
+        0.045,
+        0.035
+      ],
+      "roughness": 0.82
+    },
+    "seed": {
+      "label": "Seed | pale gold",
+      "color": [
+        0.94,
+        0.73,
+        0.3
+      ],
+      "roughness": 0.75
+    },
+    "carrot": {
+      "label": "Carrot | warm orange",
+      "color": [
+        0.96,
+        0.265,
+        0.045
+      ],
+      "roughness": 0.84
+    },
+    "gold": {
+      "label": "Golden carrot | honey yellow",
+      "color": [
+        1.0,
+        0.63,
+        0.075
+      ],
+      "roughness": 0.84
+    },
+    "potato": {
+      "label": "Potato | toasted tan",
+      "color": [
+        0.57,
+        0.33,
+        0.15
+      ],
+      "roughness": 0.84
+    },
+    "potato2": {
+      "label": "Potato | lighter skin",
+      "color": [
+        0.72,
+        0.47,
+        0.24
+      ],
+      "roughness": 0.84
+    },
+    "tomato": {
+      "label": "Tomato | ripe red",
+      "color": [
+        0.83,
+        0.075,
+        0.035
+      ],
+      "roughness": 0.68
+    },
+    "tomato2": {
+      "label": "Tomato | warm highlight red",
+      "color": [
+        0.96,
+        0.16,
+        0.065
+      ],
+      "roughness": 0.68
+    },
+    "strawberry": {
+      "label": "Strawberry | ripe berry",
+      "color": [
+        0.88,
+        0.055,
+        0.075
+      ],
+      "roughness": 0.68
+    },
+    "corn": {
+      "label": "Corn | kernel gold",
+      "color": [
+        1.0,
+        0.68,
+        0.08
+      ],
+      "roughness": 0.72
+    },
+    "corn2": {
+      "label": "Corn | light kernels",
+      "color": [
+        1.0,
+        0.82,
+        0.25
+      ],
+      "roughness": 0.75
+    },
+    "husk": {
+      "label": "Corn | fresh husk",
+      "color": [
+        0.15,
+        0.41,
+        0.075
+      ],
+      "roughness": 0.84
+    },
+    "orange": {
+      "label": "Orange | sunny orange",
+      "color": [
+        1.0,
+        0.32,
+        0.045
+      ],
+      "roughness": 0.83
+    },
+    "orange2": {
+      "label": "Orange | warm dimple",
+      "color": [
+        1.0,
+        0.48,
+        0.11
+      ],
+      "roughness": 0.84
+    },
+    "apple": {
+      "label": "Apple | ruby red",
+      "color": [
+        0.75,
+        0.035,
+        0.035
+      ],
+      "roughness": 0.68
+    },
+    "apple2": {
+      "label": "Apple | blush side",
+      "color": [
+        0.94,
+        0.13,
+        0.06
+      ],
+      "roughness": 0.7
+    },
+    "peas": {
+      "label": "Peas | fresh green",
+      "color": [
+        0.25,
+        0.57,
+        0.11
+      ],
+      "roughness": 0.84
+    },
+    "peas2": {
+      "label": "Pea | soft lime",
+      "color": [
+        0.45,
+        0.72,
+        0.18
+      ],
+      "roughness": 0.84
+    },
+    "pod": {
+      "label": "Pea pod | deep green",
+      "color": [
+        0.13,
+        0.39,
+        0.065
+      ],
+      "roughness": 0.84
+    },
+    "pumpkin": {
+      "label": "Pumpkin | harvest orange",
+      "color": [
+        1.0,
+        0.34,
+        0.045
+      ],
+      "roughness": 0.84
+    },
+    "pumpkin2": {
+      "label": "Pumpkin | soft golden rib",
+      "color": [
+        1.0,
+        0.49,
+        0.09
+      ],
+      "roughness": 0.84
+    },
+    "melon": {
+      "label": "Watermelon | rind green",
+      "color": [
+        0.08,
+        0.3,
+        0.095
+      ],
+      "roughness": 0.84
+    },
+    "melon2": {
+      "label": "Watermelon | pale stripes",
+      "color": [
+        0.38,
+        0.62,
+        0.22
+      ],
+      "roughness": 0.84
+    },
+    "broccoli": {
+      "label": "Broccoli | florets",
+      "color": [
+        0.13,
+        0.37,
+        0.075
+      ],
+      "roughness": 0.84
+    },
+    "broccoli2": {
+      "label": "Broccoli | sunny crowns",
+      "color": [
+        0.25,
+        0.49,
+        0.1
+      ],
+      "roughness": 0.84
+    },
+    "lettuce": {
+      "label": "Lettuce | tender green",
+      "color": [
+        0.4,
+        0.66,
+        0.15
+      ],
+      "roughness": 0.84
+    },
+    "lettuce2": {
+      "label": "Lettuce | inner leaves",
+      "color": [
+        0.62,
+        0.78,
+        0.28
+      ],
+      "roughness": 0.84
+    },
+    "grape": {
+      "label": "Grape | plum purple",
+      "color": [
+        0.36,
+        0.13,
+        0.48
+      ],
+      "roughness": 0.84
+    },
+    "grape2": {
+      "label": "Grape | light purple",
+      "color": [
+        0.48,
+        0.21,
+        0.59
+      ],
+      "roughness": 0.84
+    },
+    "wheat": {
+      "label": "Wheat | ripe grain",
+      "color": [
+        0.9,
+        0.61,
+        0.16
+      ],
+      "roughness": 0.84
+    },
+    "wheat2": {
+      "label": "Wheat | pale awn",
+      "color": [
+        1.0,
+        0.78,
+        0.32
+      ],
+      "roughness": 0.84
+    },
+    "stone": {
+      "label": "Stone | warm slate",
+      "color": [
+        0.39,
+        0.45,
+        0.47
+      ],
+      "roughness": 0.84
+    },
+    "stone2": {
+      "label": "Stone | soft highlights",
+      "color": [
+        0.54,
+        0.59,
+        0.59
+      ],
+      "roughness": 0.84
+    },
+    "bug": {
+      "label": "Ladybug | red shell",
+      "color": [
+        0.83,
+        0.045,
+        0.06
+      ],
+      "roughness": 0.65
+    }
+  }
+}

@@ -93,8 +93,32 @@ iPad 死区（摇杆区、技能栏、平台跳跃按钮、救援关、搭桥关
 `recipes/<id>.json` 写形状部件、颜色、尺寸、成熟阶段；`build.py <id>` 渲染
 PNG（可选导 GLB）、写 manifest 条目、顺手跑 alpha 毛边和锚点检查并更新联系表。
 菜园和丰收共用同一批 PNG，`HarvestVisualArt` 已经是按 id 解析的，不用改。
-这一轮只写了判断，没有动脚本：改管线之前先要你定第 4 条待决事项（3D 到底停在
-哪一层）。
+第 4 条待决事项（3D 到底停在哪一层）仍然要你定；但管线本身不用等它，两个答案
+用的是同一套几何，所以同一天把它搭起来了：
+
+### 丰收素材管线 `assets/harvest_3d/source/pipeline/`
+
+- `contract.json`：512 px、锚点 (256, 467)、相机、灯、渲染参数、审图容差，一处
+  写数字；`studio.py` 开场就验算世界原点落在哪个像素，不是 (256, 467) 直接拒绝
+  渲染——这个数字和 `harvest_visual_art.gd` 的 `GROUND_ORIGIN_PIXEL_Y` 是同一个。
+- `palette.json` 39 种材质按键名给；`models/<名>.py` 18 个只管形状（从
+  `build_pack.py` 原样搬出，渲染不变）；`recipes/<id>.json` 19 份说用哪个模型、
+  什么参数、阴影烘不烘、装到哪——金胡萝卜是 `carrot` 加 `{"golden": true}`，
+  不是第二个模型。
+- `build.py` 一条命令：渲染、写 manifest、可选 GLB、可选装进 `crops/ props/`
+  （阴影不烘的 prop 自动写旁车 JSON），结尾用系统 python 跑 `audit.py`。
+- `audit.py` 不需要 Blender：尺寸、空图、贴边、最低实心行是否在接地带
+  (427..503)、脚印中心偏移 ≤ 90 px、半透明像素发黑（毛边）比例，再画一张带
+  接地线的联系表。对现有 17 张作物图和 3 张道具图跑过，全过；联系表看过，每张
+  都站在线上。
+- `test_pipeline.py`：配方 ↔ `harvest_crops.json` ↔ `CROP_IDS` 三方一致、调色板
+  键齐全、锚点和运行时同数、现货审图通过，再**故意弄坏三次**（下沉 60 px、
+  整圈黑毛边、空图）确认审图会拒。`tools_check.py` 多一条静态规则：每个作物
+  既要有 PNG 也要有配方。
+
+沙箱没有 Blender，所以第一次真渲染在你的 Mac 上：
+`blender -b -P assets/harvest_3d/source/pipeline/build.py`，然后和 `crops/` 里
+现有的 PNG 做 diff，应该只剩噪点。十五个旧脚本在那之前不删。
 
 ### 数字
 

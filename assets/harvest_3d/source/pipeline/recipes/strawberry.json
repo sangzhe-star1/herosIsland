@@ -1,0 +1,14 @@
+{
+  "id": "strawberry",
+  "kind": "crop",
+  "model": "strawberry",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.34,
+      0.24
+    ]
+  },
+  "install": "crops/strawberry.png"
+}

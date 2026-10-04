@@ -1,0 +1,14 @@
+{
+  "id": "grape",
+  "kind": "crop",
+  "model": "grape",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.4,
+      0.27
+    ]
+  },
+  "install": "crops/grape.png"
+}

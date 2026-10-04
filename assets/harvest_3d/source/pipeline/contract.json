@@ -1,0 +1,37 @@
+{
+  "_comment": "The numbers every harvest sprite is rendered and placed by. studio.py builds the camera from this and refuses to render if the ground origin does not land on ground_pivot_pixel; harvest_visual_art.gd reads the same pivot (GROUND_ORIGIN_PIXEL_Y = 467). Change it in both places or in neither.",
+  "sprite_size": 512,
+  "ground_pivot_pixel": [256, 467],
+  "camera": {
+    "type": "ORTHO",
+    "ortho_scale": 2.6,
+    "location": [4.3, -7.2, 6.73],
+    "target": [0.0, 0.0, 1.28],
+    "lens": 50
+  },
+  "light": {
+    "type": "AREA",
+    "shape": "DISK",
+    "size": 7.0,
+    "energy": 1000,
+    "location": [-3.0, -4.0, 12.0],
+    "target": [0.0, 0.0, 1.55]
+  },
+  "world": {"background": [0.55, 0.58, 0.6], "strength": 0.62},
+  "render": {
+    "engine": "CYCLES",
+    "samples": 32,
+    "denoise": true,
+    "view_transform": "AgX",
+    "transparent_max_bounces": 8
+  },
+  "audit": {
+    "lowest_solid_row_min": 427,
+    "lowest_solid_row_max": 503,
+    "footprint_centre_tolerance_px": 90,
+    "edge_margin_px": 1,
+    "black_fringe_max_fraction": 0.01,
+    "solid_alpha": 250,
+    "semi_alpha": [12, 160]
+  }
+}

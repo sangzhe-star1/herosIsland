@@ -1,0 +1,14 @@
+{
+  "id": "stone",
+  "kind": "crop",
+  "model": "stone",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.42,
+      0.28
+    ]
+  },
+  "install": "crops/stone.png"
+}
