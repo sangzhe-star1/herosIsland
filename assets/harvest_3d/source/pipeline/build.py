@@ -129,6 +129,13 @@ def main(argv):
     if opts['blend']:
         bpy.ops.wm.save_as_mainfile(filepath=str(out / 'harvest_studio.blend'))
 
+    # The audit needs Pillow, which Blender's python does not ship. It runs
+    # BEFORE install: a sprite that fails the audit never reaches the game.
+    code = subprocess.call([shutil.which('python3') or 'python3',
+                            str(HERE / 'audit.py'), str(out)])
+    if code != 0:
+        raise SystemExit('build.py: audit failed (%d); nothing installed; the renders are in %s' % (code, out))
+
     if opts['install']:
         game = HERE.parent.parent
         for r, entry in zip(recipes, manifest):
@@ -148,12 +155,6 @@ def main(argv):
                 # "not baked" sidecar would make it draw a second one.
                 side.unlink()
             print('INSTALLED', target, flush=True)
-
-    # The audit needs Pillow, which Blender's python does not ship.
-    code = subprocess.call([shutil.which('python3') or 'python3',
-                            str(HERE / 'audit.py'), str(out)])
-    if code != 0:
-        raise SystemExit('build.py: audit failed (%d); the renders are in %s' % (code, out))
 
 
 if __name__ == '__main__':

@@ -36,7 +36,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1188
+const CHECKS_EXPECTED := 1192
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -1993,6 +1993,7 @@ func _the_bed_grows_the_same_crop_the_harvest_page_shows() -> void:
 	_garden.call("_close_panels")
 	var farm: Dictionary = SaveManager.data["farm"]
 	var plots: Array = farm["plots"]
+	plots[3] = Farm.fresh_plot(3)          # untouched grass
 	for index in [0, 1, 2]:
 		var fresh: Dictionary = Farm.fresh_plot(index)
 		fresh["state"] = Farm.READY if index < 2 else Farm.GROWING
@@ -2034,6 +2035,17 @@ func _the_bed_grows_the_same_crop_the_harvest_page_shows() -> void:
 	_ok(scenery != null and _find_named(scenery, "Scenery_treeArt") is TextureRect
 		and _find_named(scenery, "Scenery_hedgeArt") is TextureRect,
 		"the trees and hedges are rendered props from the same pipeline")
+	var lawn := _find_named(beds[3].get("_ground"), "MeadowPatch") as TextureRect
+	_ok(lawn != null and lawn.texture != null
+		and lawn.texture.resource_path == "res://assets/harvest_3d/props/meadow_patch.png",
+		"an untouched bed is the studio's meadow patch, daisies and all")
+	var slots: Dictionary = _garden.get("_world").get("_slots")
+	var clearing_drawn := false
+	for key in slots:
+		if _find_named(slots[key], "Clearing") != null:
+			clearing_drawn = true
+	_ok(slots.is_empty() or clearing_drawn,
+		"land under stones is the studio's clearing, not a drawn outline")
 	var tree_root := _find_named(scenery, "Scenery_tree") as Node2D
 	_ok(tree_root != null and tree_root.y_sort_enabled == false
 		and (scenery as Node2D).y_sort_enabled and (_garden.get("_world") as Node2D).y_sort_enabled,

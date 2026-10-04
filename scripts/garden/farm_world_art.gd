@@ -242,6 +242,19 @@ static func _draw_building(parent: Node2D, id: String, box: Vector2) -> bool:
 ## FarmWorld after this call, because those exact nodes are what scatter when a
 ## child expands the farm.
 static func draw_future_plot(parent: Node2D, box: Vector2, index: int) -> void:
+	var clearing := Art.prop_texture("clearing")
+	if clearing != null:
+		# The studio's clearing: grass with worn earth, tufts and pebbles,
+		# anchored by its front rim at the front of the slot. The farm adds
+		# the movable stones on top.
+		var seen := Art.texture_used_bounds(clearing, 100.0,
+			Vector2(Art.SOURCE_CANVAS_SIZE * 0.5, Art.GROUND_ORIGIN_PIXEL_Y))
+		if seen.size.x > 0.0:
+			var world := 100.0 * box.x * 1.10 / seen.size.x
+			var sprite := Art.grounded_sprite(clearing, world, Vector2(0.0, box.y * 0.46), "Clearing")
+			sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			parent.add_child(sprite)
+			return
 	Shapes.ground_shadow(parent, Vector2(0.0, box.y * 0.42), box.x * 0.70, 0.16)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 90_011 + index * 1_097
@@ -312,10 +325,34 @@ static func _draw_meadow_patch(parent: Node2D, at: Vector2, radii: Vector2,
 static func draw_path(parent: Node2D, points: PackedVector2Array,
 		width: float) -> void:
 	var outer_width := maxf(width, 1.0)
+	# Three bands, the outermost faint: the edge of a worn path is grass
+	# giving up gradually, not a cut.
+	Shapes.fill(parent, Shapes.ribbon(points, outer_width * 1.30),
+		Color(0.76, 0.72, 0.56, 0.38), 0.0)
 	Shapes.fill(parent, Shapes.ribbon(points, outer_width),
 		Color(0.82, 0.76, 0.60), 0.0)
 	Shapes.fill(parent, Shapes.ribbon(points, maxf(12.0, outer_width * 0.50)),
 		Color(0.89, 0.83, 0.68), 0.0)
+	# Pebbles along both edges, fixed by the path itself so they never move.
+	var curve := Shapes.smooth(points, 8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(points[0].x * 31.0 + points[0].y * 17.0)
+	var walked := 0.0
+	for i in range(1, curve.size()):
+		var a: Vector2 = curve[i - 1]
+		var b: Vector2 = curve[i]
+		walked += a.distance_to(b)
+		if walked < 70.0:
+			continue
+		walked = 0.0
+		var dir := (b - a).normalized()
+		var side := Vector2(-dir.y, dir.x) * (1.0 if rng.randf() < 0.5 else -1.0)
+		var at := b + side * outer_width * (0.50 + rng.randf() * 0.12)
+		var r := 2.2 + rng.randf() * 1.6
+		Shapes.fill(parent, Shapes.circle_points(at + Vector2(0.6, 0.8), r),
+			Color(0.55, 0.52, 0.44, 0.45), 0.0)
+		Shapes.fill(parent, Shapes.circle_points(at, r),
+			Color(0.80, 0.78, 0.70), 0.0)
 
 
 ## A rendered prop from the harvest studio, standing on the meadow with its

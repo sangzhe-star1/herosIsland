@@ -216,7 +216,15 @@ func _draw_ground(plot: Dictionary) -> void:
 	var grass_island := _patch_blob(_box * 0.49)
 
 	if not tilled:
-		# Untouched grass, with the tufts that say it has never been turned.
+		# Untouched grass: the studio's meadow patch, daisies and all, on the
+		# same footprint the soil patch will take when he turns it.
+		var meadow := Art.prop_texture("meadow_patch")
+		if meadow != null:
+			var lawn := Art.grounded_sprite(meadow, BED_PATCH_SIZE * 0.98,
+				Vector2(0.0, _box.y * 0.40), "MeadowPatch")
+			lawn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_ground.add_child(lawn)
+			return
 		Shapes.fill(_ground, grass_island, GRASS.lightened(0.05), 0.0)
 		var tuft := Art.prop_texture("tuft")
 		for i in range(5):

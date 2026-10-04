@@ -92,6 +92,12 @@ box and scales it to the box width. `"deep_footprint": true` tells the audit
 that the nearest corner, not the centre, is what touches the ground line.
 Spans run 3.4 to 4.8 m for buildings, 2.6 for the dog, 3.4 for the bear.
 
+A ground patch (soil_grass_patch, clearing, meadow_patch) is its own
+ground: no radial shadow (it would reach the canvas edge in front), and the
+newer two are slid back like a building so the farm anchors them by their
+front rim. `build.py` audits before it installs; a failing sprite never
+reaches the game.
+
 ## Add an asset
 
 1. `models/pear.py` with `def build(S, P):` using `S.uv / S.lathe / S.leaf /

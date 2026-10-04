@@ -1,0 +1,23 @@
+{
+  "id": "meadow_patch",
+  "kind": "prop",
+  "model": "meadow_patch",
+  "params": {},
+  "ortho_scale": 3.0,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.95,
+      0.6
+    ]
+  },
+  "install": "props/meadow_patch.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.31,
+    0.454,
+    0.0
+  ],
+  "_origin": "a ground patch slid back so its front rim stands on the pivot; the farm anchors it at the front of the bed box",
+  "_note": "a ground patch is its own ground: no radial shadow, which would reach the canvas edge in front of it"
+}
