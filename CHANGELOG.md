@@ -125,8 +125,10 @@ PNG（可选导 GLB）、写 manifest 条目、顺手跑 alpha 毛边和锚点�
   配方逐个写明，运行时"作物自带接地影"的默认假设因此是对的。
 - **道具。** `basket_empty` 就是运行时在用的整株篮子 GLB，按它自己的 1.94 m
   跨度渲——所以配方多了 `from_glb` 模型和按资产的 `ortho_scale`。
-  `soil_grass_patch` 没有任何记录说明它是怎么来的（原包模型窄 7 px），配方只
-  渲进联系表、不覆盖现货。`soil_cover` 仍走 `soil_cover_candidate` 的冻结 GLB。
+  `soil_grass_patch` 没有任何记录说明它是怎么来的，而且是旧柔光箱机位渲的：
+  土是闷褐色、草发暗，和站在它上面的作物不是一盏灯。按同一冻结配置重渲并装进
+  `props/`，整套现在共一盏光（你让我按审美定，定的是这个）。`soil_cover` 仍走
+  `soil_cover_candidate` 的冻结 GLB。
 
 管线本身：`contract.json` 一处写数字；`palette.json` 39 种材质；`models/` 19 个
 只管形状；`recipes/` 19 份说模型、参数、阴影、跨度、装到哪；`build.py` 一条

@@ -115,10 +115,10 @@ These are yours to make. Nothing below has been changed without asking.
    and renders one model per recipe; `build.py` also writes the manifest and
    runs the Pillow audit and contact sheet. Rendered in the sandbox through
    `pip install bpy`: all seventeen crops match `assets/harvest_3d/crops/` to
-   0 or 1 pixel, the basket to its alpha box. What is left: retire the fifteen
-   old scripts (keep the frozen profile .blend they share), move `soil_cover`
-   onto a recipe, and decide which `soil_grass_patch` is right, since the
-   shipped one has no recorded source.
+   0 or 1 pixel, the basket to its alpha box. `soil_grass_patch` was re-rendered through the
+   same profile and installed (the old one was lit by the other rig). What is
+   left: retire the fifteen old scripts (keep the frozen profile .blend they
+   share) and move `soil_cover` onto a recipe.
 6. **The save file has two version fields.** `SAVE_VERSION` is written on
    every save and never read. `FARM_SAVE_VERSION` is the one migrations use.
    Folding them into one is a small change, but it touches every existing save,

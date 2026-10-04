@@ -66,15 +66,17 @@ renders stay on disk for a look, nothing is installed.
 - **Props.** `basket_empty` is the whole-plant basket GLB (the same file the
   runtime ships) at its own 1.94 m span; the recipe uses `from_glb` plus
   `ortho_scale`. `soil_cover` still comes from the frozen GLB profile in
-  `soil_cover_candidate/`. `soil_grass_patch` has no recorded source and the
-  sprite-pack model is 7 px narrower than the shipped PNG, so its recipe
-  renders for the sheet but installs nothing.
+  `soil_cover_candidate/`. `soil_grass_patch` had no recorded source and was lit by
+  the old softbox rig (muddy soil, dark grass, nothing like the crops standing
+  on it); it was re-rendered through the frozen profile and installed, so the
+  whole set now shares one light.
 
 | sprite | differing pixels vs shipped |
 |---|---|
 | apple, bug, corn, golden_carrot, lettuce, orange, potato, stone, strawberry, watermelon | 0 |
 | broccoli, carrot, grape, peas, pumpkin, tomato, wheat | 1 |
 | basket_empty | 344 (same alpha box; shading noise) |
+| soil_grass_patch | replaced on purpose: the old PNG came from the other rig |
 
 ## Add an asset
 

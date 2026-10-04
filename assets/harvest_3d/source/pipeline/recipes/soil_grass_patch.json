@@ -10,7 +10,7 @@
       0.32
     ]
   },
-  "install": null,
+  "install": "props/soil_grass_patch.png",
   "footprint_reaches_edge": true,
-  "_note": "The shipped props/soil_grass_patch.png predates the pipeline and no source records its exact geometry (the sprite-pack model renders 7 px narrower). Rendered for the sheet, never installed over the shipped file until someone decides which patch is right."
+  "_note": "Re-rendered 4 October through the frozen profile and installed over the older softbox/AgX render, so the patch is lit like the crops standing on it. The previous PNG had no recorded source."
 }
