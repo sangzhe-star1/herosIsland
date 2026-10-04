@@ -1,0 +1,16 @@
+{
+  "id": "egg",
+  "kind": "prop",
+  "model": "egg",
+  "params": {},
+  "ortho_scale": 0.62,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.16,
+      0.1
+    ]
+  },
+  "install": "props/egg.png",
+  "deep_footprint": true
+}

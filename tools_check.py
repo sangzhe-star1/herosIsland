@@ -719,6 +719,11 @@ if os.path.exists("data/garden_orders.json"):
     orders = json.load(open("data/garden_orders.json"))
     crop_ids = {str(c.get("id", "")) for c in json.load(open("data/crops.json"))} \
         if os.path.exists("data/crops.json") else set()
+    # Produce (the hens' eggs) is fillable too: the coop makes it, the barn
+    # holds it, and GameData.get_crop() draws it. Same door, no bed.
+    if os.path.exists("data/farm_produce.json"):
+        crop_ids |= {str(item.get("id", "")) for item in
+                     json.load(open("data/farm_produce.json")).get("produce", [])}
     order_icon_names = set(re.findall(r'"(\w+)"',
         re.search(r'const NAMES := \[(.*?)\n\]',
                   open("scripts/ui/icon_library.gd").read(), re.S).group(1)))
@@ -740,8 +745,8 @@ if os.path.exists("data/garden_orders.json"):
             for crop_id, how_many in wants.items():
                 if crop_id not in crop_ids:
                     errors.append(f"garden_orders.json: order '{oid}' asks for "
-                                  f"'{crop_id}', which is not a crop -- he could "
-                                  f"never fill it")
+                                  f"'{crop_id}', which is neither a crop nor "
+                                  f"produce -- he could never fill it")
                 if not isinstance(how_many, int) or how_many <= 0:
                     errors.append(f"garden_orders.json: order '{oid}' asks for "
                                   f"{how_many!r} of '{crop_id}'")

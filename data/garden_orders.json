@@ -230,5 +230,21 @@
     "unlock_condition": "level:5",
     "recurring": true,
     "completion_transaction_key": "farm_order_daily_orchard_basket"
+  },
+  {
+    "id": "puppy_breakfast",
+    "customer_id": "puppy",
+    "customer_icon": "paw",
+    "name_key": "npc.puppy",
+    "requirements": {
+      "egg": 2,
+      "corn": 1
+    },
+    "rewards": {
+      "coins": 30,
+      "items": {}
+    },
+    "unlock_condition": "",
+    "completion_transaction_key": "farm_order_puppy_breakfast"
   }
 ]

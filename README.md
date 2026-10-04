@@ -134,7 +134,7 @@ the whole design bet.
 | `keepy_uppy` | 1 | keep a balloon off the ground |
 | `light_defense` | 1 | a stream of monsters walks in; tap anywhere to blast, and pick an upgrade between waves |
 | `light_echo` | 1 | the light pads sing a short song and he taps it back |
-| `garden` | 1 | the Star Garden farm; its beds grow the same 2.5D crop renders the harvest levels use |
+| `garden` | 1 | the Star Garden farm; the whole world layer is 2.5D renders from one studio, and the hen coop turns corn into eggs |
 
 **Seven more templates are in the code but no level uses them:**
 `traffic_crossing`, `item_sorting`, `collect_energy`, `animal_rescue`,

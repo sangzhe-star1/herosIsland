@@ -183,6 +183,10 @@ func _ready() -> void:
 				{"icon": "balloon", "x": 700.0, "y": 300.0, "size": 84.0},
 				{"icon": "heart", "x": 300.0, "y": 500.0, "size": 72.0},
 			])
+		if what == "coop":
+			farm["farm_xp"] = 60
+			farm["coop"] = {"fed_at": 0, "eggs": 2}
+			farm["warehouse"] = {"corn": 3}
 		if what == "rack":
 			farm["farm_xp"] = 200
 			farm["unlocked_crops"] = ["carrot", "corn", "strawberry",
@@ -273,6 +277,9 @@ func _ready() -> void:
 		print("OVERFLOW SHOT ", "PASSED" if _fixture_failures.is_empty() else "FAILED")
 		await ProbeLifecycle.finish(self, 0 if _fixture_failures.is_empty() else 1)
 		return
+	if what == "coop":
+		(scene.get("_world") as Node).call("look_at_facility", "coop")
+		await get_tree().process_frame
 	if what == "poke":
 		# Fire the wiggle NOW and catch it mid-tilt: the answer lasts four
 		# tenths of a second, which is the point -- and the reason it cannot

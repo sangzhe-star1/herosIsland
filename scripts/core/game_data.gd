@@ -58,6 +58,9 @@ var farm_dog: Dictionary = {}
 ## Where the farm's extra scenery stands (windmill, pond, hens...); read by
 ## FarmWorldArt, which skips anything that would cover a bed or a building.
 var farm_dressing: Dictionary = {}
+## What the farm makes without a bed (eggs). get_crop() answers for these.
+var farm_produce: Dictionary = {}
+var _produce_by_id: Dictionary = {}
 ## The farm's five levels: where each threshold sits and what each of the
 ## three xp sources pays. Read-only; the child's own farm_xp is in the save.
 var farm_levels: Dictionary = {}
@@ -100,6 +103,10 @@ func _ready() -> void:
 	farm_visitor_milestones = _load_json("res://data/farm_visitors.json", {})
 	farm_dog = _load_json("res://data/farm_dog.json", {})
 	farm_dressing = _load_json("res://data/farm_world_dressing.json", {})
+	farm_produce = _load_json("res://data/farm_produce.json", {})
+	for item in farm_produce.get("produce", []):
+		if item is Dictionary and str(item.get("id", "")) != "":
+			_produce_by_id[str(item["id"])] = item
 	farm_levels = _load_json("res://data/farm_levels.json", {})
 	farm_expansions = _load_json("res://data/farm_expansions.json", {})
 
@@ -140,6 +147,7 @@ func _ready() -> void:
 				farm_visit_texts.get("bear", {}).get("lines", []).size()],
 			["farm dog numbers", farm_dog.size()],
 			["farm dressing props", farm_dressing.get("props", []).size()],
+			["farm produce", farm_produce.get("produce", []).size()],
 			["farm levels", farm_levels.get("levels", []).size()],
 			["farm expansions", farm_expansions.get("slots", []).size()]]:
 		if int(pair[1]) == 0:
@@ -294,7 +302,10 @@ func farm_expansion_slot(index: int) -> Dictionary:
 
 
 func get_crop(crop_id: String) -> Dictionary:
-	return _crops_by_id.get(crop_id, {})
+	# Produce (an egg) has a name and a picture but no bed: every display
+	# that asks a crop for its icon gets one; nothing that plants finds it,
+	# because no seed listing and no unlocked_crops entry ever names it.
+	return _crops_by_id.get(crop_id, _produce_by_id.get(crop_id, {}))
 
 
 ## How long this crop takes from seed to ripe, in seconds. Zero for a crop that

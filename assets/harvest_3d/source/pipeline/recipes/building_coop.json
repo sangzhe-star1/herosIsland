@@ -1,0 +1,21 @@
+{
+  "id": "building_coop",
+  "kind": "prop",
+  "model": "building_coop",
+  "params": {},
+  "ortho_scale": 3.6,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.9,
+      0.5
+    ]
+  },
+  "install": "props/building_coop.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.338,
+    0.496,
+    0.0
+  ]
+}

@@ -36,7 +36,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1162
+const CHECKS_EXPECTED := 1186
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -119,6 +119,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _a_card_he_cannot_fill_still_answers()
 	await _the_lesson_clock_is_the_carrots_alone()
 	await _the_bed_grows_the_same_crop_the_harvest_page_shows()
+	await _the_hens_turn_corn_into_eggs()
 
 	_close()
 
@@ -2039,6 +2040,88 @@ func _the_bed_grows_the_same_crop_the_harvest_page_shows() -> void:
 	SaveManager.save_game()
 	_garden.call("_rebuild")
 	await get_tree().process_frame
+
+
+## The coop: corn in, wait, eggs out, by the same barn door every harvest
+## uses. A press with no corn shows the corn and takes nothing; the waiting
+## hens answer with a ring; eggs laid while the game was shut are there on
+## the next look; and the press reaches the coop through the real world hit
+## test, not a shortcut.
+func _the_hens_turn_corn_into_eggs() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["farm_xp"] = 200
+	farm["coop"] = {"fed_at": 0, "eggs": 0}
+	farm["warehouse"] = {"corn": 2}
+	farm["harvest_basket"] = {}
+	GameClock.set_test_now(NOON, 0)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var world: Node = _garden.get("_world")
+	var fx: Node = _garden.call("_harvest_feedback_layer")
+
+	# Hungry hens, corn in the barn: the press through the world feeds them.
+	world.call("press_at", world.call("facility_screen_position", "coop"))
+	await get_tree().process_frame
+	_ok(int(SaveManager.data["farm"]["warehouse"].get("corn", 0)) == 1,
+		"pressing the coop with corn in the barn feeds the hens one corn")
+	_ok(int(SaveManager.data["farm"]["coop"].get("fed_at", 0)) == NOON,
+		"...and starts the laying clock on the game clock")
+
+	# Laying hens: a second press is a ring, not a second corn.
+	_garden.call("_tap_coop")
+	await get_tree().process_frame
+	_ok(int(SaveManager.data["farm"]["warehouse"].get("corn", 0)) == 1,
+		"pressing laying hens takes no more corn")
+	_ok(_find_named(fx, "CoopRing") != null,
+		"...and shows how long is left as a ring")
+
+	# Time passes with the game shut; the eggs are there on the next look.
+	GameClock.set_test_now(NOON + 130, 0)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(int(SaveManager.data["farm"]["coop"].get("eggs", 0)) == 2,
+		"two minutes later there are two eggs")
+	var eggs_drawn := 0
+	for node in _descendants(world):
+		if str(node.name).begins_with("CoopEgg"):
+			eggs_drawn += 1
+	_ok(eggs_drawn == 2, "...drawn beside the coop (%d)" % eggs_drawn)
+	if _garden.has_meta("last_harvest_flight"):
+		_garden.remove_meta("last_harvest_flight")
+	_garden.call("_tap_coop")
+	await get_tree().process_frame
+	_ok(Barn.count("egg") == 2, "collecting puts both eggs in the barn")
+	var stamp: Dictionary = _garden.get_meta("last_harvest_flight", {})
+	_ok(str(stamp.get("crop_id", "")) == "egg",
+		"...and they fly to the barn like a harvest")
+	_ok(int(SaveManager.data["farm"]["coop"].get("eggs", 0)) == 0
+		and int(SaveManager.data["farm"]["coop"].get("fed_at", 0)) == 0,
+		"...leaving the hens hungry again")
+
+	# Hungry, no corn: the corn is shown, nothing is taken, nothing breaks.
+	SaveManager.data["farm"]["warehouse"] = {}
+	_garden.call("_tap_coop")
+	await get_tree().process_frame
+	_ok(_find_named(fx, "CoopWant") != null,
+		"a press with no corn shows the corn the hens want")
+	_ok(int(SaveManager.data["farm"]["coop"].get("fed_at", 0)) == 0,
+		"...and feeds nothing")
+	GameClock.set_test_now(NOON, 0)
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+
+func _descendants(node: Node) -> Array:
+	var out: Array = []
+	for child in node.get_children():
+		out.append(child)
+		out.append_array(_descendants(child))
+	return out
 
 
 ## WCAG relative luminance, so "can he see it" is a number and not an opinion.

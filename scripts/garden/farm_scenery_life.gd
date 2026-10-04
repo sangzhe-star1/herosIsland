@@ -14,6 +14,33 @@ func add(sprite: Control, kind: String, spec: Dictionary) -> void:
 		"path": spec.get("path", []), "leg": 0, "t": 0.0})
 
 
+## The sprite under a press, if it is one that answers (duck, hen). The hop
+## is a short impulse the bob/peck motion rides on top of.
+func poke_at(screen_at: Vector2) -> String:
+	for life in _alive:
+		var sprite: Control = life["sprite"]
+		if not is_instance_valid(sprite) or str(life["kind"]) == "flutter":
+			continue
+		if sprite.get_global_rect().grow(8.0).has_point(screen_at):
+			_hop(life)
+			return str(sprite.get_meta("prop_id", ""))
+	return ""
+
+
+func poke_kind(kind: String) -> void:
+	for life in _alive:
+		var sprite: Control = life["sprite"]
+		if is_instance_valid(sprite) and str(sprite.get_meta("prop_id", "")) == kind:
+			_hop(life)
+
+
+func _hop(life: Dictionary) -> void:
+	life["hop"] = 0.5
+	var sprite: Control = life["sprite"]
+	if Juice.motion_enabled():
+		Juice.pop(sprite, 0.16)
+
+
 func _process(delta: float) -> void:
 	if not Juice.motion_enabled():
 		return
@@ -24,16 +51,21 @@ func _process(delta: float) -> void:
 			continue
 		var base: Vector2 = life["base"]
 		var phase: float = life["phase"]
+		var hop := 0.0
+		if float(life.get("hop", 0.0)) > 0.0:
+			life["hop"] = float(life["hop"]) - delta
+			hop = sin(clampf(float(life["hop"]) / 0.5, 0.0, 1.0) * PI) * 14.0
 		match str(life["kind"]):
 			"spin":
 				sprite.rotation += delta * float(life["speed"])
 			"bob":
-				sprite.position.y = base.y + sin(_t * 1.6 + phase) * 2.5
+				sprite.position.y = base.y + sin(_t * 1.6 + phase) * 2.5 - hop
 				sprite.rotation = sin(_t * 1.1 + phase) * 0.05
 			"peck":
 				# A hen pecks in little bursts: a nod every so often, head down.
 				var cycle := fmod(_t * 0.7 + phase, 3.0)
 				sprite.rotation = -absf(sin(cycle * TAU * 2.0)) * 0.22 if cycle < 1.0 else 0.0
+				sprite.position.y = base.y - hop
 			"flutter":
 				_flutter(life, sprite, delta)
 

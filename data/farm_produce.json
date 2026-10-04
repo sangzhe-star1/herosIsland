@@ -1,0 +1,11 @@
+{
+  "_comment": "Things the farm makes that are not grown in a bed: the hens' eggs. GameData.get_crop() answers for these too, so the barn, orders, recipes and market draw them like any crop; nothing plants them because no seed lists them.",
+  "produce": [
+    {
+      "id": "egg",
+      "name_key": "item.egg",
+      "icon": "res://assets/harvest_3d/props/egg.png",
+      "source": "coop"
+    }
+  ]
+}

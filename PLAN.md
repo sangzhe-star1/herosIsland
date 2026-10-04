@@ -85,6 +85,16 @@ the house, replace any licensed character likeness with an original hero.
 
 ---
 
+## Phase 7 — The farm as a place — **begun 4 October**
+
+The whole world layer is one rendered toy set, placed by data, with a
+little life of its own (sails, duck, hens, butterflies). The first new loop
+on top of it is the hen coop: corn in, two minutes, eggs out, eggs into
+orders, recipes and the market. Candidates for the next loops, in the order
+I would try them with him: the windmill grinding wheat into flour for the
+kitchen, the dog playing fetch, a rain cloud he parks over a thirsty bed.
+Each is a facility or a scenery prop that already stands there.
+
 ## Open decisions
 
 These are yours to make. Nothing below has been changed without asking.

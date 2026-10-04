@@ -65,6 +65,7 @@ const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
+const Coop := preload("res://scripts/garden/farm_coop_manager.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Dog := preload("res://scripts/garden/farm_dog_controller.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
@@ -493,6 +494,8 @@ func _draw_buildings() -> void:
 		# action cue: basket at the barn, a finished dish at the kitchen entrance,
 		# and a heart above the order checklist. It stays within the existing
 		# facility art and does not create another control or tap target.
+		if facility_id == "coop" and not locked_here:
+			_dress_coop(hut, box)
 		var art := UiKit.picture(str(f.get("icon", "star")), art_size)
 		if art != null:
 			art.position = FarmWorldArt.facility_icon_anchor(box,
@@ -538,7 +541,9 @@ func refresh_buildings() -> void:
 
 ## Everything the town's drawing depends on, as one comparable word.
 func _town_key(bed_count: int) -> String:
-	return "%s|%d|%d" % [str(_bear_door_open()), Level.level(), bed_count]
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	return "%s|%d|%d|%s" % [str(_bear_door_open()), Level.level(), bed_count,
+		Coop.state(farm, GameClock.now_unix())]
 
 
 ## The land still under stones: one patch per expansion slot the save has not
@@ -613,6 +618,37 @@ func _draw_expansion_slots(bed_count: int) -> void:
 		tag.size = Vector2(40, 36)
 		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		lift.add_child(tag)
+
+
+## Eggs waiting by the coop, one each, with a soft glow so they read from
+## the far side of the farm: the picture of "come and collect".
+func _dress_coop(hut: Node2D, box: Vector2) -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	if Coop.state(farm, GameClock.now_unix()) != Coop.READY:
+		return
+	var egg := HarvestArt.prop_texture("egg")
+	if egg == null:
+		return
+	var count := int(Coop.coop(farm).get("eggs", 0))
+	Shapes.glow(hut, Vector2(-box.x * 0.30, box.y * 0.36), 54.0,
+		Color(1.0, 0.94, 0.62), 4, 0.5)
+	for n in range(count):
+		var at := Vector2(-box.x * 0.38 + 26.0 * float(n), box.y * 0.40 - 6.0 * float(n % 2))
+		# Siblings cannot share a name; Godot would quietly rename the second.
+		var art := HarvestArt.grounded_sprite(egg, 20.0, at, "CoopEgg_%d" % n)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hut.add_child(art)
+
+
+## A press on scenery that can answer: the duck hops, a hen flaps. Pure
+## delight, no save, no signal -- like the dog. Returns what was poked.
+func poke_scenery_at(at: Vector2) -> String:
+	return FarmWorldArt.poke_scenery(_ground, at)
+
+
+## All scenery of one kind reacts (feeding the hens makes both flap).
+func poke_scenery_kind(kind: String) -> void:
+	FarmWorldArt.poke_scenery_kind(_ground, kind)
 
 
 ## Which expansion slot is under this point on the glass, or -1. The whole
@@ -871,6 +907,11 @@ func press_at(at: Vector2) -> void:
 	# save and no signal, because there is no state anywhere to change.
 	if _dog != null and is_instance_valid(_dog) and _dog.pet_at(at, camera):
 		_dog.pet()
+		return
+	var poked := poke_scenery_at(at)
+	if poked != "":
+		AudioManager.play_sfx("res://assets/audio/water.ogg" if poked == "duck"
+			else "res://assets/audio/rustle.ogg")
 		return
 	_grass_tap(at)
 

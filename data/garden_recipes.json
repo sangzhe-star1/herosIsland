@@ -166,5 +166,19 @@
         "count": 1
       }
     ]
+  },
+  {
+    "id": "egg_tart",
+    "name_key": "recipe.egg_tart",
+    "needs": [
+      {
+        "crop_id": "egg",
+        "count": 2
+      },
+      {
+        "crop_id": "strawberry",
+        "count": 1
+      }
+    ]
   }
 ]

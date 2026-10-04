@@ -32,7 +32,8 @@ const PROP_IDS := ["basket_empty", "soil_grass_patch", "soil_cover",
 	# The rest of the farm's life (data/farm_world_dressing.json).
 	"tree_pine", "tree_fruit", "bush_flower", "flowerbed", "mushrooms", "log",
 	"hay_bale", "wheelbarrow", "scarecrow", "windmill", "windmill_blades", "pond",
-	"duck", "chicken", "signpost", "bench", "butterfly", "butterfly_blue"]
+	"duck", "chicken", "signpost", "bench", "butterfly", "butterfly_blue",
+	"building_coop", "egg"]
 static var _crop_badge_region_cache: Dictionary = {}
 static var _crop_ground_width_cache: Dictionary = {}
 static var _plant_spec_cache: Dictionary = {}

@@ -43,6 +43,7 @@ const Market := preload("res://scripts/garden/farm_market_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
+const Coop := preload("res://scripts/garden/farm_coop_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
@@ -1086,6 +1087,8 @@ func _tap_building(id: String) -> void:
 			_open_panel("visits")
 		"well":
 			AudioManager.play_sfx("res://assets/audio/water.ogg")
+		"coop":
+			_tap_coop()
 		"workshop":
 			# 5 级前它画成圈好的地，点了轻响就够——没有锁，只有还没长到。
 			if Level.level() >= int(Layout.facility("workshop").get("level", 5)):
@@ -1103,6 +1106,87 @@ func _tap_building(id: String) -> void:
 				AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		_:
 			AudioManager.play_sfx("res://assets/audio/pop.ogg")
+
+
+## The hens. Three answers to one press, read off the save: hungry hens eat a
+## corn from the barn (or show the corn they want), laying hens show how long
+## is left, and waiting eggs go to the barn by the harvest's own door, flying
+## the way every harvest flies. No lock, no scolding, no timer he has to beat.
+func _tap_coop() -> void:
+	var farm := _farm()
+	if Level.level() < int(Layout.facility("coop").get("level", 2)):
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		return
+	var now := GameClock.now_unix()
+	var at: Vector2 = _world.facility_screen_position("coop") \
+		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
+	match Coop.state(farm, now):
+		Coop.READY:
+			var receipt := Coop.collect(farm)
+			SaveManager.save_game()
+			AudioManager.play_sfx("res://assets/audio/found.ogg")
+			AudioManager.say("farm_coop_eggs")
+			var stored := int(receipt.get("stored", 0))
+			var spilled := int(receipt.get("spilled", 0))
+			if stored > 0:
+				_spawn_harvest_flight(-1, receipt, stored, _barn_button_at,
+					"warehouse", "HarvestFlight", at + Vector2(0, -20))
+			if spilled > 0:
+				_spawn_harvest_flight(-1, receipt, spilled, _spill_flight_destination(),
+					"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
+			_harvested_something = true
+			_queue_rebuild()
+		Coop.LAYING:
+			# How long is left, the way a bed answers: a ring, for a moment.
+			AudioManager.play_sfx("res://assets/audio/correct.ogg")
+			_show_coop_ring(at, Coop.progress(farm, now))
+		_:
+			if Coop.feed(farm, now):
+				SaveManager.save_game()
+				AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+				AudioManager.say("farm_coop_feed")
+				if _world != null and is_instance_valid(_world):
+					_world.poke_scenery_kind("chicken")
+				_queue_rebuild()
+			else:
+				# No corn: show the corn. The picture IS the sentence.
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+				_float_want(at, str(GameData.get_crop(Coop.FEED_CROP).get("icon", "seed")))
+
+
+func _show_coop_ring(at: Vector2, fraction: float) -> void:
+	var ring := UiKit.wait_ring(fraction, 64.0)
+	if ring == null:
+		return
+	ring.name = "CoopRing"
+	ring.position = at + Vector2(0, -70)
+	_harvest_feedback_layer().add_child(ring)
+	var t := ring.create_tween()
+	t.tween_interval(2.2)
+	t.tween_property(ring, "modulate:a", 0.0, 0.4)
+	t.tween_callback(ring.queue_free)
+
+
+## A small picture of what is wanted, rising from the thing that wants it
+## and fading: the wordless "I need corn".
+func _float_want(at: Vector2, icon: String) -> void:
+	var want := UiKit.picture(icon, 44.0)
+	if want == null:
+		return
+	want.name = "CoopWant"
+	want.position = at + Vector2(-22, -90)
+	want.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_harvest_feedback_layer().add_child(want)
+	if not Juice.motion_enabled():
+		var still := want.create_tween()
+		still.tween_interval(1.4)
+		still.tween_callback(want.queue_free)
+		return
+	var t := want.create_tween()
+	t.tween_property(want, "position:y", want.position.y - 40.0, 0.9)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(want, "modulate:a", 0.0, 0.9).set_delay(0.5)
+	t.tween_callback(want.queue_free)
 
 
 ## Open one door and shut the rest. The ONLY writer of these four flags: two
@@ -2163,7 +2247,8 @@ func _fly_to_barn(index: int, receipt: Dictionary) -> void:
 ## golden tint, timing and cleanup cannot drift apart while only the honest
 ## destination and quantity vary.
 func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
-		destination_at: Vector2, destination: String, node_prefix: String) -> void:
+		destination_at: Vector2, destination: String, node_prefix: String,
+		from_at: Vector2 = Vector2.INF) -> void:
 	var crop_id := str(receipt.get("crop_id", ""))
 	var crop: Dictionary = GameData.get_crop(crop_id)
 	# The same rendered crop the bed showed, so what flies is what he picked.
@@ -2200,7 +2285,8 @@ func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
 		art.modulate = Color(1.0, 0.85, 0.35)
 	var root_offset: Vector2 = art.position + Vector2(22, 22) \
 		if texture != null else Vector2.ZERO
-	art.position = _bed_centre(index) - Vector2(22, 22) + root_offset
+	var start := from_at if from_at.is_finite() else _bed_centre(index)
+	art.position = start - Vector2(22, 22) + root_offset
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_harvest_feedback_layer().add_child(art)
 	# When one crop batch splits, the little x2 / x1 tags answer the question

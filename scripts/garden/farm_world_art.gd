@@ -168,7 +168,27 @@ static func _add_dressing_props(layer: Node2D, protected: Array[Rect2]) -> void:
 			sprite.flip_h = true
 		if entry.has("life"):
 			life.add(sprite, str(entry["life"]), entry)
+			sprite.set_meta("prop_id", id)
 		placed[id] = sprite
+
+
+## A press on the glass: which living scenery is under it? The life node
+## keeps the list; a hit gets a hop. Returns the prop id, or "".
+static func poke_scenery(ground: Node2D, screen_at: Vector2) -> String:
+	var layer := ground.get_node_or_null("LandmarkScenery")
+	if layer == null:
+		return ""
+	var life := layer.get_node_or_null("SceneryLife")
+	if life == null:
+		return ""
+	return str(life.call("poke_at", screen_at))
+
+
+static func poke_scenery_kind(ground: Node2D, kind: String) -> void:
+	var layer := ground.get_node_or_null("LandmarkScenery")
+	var life := layer.get_node_or_null("SceneryLife") if layer != null else null
+	if life != null:
+		life.call("poke_kind", kind)
 
 
 ## Where a source-canvas pixel of a placed sprite is, in the layer's space.
