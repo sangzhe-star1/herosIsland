@@ -36,6 +36,9 @@ const PLANT_ROOT := Vector2(0.0, 12.0)
 ## most it may stand above its bed, both as multiples of the growth size.
 const CROP_PRESENCE := 1.3
 const CROP_TALLEST := 1.55
+## Half-canvas of the rendered soil patch: its loam oval is about 1.46 of
+## this wide, so 158 fills the 220 px bed box with a little grass to spare.
+const BED_PATCH_SIZE := 158.0
 
 ## How long the progress ring stays up after a press.
 const RING_SHOWN := 3.0
@@ -212,20 +215,44 @@ func _draw_ground(plot: Dictionary) -> void:
 	# made the two world layers compete with the crop for attention.
 	var grass_island := _patch_blob(_box * 0.49)
 
-	# A small contact shadow is enough to seat a bed. A giant ellipse around
-	# every plot made the opening view read as six separate UI cards.
-	Shapes.ground_shadow(_ground, Vector2(0, _box.y * 0.40), _box.x * 0.64, 0.07)
-
 	if not tilled:
 		# Untouched grass, with the tufts that say it has never been turned.
 		Shapes.fill(_ground, grass_island, GRASS.lightened(0.05), 0.0)
+		var tuft := Art.prop_texture("tuft")
 		for i in range(5):
 			var x := -_box.x * 0.34 + _box.x * 0.17 * float(i)
-			Shapes.fill(_ground, PackedVector2Array([
-				Vector2(x - 5, _box.y * 0.16), Vector2(x, -_box.y * 0.10),
-				Vector2(x + 5, _box.y * 0.16)]),
-				Color(0.34, 0.56, 0.28), 0.0)
+			if tuft != null:
+				var blade := Art.grounded_sprite(tuft, 26.0,
+					Vector2(x, _box.y * (0.10 if i % 2 == 0 else 0.18)), "Tuft")
+				blade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				_ground.add_child(blade)
+			else:
+				Shapes.fill(_ground, PackedVector2Array([
+					Vector2(x - 5, _box.y * 0.16), Vector2(x, -_box.y * 0.10),
+					Vector2(x + 5, _box.y * 0.16)]),
+					Color(0.34, 0.56, 0.28), 0.0)
 		return
+
+	# The bed itself is the studio's soil patch: a soft loam oval inside a
+	# raised grass lip, with its own short contact shadow, rendered by the
+	# same camera and light as the crop that will stand in it. The patch's
+	# ground pivot is its centre, placed just above the plant's root so the
+	# crop grows out of the loam, not off its front rim. Dry earth is the
+	# same patch warmed and lightened, with the cracks drawn over it.
+	var patch := Art.prop_texture("soil_grass_patch")
+	if patch != null:
+		var bed := Art.grounded_sprite(patch, BED_PATCH_SIZE, Vector2(0.0, 4.0), "BedPatch")
+		bed.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if thirsty:
+			bed.modulate = Color(1.0, 0.92, 0.78)
+		_ground.add_child(bed)
+		if thirsty:
+			_draw_dry_cracks(earth)
+		return
+
+	# A small contact shadow is enough to seat a bed. A giant ellipse around
+	# every plot made the opening view read as six separate UI cards.
+	Shapes.ground_shadow(_ground, Vector2(0, _box.y * 0.40), _box.x * 0.64, 0.07)
 
 	# The bed has a very small raised edge: a warm side wall, then its sunlit
 	# top. This gives the crop somewhere to grow *from* without turning every

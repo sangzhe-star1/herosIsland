@@ -21,7 +21,9 @@ const CROP_IDS := [
 	"lettuce", "grape", "wheat", "stone", "bug",
 ]
 
-const PROP_IDS := ["basket_empty", "soil_grass_patch", "soil_cover"]
+const PROP_IDS := ["basket_empty", "soil_grass_patch", "soil_cover",
+	# The farm's scenery, from the same studio as the crops (pipeline/recipes).
+	"tree", "hedge", "stones", "tuft", "sprig_yellow", "sprig_pink", "sprig_lilac"]
 static var _crop_badge_region_cache: Dictionary = {}
 static var _crop_ground_width_cache: Dictionary = {}
 static var _plant_spec_cache: Dictionary = {}

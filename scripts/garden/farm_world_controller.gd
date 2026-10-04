@@ -64,6 +64,7 @@ signal gesture_finished(index: int, track: PackedVector2Array, centre: Vector2,
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
+const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Dog := preload("res://scripts/garden/farm_dog_controller.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
@@ -385,7 +386,7 @@ func _settle() -> void:
 func _draw_ground() -> void:
 	var world := Layout.world_size()
 	Shapes.fill(_ground, Shapes.rounded_rect(Vector2.ZERO, world, 40.0),
-		Color(0.71, 0.84, 0.58), 1.0)
+		Color(0.66, 0.81, 0.53), 1.0)
 	# The passive scenery is a child Node2D with no input of its own. It gets
 	# every real bed and facility rectangle first, so a tree can make the world
 	# feel lived in without ever making a child wonder whether a carrot is
@@ -557,12 +558,22 @@ func _draw_expansion_slots(bed_count: int) -> void:
 				(float(n) - float(stones - 1) * 0.5) * box.x * 0.28,
 				(-0.12 + 0.16 * float(n % 2)) * box.y)
 			patch.add_child(stone)
-			var rng := RandomNumberGenerator.new()
-			rng.seed = 47_129 + index * 997 + n * 131
 			var radius := box.y * (0.16 + 0.04 * float(n % 2))
-			Shapes.lit(stone, Shapes.blob(Vector2.ZERO,
-				Vector2(radius, radius * 0.82), rng, 0.10, 4, 20),
-				Color(0.62, 0.64, 0.66), 0.6)
+			# The same rendered field stone the harvest page's beds carry,
+			# standing on this slot; the node it sits in is what the purchase
+			# slides away, so the animation is untouched.
+			var rock := HarvestArt.crop_texture("stone")
+			if rock != null:
+				var art := HarvestArt.grounded_sprite(rock, radius * 1.45,
+					Vector2(0.0, radius * 0.55), "Stone3D")
+				art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				stone.add_child(art)
+			else:
+				var rng := RandomNumberGenerator.new()
+				rng.seed = 47_129 + index * 997 + n * 131
+				Shapes.lit(stone, Shapes.blob(Vector2.ZERO,
+					Vector2(radius, radius * 0.82), rng, 0.10, 4, 20),
+					Color(0.62, 0.64, 0.66), 0.6)
 		# A fence post lying where the fence gave up, pointing at the work.
 		Shapes.fill(patch, Shapes.rounded_rect(
 			Vector2(-box.x * 0.46, box.y * 0.30), Vector2(box.x * 0.30, 10), 4.0),

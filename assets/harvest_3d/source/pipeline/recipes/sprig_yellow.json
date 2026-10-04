@@ -1,0 +1,17 @@
+{
+  "id": "sprig_yellow",
+  "kind": "prop",
+  "model": "sprig",
+  "params": {
+    "bloom": "yellow"
+  },
+  "ortho_scale": 1.6,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.3,
+      0.18
+    ]
+  },
+  "install": "props/sprig_yellow.png"
+}

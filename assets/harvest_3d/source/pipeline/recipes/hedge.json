@@ -1,0 +1,14 @@
+{
+  "id": "hedge",
+  "kind": "prop",
+  "model": "hedge",
+  "params": {},
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.62,
+      0.34
+    ]
+  },
+  "install": "props/hedge.png"
+}

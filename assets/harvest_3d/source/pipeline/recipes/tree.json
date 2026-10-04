@@ -1,0 +1,17 @@
+{
+  "id": "tree",
+  "kind": "prop",
+  "model": "tree",
+  "params": {
+    "seed": 1
+  },
+  "ortho_scale": 3.4,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.55,
+      0.36
+    ]
+  },
+  "install": "props/tree.png"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "sprig_pink",
+  "kind": "prop",
+  "model": "sprig",
+  "params": {
+    "bloom": "pink"
+  },
+  "ortho_scale": 1.6,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.3,
+      0.18
+    ]
+  },
+  "install": "props/sprig_pink.png"
+}

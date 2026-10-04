@@ -77,6 +77,7 @@ renders stay on disk for a look, nothing is installed.
 | broccoli, carrot, grape, peas, pumpkin, tomato, wheat | 1 |
 | basket_empty | 344 (same alpha box; shading noise) |
 | soil_grass_patch | replaced on purpose: the old PNG came from the other rig |
+| tree, hedge, stones, tuft, sprig_yellow/pink/lilac | new on 4 October: the farm's scenery, drawn by `farm_world_art.gd` |
 
 ## Add an asset
 

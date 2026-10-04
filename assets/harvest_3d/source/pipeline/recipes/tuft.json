@@ -1,0 +1,15 @@
+{
+  "id": "tuft",
+  "kind": "prop",
+  "model": "tuft",
+  "params": {},
+  "ortho_scale": 1.6,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.3,
+      0.18
+    ]
+  },
+  "install": "props/tuft.png"
+}

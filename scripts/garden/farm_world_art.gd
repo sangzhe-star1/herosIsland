@@ -6,8 +6,9 @@ extends RefCounted
 ## 而不是让控制器、地块和各个入口各画一份小树/小屋，才能一直沿用
 ## Shapes 的柔和描边、光向和阴影语言。
 
-const MEADOW_LIGHT := Color(0.75, 0.87, 0.62)
-const MEADOW_SHADE := Color(0.61, 0.78, 0.47)
+const Art := preload("res://scripts/harvest/harvest_visual_art.gd")
+const MEADOW_LIGHT := Color(0.71, 0.85, 0.58)
+const MEADOW_SHADE := Color(0.57, 0.75, 0.44)
 const BUSH_DARK := Color(0.29, 0.52, 0.31)
 const BUSH_MID := Color(0.38, 0.64, 0.35)
 const BUSH_LIGHT := Color(0.55, 0.75, 0.42)
@@ -253,78 +254,74 @@ static func draw_path(parent: Node2D, points: PackedVector2Array,
 		Color(0.89, 0.83, 0.68), 0.0)
 
 
+## A rendered prop from the harvest studio, standing on the meadow with its
+## ground pivot at `at`. The same light, the same camera and the same contact
+## shadow as the crops in the beds, so a tree and a carrot look like they were
+## taken out of one box. `world_size` is the sprite's half-canvas in pixels.
+static func _prop(parent: Node2D, id: String, at: Vector2, world_size: float) -> Control:
+	var texture := Art.prop_texture(id)
+	if texture == null:
+		return null
+	var sprite := Art.grounded_sprite(texture, world_size, at, "Scenery_" + id)
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(sprite)
+	return sprite
+
+
 static func _draw_tree_cluster(parent: Node2D, at: Vector2, scale: float,
-		seed: int) -> void:
-	Shapes.ground_shadow(parent, at + Vector2(4.0, 46.0) * scale,
-		88.0 * scale, 0.17)
-	Shapes.fill(parent, Shapes.taper(at + Vector2(-7.0, 44.0) * scale,
-		at + Vector2(-3.0, -10.0) * scale, 22.0 * scale, 13.0 * scale),
-		WOOD_DARK, 0.74)
-	Shapes.fill(parent, Shapes.taper(at + Vector2(5.0, 44.0) * scale,
-		at + Vector2(18.0, -1.0) * scale, 15.0 * scale, 8.0 * scale),
-		WOOD_LIGHT, 0.62)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed
-	Shapes.lit(parent, Shapes.blob(at + Vector2(-18.0, -30.0) * scale,
-		Vector2(47.0, 43.0) * scale, rng, 0.10, 4, 22), BUSH_DARK, 0.48)
-	rng.seed = seed + 19
-	Shapes.lit(parent, Shapes.blob(at + Vector2(22.0, -36.0) * scale,
-		Vector2(50.0, 46.0) * scale, rng, 0.10, 5, 24), BUSH_MID, 0.52)
-	rng.seed = seed + 37
-	Shapes.lit(parent, Shapes.blob(at + Vector2(0.0, -64.0) * scale,
-		Vector2(40.0, 35.0) * scale, rng, 0.09, 4, 20), BUSH_LIGHT, 0.48)
+		_seed: int) -> void:
+	# The old drawing stood on `at + 44 * scale`; the render stands on its root.
+	if _prop(parent, "tree", at + Vector2(0.0, 44.0) * scale, 150.0 * scale) == null:
+		Shapes.ground_shadow(parent, at + Vector2(4.0, 46.0) * scale,
+			88.0 * scale, 0.17)
+		Shapes.fill(parent, Shapes.taper(at + Vector2(-7.0, 44.0) * scale,
+			at + Vector2(-3.0, -10.0) * scale, 22.0 * scale, 13.0 * scale),
+			WOOD_DARK, 0.74)
+		Shapes.lit(parent, Shapes.blob(at + Vector2(0.0, -40.0) * scale,
+			Vector2(60.0, 52.0) * scale, RandomNumberGenerator.new(), 0.10, 4, 22),
+			BUSH_MID, 0.52)
 
 
 static func _draw_hedge_cluster(parent: Node2D, at: Vector2, scale: float,
-		seed: int) -> void:
-	Shapes.ground_shadow(parent, at + Vector2(0.0, 13.0) * scale,
-		72.0 * scale, 0.12)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seed
-	Shapes.lit(parent, Shapes.blob(at + Vector2(-20.0, 2.0) * scale,
-		Vector2(31.0, 23.0) * scale, rng, 0.10, 4, 20), BUSH_DARK, 0.38)
-	rng.seed = seed + 17
-	Shapes.lit(parent, Shapes.blob(at + Vector2(5.0, -5.0) * scale,
-		Vector2(37.0, 27.0) * scale, rng, 0.10, 5, 22), BUSH_MID, 0.42)
-	rng.seed = seed + 29
-	Shapes.fill(parent, Shapes.blob(at + Vector2(18.0, -14.0) * scale,
-		Vector2(23.0, 17.0) * scale, rng, 0.08, 4, 18), BUSH_LIGHT, 0.0)
+		_seed: int) -> void:
+	if _prop(parent, "hedge", at + Vector2(0.0, 14.0) * scale, 92.0 * scale) == null:
+		Shapes.lit(parent, Shapes.blob(at, Vector2(37.0, 27.0) * scale,
+			RandomNumberGenerator.new(), 0.10, 5, 22), BUSH_MID, 0.42)
 
 
 static func _draw_stone_cluster(parent: Node2D, at: Vector2, scale: float) -> void:
-	Shapes.ground_shadow(parent, at + Vector2(2.0, 14.0) * scale,
-		74.0 * scale, 0.14)
-	for stone in [
-		{"offset": Vector2(-23.0, 3.0), "radii": Vector2(19.0, 14.0)},
-		{"offset": Vector2(6.0, -5.0), "radii": Vector2(24.0, 18.0)},
-		{"offset": Vector2(30.0, 9.0), "radii": Vector2(15.0, 11.0)},
-	]:
-		var offset: Vector2 = stone["offset"] * scale
-		var radii: Vector2 = stone["radii"] * scale
-		Shapes.lit(parent, Shapes.oval_points(at + offset, radii), STONE, 0.45)
+	if _prop(parent, "stones", at + Vector2(0.0, 12.0) * scale, 86.0 * scale) == null:
+		Shapes.lit(parent, Shapes.oval_points(at, Vector2(24.0, 18.0) * scale),
+			STONE, 0.45)
 
 
 static func _draw_tuft(parent: Node2D, at: Vector2, scale: float) -> void:
-	var tint := MEADOW_SHADE
-	for x in [-7.0, 0.0, 7.0]:
-		Shapes.fill(parent, PackedVector2Array([
-			at + Vector2(x - 2.0, 6.0) * scale,
-			at + Vector2(x, -9.0) * scale,
-			at + Vector2(x + 2.5, 6.0) * scale,
-		]), tint, 0.0)
+	if _prop(parent, "tuft", at + Vector2(0.0, 6.0) * scale, 30.0 * scale) == null:
+		var tint := MEADOW_SHADE
+		for x in [-7.0, 0.0, 7.0]:
+			Shapes.fill(parent, PackedVector2Array([
+				at + Vector2(x - 2.0, 6.0) * scale,
+				at + Vector2(x, -9.0) * scale,
+				at + Vector2(x + 2.5, 6.0) * scale,
+			]), tint, 0.0)
+
+
+## Which sprig a bloom colour asks for. The callers pass the colour they
+## always passed; the render has three to choose from.
+static func _sprig_for(bloom: Color) -> String:
+	if bloom.b > 0.85:
+		return "sprig_lilac"
+	if bloom.g < 0.75:
+		return "sprig_pink"
+	return "sprig_yellow"
 
 
 static func _draw_fern_patch(parent: Node2D, at: Vector2, scale: float,
 		bloom: Color) -> void:
-	Shapes.ground_shadow(parent, at + Vector2(0.0, 12.0) * scale,
-		44.0 * scale, 0.10)
-	for offset in [Vector2(-13.0, 5.0), Vector2(0.0, -2.0), Vector2(13.0, 5.0)]:
-		_draw_tuft(parent, at + offset * scale, scale)
-	for offset in [Vector2(-9.0, 1.0), Vector2(10.0, 4.0)]:
-		Shapes.fill(parent, Shapes.circle_points(at + offset * scale, 4.2 * scale),
-			bloom, 0.0)
-		Shapes.fill(parent, Shapes.circle_points(at + offset * scale, 1.6 * scale),
-			Color(1.0, 0.94, 0.62), 0.0)
+	if _prop(parent, _sprig_for(bloom), at + Vector2(0.0, 10.0) * scale,
+			44.0 * scale) == null:
+		for offset in [Vector2(-13.0, 5.0), Vector2(0.0, -2.0), Vector2(13.0, 5.0)]:
+			_draw_tuft(parent, at + offset * scale, scale)
 
 
 static func _draw_future_pad(parent: Node2D, box: Vector2) -> void:

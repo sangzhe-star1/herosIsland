@@ -1,0 +1,16 @@
+{
+  "id": "stones",
+  "kind": "prop",
+  "model": "stones",
+  "params": {
+    "seed": 5
+  },
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.62,
+      0.3
+    ]
+  },
+  "install": "props/stones.png"
+}
