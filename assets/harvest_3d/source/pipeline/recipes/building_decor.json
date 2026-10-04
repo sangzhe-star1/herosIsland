@@ -1,0 +1,22 @@
+{
+  "id": "building_decor",
+  "kind": "prop",
+  "model": "building_decor",
+  "params": {},
+  "ortho_scale": 4.6,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.9,
+      0.5
+    ]
+  },
+  "install": "props/building_decor.png",
+  "origin_offset": [
+    -0.564,
+    0.826,
+    0.0
+  ],
+  "_origin": "slid 1.00 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

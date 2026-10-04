@@ -1,0 +1,22 @@
+{
+  "id": "building_bear_door",
+  "kind": "prop",
+  "model": "building_bear_door",
+  "params": {},
+  "ortho_scale": 3.8,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.9,
+      0.5
+    ]
+  },
+  "install": "props/building_bear_door.png",
+  "origin_offset": [
+    -0.479,
+    0.702,
+    0.0
+  ],
+  "_origin": "slid 0.55 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

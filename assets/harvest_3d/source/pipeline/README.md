@@ -78,6 +78,18 @@ renders stay on disk for a look, nothing is installed.
 | basket_empty | 344 (same alpha box; shading noise) |
 | soil_grass_patch | replaced on purpose: the old PNG came from the other rig |
 | tree, hedge, stones, tuft, sprig_yellow/pink/lilac | new on 4 October: the farm's scenery, drawn by `farm_world_art.gd` |
+| building_* (13), fence, fence_y, dog, bear | new on 4 October: the facilities, the fence, the dog and the neighbour; deep footprints use `origin_offset` and `deep_footprint` |
+
+## Buildings and animals
+
+A building is modelled about its own centre with `S.block / S.cyl / S.cone /
+S.roof`, door on the camera side (negative y, positive x). Its recipe then
+sets `"origin_offset"` to slide it straight back from the camera, direction
+(−0.56, 0.83), by about half its depth, so the FRONT edge of the footprint
+stands on the ground pivot; the farm anchors a facility at the bottom of its
+box and scales it to the box width. `"deep_footprint": true` tells the audit
+that the nearest corner, not the centre, is what touches the ground line.
+Spans run 3.4 to 4.8 m for buildings, 2.6 for the dog, 3.4 for the bear.
 
 ## Add an asset
 

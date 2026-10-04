@@ -413,8 +413,8 @@ func _draw_ground() -> void:
 		_fence_post(Vector2(x, world.y - inset))
 	for i in range(int(world.y / 150.0)):
 		var y := inset + 150.0 * float(i) + 40.0
-		_fence_post(Vector2(inset, y))
-		_fence_post(Vector2(world.x - inset, y))
+		_fence_post(Vector2(inset, y), true)
+		_fence_post(Vector2(world.x - inset, y), true)
 
 	# Flowers, in a fixed pattern rather than scattered. Nothing in this garden
 	# is random -- see offline_growth.gd on why weeds are not either.
@@ -439,7 +439,17 @@ func _draw_ground() -> void:
 			Color(1.0, 0.94, 0.62), 1.0)
 
 
-func _fence_post(at: Vector2) -> void:
+func _fence_post(at: Vector2, along_y: bool = false) -> void:
+	# One rendered post with its rails, standing where the drawn one stood.
+	# Posts are 150 apart and a rail is 1.3 of the 2.2 m render span, so a
+	# half-canvas of 132 lets neighbouring rails meet. The side runs use the
+	# render whose rails go into the screen.
+	var rail := HarvestArt.prop_texture("fence_y" if along_y else "fence")
+	if rail != null:
+		var art := HarvestArt.grounded_sprite(rail, 132.0, at + Vector2(0.0, 30.0), "Fence")
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ground.add_child(art)
+		return
 	Shapes.fill(_ground, Shapes.rounded_rect(at - Vector2(6, 30),
 		Vector2(12, 60), 5.0), Color(0.78, 0.66, 0.48), 1.0)
 	Shapes.fill(_ground, Shapes.rounded_rect(at - Vector2(58, 8),

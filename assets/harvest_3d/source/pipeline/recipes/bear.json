@@ -1,0 +1,22 @@
+{
+  "id": "bear",
+  "kind": "prop",
+  "model": "bear",
+  "params": {},
+  "ortho_scale": 3.4,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/bear.png",
+  "origin_offset": [
+    -0.282,
+    0.413,
+    0.0
+  ],
+  "_origin": "slid 0.50 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

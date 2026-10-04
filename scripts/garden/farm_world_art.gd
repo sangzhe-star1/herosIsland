@@ -143,6 +143,8 @@ static func draw_facility(parent: Node2D, id: String, box: Vector2,
 	if locked:
 		_draw_future_pad(parent, box)
 		return
+	if _draw_building(parent, id, box):
+		return
 
 	match id:
 		"seed_shop":
@@ -171,6 +173,30 @@ static func draw_facility(parent: Node2D, id: String, box: Vector2,
 			_draw_decor_pavilion(parent, box)
 		_:
 			_draw_hut(parent, box, _facility_style(id))
+
+
+## The building as the studio rendered it: one toy per facility, from the
+## same camera and light as the crops and the trees. Its ground pivot is the
+## FRONT edge of its footprint (see the recipe's origin_offset), placed near
+## the bottom of the facility box, and it is scaled so its visible width fills
+## the box. Returns false when no render exists, so the drawn hut still works
+## for a facility added before its model.
+static func _draw_building(parent: Node2D, id: String, box: Vector2) -> bool:
+	var texture := Art.prop_texture("building_" + id)
+	if texture == null:
+		texture = Art.prop_texture("building_hut")
+	if texture == null:
+		return false
+	var seen := Art.texture_used_bounds(texture, 100.0,
+		Vector2(Art.SOURCE_CANVAS_SIZE * 0.5, Art.GROUND_ORIGIN_PIXEL_Y))
+	if seen.size.x <= 0.0:
+		return false
+	var world := 100.0 * box.x * 1.04 / seen.size.x
+	var sprite := Art.grounded_sprite(texture, world, Vector2(0.0, box.y * 0.44),
+		"Building_" + id)
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(sprite)
+	return true
 
 
 ## A future bed should look like a patch of rocky grass waiting to be cleared,

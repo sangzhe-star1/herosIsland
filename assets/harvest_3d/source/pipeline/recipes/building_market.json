@@ -1,0 +1,22 @@
+{
+  "id": "building_market",
+  "kind": "prop",
+  "model": "building_market",
+  "params": {},
+  "ortho_scale": 4.6,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.9,
+      0.5
+    ]
+  },
+  "install": "props/building_market.png",
+  "origin_offset": [
+    -0.395,
+    0.578,
+    0.0
+  ],
+  "_origin": "slid 0.70 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

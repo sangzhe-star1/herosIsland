@@ -55,8 +55,14 @@ def measure(path):
     }
 
 
-def check(path, m, allow_edge=False):
-    rules = CONTRACT['audit']
+def check(path, m, allow_edge=False, deep=False):
+    rules = dict(CONTRACT['audit'])
+    if deep:
+        # A building or an animal stands on an area, not a point: its nearest
+        # corner may sit well below and beside the pivot. The canvas-edge
+        # rule still holds; a clipped barn is a clipped barn.
+        rules['lowest_solid_row_max'] = int(CONTRACT['sprite_size']) - 2
+        rules['footprint_centre_tolerance_px'] = 200
     size = int(CONTRACT['sprite_size'])
     px, py = CONTRACT['ground_pivot_pixel']
     errors = []
@@ -133,10 +139,13 @@ def main(argv):
     pngs = sorted(root.rglob('*.png')) if root.is_dir() else [root]
     pngs = [p for p in pngs if 'contact_sheet' not in p.name]
     edge_ok = set()
+    deep = set()
     if manifest:
         for a in manifest.get('assets', []):
             if a.get('footprint_reaches_edge'):
                 edge_ok.add(a['id'])
+            if a.get('deep_footprint'):
+                deep.add(a['id'])
             if list(a.get('ground_pivot_pixel', [])) != list(CONTRACT['ground_pivot_pixel']):
                 print('ERROR manifest: %s pivot %s, contract %s'
                       % (a['id'], a.get('ground_pivot_pixel'), CONTRACT['ground_pivot_pixel']))
@@ -148,13 +157,16 @@ def main(argv):
         # Checked-in game folders carry no manifest; the one prop that reaches
         # the edge by design says so in its recipe.
         for r in (HERE / 'recipes').glob('*.json'):
-            if json.loads(r.read_text()).get('footprint_reaches_edge'):
+            recipe = json.loads(r.read_text())
+            if recipe.get('footprint_reaches_edge'):
                 edge_ok.add(r.stem)
+            if recipe.get('deep_footprint'):
+                deep.add(r.stem)
     failures = 0
     items = []
     for png in pngs:
         m = measure(png)
-        errors = check(png, m, allow_edge=png.stem in edge_ok)
+        errors = check(png, m, allow_edge=png.stem in edge_ok, deep=png.stem in deep)
         items.append((png.stem, m['image']))
         if errors:
             failures += 1

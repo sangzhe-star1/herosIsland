@@ -1,0 +1,24 @@
+{
+  "id": "building_orders",
+  "kind": "prop",
+  "model": "building_board",
+  "params": {
+    "frame": "wood"
+  },
+  "ortho_scale": 3.4,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.9,
+      0.5
+    ]
+  },
+  "install": "props/building_orders.png",
+  "origin_offset": [
+    -0.085,
+    0.124,
+    0.0
+  ],
+  "_origin": "slid 0.15 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

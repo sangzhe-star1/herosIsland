@@ -1,0 +1,22 @@
+{
+  "id": "building_well",
+  "kind": "prop",
+  "model": "building_well",
+  "params": {},
+  "ortho_scale": 3.6,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.9,
+      0.5
+    ]
+  },
+  "install": "props/building_well.png",
+  "origin_offset": [
+    -0.282,
+    0.413,
+    0.0
+  ],
+  "_origin": "slid 0.50 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

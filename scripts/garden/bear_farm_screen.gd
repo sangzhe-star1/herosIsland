@@ -25,6 +25,7 @@ const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
+const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 
 const TOP_BAR := 96.0
@@ -106,18 +107,29 @@ func _build() -> void:
 				Color(1.0, 0.88, 0.42), 4, 0.5)
 
 	# The bear, by his well, waving.
-	var bear := UiKit.picture("teddy", 170.0)
+	var bear_art := HarvestArt.prop_texture("bear")
+	var bear: Control = HarvestArt.grounded_sprite(bear_art, 150.0,
+		Vector2(view.x - 235.0, 372.0), "Bear3D") if bear_art != null \
+		else UiKit.picture("teddy", 170.0)
 	if bear != null:
-		bear.position = Vector2(view.x - 320.0, 200.0)
+		if bear_art == null:
+			bear.position = Vector2(view.x - 320.0, 200.0)
 		add_child(bear)
 		Juice.idle_bob(bear, 6.0, 2.4)
 	var well := Node2D.new()
 	well.position = Vector2(view.x - 160.0, 420.0)
 	add_child(well)
-	Shapes.lit(well, Shapes.circle_points(Vector2.ZERO, 56.0),
-		Color(0.62, 0.66, 0.72), 0.5)
-	Shapes.fill(well, Shapes.circle_points(Vector2.ZERO, 34.0),
-		Color(0.35, 0.52, 0.72), 0.0)
+	var well_art := HarvestArt.prop_texture("building_well")
+	if well_art != null:
+		# The same well that stands on his own farm, at a visitor's size.
+		var stone := HarvestArt.grounded_sprite(well_art, 120.0, Vector2(0.0, 40.0), "Well3D")
+		stone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		well.add_child(stone)
+	else:
+		Shapes.lit(well, Shapes.circle_points(Vector2.ZERO, 56.0),
+			Color(0.62, 0.66, 0.72), 0.5)
+		Shapes.fill(well, Shapes.circle_points(Vector2.ZERO, 34.0),
+			Color(0.35, 0.52, 0.72), 0.0)
 	var can := UiKit.picture("watering_can", 54.0)
 	if can != null:
 		can.position = well.position + Vector2(-90, -60)
@@ -126,9 +138,13 @@ func _build() -> void:
 	# The visitor basket: where the shared strawberry lands. HIS basket, drawn
 	# apart from everything of the bear's.
 	_basket_at = Vector2(view.x - 150.0, view.y - 130.0)
-	var basket := UiKit.picture("basket", 84.0)
+	var basket_art := HarvestArt.prop_texture("basket_empty")
+	var basket: Control = HarvestArt.grounded_sprite(basket_art, 70.0,
+		_basket_at + Vector2(0.0, 40.0), "Basket3D") if basket_art != null \
+		else UiKit.picture("basket", 84.0)
 	if basket != null:
-		basket.position = _basket_at - Vector2(42, 42)
+		if basket_art == null:
+			basket.position = _basket_at - Vector2(42, 42)
 		add_child(basket)
 
 	_top_bar(view)

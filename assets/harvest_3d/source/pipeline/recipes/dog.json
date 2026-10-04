@@ -1,0 +1,22 @@
+{
+  "id": "dog",
+  "kind": "prop",
+  "model": "dog",
+  "params": {},
+  "ortho_scale": 2.6,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/dog.png",
+  "origin_offset": [
+    -0.226,
+    0.33,
+    0.0
+  ],
+  "_origin": "slid 0.40 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

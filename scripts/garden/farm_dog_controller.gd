@@ -47,7 +47,9 @@ func _ready() -> void:
 	var config: Dictionary = GameData.farm_dog
 	_speed = maxf(80.0, float(config.get("speed", 240)))
 	_sit_gap = maxf(96.0, float(config.get("sit_gap", 130)))
-	_pup = preload("res://scripts/world/puppy_art.gd").new()
+	var DogSprite := preload("res://scripts/garden/farm_dog_sprite.gd")
+	_pup = DogSprite.new() if DogSprite.available() \
+		else preload("res://scripts/world/puppy_art.gd").new()
 	add_child(_pup)
 	_pup.set_height(maxf(48.0, float(config.get("height", 96))))
 	var kennel := Layout.facility("kennel")

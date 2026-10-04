@@ -90,7 +90,8 @@ def main(argv):
     for r in recipes:
         model = load_model(r['model'])
         params = dict(r.get('params', {}))
-        colls[r['id']] = S.asset(r['id'], lambda: model.build(S, params), r.get('shadow', {}))
+        colls[r['id']] = S.asset(r['id'], lambda: model.build(S, params), r.get('shadow', {}),
+                                 tuple(r.get('origin_offset', (0.0, 0.0, 0.0))))
     manifest = []
     for r in recipes:
         coll = colls[r['id']]
@@ -110,6 +111,8 @@ def main(argv):
         }
         if r.get('footprint_reaches_edge'):
             entry['footprint_reaches_edge'] = True
+        if r.get('deep_footprint'):
+            entry['deep_footprint'] = True
         if opts['glb']:
             glb = sprites / (r['id'] + '.glb')
             S.export_glb(coll, glb, list(colls.values()))

@@ -1,0 +1,22 @@
+{
+  "id": "building_orchard",
+  "kind": "prop",
+  "model": "building_orchard",
+  "params": {},
+  "ortho_scale": 4.4,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.9,
+      0.5
+    ]
+  },
+  "install": "props/building_orchard.png",
+  "origin_offset": [
+    -0.339,
+    0.495,
+    0.0
+  ],
+  "_origin": "slid 0.60 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

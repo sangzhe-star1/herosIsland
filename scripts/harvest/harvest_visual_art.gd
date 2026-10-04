@@ -23,7 +23,12 @@ const CROP_IDS := [
 
 const PROP_IDS := ["basket_empty", "soil_grass_patch", "soil_cover",
 	# The farm's scenery, from the same studio as the crops (pipeline/recipes).
-	"tree", "hedge", "stones", "tuft", "sprig_yellow", "sprig_pink", "sprig_lilac"]
+	"tree", "hedge", "stones", "tuft", "sprig_yellow", "sprig_pink", "sprig_lilac",
+	# The farm's buildings, its fence, its dog and the neighbour.
+	"building_hut", "building_seed_shop", "building_warehouse", "building_kennel",
+	"building_well", "building_gate", "building_market", "building_orders",
+	"building_visit_board", "building_decor", "building_orchard", "building_workshop",
+	"building_bear_door", "fence", "fence_y", "dog", "bear"]
 static var _crop_badge_region_cache: Dictionary = {}
 static var _crop_ground_width_cache: Dictionary = {}
 static var _plant_spec_cache: Dictionary = {}

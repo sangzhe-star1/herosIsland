@@ -450,6 +450,240 @@
         0.62
       ],
       "roughness": 0.8
+    },
+    "wall_cream": {
+      "label": "Wall | cream",
+      "color": [
+        0.97,
+        0.9,
+        0.7
+      ],
+      "roughness": 0.92
+    },
+    "wall_tan": {
+      "label": "Wall | tan",
+      "color": [
+        0.9,
+        0.74,
+        0.5
+      ],
+      "roughness": 0.92
+    },
+    "wall_blue": {
+      "label": "Wall | sky blue",
+      "color": [
+        0.7,
+        0.84,
+        0.9
+      ],
+      "roughness": 0.92
+    },
+    "wall_lilac": {
+      "label": "Wall | lilac",
+      "color": [
+        0.88,
+        0.76,
+        0.9
+      ],
+      "roughness": 0.92
+    },
+    "wall_mint": {
+      "label": "Wall | mint",
+      "color": [
+        0.8,
+        0.9,
+        0.66
+      ],
+      "roughness": 0.92
+    },
+    "roof_clay": {
+      "label": "Roof | terracotta",
+      "color": [
+        0.82,
+        0.42,
+        0.26
+      ],
+      "roughness": 0.9
+    },
+    "roof_brown": {
+      "label": "Roof | barn brown",
+      "color": [
+        0.56,
+        0.32,
+        0.2
+      ],
+      "roughness": 0.9
+    },
+    "roof_red": {
+      "label": "Roof | cherry",
+      "color": [
+        0.76,
+        0.28,
+        0.26
+      ],
+      "roughness": 0.9
+    },
+    "roof_green": {
+      "label": "Roof | moss",
+      "color": [
+        0.38,
+        0.58,
+        0.3
+      ],
+      "roughness": 0.9
+    },
+    "roof_blue": {
+      "label": "Roof | slate blue",
+      "color": [
+        0.34,
+        0.52,
+        0.66
+      ],
+      "roughness": 0.9
+    },
+    "roof_purple": {
+      "label": "Roof | plum",
+      "color": [
+        0.58,
+        0.4,
+        0.66
+      ],
+      "roughness": 0.9
+    },
+    "wood": {
+      "label": "Wood | honey plank",
+      "color": [
+        0.74,
+        0.56,
+        0.34
+      ],
+      "roughness": 0.9
+    },
+    "wood_dark": {
+      "label": "Wood | dark frame",
+      "color": [
+        0.5,
+        0.34,
+        0.2
+      ],
+      "roughness": 0.9
+    },
+    "door_dark": {
+      "label": "Door | shadowed opening",
+      "color": [
+        0.22,
+        0.15,
+        0.1
+      ],
+      "roughness": 0.95
+    },
+    "paper": {
+      "label": "Paper | warm white",
+      "color": [
+        0.98,
+        0.96,
+        0.9
+      ],
+      "roughness": 0.95
+    },
+    "canvas_red": {
+      "label": "Canvas | stripe red",
+      "color": [
+        0.86,
+        0.3,
+        0.28
+      ],
+      "roughness": 0.9
+    },
+    "canvas_white": {
+      "label": "Canvas | stripe white",
+      "color": [
+        0.97,
+        0.95,
+        0.88
+      ],
+      "roughness": 0.9
+    },
+    "water": {
+      "label": "Water | well blue",
+      "color": [
+        0.36,
+        0.6,
+        0.8
+      ],
+      "roughness": 0.3
+    },
+    "metal": {
+      "label": "Metal | pail grey",
+      "color": [
+        0.62,
+        0.66,
+        0.68
+      ],
+      "roughness": 0.6
+    },
+    "pin_red": {
+      "label": "Pin | red",
+      "color": [
+        0.9,
+        0.18,
+        0.18
+      ],
+      "roughness": 0.6
+    },
+    "fur_gold": {
+      "label": "Fur | golden retriever",
+      "color": [
+        0.86,
+        0.66,
+        0.36
+      ],
+      "roughness": 0.95
+    },
+    "fur_cream": {
+      "label": "Fur | cream muzzle",
+      "color": [
+        0.96,
+        0.88,
+        0.7
+      ],
+      "roughness": 0.95
+    },
+    "fur_bear": {
+      "label": "Fur | teddy brown",
+      "color": [
+        0.62,
+        0.42,
+        0.24
+      ],
+      "roughness": 0.95
+    },
+    "fur_bear2": {
+      "label": "Fur | teddy belly",
+      "color": [
+        0.84,
+        0.68,
+        0.46
+      ],
+      "roughness": 0.95
+    },
+    "collar_red": {
+      "label": "Collar | red",
+      "color": [
+        0.83,
+        0.31,
+        0.27
+      ],
+      "roughness": 0.8
+    },
+    "mound_green": {
+      "label": "Mound | hill green",
+      "color": [
+        0.4,
+        0.62,
+        0.3
+      ],
+      "roughness": 0.92
     }
   }
 }

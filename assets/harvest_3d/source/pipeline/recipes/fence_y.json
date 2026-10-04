@@ -1,0 +1,24 @@
+{
+  "id": "fence_y",
+  "kind": "prop",
+  "model": "fence",
+  "params": {
+    "axis": "y"
+  },
+  "ortho_scale": 2.2,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/fence_y.png",
+  "origin_offset": [
+    -0.028,
+    0.041,
+    0.0
+  ],
+  "_origin": "slid 0.05 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

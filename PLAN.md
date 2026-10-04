@@ -111,10 +111,12 @@ These are yours to make. Nothing below has been changed without asking.
    grow the same rendered crop the harvest page shows, the beds themselves
    are the studio's soil patch, and the trees, hedges, stones, tufts and
    sprigs are seven props from the same pipeline. The flat icons remain only
-   on chips and badges, as interface rather than world. Still flat, in
-   order: the buildings (warehouse, well, workshop, the bear's door), then
-   the dog and the bear; the hero is his own drawing and stays. What is
-   still yours: whether runtime 3D stays closed.
+   on chips and badges, as interface rather than world. Later the same day
+   the twelve buildings, the fence, the dog and the bear followed, so the
+   whole world layer is one toy set from one camera; the hero is his own
+   drawing and stays, and the stickers are his. What is still yours:
+   whether runtime 3D stays closed, and which of the forty-three toys want
+   a second pass by eye (the bear's door is the weakest).
 5. **The asset pipeline is one studio and nineteen recipes, and it has been
    run.** `assets/harvest_3d/source/pipeline/` opens the frozen render profile
    every shipped sprite came from, frames its camera on the (256, 467) pivot,

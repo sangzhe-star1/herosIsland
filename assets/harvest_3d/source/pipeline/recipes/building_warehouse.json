@@ -1,0 +1,22 @@
+{
+  "id": "building_warehouse",
+  "kind": "prop",
+  "model": "building_warehouse",
+  "params": {},
+  "ortho_scale": 4.8,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.9,
+      0.5
+    ]
+  },
+  "install": "props/building_warehouse.png",
+  "origin_offset": [
+    -0.452,
+    0.66,
+    0.0
+  ],
+  "_origin": "slid 0.80 m straight back from the camera so the front edge stands on the ground pivot and the footprint stays centred",
+  "deep_footprint": true
+}

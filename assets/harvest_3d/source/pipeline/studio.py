@@ -377,6 +377,52 @@ class Studio:
                       tuple((len(profile) - 1) * segments + j for j in range(segments))])
         return self.mesh(name, verts, faces, mat, True)
 
+    # --- toy building primitives: soft-edged blocks, cylinders, roofs --------------
+
+    def block(self, name, center, size, mat, bevel=.035, smooth=False):
+        """A box with softened edges: the wall, counter, crate and post of
+        every toy building. `size` is full width/depth/height; `center` is
+        the box centre (so a wall standing on the ground has z = h / 2)."""
+        bpy.ops.mesh.primitive_cube_add(size=1.0, location=center)
+        o = bpy.context.object
+        o.name = name
+        o.scale = (size[0], size[1], size[2])
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        if bevel > 0:
+            b = o.modifiers.new('Soft edges', 'BEVEL')
+            b.width = min(bevel, min(size) * .45)
+            b.segments = 3
+        return self.finish(o, mat, smooth)
+
+    def cyl(self, name, center, radius, height, mat, verts=32, smooth=True):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=radius,
+                                            depth=height, location=center)
+        o = bpy.context.object
+        o.name = name
+        return self.finish(o, mat, smooth)
+
+    def cone(self, name, center, radius, height, mat, verts=32, smooth=True):
+        bpy.ops.mesh.primitive_cone_add(vertices=verts, radius1=radius, radius2=0.0,
+                                        depth=height, location=center)
+        o = bpy.context.object
+        o.name = name
+        return self.finish(o, mat, smooth)
+
+    def roof(self, name, center, size, mat, overhang=.12, bevel=.03):
+        """A gable roof: a triangular prism whose ridge runs along x. `size`
+        is (width along x, depth along y, height of the ridge above the
+        eaves); the eaves sit at center.z."""
+        cx, cy, cz = center; w, d, h = size
+        hw = w * .5 + overhang; hd = d * .5 + overhang
+        verts = [(cx - hw, cy - hd, cz), (cx + hw, cy - hd, cz), (cx + hw, cy + hd, cz),
+                 (cx - hw, cy + hd, cz), (cx - hw, cy, cz + h), (cx + hw, cy, cz + h)]
+        faces = [(0, 1, 5, 4), (3, 2, 5, 4), (0, 1, 2, 3), (0, 4, 3), (1, 2, 5)]
+        o = self.mesh(name, verts, faces, mat, False)
+        sol = o.modifiers.new('Roof thickness', 'SOLIDIFY'); sol.thickness = .06
+        if bevel > 0:
+            b = o.modifiers.new('Soft edges', 'BEVEL'); b.width = bevel; b.segments = 2
+        return o
+
     # --- mesh repair the readable strawberry and the whole plant rely on ----------
 
     @staticmethod
@@ -428,7 +474,7 @@ class Studio:
 
     # --- an asset: build, shadow, collect ----------------------------------------
 
-    def asset(self, asset_id, build, shadow):
+    def asset(self, asset_id, build, shadow, origin_offset=(0.0, 0.0, 0.0)):
         """Run a model's build() inside its own collection.
 
         `shadow` is the recipe's {"baked": bool, "size": [sx, sy]}. Baked means
@@ -442,6 +488,15 @@ class Studio:
         before = set(bpy.data.objects)
         build()
         made = set(bpy.data.objects) - before
+        # A deep footprint (a barn, a gazebo) is modelled about its own centre;
+        # the recipe's origin_offset slides it back so the FRONT edge stands
+        # on the ground pivot, which is where the farm anchors a facility.
+        if any(abs(v) > 1e-6 for v in origin_offset):
+            for o in made:
+                if o.parent is None or o.parent not in made:
+                    o.location = (o.location.x + origin_offset[0],
+                                  o.location.y + origin_offset[1],
+                                  o.location.z + origin_offset[2])
         if shadow.get('baked', self.shadow_default_baked):
             verts = [(-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)]
             o = self.mesh('Shadow | ' + asset_id, verts, [(0, 1, 2, 3)],
