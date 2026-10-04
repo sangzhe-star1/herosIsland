@@ -1,0 +1,16 @@
+{
+  "id": "flour",
+  "kind": "prop",
+  "model": "flour",
+  "params": {},
+  "ortho_scale": 0.9,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.2,
+      0.12
+    ]
+  },
+  "install": "props/flour.png",
+  "deep_footprint": true
+}

@@ -1423,6 +1423,46 @@ if os.path.exists("data/harvest_crops.json"):
                           f"picture cannot be re-rendered when the palette or "
                           f"camera changes")
 
+# --- 5r¾. every piece of farm dressing has a clear spot to stand on
+#
+# FarmWorldArt skips any dressing entry whose footprint touches a bed or a
+# facility (grown by 22 px), silently -- which is right at runtime and wrong
+# at authoring time: a tree written into farm_world_dressing.json that never
+# appears is a line that lies. Same arithmetic as _clear_of_targets.
+if os.path.exists("data/farm_world_dressing.json") and os.path.exists("data/farm_world_layout.json"):
+    _layout = json.load(open("data/farm_world_layout.json"))
+    _dress = json.load(open("data/farm_world_dressing.json"))
+    _plots = _layout.get("plots", {})
+    _bw, _bh = _plots.get("box", [220, 150])
+    _fx, _fy = _plots.get("first", [470, 420])
+    _gx, _gy = _plots.get("gap", [360, 360])
+    _across = int(_plots.get("across", 3))
+    _targets = []
+    for _i in range(_across * 2):
+        _cx = _fx + (_i % _across) * _gx
+        _cy = _fy + (_i // _across) * _gy
+        _targets.append((_cx - _bw / 2, _cy - _bh / 2, _bw, _bh))
+    _exp = _layout.get("expansion", {})
+    for _i in range(int(_exp.get("count", 0))):
+        _cx = _exp.get("first", [0, 0])[0] + _i * _exp.get("gap", [0, 0])[0]
+        _cy = _exp.get("first", [0, 0])[1] + _i * _exp.get("gap", [0, 0])[1]
+        _targets.append((_cx - _bw / 2, _cy - _bh / 2, _bw, _bh))
+    for _f in _layout.get("facilities", []):
+        _w, _h = _f.get("size", [220, 150])
+        _targets.append((_f["at"][0] - _w / 2, _f["at"][1] - _h / 2, _w, _h))
+    def _hits(ax, ay, aw, ah, bx, by, bw, bh):
+        return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
+    for _e in _dress.get("props", []):
+        if "at" not in _e or str(_e.get("life", "")) == "flutter":
+            continue
+        _r = float(_e.get("size", 60)) * 0.5
+        _x, _y = _e["at"]
+        for (_tx, _ty, _tw, _th) in _targets:
+            if _hits(_x - _r, _y - _r, 2 * _r, 2 * _r, _tx - 22, _ty - 22, _tw + 44, _th + 44):
+                errors.append(f"farm_world_dressing.json: '{_e['id']}' at {_e['at']} stands on a "
+                              f"bed or a building -- FarmWorldArt would skip it without a word")
+                break
+
 # --- 5s. no basket in a sorting level quietly takes everything
 #
 # HarvestBasket.takes() reads an empty `accepts_tags` as "no rule, take

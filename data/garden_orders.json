@@ -246,5 +246,21 @@
     },
     "unlock_condition": "",
     "completion_transaction_key": "farm_order_puppy_breakfast"
+  },
+  {
+    "id": "robot_bakery",
+    "customer_id": "robot",
+    "customer_icon": "robot",
+    "name_key": "npc.robot",
+    "requirements": {
+      "flour": 1,
+      "corn": 2
+    },
+    "rewards": {
+      "coins": 36,
+      "items": {}
+    },
+    "unlock_condition": "",
+    "completion_transaction_key": "farm_order_robot_bakery"
   }
 ]

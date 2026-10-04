@@ -819,7 +819,9 @@
     "garden.daily.deliver": "Hand over an order",
     "garden.daily.lucky": "Lucky ×2",
     "item.egg": "Egg",
-    "recipe.egg_tart": "Strawberry egg tart"
+    "recipe.egg_tart": "Strawberry egg tart",
+    "item.flour": "Flour",
+    "recipe.bread": "Bread rolls"
   },
   "zh": {
     "adventure.again": "再来一次，你可以的！",
@@ -1641,6 +1643,8 @@
     "garden.daily.deliver": "送出一个订单",
     "garden.daily.lucky": "好运 ×2",
     "item.egg": "鸡蛋",
-    "recipe.egg_tart": "草莓蛋挞"
+    "recipe.egg_tart": "草莓蛋挞",
+    "item.flour": "面粉",
+    "recipe.bread": "小面包"
   }
 }

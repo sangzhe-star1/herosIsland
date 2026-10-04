@@ -6,6 +6,12 @@
       "name_key": "item.egg",
       "icon": "res://assets/harvest_3d/props/egg.png",
       "source": "coop"
+    },
+    {
+      "id": "flour",
+      "name_key": "item.flour",
+      "icon": "res://assets/harvest_3d/props/flour.png",
+      "source": "mill"
     }
   ]
 }

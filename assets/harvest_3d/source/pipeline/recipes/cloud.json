@@ -1,0 +1,16 @@
+{
+  "id": "cloud",
+  "kind": "prop",
+  "model": "cloud",
+  "params": {},
+  "ortho_scale": 2.2,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/cloud.png",
+  "floats": true
+}

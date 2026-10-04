@@ -80,6 +80,7 @@ renders stay on disk for a look, nothing is installed.
 | tree, hedge, stones, tuft, sprig_yellow/pink/lilac | new on 4 October: the farm's scenery, drawn by `farm_world_art.gd` |
 | building_* (13), fence, fence_y, dog, bear | new on 4 October: the facilities, the fence, the dog and the neighbour; deep footprints use `origin_offset` and `deep_footprint` |
 | tree_pine, tree_fruit, bush_flower, flowerbed, mushrooms, log, hay_bale, wheelbarrow, scarecrow, windmill, windmill_blades, pond, duck, chicken, signpost, bench, butterfly, butterfly_blue | new on 4 October: the dressing in `data/farm_world_dressing.json`; `floats` marks the two that never touch the ground |
+| building_coop, egg, building_mill, flour, stick, cloud, clearing, meadow_patch, grass_tile | the coop and mill loops, the dog's stick, the rain cloud, the two ground patches and the tiled grass texture |
 
 ## Buildings and animals
 

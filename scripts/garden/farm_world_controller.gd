@@ -49,6 +49,8 @@ signal stroke_ended()
 ## which is what keeps "furniture never swallows a tap meant for a plot"
 ## literally true.
 signal grass_pressed(at: Vector2)
+## The rain cloud was let go over this thirsty bed.
+signal cloud_rained(index: int)
 ## A drag that began on a bed the screen says wants a pull: the finger is
 ## trying that crop's move. `offset` is how far it has travelled from the
 ## press, in glass pixels -- the bed leans with it while the drag lasts.
@@ -66,6 +68,8 @@ const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Coop := preload("res://scripts/garden/farm_coop_manager.gd")
+const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
+const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Dog := preload("res://scripts/garden/farm_dog_controller.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
@@ -137,6 +141,16 @@ var _town_drawn := ""
 var _slots: Dictionary = {}
 
 var _finger := -1
+## A press that started on the dog: lifting without travel is a pat, a drag
+## is a throw. Panning never starts on him.
+var _fetch_live := false
+## The rain cloud, while a thirsty bed wants it; and the finger on it.
+var _cloud: Node2D = null
+var _cloud_live := false
+var _cloud_home := Vector2.ZERO
+var _cloud_rest_until := 0
+var _plots_seen: Array = []
+const CLOUD_REST_SECONDS := 90
 var _finger_from := Vector2.ZERO
 var _finger_last := Vector2.ZERO
 var _travelled := 0.0
@@ -217,6 +231,8 @@ func refresh(plots: Array) -> void:
 			ghost.queue_free()
 	for i in range(mini(_beds.size(), plots.size())):
 		(_beds[i] as Node2D).call("refresh", plots[i])
+	_plots_seen = plots
+	_tend_cloud()
 	if _dog != null and is_instance_valid(_dog):
 		_dog.retarget(plots, bool(SaveManager.data.get("farm", {})
 			.get("visit_log_unread", false)))
@@ -525,6 +541,8 @@ func _draw_buildings() -> void:
 		# facility art and does not create another control or tap target.
 		if facility_id == "coop" and not locked_here:
 			_dress_coop(hut, box)
+		if facility_id == "mill" and not locked_here:
+			_dress_mill(hut, box)
 		var art := UiKit.picture(str(f.get("icon", "star")), art_size)
 		if art != null:
 			art.position = FarmWorldArt.facility_icon_anchor(box,
@@ -571,8 +589,9 @@ func refresh_buildings() -> void:
 ## Everything the town's drawing depends on, as one comparable word.
 func _town_key(bed_count: int) -> String:
 	var farm: Dictionary = SaveManager.data.get("farm", {})
-	return "%s|%d|%d|%s" % [str(_bear_door_open()), Level.level(), bed_count,
-		Coop.state(farm, GameClock.now_unix())]
+	return "%s|%d|%d|%s|%s" % [str(_bear_door_open()), Level.level(), bed_count,
+		Coop.state(farm, GameClock.now_unix()),
+		Maker.state(farm, Maker.MILL, GameClock.now_unix())]
 
 
 ## The land still under stones: one patch per expansion slot the save has not
@@ -667,6 +686,185 @@ func _dress_coop(hut: Node2D, box: Vector2) -> void:
 		var art := HarvestArt.grounded_sprite(egg, 20.0, at, "CoopEgg_%d" % n)
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hut.add_child(art)
+
+
+## The sails on the tower, turning -- slowly when idle, briskly while wheat
+## is in it -- and the sack of flour waiting at its door. The hub pixels
+## were measured in Blender (pipeline recipes building_mill, windmill_blades).
+func _dress_mill(hut: Node2D, box: Vector2) -> void:
+	var tower := hut.get_node_or_null("Building_mill") as Control
+	var blades := HarvestArt.prop_texture("windmill_blades")
+	if tower == null or blades == null:
+		return
+	var scale := tower.size.x / HarvestArt.SOURCE_CANVAS_SIZE
+	var hub := tower.position + Vector2(227.1, 249.1) * scale
+	var sails := HarvestArt.grounded_sprite(blades, tower.size.x * 0.5 * 0.787,
+		Vector2.ZERO, "MillSails")
+	var own_hub := Vector2(256.0, 369.9) * (sails.size.x / HarvestArt.SOURCE_CANVAS_SIZE)
+	sails.position = hub - own_hub
+	sails.pivot_offset = own_hub
+	sails.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hut.add_child(sails)
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	var state := Maker.state(farm, Maker.MILL, GameClock.now_unix())
+	if Juice.motion_enabled():
+		var turn := sails.create_tween().set_loops()
+		turn.tween_property(sails, "rotation", TAU, 2.8 if state == Maker.WORKING else 9.0) \
+			.from(0.0)
+	if state != Maker.READY:
+		return
+	var sack := HarvestArt.prop_texture("flour")
+	if sack == null:
+		return
+	Shapes.glow(hut, Vector2(-box.x * 0.22, box.y * 0.40), 50.0,
+		Color(1.0, 0.94, 0.62), 4, 0.5)
+	for n in range(int(Maker.store(farm, Maker.MILL).get("done", 0))):
+		var art := HarvestArt.grounded_sprite(sack, 22.0,
+			Vector2(-box.x * 0.26 + 26.0 * float(n), box.y * 0.44), "MillSack_%d" % n)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hut.add_child(art)
+
+
+# --- the dog's stick ----------------------------------------------------------
+
+## A drag that began on the dog: the stick flies to where the finger let go,
+## and he goes after it. Pure play -- no save, no count, like the pat.
+func _throw_stick(at: Vector2) -> void:
+	if _dog == null or not is_instance_valid(_dog):
+		return
+	var world := Layout.world_size()
+	var target := camera.screen_to_world(at)
+	target = Vector2(clampf(target.x, 60.0, world.x - 60.0), clampf(target.y, 60.0, world.y - 60.0))
+	var stick := Node2D.new()
+	stick.name = "Stick"
+	stick.position = (_dog as Node2D).position
+	add_child(stick)
+	var art := HarvestArt.prop_texture("stick")
+	var picture: Control = HarvestArt.grounded_sprite(art, 30.0, Vector2.ZERO, "StickArt") \
+		if art != null else null
+	if picture != null:
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		picture.pivot_offset = -picture.position
+		stick.add_child(picture)
+	AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
+	# He bolts the moment it leaves the hand, the way a dog does; the stick is
+	# still in the air while he runs.
+	_dog.call("fetch", target, stick)
+	if not Juice.motion_enabled():
+		stick.position = target
+		return
+	var flight := stick.create_tween()
+	flight.tween_property(stick, "position", target, 0.55) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if picture != null:
+		var hop := picture.create_tween()
+		hop.tween_property(picture, "position:y", picture.position.y - 70.0, 0.27) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		hop.tween_property(picture, "position:y", picture.position.y, 0.28) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		hop.parallel().tween_property(picture, "rotation", TAU * 1.5, 0.55).from(0.0)
+
+
+# --- the rain cloud -------------------------------------------------------------
+
+## While a bed is thirsty a small cloud hangs over the farm. Dragged onto
+## that bed and let go, it rains; let go anywhere else, it drifts back. It
+## is help, not a chore: the can still works, and a child who never touches
+## the cloud loses nothing.
+func _tend_cloud() -> void:
+	var thirsty := _any_thirsty()
+	if thirsty and _cloud == null and GameClock.now_unix() >= _cloud_rest_until:
+		_spawn_cloud()
+	elif not thirsty and _cloud != null and not _cloud_live:
+		_dismiss_cloud()
+
+
+func _any_thirsty() -> bool:
+	for plot in _plots_seen:
+		if str(plot.get("care_event", "")) == Growth.CARE_THIRSTY:
+			return true
+	return false
+
+
+func _plot_thirsty(index: int) -> bool:
+	return index >= 0 and index < _plots_seen.size() \
+		and str(_plots_seen[index].get("care_event", "")) == Growth.CARE_THIRSTY
+
+
+func _spawn_cloud() -> void:
+	var texture := HarvestArt.prop_texture("cloud")
+	if texture == null:
+		return
+	var world := Layout.world_size()
+	_cloud = Node2D.new()
+	_cloud.name = "RainCloud"
+	_cloud.z_index = 20
+	_cloud.position = Vector2(world.x * 0.46, 110.0)
+	_cloud_home = _cloud.position
+	add_child(_cloud)
+	var art := HarvestArt.grounded_sprite(texture, 70.0, Vector2.ZERO, "CloudArt")
+	art.position = -art.size * 0.5
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cloud.add_child(art)
+	_cloud.modulate.a = 0.0
+	if Juice.motion_enabled():
+		_cloud.create_tween().tween_property(_cloud, "modulate:a", 1.0, 0.6)
+	else:
+		_cloud.modulate.a = 1.0
+
+
+func _dismiss_cloud() -> void:
+	var gone := _cloud
+	_cloud = null
+	_cloud_live = false
+	if gone == null or not is_instance_valid(gone):
+		return
+	if not Juice.motion_enabled():
+		gone.queue_free()
+		return
+	var t := gone.create_tween()
+	t.tween_property(gone, "modulate:a", 0.0, 0.5)
+	t.tween_callback(gone.queue_free)
+
+
+func _cloud_under(at: Vector2) -> bool:
+	if _cloud == null or not is_instance_valid(_cloud) or _cloud.get_child_count() == 0:
+		return false
+	var art := _cloud.get_child(0) as Control
+	return art != null and art.get_global_rect().grow(12.0).has_point(at)
+
+
+func _cloud_back() -> void:
+	if _cloud == null or not is_instance_valid(_cloud):
+		return
+	if Juice.motion_enabled():
+		_cloud.create_tween().tween_property(_cloud, "position", _cloud_home, 0.5) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	else:
+		_cloud.position = _cloud_home
+
+
+func _rain_on(index: int) -> void:
+	if _cloud == null or not is_instance_valid(_cloud):
+		return
+	AudioManager.play_sfx("res://assets/audio/water.ogg")
+	var bed := Layout.plot_at(index)
+	if Juice.motion_enabled():
+		for i in range(12):
+			var drop := Node2D.new()
+			drop.z_index = 19
+			drop.position = _cloud.position + Vector2(-50.0 + 10.0 * float(i), 20.0)
+			add_child(drop)
+			Shapes.fill(drop, Shapes.oval_points(Vector2.ZERO, Vector2(3.0, 6.0)),
+				Color(0.45, 0.68, 0.90, 0.9), 0.0)
+			var t := drop.create_tween()
+			t.tween_interval(0.04 * float(i % 4))
+			t.tween_property(drop, "position", bed + Vector2(-50.0 + 10.0 * float(i), 0.0), 0.45) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			t.tween_callback(drop.queue_free)
+	cloud_rained.emit(index)
+	_cloud_rest_until = GameClock.now_unix() + CLOUD_REST_SECONDS
+	_dismiss_cloud()
 
 
 ## A press on scenery that can answer: the duck hops, a hen flaps. Pure
@@ -786,6 +984,13 @@ func _down(at: Vector2) -> bool:
 	_stroke = false
 	_gesture = false
 	_track = PackedVector2Array()
+	if _cloud_under(at):
+		_cloud_live = true
+		return true
+	if _dog != null and is_instance_valid(_dog) and _dog.pet_at(at, camera) \
+			and bool(_dog.call("can_fetch")):
+		_fetch_live = true
+		return true
 	if brush_armed:
 		var bed := bed_under(at)
 		if bed >= 0:
@@ -860,6 +1065,16 @@ func _blocked(at: Vector2) -> bool:
 func _moved(at: Vector2) -> void:
 	if _finger == -1:
 		return
+	if _cloud_live:
+		if _cloud != null and is_instance_valid(_cloud):
+			_cloud.position = camera.screen_to_world(at)
+		_travelled += _finger_last.distance_to(at)
+		_finger_last = at
+		return
+	if _fetch_live:
+		_travelled += _finger_last.distance_to(at)
+		_finger_last = at
+		return
 	if _gesture:
 		# A pull never pans -- the ground must sit still while the crop comes
 		# loose, exactly as it does under a stroke. Travel keeps counting so
@@ -886,6 +1101,21 @@ func _moved(at: Vector2) -> void:
 
 
 func _up(at: Vector2) -> void:
+	if _cloud_live:
+		_cloud_live = false
+		var bed := bed_under(at)
+		if bed >= 0 and _plot_thirsty(bed):
+			_rain_on(bed)
+		else:
+			_cloud_back()
+		return
+	if _fetch_live:
+		_fetch_live = false
+		if _travelled > FarmCamera.TAP_SLOP * 1.5:
+			_throw_stick(at)
+		elif _dog != null and is_instance_valid(_dog):
+			_dog.pet()
+		return
 	if _gesture:
 		_gesture = false
 		# The finger left, whatever the verdict: settle the plant first, so the
@@ -1017,3 +1247,7 @@ func _grass_tap(at: Vector2) -> void:
 
 func _process(delta: float) -> void:
 	_clock += delta
+	if _cloud != null and is_instance_valid(_cloud) and not _cloud_live \
+			and Juice.motion_enabled():
+		_cloud.position.x = _cloud_home.x + sin(_clock * 0.35) * 70.0
+		_cloud.position.y = _cloud_home.y + sin(_clock * 0.9) * 4.0

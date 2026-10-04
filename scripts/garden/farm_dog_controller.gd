@@ -67,6 +67,30 @@ func _ready() -> void:
 ## kennel's side so he reads as having RUN there. bed_under() cannot see him
 ## anyway (he takes no input), but a dog SITTING on the carrot would say the
 ## carrot is his.
+## Fetch: he is running to a thrown stick, or bringing it back.
+var _fetching := false
+var _bringing := false
+var _stick: Node = null
+var _return_to := Vector2.ZERO
+
+
+func can_fetch() -> bool:
+	return not _fetching and not _bringing and not _petting
+
+
+## A stick landed there. Off he goes; when he has it he comes back to where
+## he was heading before and cheers. Nothing is written down.
+func fetch(to: Vector2, stick: Node) -> void:
+	if not can_fetch():
+		if stick != null and is_instance_valid(stick):
+			stick.queue_free()
+		return
+	_fetching = true
+	_stick = stick
+	_return_to = _target
+	_target = to
+
+
 func retarget(plots: Array, log_unread: bool) -> void:
 	var interesting := -1
 	for want in [Farm.READY, ""]:
@@ -82,17 +106,21 @@ func retarget(plots: Array, log_unread: bool) -> void:
 			break
 
 	_dress()
+	var seat := _kennel
 	if interesting >= 0:
 		var bed := Layout.plot_at(interesting)
 		var away := (_kennel - bed).normalized()
 		if away == Vector2.ZERO:
 			away = Vector2(0, 1)
-		_target = bed + away * _sit_gap
+		seat = bed + away * _sit_gap
 	elif log_unread:
-		_target = Layout.facility_at(Layout.facility("visit_board")) \
+		seat = Layout.facility_at(Layout.facility("visit_board")) \
 			+ Vector2(0, 52)
+	# Mid-fetch the stick comes first; the new seat is where he brings it.
+	if _fetching or _bringing:
+		_return_to = seat
 	else:
-		_target = _kennel
+		_target = seat
 
 
 ## Put the scarf on (or notice it is already on). Called from every
@@ -176,6 +204,22 @@ func _process(delta: float) -> void:
 		var step := _speed * delta
 		position = position.move_toward(_target, step)
 		_pup.scale.x = -1.0 if _target.x < position.x else 1.0
+	elif _fetching:
+		# Got it. The stick is in his mouth now, which is to say gone. Judged
+		# by where he IS, not by whether he walked there: a dog already
+		# standing on the spot picks it up too.
+		_walking = false
+		_fetching = false
+		if _stick != null and is_instance_valid(_stick):
+			_stick.queue_free()
+		_stick = null
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		_bringing = true
+		_target = _return_to
+	elif _bringing:
+		_walking = false
+		_bringing = false
+		pet()
 	elif _walking:
 		_walking = false
 		_pup.set_pose(HeroArt.Pose.BEAM)

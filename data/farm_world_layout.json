@@ -194,6 +194,20 @@
       ],
       "level": 2,
       "icon": "res://assets/harvest_3d/props/egg.png"
+    },
+    {
+      "id": "mill",
+      "at": [
+        1400,
+        200
+      ],
+      "size": [
+        200,
+        170
+      ],
+      "level": 3,
+      "icon": "res://assets/harvest_3d/props/flour.png",
+      "art_width": 0.46
     }
   ]
 }

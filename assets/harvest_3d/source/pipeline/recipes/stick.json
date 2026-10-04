@@ -1,0 +1,16 @@
+{
+  "id": "stick",
+  "kind": "prop",
+  "model": "stick",
+  "params": {},
+  "ortho_scale": 1.0,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.36,
+      0.14
+    ]
+  },
+  "install": "props/stick.png",
+  "deep_footprint": true
+}

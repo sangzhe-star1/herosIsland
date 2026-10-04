@@ -7,6 +7,7 @@ extends RefCounted
 ## Shapes 的柔和描边、光向和阴影语言。
 
 const Art := preload("res://scripts/harvest/harvest_visual_art.gd")
+const Layout := preload("res://scripts/garden/farm_layout.gd")
 const MEADOW_LIGHT := Color(0.71, 0.85, 0.58)
 const MEADOW_SHADE := Color(0.57, 0.75, 0.44)
 const BUSH_DARK := Color(0.29, 0.52, 0.31)
@@ -225,7 +226,10 @@ static func _draw_building(parent: Node2D, id: String, box: Vector2) -> bool:
 		Vector2(Art.SOURCE_CANVAS_SIZE * 0.5, Art.GROUND_ORIGIN_PIXEL_Y))
 	if seen.size.x <= 0.0:
 		return false
-	var world := 100.0 * box.x * 1.04 / seen.size.x
+	# A building fills its box; a tall thin one (the mill) says in its layout
+	# entry how much of the box width its base should take.
+	var width_share := float(Layout.facility(id).get("art_width", 1.04))
+	var world := 100.0 * box.x * width_share / seen.size.x
 	# The render carries no shadow of its own (its footprint is deep, a
 	# radial one would peek out in front); the farm's soft ellipse under
 	# the footprint seats it on the grass like the beds and the trees.

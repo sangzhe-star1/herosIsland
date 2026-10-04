@@ -44,6 +44,7 @@ const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
 const Coop := preload("res://scripts/garden/farm_coop_manager.gd")
+const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
@@ -437,6 +438,7 @@ func _rebuild() -> void:
 		_world.stroke_swept.connect(_on_stroke_swept)
 		_world.stroke_ended.connect(_on_stroke_ended)
 		_world.grass_pressed.connect(_poke_decoration)
+		_world.cloud_rained.connect(_on_cloud_rained)
 		_world.gesture_bed_check = _bed_wants_gesture
 		_world.gesture_moved.connect(_on_gesture_moved)
 		_world.gesture_finished.connect(_on_gesture_finished)
@@ -1089,6 +1091,8 @@ func _tap_building(id: String) -> void:
 			AudioManager.play_sfx("res://assets/audio/water.ogg")
 		"coop":
 			_tap_coop()
+		"mill":
+			_tap_mill()
 		"workshop":
 			# 5 级前它画成圈好的地，点了轻响就够——没有锁，只有还没长到。
 			if Level.level() >= int(Layout.facility("workshop").get("level", 5)):
@@ -1152,6 +1156,61 @@ func _tap_coop() -> void:
 				# No corn: show the corn. The picture IS the sentence.
 				AudioManager.play_sfx("res://assets/audio/pop.ogg")
 				_float_want(at, str(GameData.get_crop(Coop.FEED_CROP).get("icon", "seed")))
+
+
+## The windmill: two wheat in, a minute and a half of turning sails, one
+## sack of flour out. Same three answers as the coop, same doors.
+func _tap_mill() -> void:
+	var farm := _farm()
+	if Level.level() < int(Layout.facility("mill").get("level", 3)):
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		return
+	var now := GameClock.now_unix()
+	var at: Vector2 = _world.facility_screen_position("mill") \
+		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
+	match Maker.state(farm, Maker.MILL, now):
+		Maker.READY:
+			var receipt := Maker.collect(farm, Maker.MILL)
+			SaveManager.save_game()
+			AudioManager.play_sfx("res://assets/audio/found.ogg")
+			AudioManager.say("farm_mill_flour")
+			var stored := int(receipt.get("stored", 0))
+			var spilled := int(receipt.get("spilled", 0))
+			if stored > 0:
+				_spawn_harvest_flight(-1, receipt, stored, _barn_button_at,
+					"warehouse", "HarvestFlight", at + Vector2(0, -20))
+			if spilled > 0:
+				_spawn_harvest_flight(-1, receipt, spilled, _spill_flight_destination(),
+					"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
+			_harvested_something = true
+			_queue_rebuild()
+		Maker.WORKING:
+			AudioManager.play_sfx("res://assets/audio/correct.ogg")
+			_show_coop_ring(at, Maker.progress(farm, Maker.MILL, now))
+		_:
+			if Maker.start(farm, Maker.MILL, now):
+				SaveManager.save_game()
+				AudioManager.play_sfx("res://assets/audio/machine.ogg")
+				AudioManager.say("farm_mill_start")
+				_queue_rebuild()
+			else:
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+				_float_want(at, str(GameData.get_crop(str(Maker.MILL["input"])).get("icon", "seed")))
+
+
+## The rain cloud he dragged over a thirsty bed let go: the bed drinks by
+## the same rule the watering can uses, and the day's water job counts.
+func _on_cloud_rained(index: int) -> void:
+	var plots := _plots()
+	if index < 0 or index >= plots.size():
+		return
+	var plot: Dictionary = plots[index]
+	if str(plot.get("care_event", "")) != Growth.CARE_THIRSTY:
+		return
+	plots[index] = _care_for(plot, index)
+	_commit_plot(plots, index)
+	SaveManager.save_game()
+	_queue_rebuild()
 
 
 func _show_coop_ring(at: Vector2, fraction: float) -> void:

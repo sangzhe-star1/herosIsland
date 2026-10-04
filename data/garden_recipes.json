@@ -180,5 +180,19 @@
         "count": 1
       }
     ]
+  },
+  {
+    "id": "bread",
+    "name_key": "recipe.bread",
+    "needs": [
+      {
+        "crop_id": "flour",
+        "count": 2
+      },
+      {
+        "crop_id": "egg",
+        "count": 1
+      }
+    ]
   }
 ]

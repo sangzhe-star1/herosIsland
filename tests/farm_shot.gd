@@ -184,9 +184,10 @@ func _ready() -> void:
 				{"icon": "heart", "x": 300.0, "y": 500.0, "size": 72.0},
 			])
 		if what == "coop":
-			farm["farm_xp"] = 60
+			farm["farm_xp"] = 200
 			farm["coop"] = {"fed_at": 0, "eggs": 2}
-			farm["warehouse"] = {"corn": 3}
+			farm["mill"] = {"started_at": 0, "done": 1}
+			farm["warehouse"] = {"corn": 3, "wheat": 4}
 		if what == "rack":
 			farm["farm_xp"] = 200
 			farm["unlocked_crops"] = ["carrot", "corn", "strawberry",

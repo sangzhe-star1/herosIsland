@@ -36,7 +36,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1192
+const CHECKS_EXPECTED := 1230
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -120,6 +120,9 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_lesson_clock_is_the_carrots_alone()
 	await _the_bed_grows_the_same_crop_the_harvest_page_shows()
 	await _the_hens_turn_corn_into_eggs()
+	await _the_mill_turns_wheat_into_flour()
+	await _a_drag_from_the_dog_is_a_throw()
+	await _the_cloud_waters_the_bed_it_is_dropped_on()
 
 	_close()
 
@@ -2127,6 +2130,154 @@ func _the_hens_turn_corn_into_eggs() -> void:
 		"...and feeds nothing")
 	GameClock.set_test_now(NOON, 0)
 	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+
+## The windmill, by the same three answers as the coop: two wheat in, a
+## ring while it turns, a sack out through the barn door, and the sails on
+## the tower the whole time.
+func _the_mill_turns_wheat_into_flour() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["farm_xp"] = 200
+	farm["mill"] = {"started_at": 0, "done": 0}
+	farm["warehouse"] = {"wheat": 4}
+	farm["harvest_basket"] = {}
+	GameClock.set_test_now(NOON, 0)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var world: Node = _garden.get("_world")
+	var fx: Node = _garden.call("_harvest_feedback_layer")
+	_ok(_find_named(world, "MillSails") != null, "the mill wears its sails on the tower")
+	world.call("press_at", world.call("facility_screen_position", "mill"))
+	await get_tree().process_frame
+	_ok(int(SaveManager.data["farm"]["warehouse"].get("wheat", 0)) == 2,
+		"pressing the mill with wheat in the barn takes two wheat")
+	_ok(int(SaveManager.data["farm"]["mill"].get("started_at", 0)) == NOON,
+		"...and starts the grinding clock")
+	_garden.call("_tap_mill")
+	await get_tree().process_frame
+	_ok(int(SaveManager.data["farm"]["warehouse"].get("wheat", 0)) == 2
+		and _find_named(fx, "CoopRing") != null,
+		"a press while it grinds is a ring, not more wheat")
+	GameClock.set_test_now(NOON + 100, 0)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var sacks := 0
+	for node in _descendants(world):
+		if str(node.name).begins_with("MillSack"):
+			sacks += 1
+	_ok(sacks == 1, "a hundred seconds later one sack waits at the mill door (%d)" % sacks)
+	if _garden.has_meta("last_harvest_flight"):
+		_garden.remove_meta("last_harvest_flight")
+	_garden.call("_tap_mill")
+	await get_tree().process_frame
+	_ok(Barn.count("flour") == 1, "collecting puts the flour in the barn")
+	_ok(str(_garden.get_meta("last_harvest_flight", {}).get("crop_id", "")) == "flour",
+		"...flying there like a harvest")
+	SaveManager.data["farm"]["warehouse"] = {}
+	_garden.call("_tap_mill")
+	await get_tree().process_frame
+	_ok(_find_named(fx, "CoopWant") != null
+		and int(SaveManager.data["farm"]["mill"].get("started_at", 0)) == 0,
+		"with no wheat the mill shows the wheat and starts nothing")
+	GameClock.set_test_now(NOON, 0)
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+
+## A press on the dog is a pat; a drag from him is a throw: a stick lands
+## where the finger let go, he runs for it, brings it back, and cheers.
+## Nothing is saved.
+func _a_drag_from_the_dog_is_a_throw() -> void:
+	var world: Node = _garden.get("_world")
+	var dog: Node2D = world.get("_dog")
+	_ok(dog != null, "the farm has its dog")
+	if dog == null:
+		return
+	var camera: RefCounted = world.get("camera")
+	world.call("look_at_world", dog.position)
+	await get_tree().process_frame
+	var height := maxf(48.0, float(GameData.farm_dog.get("height", 96)))
+	var grab: Vector2 = camera.call("world_to_screen", dog.position + Vector2(0.0, -height * 0.5))
+	var seat: Vector2 = dog.get("_target")
+	await _finger(grab, grab + Vector2(220.0, -40.0))
+	var stick := _find_named(world, "Stick")
+	_ok(stick != null, "a drag from the dog throws a stick")
+	_ok(bool(dog.get("_fetching")), "...and he goes after it")
+	await get_tree().create_timer(0.7).timeout
+	# He is on his way; put him there and let a frame pass.
+	dog.set("position", dog.get("_target"))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(not bool(dog.get("_fetching")) and bool(dog.get("_bringing")) or dog.get("_target") == seat,
+		"at the stick he picks it up and turns back")
+	_ok(_find_named(world, "Stick") == null, "...the stick is in his mouth now, which is to say gone")
+	dog.set("position", dog.get("_target"))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(not bool(dog.get("_bringing")) and not bool(dog.get("_fetching")),
+		"back at his seat he is a free dog again")
+	await get_tree().create_timer(1.0).timeout
+	world.call("go_home")
+	await get_tree().process_frame
+
+
+## A thirsty bed brings a cloud; the cloud dropped on that bed rains, the
+## bed drinks by the watering can's own rule; dropped elsewhere it drifts
+## back; with nothing thirsty there is no cloud.
+func _the_cloud_waters_the_bed_it_is_dropped_on() -> void:
+	var world: Node = _garden.get("_world")
+	var camera: RefCounted = world.get("camera")
+	var farm: Dictionary = SaveManager.data["farm"]
+	var plots: Array = farm["plots"]
+	for index in range(plots.size()):
+		plots[index] = Farm.fresh_plot(index)
+		plots[index]["state"] = Farm.TILLED
+	plots[0]["state"] = Farm.GROWING
+	plots[0]["crop_id"] = "carrot"
+	plots[0]["growth_stage"] = 1
+	plots[0]["water_level"] = 0.1
+	plots[0]["care_event"] = Growth.CARE_THIRSTY
+	plots[0]["plant_cycle_id"] = 8100
+	farm["plots"] = plots
+	world.set("_cloud_rest_until", 0)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var cloud := world.get_node_or_null("RainCloud") as Node2D
+	_ok(cloud != null, "a thirsty bed brings a rain cloud")
+	if cloud == null:
+		return
+	# Both the cloud in the sky and bed one must be on the glass: a press
+	# above the farm window is the top bar's, not the cloud's.
+	world.call("look_at_world", Vector2(700.0, 280.0))
+	await get_tree().process_frame
+	var from: Vector2 = camera.call("world_to_screen", cloud.position)
+	# Dropped on the grass: back it goes, the bed still thirsty.
+	await _finger(from, camera.call("world_to_screen", Layout.plot_at(0) + Vector2(0.0, 260.0)))
+	_ok(str(_plots()[0].get("care_event", "")) == Growth.CARE_THIRSTY,
+		"let go over nothing, the cloud waters nothing")
+	_ok(world.get_node_or_null("RainCloud") != null, "...and stays")
+	await get_tree().create_timer(0.6).timeout
+	from = camera.call("world_to_screen", (world.get_node("RainCloud") as Node2D).position)
+	await _finger(from, camera.call("world_to_screen", Layout.plot_at(0)))
+	await get_tree().process_frame
+	_ok(str(_plots()[0].get("care_event", "")) != Growth.CARE_THIRSTY
+		and float(_plots()[0].get("water_level", 0.0)) > 0.9,
+		"dropped on the thirsty bed, the cloud rains and the bed drinks")
+	await get_tree().create_timer(0.7).timeout
+	_ok(world.get_node_or_null("RainCloud") == null, "...and the cloud is spent")
+	world.call("go_home")
+	for index in range(plots.size()):
+		plots[index] = Farm.fresh_plot(index)
+	farm["plots"] = plots
 	SaveManager.save_game()
 	_garden.call("_rebuild")
 	await get_tree().process_frame

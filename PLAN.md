@@ -90,10 +90,11 @@ the house, replace any licensed character likeness with an original hero.
 The whole world layer is one rendered toy set, placed by data, with a
 little life of its own (sails, duck, hens, butterflies). The first new loop
 on top of it is the hen coop: corn in, two minutes, eggs out, eggs into
-orders, recipes and the market. Candidates for the next loops, in the order
-I would try them with him: the windmill grinding wheat into flour for the
-kitchen, the dog playing fetch, a rain cloud he parks over a thirsty bed.
-Each is a facility or a scenery prop that already stands there.
+orders, recipes and the market. The same evening added the windmill
+(wheat to flour, through the generic maker rules), the dog's fetch and the
+rain cloud he drags over a thirsty bed. What to watch with him: whether
+two minutes is a wait or a tease, whether he finds the cloud without being
+told, and whether he throws the stick more than he waters.
 
 ## Open decisions
 

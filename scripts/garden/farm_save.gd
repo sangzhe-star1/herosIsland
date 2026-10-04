@@ -195,6 +195,7 @@ static func default_farm() -> Dictionary:
 		# remember_paid() for why a bound cannot let a harvest be paid twice.
 		"paid_harvests": [],
 		"coop": {"fed_at": 0, "eggs": 0},   # the hens: when last fed, eggs waiting
+		"mill": {"started_at": 0, "done": 0},  # the windmill: grinding since, flour waiting
 		# The market's receipts. The counter only rises, so every sale in the
 		# history of a save has its own id -- the same shape as plant_cycle_id,
 		# because it is solving the same problem: a second press of the same
