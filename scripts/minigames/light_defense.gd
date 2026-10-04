@@ -185,7 +185,9 @@ func _build_scene(config: Dictionary) -> void:
 
 	# The hero's light, top left under the back button.
 	_light_box = HBoxContainer.new()
-	_light_box.position = Vector2(30, 118)
+	# 132, not 118: the back button ends at y=120 and the hearts sat on its
+	# bottom edge by two pixels.
+	_light_box.position = Vector2(30, 132)
 	_light_box.add_theme_constant_override("separation", 8)
 	_light_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_light_box)
@@ -194,7 +196,7 @@ func _build_scene(config: Dictionary) -> void:
 	# The build, as a row of badges: what the child has collected so far,
 	# always visible, because a build you cannot see is not a build.
 	_badges = HBoxContainer.new()
-	_badges.position = Vector2(30, 176)
+	_badges.position = Vector2(30, 190)
 	_badges.add_theme_constant_override("separation", 8)
 	_badges.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_badges)
@@ -814,6 +816,11 @@ func _place_pips() -> void:
 	if _pips.is_empty():
 		wide = PIP + 6.0 + 70.0
 	_pip_row.position = Vector2(_play_area.size.x - 24.0 - wide, 24.0)
+	# The instruction's box ends where the pips begin. It used to span
+	# 240..1040 whatever stood on the right, and a centred sentence of any
+	# length ran under the first monsters.
+	if _instruction != null and is_instance_valid(_instruction):
+		_instruction.size.x = maxf(_pip_row.position.x - 12.0 - _instruction.position.x, 200.0)
 
 
 func _update_progress() -> void:

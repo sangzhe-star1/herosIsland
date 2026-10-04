@@ -24,6 +24,9 @@ var _steps: Array = []            # [{look, then, hold, path?: PackedVector2Arra
 ## route together; callers never get a second tutorial overlay or a guessed
 ## finger offset.
 var _visual_scale := 1.0
+## How long each frame of the reduced-motion lesson stays up. See _run_still.
+const STILL_HOLD := 2.0
+
 var _hand: Node2D
 var _spot: Node2D
 ## A non-moving route for reduced-motion play. It belongs to the existing
@@ -269,7 +272,11 @@ func _run_still() -> void:
 			_hand.modulate.a = 1.0
 			_trace.points = route
 			_trace.visible = not route.is_empty())
-		t.tween_interval(maxf(hold, 0.85))
+		# A held picture needs longer than a moving one: with nothing
+		# travelling, the 0.85 s floor flipped a two-step lesson to its second
+		# frame before a child (or harvest_touch_probe, at 0.9 s) had read the
+		# first. Two seconds is a look, not a flash.
+		t.tween_interval(maxf(hold, STILL_HOLD))
 		t.tween_callback(func():
 			_hand.modulate.a = 0.0
 			_spot.modulate.a = 0.0

@@ -51,6 +51,7 @@ extends LevelManager
 ##               floats you back to the last safe ledge, and it always will.
 
 const Coins := preload("res://scripts/shop/currency_manager.gd")
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 
 const GRAVITY := 1500.0
 const MOVE_SPEED := 265.0
@@ -101,6 +102,7 @@ var _coyote_left := 0.0
 var _buffer_left := 0.0
 var _was_space := false
 var _held_pad := false            # the jump pad is being HELD (climbing)
+var _pads: Array = []             # the three thumb buttons, for the tablet probe
 var _dir_left := false
 var _dir_right := false
 var _last_safe := Vector2.ZERO
@@ -873,9 +875,13 @@ func _build_hud() -> void:
 	# ground band: at their first height they hovered over the strip of air
 	# where coins and balloons fly past, and the playtester reported the
 	# buttons "hiding the toys". Over dirt they hide nothing that matters.
-	_pad_button(Vector2(30, 584), 124.0, "left")
-	_pad_button(Vector2(184, 584), 124.0, "right")
-	_pad_button(Vector2(1112, 572), 140.0, "jump")
+	#
+	# Placed with Fit.bottom / Fit.corner, not bare numbers: on a 4:3 tablet
+	# the viewport is 1280x960 and a pad written at y=584 floats 240 px above
+	# the thumb that is looking for it.
+	_pad_button(Vector2(30.0, Fit.bottom(_hud, 584.0)), 124.0, "left")
+	_pad_button(Vector2(184.0, Fit.bottom(_hud, 584.0)), 124.0, "right")
+	_pad_button(Fit.corner(_hud, Vector2(1112, 572)), 140.0, "jump")
 
 
 func _pad_button(at: Vector2, size: float, kind: String) -> void:
@@ -897,6 +903,7 @@ func _pad_button(at: Vector2, size: float, kind: String) -> void:
 		b.add_theme_stylebox_override(state, style if state != "pressed" else _pressed_style(style))
 	b.pivot_offset = Vector2(size, size) / 2.0
 	_hud.add_child(b)
+	_pads.append(b)
 
 	# Drawn arrows: symbols a pre-reader owns already.
 	var icon := Control.new()
@@ -922,10 +929,14 @@ func _pad_button(at: Vector2, size: float, kind: String) -> void:
 
 	match kind:
 		"left":
-			b.button_down.connect(func(): _dir_left = true)
+			b.button_down.connect(func():
+				_dir_left = true
+				Juice.pop(b, 0.10))
 			b.button_up.connect(func(): _dir_left = false)
 		"right":
-			b.button_down.connect(func(): _dir_right = true)
+			b.button_down.connect(func():
+				_dir_right = true
+				Juice.pop(b, 0.10))
 			b.button_up.connect(func(): _dir_right = false)
 		"jump":
 			b.button_down.connect(func():
@@ -936,9 +947,13 @@ func _pad_button(at: Vector2, size: float, kind: String) -> void:
 			b.button_up.connect(func(): _held_pad = false)
 
 
+## A press has to be SEEN: the face lightens and the thick bottom rim shrinks,
+## so the button reads as pushed in. The first cut only moved the alpha from
+## 0.92 to 0.90, which is no feedback at all under a thumb.
 func _pressed_style(base: StyleBoxFlat) -> StyleBoxFlat:
 	var s: StyleBoxFlat = base.duplicate()
-	s.bg_color = Color(base.bg_color.r, base.bg_color.g, base.bg_color.b, 0.9)
+	s.bg_color = Color(0.16, 0.26, 0.48, 0.96)
+	s.border_width_bottom = 3
 	return s
 
 

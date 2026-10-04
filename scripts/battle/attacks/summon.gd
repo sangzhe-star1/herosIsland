@@ -61,7 +61,7 @@ func _one(arena, index: int) -> void:
 	pounce.timeout.connect(func():
 		if not is_instance_valid(minion) or not arena.arena_alive():
 			return
-		var t: Tween = arena.arena_tween()
+		var t: Tween = arena.arena_tween().bind_node(minion)  # dies with the minion; see goo.gd
 		t.tween_property(minion, "position",
 			hero + Vector2(-20, -140) - size / 2.0, 0.55)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)

@@ -102,6 +102,22 @@ static func framed_panel_style(fill: Color, border: Color,
 	return style
 
 
+## The same material as panel_style, for a BUTTON that was given a size.
+##
+## panel_style carries a 20px content margin on every side, which is right
+## for a card holding text and wrong for a chip: Godot takes a Button's
+## minimum size from its text PLUS its stylebox margins, and the size a
+## caller sets is silently raised to meet it. A 48-tall chip styled with
+## panel_style comes out 70 tall, and the garden's shop rows -- laid out 56
+## apart from the number that was asked for -- landed their buy buttons on
+## top of each other. The chip's box is the chip's box; the label centres
+## inside it without help from a margin.
+static func chip_style(fill: Color = Palette.SURFACE, radius: int = RADIUS) -> StyleBoxFlat:
+	var style := panel_style(fill, radius)
+	style.set_content_margin_all(0)
+	return style
+
+
 static func card(fill: Color = Palette.SURFACE) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.add_theme_stylebox_override("panel", panel_style(fill))
@@ -527,6 +543,99 @@ static func _anchored_size(node: Control) -> Vector2:
 
 ## Row of up to three stars. Empty stars stay visible so the child can see what
 ## is still there to earn, but they are never shown as red or crossed out.
+## The counter a non-reader can read: one pip per thing to do, each carrying
+## the picture of the thing, dim until it is done. "3 / 8" is a sentence in
+## a language he does not have yet; eight little carrots with three lit is
+## the same fact at a glance. observation_search drew this first and
+## light_defense drew it again; this is the one copy, so the sixth template
+## to count something does not draw a seventh kind of counter.
+##
+## Callers place the row themselves; pip_row_width says how wide it is, so
+## it can be centred or right-aligned without waiting for a layout pass.
+## Above PIP_MOST things, ask for a number instead -- a row of twenty pips
+## is a barcode, not a picture.
+const PIP := 54
+const PIP_GAP := 14
+const PIP_MOST := 12
+
+
+static func pip_row(icon: String, total: int, size: int = PIP) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(PIP_GAP * size / float(PIP)))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in range(total):
+		var pip := Control.new()
+		pip.custom_minimum_size = Vector2(size, size)
+		pip.pivot_offset = Vector2(size, size) / 2.0
+		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var pad := Node2D.new()
+		pip.add_child(pad)
+		Shapes.fill(pad, Shapes.circle_points(Vector2(size, size) / 2.0,
+			size * 0.46, 22), Color(0.05, 0.09, 0.20, 0.5), 0.0)
+		var art: Control = picture(icon, size * 0.63)
+		if art != null:
+			art.position = Vector2(size * 0.185, size * 0.185)
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			pip.add_child(art)
+		pip.modulate = Color(1, 1, 1, 0.35)
+		row.add_child(pip)
+	return row
+
+
+static func pip_row_width(total: int, size: int = PIP) -> float:
+	return float(total) * size + float(maxi(total - 1, 0)) \
+		* int(PIP_GAP * size / float(PIP))
+
+
+## Light the first `done` pips. A pip that just lit pops; the rest are left
+## alone, so calling this after every step costs nothing visible.
+static func pip_fill(row: HBoxContainer, done: int) -> void:
+	if row == null or not is_instance_valid(row):
+		return
+	var i := 0
+	for pip in row.get_children():
+		if not pip is Control:
+			continue
+		var lit := i < done
+		var was_lit: bool = (pip as Control).modulate.a > 0.9
+		(pip as Control).modulate = Color(1, 1, 1, 1.0 if lit else 0.35)
+		if lit and not was_lit:
+			Juice.pop(pip, 0.25)
+		i += 1
+
+
+## A wait, as a picture: a ring, filled as far round as the wait is long.
+## `fraction` is this wait against the longest one it will be compared
+## with, so a row of these reads as "short, short, long" without a number.
+static func wait_ring(fraction: float, size: float = 28.0) -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(size, size)
+	holder.size = Vector2(size, size)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var centre := Vector2(size, size) / 2.0
+	var radius := size * 0.40
+	var track := Line2D.new()
+	track.points = Shapes.circle_points(centre, radius, 30)
+	track.closed = true
+	track.width = maxf(size * 0.10, 2.0)
+	track.default_color = Color(0.05, 0.09, 0.20, 0.30)
+	track.antialiased = true
+	holder.add_child(track)
+	var f := clampf(fraction, 0.0, 1.0)
+	if f > 0.02:
+		var points := PackedVector2Array([centre])
+		var steps := maxi(int(ceil(30.0 * f)), 2)
+		for i in range(steps + 1):
+			var angle := -PI * 0.5 + TAU * f * float(i) / float(steps)
+			points.append(centre + Vector2(cos(angle), sin(angle)) * radius)
+		var pie := Polygon2D.new()
+		pie.polygon = points
+		pie.color = Color(0.95, 0.62, 0.16, 0.92)
+		pie.antialiased = true
+		holder.add_child(pie)
+	return holder
+
+
 static func star_row(filled: int, total: int = 3, size: int = 72) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER

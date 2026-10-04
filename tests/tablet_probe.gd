@@ -69,12 +69,30 @@ const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
 ## while the hero floated a hundred and fifty pixels above the grass. That is
 ## precisely what this file exists to catch, and it took a deliberate sabotage
 ## round to find out it did not.
+##
+## `pads` names the array of thumb buttons on a screen that has no pad panel
+## under them. They are chrome against the bottom edge, so they are checked in
+## PIXELS: each one within a thumb's width of the bottom, inside the right
+## edge, and the same gap on both shapes.
+##
+## `walks` marks the bridge: the friend's walk across it is asked for by name
+## (`cross_path()`) and must land ON the planks. It did not, once: the slots
+## followed the screen and the walk kept its design coordinates, so on a
+## tablet he strolled 240 px above the bridge the child had just built. The
+## lowest-thing sweep cannot see a walk that has not happened yet.
+##
+## `key` is a name for a screen that has no level id -- the platformer has no
+## level in data/levels.json and runs on its own debug data.
 const SCREENS := [
 	{"id": "sunny_park_06", "scene": "res://scenes/minigames/monster_duel/MonsterDuel.tscn",
 		"dead": 0.14, "stands": ["_hero", "_monster"],
 		"pad": "_skill_pad", "on_pad": ["_ult_button", "_shield_button", "_beam_button"]},
 	{"id": "sunny_park_03", "scene": "res://scenes/minigames/build_repair/BuildRepair.tscn",
-		"dead": 0.14, "tops": ["_slot_nodes"]},
+		"dead": 0.14, "tops": ["_slot_nodes"], "walks": true},
+	{"id": "night_city_03", "scene": "res://scenes/minigames/roleplay_rescue/RoleplayRescue.tscn",
+		"dead": 0.26, "holds": "_tools", "stands": ["_patient"]},
+	{"id": "", "key": "platformer", "scene": "res://scenes/minigames/platformer/Platformer.tscn",
+		"dead": 0.05, "pads": "_pads"},
 	{"id": "sunny_park_02", "scene": "res://scenes/minigames/matching_sorting/MatchingSorting.tscn",
 		"dead": 0.28},
 	{"id": "sunny_park_04", "scene": "res://scenes/minigames/memory_rhythm/MemoryRhythm.tscn",
@@ -122,6 +140,7 @@ func _ready() -> void:
 
 		for screen in SCREENS:
 			await _measure(screen, seen)
+		await _the_thumb_controls_hug_the_corner(seen)
 		await _the_world_reaches_the_bottom(seen)
 		await _the_map_fills_the_screen(seen)
 		await _the_lesson_keeps_its_footing(seen)
@@ -155,7 +174,7 @@ func _measure(screen: Dictionary, seen: Dictionary) -> void:
 	await get_tree().process_frame
 
 	var low := _lowest(node)
-	var key := str(screen["id"])
+	var key := str(screen.get("key", screen["id"]))
 
 	# The three templates whose targets are drawn shapes: ask the level itself
 	# where they are. If the member is gone, say so -- an assertion that has
@@ -202,6 +221,10 @@ func _measure(screen: Dictionary, seen: Dictionary) -> void:
 	if screen.has("pad"):
 		_the_buttons_sit_on_their_pad(node, str(screen["pad"]),
 			screen.get("on_pad", []), key)
+	if screen.has("pads"):
+		_the_pads_hug_the_bottom(node, str(screen["pads"]), key, seen)
+	if bool(screen.get("walks", false)):
+		_the_friend_walks_on_the_bridge(node, key)
 
 	if low <= 0.0:
 		_ok(false, "%s: found nothing placed on the screen at all -- either the "
@@ -294,6 +317,143 @@ func _the_buttons_sit_on_their_pad(node: Node, pad_name: String,
 			"%s: %s has come off the skill pad (button at %s, pad %s) -- one of "
 			% [key, str(button_name), str(centre.round()), str(area)]
 			+ "the two stopped following the corner of the screen")
+
+
+## Thumb buttons with no pad under them, checked in pixels against the bottom
+## and right edges. A pad written at y=584 is 12 px off the bottom of a 720
+## screen and 252 px off the bottom of a 960 one; the gap is remembered and
+## _compare() demands the same number on both shapes.
+func _the_pads_hug_the_bottom(node: Node, member: String, key: String,
+		seen: Dictionary) -> void:
+	var pads = node.get(member)
+	if pads == null or not (pads is Array) or (pads as Array).is_empty():
+		_ok(false, "%s: %s is empty or gone -- the thumb pads are no longer watched"
+			% [key, member])
+		return
+	var i := 0
+	for pad in (pads as Array):
+		if not (pad is Control) or not is_instance_valid(pad):
+			continue
+		var rect: Rect2 = (pad as Control).get_global_rect()
+		var gap: float = _view.y - rect.end.y
+		print("   %-15s pad %d ends %4d px above the bottom, right edge at %4d of %4d"
+			% [key, i, int(gap), int(rect.end.x), int(_view.x)])
+		_ok(gap >= 0.0 and gap <= 40.0,
+			"%s: pad %d sits %d px above the bottom edge of a %d-tall screen -- "
+			% [key, i, int(gap), int(_view.y)] + "it has floated away from the thumb")
+		_ok(rect.end.x <= _view.x + 0.5,
+			"%s: pad %d pokes %d px past the right edge of the screen"
+			% [key, i, int(rect.end.x - _view.x)])
+		_remember(seen, "%s pad %d gap" % [key, i], gap)
+		i += 1
+
+
+## The friend's walk across the finished bridge has to be ON the bridge: both
+## ends inside the screen, and the far end standing just above the planks,
+## not a quarter of a screen over their heads.
+func _the_friend_walks_on_the_bridge(node: Node, key: String) -> void:
+	if not node.has_method("cross_path"):
+		_ok(false, "%s: cross_path() is gone -- the walk across the bridge is "
+			% key + "no longer watched")
+		return
+	var path: PackedVector2Array = node.cross_path()
+	var slots = node.get("_slot_nodes")
+	var deck := 0.0
+	if slots is Array:
+		for ghost in (slots as Array):
+			if ghost is Node2D and is_instance_valid(ghost):
+				deck = maxf(deck, (ghost as Node2D).global_position.y)
+	if path.size() < 2 or deck <= 0.0:
+		_ok(false, "%s: the bridge has no planks or the walk has no ends" % key)
+		return
+	var far_side: Vector2 = path[path.size() - 1]
+	var above: float = deck - far_side.y
+	print("   %-15s friend walks to y=%4d, the planks are at y=%4d (%d px above them)"
+		% [key, int(far_side.y), int(deck), int(above)])
+	var screen := Rect2(Vector2.ZERO, _view)
+	for point in path:
+		_ok(screen.has_point(point),
+			"%s: the friend's walk goes through %s, which is off a %s screen"
+			% [key, str(point.round()), str(_view)])
+	_ok(above >= 0.0 and above <= 120.0,
+		"%s: the friend ends his walk %d px above the planks (y=%d, planks y=%d) "
+		% [key, int(above), int(far_side.y), int(deck)]
+		+ "-- the walk did not follow the bridge down the screen")
+
+
+## The adventure's hands, built on their own: the skill bar with its stick and
+## its two skills, exactly as adventure.gd builds them. Everything on it is
+## chrome against the bottom-right corner, so it is all measured in PIXELS:
+##
+##   the stick's zone ends AT the bottom edge -- a zone that stops at 720 on a
+##   960-tall screen leaves a dead band a thumb lands in and nothing happens
+##
+##   jump and attack sit within a thumb's width of the bottom, every button
+##   is inside the right edge, and every gap is the same on both shapes
+func _the_thumb_controls_hug_the_corner(seen: Dictionary) -> void:
+	var host := Control.new()
+	host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(host)
+	await get_tree().process_frame
+	var bar: Control = load("res://scripts/ui/skill_bar.gd").new()
+	host.add_child(bar)
+	bar.add_skill("shield", Color(0.55, 0.85, 1.0), 6.0)
+	bar.add_skill("lightning", Color(1.0, 0.86, 0.40), 4.0)
+	await get_tree().process_frame
+
+	var stick = bar.get("_stick")
+	if stick == null or not stick.has_method("area"):
+		_ok(false, "the skill bar has no stick with an area() -- the thumb zone "
+			+ "is no longer watched")
+	else:
+		var zone: Rect2 = stick.area()
+		print("   %-15s zone y %4d..%4d of %4d" % ["thumb stick", int(zone.position.y),
+			int(zone.end.y), int(_view.y)])
+		_ok(is_equal_approx(zone.end.y, _view.y),
+			"the thumb stick's zone ends at y=%d on a %d-tall screen -- the bottom "
+			% [int(zone.end.y), int(_view.y)]
+			+ "%d px are dead under a thumb" % int(_view.y - zone.end.y))
+		_ok(zone.position.x <= 0.0 and zone.size.y >= 300.0,
+			"the thumb stick's zone %s is not a big bottom-left corner any more"
+			% str(zone))
+		_remember(seen, "thumb stick top gap", _view.y - zone.position.y)
+
+	var named := {"jump": "_jump_button", "attack": "_attack_button"}
+	for what in named.keys():
+		var button = bar.get(str(named[what]))
+		if button == null or not (button is Control):
+			_ok(false, "the skill bar's %s button is gone" % what)
+			continue
+		var rect: Rect2 = (button as Control).get_global_rect()
+		var gap: float = _view.y - rect.end.y
+		print("   %-15s %s ends %4d px above the bottom, right edge %4d of %4d"
+			% ["skill bar", what, int(gap), int(rect.end.x), int(_view.x)])
+		# 42 px at design size: the pad sits a thumb's rest above the bezel.
+		_ok(gap >= 0.0 and gap <= 48.0,
+			"the %s button sits %d px above the bottom of a %d-tall screen -- it "
+			% [what, int(gap), int(_view.y)] + "has floated off the thumb")
+		_ok(rect.end.x <= _view.x + 0.5,
+			"the %s button pokes %d px past the right edge" % [what, int(rect.end.x - _view.x)])
+		_remember(seen, "skill bar %s gap" % what, gap)
+
+	var skills = bar.get("_skill_buttons")
+	if skills == null or not (skills is Array) or (skills as Array).size() < 2:
+		_ok(false, "the skill bar did not build its two skill buttons")
+	else:
+		var slot := 0
+		for entry in (skills as Array):
+			var button: Control = entry["button"]
+			var rect: Rect2 = button.get_global_rect()
+			print("   %-15s skill %d ends %4d px above the bottom, right edge %4d of %4d"
+				% ["skill bar", slot, int(_view.y - rect.end.y), int(rect.end.x), int(_view.x)])
+			_ok(rect.end.x <= _view.x + 0.5 and rect.end.y <= _view.y + 0.5,
+				"skill %d ends at %s, past the edge of a %s screen"
+				% [slot, str(rect.end.round()), str(_view)])
+			_remember(seen, "skill bar skill %d gap" % slot, _view.y - rect.end.y)
+			slot += 1
+
+	host.queue_free()
+	await get_tree().process_frame
 
 
 func _every_node(root: Node) -> Array:

@@ -748,12 +748,20 @@ func add_blocker(node: Control) -> void:
 
 
 func _blocked(at: Vector2) -> bool:
+	# Validity FIRST. A card that frees itself (the recipe card fades out
+	# on its own) leaves a dead reference here, and `dead is Control` is a
+	# script error -- which aborted the whole input handler, so every press
+	# on the farm went nowhere until the next rebuild swept the list.
+	var alive: Array = []
 	for node in blockers:
-		if node is Control and is_instance_valid(node) \
-				and (node as Control).visible \
-				and Rect2((node as Control).global_position,
-					(node as Control).size).has_point(at):
+		if not is_instance_valid(node) or not (node is Control):
+			continue
+		alive.append(node)
+		if (node as Control).visible and Rect2((node as Control).global_position,
+				(node as Control).size).has_point(at):
+			blockers = alive
 			return true
+	blockers = alive
 	return false
 
 

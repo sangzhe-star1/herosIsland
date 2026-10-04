@@ -41,7 +41,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 734
+const CHECKS_EXPECTED := 736
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -151,6 +151,14 @@ func _open() -> void:
 	GameManager.current_level_id = "star_garden"
 	_garden = load("res://scenes/garden/Garden.tscn").instantiate()
 	add_child(_garden)
+	# No quiet clock either. Its 20 s beat runs on the wall clock, not the
+	# frozen GameClock, and settle_farm() replaces SaveManager.data["farm"]
+	# with a copy -- so a section holding `var farm := SaveManager.data["farm"]`
+	# across that beat writes into a dictionary the garden no longer reads.
+	# Under software GL the probe is long enough for the beat to land inside
+	# a section (it did: the stones' confirm and the untouched growing bed).
+	# The tick has clock_probe; this one is about the ground.
+	_garden.set("_garden_tick_running", false)
 
 
 func _close() -> void:
@@ -808,9 +816,11 @@ func _the_furniture_is_not_a_hole_in_the_farm(view: Vector2) -> void:
 		_ok(_camera().centre.is_equal_approx(under_board),
 			"nor does it count as taps on the grass")
 
-	# The X still closes it: the GUI is blocked from nothing.
-	var sheet_origin := Vector2(view.x * 0.5 - 189.0 - 24.0, 96.0 + 52.0 - 18.0)
-	var shut := sheet_origin + Vector2(378.0 + 48.0 - 74.0 + 31.0, 12.0 + 31.0)
+	# The X still closes it: the GUI is blocked from nothing. Found by its
+	# label, not by a copy of the sheet's arithmetic: the X moved off the
+	# paper's corner on 2026-09-25 and the copy here aimed at the paper.
+	var shut := _centre_of_button("X")
+	_ok(shut != Vector2.ZERO, "the board has an X to press")
 	await _tap(shut)
 	await get_tree().process_frame
 	_ok(not bool(_garden.get("_orders_open")),
@@ -1168,17 +1178,27 @@ func _one_stroke_never_pays_twice() -> void:
 
 	await _tap((_tool_button("basket") as Button).position + Vector2(48, 38))
 	_ok(_tools_state().selected == "basket", "the basket can be picked up")
+	if _garden.has_meta("last_harvest_flight"):
+		_garden.remove_meta("last_harvest_flight")
 	await _scrub(_garden.call("_bed_centre", 1), 70.0)
 
 	var yield_count := maxi(int(GameData.get_crop("strawberry")
 		.get("harvest_amount", 1)), 1)
+	# The stroke itself is sixteen frames; under a slow software-GL window
+	# that outlives the 0.4 s sprite. The screen keeps a receipt of the last
+	# flight, so the question is answered either by the sprite or its stamp.
 	var flight: Node = _find_named(_garden, "HarvestFlight_strawberry")
-	_ok(flight != null, "brush harvesting keeps the strawberry visible while it flies")
-	if flight != null:
-		_ok(str(flight.get_meta("crop_id", "")) == "strawberry",
-			"the brush flight keeps the crop after the bed resets")
-		_ok(int(flight.get_meta("amount", 0)) == yield_count,
-			"the brush flight keeps the crop's real harvest amount")
+	var stamp: Dictionary = _garden.get_meta("last_harvest_flight", {})
+	var flight_crop := str(flight.get_meta("crop_id", "")) if flight != null \
+		else str(stamp.get("crop_id", ""))
+	var flight_amount := int(flight.get_meta("amount", 0)) if flight != null \
+		else int(stamp.get("amount", 0))
+	_ok(flight != null or str(stamp.get("node", "")) == "HarvestFlight_strawberry",
+		"brush harvesting keeps the strawberry visible while it flies")
+	_ok(flight_crop == "strawberry",
+		"the brush flight keeps the crop after the bed resets")
+	_ok(flight_amount == yield_count,
+		"the brush flight keeps the crop's real harvest amount")
 	var yield_label: Node = _find_named(_garden, "HarvestYield")
 	_ok(yield_label is Label and str((yield_label as Label).text) == "x%d" % yield_count,
 		"a brush harvest says the real yield, not one picked bed")
@@ -1691,6 +1711,19 @@ func _huts_drawn() -> int:
 	return standing
 
 
+## The middle of the first visible Button carrying this label, on the glass.
+func _centre_of_button(label: String) -> Vector2:
+	var stack: Array = [_garden]
+	while not stack.is_empty():
+		var node: Node = stack.pop_back()
+		if node is Button and str((node as Button).text) == label \
+				and (node as Control).is_visible_in_tree():
+			return (node as Control).get_global_rect().get_center()
+		for child in node.get_children():
+			stack.append(child)
+	return Vector2.ZERO
+
+
 ## The visitor board opens its sheet where it is pressed, reading it makes
 ## the news old, and an empty board is a warm picture, not a blank sheet.
 func _the_visitor_board_reads_and_clears(view: Vector2) -> void:
@@ -1709,7 +1742,7 @@ func _the_visitor_board_reads_and_clears(view: Vector2) -> void:
 		"reading the board is what makes its news old")
 	# The sheet's X: same scaffolding as every panel -- origin.x + wide - 74,
 	# +31 to the button's centre. Pressed for real, because this sheet is new.
-	await _tap(Vector2(view.x * 0.5 + 277.0, 155.0))
+	await _tap(_centre_of_button("X"))
 	_ok(not bool(_garden.get("_visit_open")), "the X closes the board")
 	farm["visit_log"] = []
 	farm["visit_log_unread"] = false

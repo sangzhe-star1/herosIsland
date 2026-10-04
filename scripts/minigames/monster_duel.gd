@@ -155,6 +155,11 @@ static func gesture_table() -> Array:
 	return Moves.gesture_table()
 
 var _stroke                     # Stroke.new(MOVES)
+var _move_card: Control         # the card of moves, so a missed stroke can point at it
+var _stroke_far := 0.0          # how far the current stroke has got from where it began
+var _stroke_from := Vector2.ZERO
+## 一笔至少要离起点这么远才算"试着搓了一招"；比每一招要求的距离都短得多。
+const STROKE_TRY := 30.0
 var _stroke_field: Control
 var _trail: Line2D
 
@@ -1036,6 +1041,7 @@ func _build_move_card() -> void:
 	card.position = Vector2(MARGIN, MARGIN + 96.0 + GAP * 3.0)
 	card.size = Vector2(96, row_h * float(moves.size()) + GAP)
 	_play_area.add_child(card)
+	_move_card = card
 
 	var plate := Node2D.new()
 	card.add_child(plate)
@@ -1085,11 +1091,30 @@ func _draw_card_stroke(card: Control, mid: Vector2, stroke: Array) -> void:
 func _on_stroke_input(event: InputEvent) -> void:
 	if not _started or _won or _finished:
 		return
-	_stroke.feed(event, _event_at(event))
+	var was_drawing: bool = _stroke.drawing()
+	var at := _event_at(event)
+	_stroke.feed(event, at)
 	_paint_trail()
+	if not was_drawing and _stroke.drawing():
+		_stroke_from = at
+		_stroke_far = 0.0
+	elif was_drawing:
+		_stroke_far = maxf(_stroke_far, at.distance_to(_stroke_from))
 	var move: String = _stroke.take()
 	if move != "":
 		_perform(move)
+	elif was_drawing and not _stroke.drawing() and _stroke_far >= STROKE_TRY:
+		_missed_stroke()
+
+
+## 一笔划完了，招式册里没有这一招。不能没声音：他划了、抬手了、什么都没发生，
+## 和"这游戏坏了"是同一件事 —— 减少动效开着的时候连轨迹都不画，就更是。
+## 一声轻响，招式表晃一下（说"照这个划"），不碰任何识别阈值。STROKE_TRY 只是
+## 把"按按钮时手指滑了一下"排除掉，比每一招要求的距离都短得多。
+func _missed_stroke() -> void:
+	AudioManager.play_sfx("res://assets/audio/pop.ogg")
+	if _move_card != null and is_instance_valid(_move_card):
+		Juice.nudge(_move_card, 6.0)
 
 
 ## 事件落在战斗坐标系的哪里。gui_input 给的是相对控件的位置，而这个控件是

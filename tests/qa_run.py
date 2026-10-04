@@ -34,6 +34,26 @@ EXCLUDED_NAMES = {
 LOCK_PATH = Path("/tmp/heroes-island-godot-qa.lock")
 SCRIPT_ERRORS = re.compile(r"SCRIPT ERROR|Parse Error|Parser Error")
 ENGINE_ERRORS = re.compile(r"^\s*ERROR:", re.MULTILINE)
+# Engine lines that are not a failure of the thing under test. Godot prints
+# both of these at exit when a tween, timer or texture is still referenced
+# the instant the tree is torn down; they were in every green run of the
+# July baseline, and on a clean Linux box they stopped the WHOLE suite at
+# SmokeTest -- after SmokeTest had printed PASSED. Anything else that says
+# ERROR: still fails the run.
+HARMLESS_EXIT_ERRORS = re.compile(
+    r"^\s*ERROR: (?:\d+ resources still in use at exit"
+    r"|\d+ RID allocations of type .* were leaked at exit)",
+    re.MULTILINE)
+
+
+def engine_errors(output: str) -> bool:
+    """True when the log has an ERROR: line that is not a known exit notice."""
+    for hit in ENGINE_ERRORS.finditer(output):
+        line_end = output.find("\n", hit.start())
+        line = output[hit.start():line_end if line_end >= 0 else None]
+        if not HARMLESS_EXIT_ERRORS.match(line):
+            return True
+    return False
 GODOT_NAME = re.compile(r"godot(?:4)?(?:[._-].*)?", re.IGNORECASE)
 APPLICATION_KEYS = {
     "config/name", "config/use_custom_user_dir", "config/custom_user_dir_name",
@@ -268,7 +288,7 @@ def check_result(result: RunResult, expect: str | None = None) -> None:
         raise QAError(f"Godot exited with {result.returncode}; see {result.log_path}")
     if SCRIPT_ERRORS.search(output):
         raise QAError(f"Script error found; see {result.log_path}")
-    if ENGINE_ERRORS.search(output):
+    if engine_errors(output):
         raise QAError(f"Godot error found; see {result.log_path}")
     if expect is not None and expect not in output:
         raise QAError(f"Missing expected marker {expect!r}; see {result.log_path}")
@@ -369,7 +389,7 @@ class QASession:
             ["--headless", "--editor", "--import", "--quit"],
             label="import", timeout=timeout,
         )
-        if ENGINE_ERRORS.search(result.log_path.read_text(errors="replace")):
+        if engine_errors(result.log_path.read_text(errors="replace")):
             raise QAError(f"Resource import error; see {result.log_path}")
         return result
 

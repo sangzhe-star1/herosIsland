@@ -97,6 +97,16 @@
       "window": false
     },
     {
+      "name": "FeedbackProbe",
+      "args": [
+        "--headless",
+        "res://tests/FeedbackProbe.tscn"
+      ],
+      "expect": "FEEDBACK PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
       "name": "TouchProbe",
       "args": [
         "--headless",

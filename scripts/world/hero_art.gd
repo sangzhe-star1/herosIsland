@@ -153,6 +153,9 @@ func rebuild() -> void:
 	var caps := Node2D.new()
 	_root.add_child(caps)
 	_build_shoulder_caps(caps)
+	# The rig is new; the breath has to be too (see _start_breathing).
+	if is_inside_tree():
+		_start_breathing()
 
 
 ## The skin, in the chosen colours. No colour chosen, no copy made.
@@ -970,6 +973,14 @@ func spin(turns: float = 1.0, duration: float = 0.5) -> void:
 ## Nothing on screen is completely still while the game waits for a child --
 ## a frozen character reads as "the game has stopped".
 func _start_breathing() -> void:
+	# Kill the old loop first. rebuild() frees the rig and makes a new _root,
+	# and a breathing tween left running on the freed one has nothing valid
+	# to step -- it finishes each loop in zero time, the engine prints
+	# "Infinite loop detected" and kills it, and the new rig stands still.
+	# Every outfit change in the hero house did this.
+	if _breath != null and _breath.is_valid():
+		_breath.kill()
+	_breath = null
 	if not Juice.motion_enabled() or _root == null:
 		return
 	_breath = create_tween().set_loops()

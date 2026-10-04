@@ -1,127 +1,122 @@
 # Little Heroes Growth Island — development plan
 
-Written 22 July 2026. Living document; revise as reality intervenes.
+First written 22 July 2026. Status brought up to date 25 September 2026.
+Living document; revise as reality intervenes.
 
 ---
 
-## The constraint that shapes this plan
+## Where things stand
 
-**No one has run this game since the icon and juice work landed.** I build it
-without an engine — I can read code and check it statically, but I cannot see a
-button overlap its label or a particle system fail to fire.
+The original plan was written before anyone had seen the game run. That phase
+is over. The game runs on the Mac and on the iPad, he has played it, and since
+late July the work has been driven by what happened when he did: he got lost
+behind the garden's exit, and the monster fights were over too fast. Each of
+those reports became a round of changes, and each round left an automatic check
+behind. `CHANGELOG.md` is the record, one section per round.
 
-That has already cost one debug cycle: a parser error in a file the boot screen
-never touches blanked the entire game, and every static check I had at the time
-passed. The checker is much stronger now, but the lesson stands.
-
-So this plan is ordered by **risk reduction first, features second**. The
-fastest route to a game you can put in front of your son is not more levels —
-it is making the ~3,500 lines that already exist provably work.
-
----
-
-## Phase 0 — Prove what exists (you, 6 minutes)
-
-**Status: blocked on you.**
-
-Press F5 and walk README §14's test order. Nothing below matters until this
-happens; every feature added on top of an unverified base multiplies the
-debugging if something foundational is wrong.
-
-Highest-suspicion item: `UiKit.icon_button()` positions its icon by fraction of
-button size and pushes the label down with a content margin. If that maths is
-off, **every button on Home and the map is wrong at once**, because they all
-share that one function. One screenshot settles it.
-
----
-
-## Phase 1 — Make verification cheap (done this session)
-
-A smoke test that boots every scene and every level headlessly and reports
-errors, run with one command in about thirty seconds:
-
-```bash
-/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script tests/smoke_test.gd
-```
-
-This catches parser errors, missing methods, null crashes on scene entry, and
-controls that overflow the 1280×720 viewport. It does not catch "this looks
-ugly" or "this is confusing to a child" — those need your eyes and his hands.
-
-**Why this is Phase 1 and not Phase 5:** it converts every future change from
-"hope it works" to "checked in thirty seconds", which compounds across
-everything after it.
-
----
-
-## Phase 2 — Complete the level set (done this session)
-
-`animal_rescue` was the last unbuilt template. With it: **14 of 14 levels
-playable**, four templates, four worlds.
-
-| Template | Levels | Skill |
+| | 22 July, from the first version of this file | Now |
 |---|---|---|
-| `traffic_crossing` | 3 | impulse control, road safety |
-| `item_sorting` | 5 | classification, counting, danger recognition |
-| `collect_energy` | 3 | attention, colour matching |
-| `animal_rescue` | 3 | sequencing, planning |
+| Levels | 14 | 59 |
+| Templates with levels | 4 | 14 |
+| Home screen doors | 2, and a disabled Hero House button | 5 |
+| Smoke checkpoints | 1 script | 29, all green |
+| `tools_check.py` | new | 0 errors, 188 warnings |
 
 ---
 
-## Phase 3 — The real content pass (needs you)
+## Phase 0 — Prove what exists — **done**
 
-Code cannot do these. In order of impact on whether your son plays twice:
+The game has been run on the Mac and the iPad, and every screen has been
+rendered and looked at at 1280×720 and at iPad 4:3.
 
-1. **Fonts** — 10 minutes, largest single visual jump. See `ASSETS.md` §1.
-2. **Voice lines** — he cannot read; the voice *is* the instruction. Your voice
-   beats any stock clip, and recording them with him is a better evening than
-   anything in this file.
-3. **His drawings as the hero** — the `CharacterSkin` seam exists precisely for
-   this. Scan at ~128×192 transparent PNG.
-4. **Sound effects** — Kenney's CC0 packs; every hook is already wired.
+## Phase 1 — Make verification cheap — **done**
 
----
+`./tests/run_smoke.sh` boots every scene and every level headlessly and runs
+29 checkpoints, most of them feature probes in `tests/`. `tests/shots.sh`
+renders every screen to PNG. The house rule since then: every fix leaves a
+check behind, and the check is broken once on purpose to prove it goes red.
 
-## Phase 4 — Playtest and cut (needs him)
+## Phase 2 — Complete the level set — **done, and outgrown**
 
-Put it in front of him and watch without helping. Record only:
+The four-template plan became fourteen templates in use. The island has five
+worlds and 34 levels; 光之战士 has 15 duels; the Star Garden has the farm plus
+8 harvest levels. See README §4.
 
-- which level he asks to replay
+## Phase 3 — The real content pass — **mostly done**
+
+1. **Fonts** — Noto Sans SC is in the repo, so Chinese renders. Baloo 2 for
+   Latin text is still optional.
+2. **Voice lines** — generated for every level with the Mac's Chinese voice
+   (`tools/make_voice.command`). Replacing them with your own voice is still
+   the best upgrade available; `docs/VOICE_SCRIPT.md` has every line.
+3. **His drawings as the hero** — the skin seam and the drop-in character
+   folder both exist. Not done yet: no drawing of his is in the game.
+4. **Sound effects** — generated by `tools/make_audio.py`, all of them.
+
+## Phase 4 — Playtest and cut — **in progress**
+
+This is now the main loop. Keep recording only:
+
+- which part he asks to replay
 - where he goes quiet or looks at you for help
 - what he tries that the game does not support
 
-Then **delete or rework whatever he does not return to.** Fourteen levels is
-already more than a spare-time project can polish well; expect to keep eight.
+The one metric that matters is still: *does he ask to play it again tomorrow?*
 
-The one metric that matters: *does he ask to play it again tomorrow?*
+The "cut" half has not happened yet. With 59 levels, that is now the bigger
+risk than missing content.
+
+## Phase 5 — Depth — **partly done**
+
+- **Hero House** — built: dress-up, furniture, a star-coin shop with the
+  child-safety rules in the house skill.
+- **Monster album** — built, and since 31 July it is also the battle guide:
+  each card's weakness is the move that opens that monster.
+- **Star Garden** — built, with its own eight harvest levels.
+- **Child profiles** — not built; only if a sibling starts playing.
+- **Story cutscenes** — not built; the end-of-level mini lesson covers part of
+  the same need.
+
+## Phase 6 — Release — **Mac done, tablets documented**
+
+`tools/build_mac.command` builds the Mac app. `docs/DEPLOYMENT.md` covers the
+Android and iOS paths. The same rule as before holds: before any build leaves
+the house, replace any licensed character likeness with an original hero.
 
 ---
 
-## Phase 5 — Depth, only after Phase 4
+## Open decisions
 
-Do not start these before the playtest tells you which direction is worth it.
+These are yours to make. Nothing below has been changed without asking.
 
-- **Hero House** — spend coins on furniture. Currently a disabled button, which
-  is honest. This is the strongest candidate for "reason to come back".
-- **Child profiles** — only if a sibling starts playing.
-- **More levels per template** — pure JSON, cheap, but only for templates he
-  actually likes.
-- **Story cutscenes between worlds** — expensive; skip unless he asks.
-
----
-
-## Phase 6 — Release
-
-1. macOS/Windows build for family
-2. Android APK for the tablet (project is already landscape, touch, GL
-   Compatibility)
-3. Web build only if you want to share a link; Godot's web export is the
-   fiddliest target and there is no audience for it yet
-4. iOS last, needs a paid Apple account
-
-**Before any build leaves the house:** replace any licensed character likeness
-with the original light hero. The skin system makes this a one-file change —
-that is why it was built that way from the first commit.
+1. **Seven templates have no levels.** `traffic_crossing`, `item_sorting`,
+   `collect_energy`, `animal_rescue`, `memory_match`, `monster_battle` and
+   `monster_expedition` are from the first version. **Decided 25 September
+   2026: they stay.** Giving them levels again is still open.
+2. **The battle track is a third of the game.** `monster_duel` runs 21 of the
+   59 levels. That is fine if it is what he returns to. If it is not, it is
+   the first place to cut.
+3. **`scripts/garden/garden_screen.gd` is now 4,700 lines.** A split into a
+   panels layer was built on 25 September and dropped on 4 October, because
+   the file had grown by 1,500 lines of garden features in between and the two
+   could not be merged. Split it on the current file, before the next garden
+   feature, by the same recipe: the sheets as a base class, one stub seam.
+4. **The 3D direction needs a stop line that holds.** The plan in
+   `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
+   3 and 4 October and its own art gate rejected every one; the 2.5D renders
+   in `assets/harvest_3d/` passed and are in the harvest levels. Either stop
+   runtime 3D there, or reopen it only with the four-piece kit the plan asks
+   for (basket, bed, crop, contact shadow) rendered through one camera.
+   Separately: the harvest page is rendered and the garden is drawn flat, and
+   a child walks between them. One style, or a reason for two.
+5. **The asset pipeline is fifteen one-off Blender scripts.** 6,400 lines of
+   `bpy`, thirteen of which define their own camera. One studio scene plus a
+   recipe file per asset, with the contact sheet and alpha audit run by the
+   same command, is the reusable shape; see the 4 October CHANGELOG entry.
+6. **The save file has two version fields.** `SAVE_VERSION` is written on
+   every save and never read. `FARM_SAVE_VERSION` is the one migrations use.
+   Folding them into one is a small change, but it touches every existing save,
+   so it wants a test on a real old save first.
 
 ---
 
@@ -143,7 +138,7 @@ Encoded in code, not just written here:
 
 ## What I will not do without asking
 
-- Add a fifth minigame template before the first four are verified
+- Delete a template, a level, or an asset folder; that is always your call
 - Replace the drawn icons with downloaded art (your call on licences)
 - Add any network, account, or analytics feature — the local-only promise is
   the most valuable property this project has

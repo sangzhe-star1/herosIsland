@@ -46,7 +46,9 @@ var _slips := 0
 var _helped := false
 var _gift_at := -1                # which item in the run is the shiny one
 var _gift_found := false
-var _tally: Label
+var _pips: HBoxContainer          # one per thing to sort, lit as they go
+var _note: Label                  # the odd sentence, on its own line
+var _bin_glow: Node2D             # the level-one hint, so it can be put out
 var _finished_level := false
 
 
@@ -180,8 +182,15 @@ func _next_item() -> void:
 	AudioManager.play_sfx("res://assets/audio/pop.ogg")
 
 
-func _on_dropped(item: Dictionary, _slot: Dictionary, correct: bool) -> void:
+func _on_dropped(item: Dictionary, slot: Dictionary, correct: bool) -> void:
 	if _finished_level:
+		return
+	# Let go over empty ground: a fumble, not an answer. The field has already
+	# floated the thing home, which is all the reply it needs. Counting it as a
+	# mistake cost a star for a slipped thumb, and hints.missed() would have
+	# escalated straight to a hint (misses_before_help is 1) and cost the
+	# third star as well.
+	if slot.is_empty():
 		return
 	if not correct:
 		_slips += 1
@@ -192,6 +201,7 @@ func _on_dropped(item: Dictionary, _slot: Dictionary, correct: bool) -> void:
 	_done += 1
 	score_correct()
 	_hints.progress()
+	_unglow_bin()
 	if bool(item.get("shiny", false)):
 		_gift_found = true
 		Juice.shockwave(_field, (item["node"] as Node2D).position, 200.0,
@@ -219,28 +229,38 @@ func _build_hud() -> void:
 	back.position = Vector2(24, 24)
 	_hud.add_child(back)
 
-	_tally = Label.new()
-	_tally.add_theme_font_size_override("font_size", 40)
-	_tally.add_theme_color_override("font_color", Palette.ON_COLOR)
-	UiKit.on_art(_tally)
-	_tally.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tally.position = Vector2(440, 28)
-	_tally.size = Vector2(400, 52)
-	_tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud.add_child(_tally)
+	# One star per thing to sort, lit as they go in. Centred on the REAL
+	# screen width, clear of the back button on the left.
+	var view: Vector2 = _hud.get_viewport_rect().size
+	_pips = UiKit.pip_row("star", _wanted)
+	_pips.position = Vector2(view.x * 0.5 - UiKit.pip_row_width(_wanted) * 0.5, 26)
+	_hud.add_child(_pips)
+
+	# The sentence ("not that box") lives under the counter, never on it: the
+	# old label was both, and every wrong drop wiped the score for a second.
+	_note = Label.new()
+	_note.add_theme_font_size_override("font_size", 32)
+	_note.add_theme_color_override("font_color", Palette.ON_COLOR)
+	UiKit.on_art(_note)
+	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_note.position = Vector2(view.x * 0.5 - 300.0, 88)
+	_note.size = Vector2(600, 46)
+	_note.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud.add_child(_note)
 	_refresh_tally()
 
 
 func _refresh_tally() -> void:
-	if _tally != null and is_instance_valid(_tally):
-		_tally.text = "%d / %d" % [_done, _wanted]
+	UiKit.pip_fill(_pips, _done)
 
 
 func _say(key: String) -> void:
-	if _tally == null or not is_instance_valid(_tally):
+	if _note == null or not is_instance_valid(_note):
 		return
-	_tally.text = I18n.t(key)
-	get_tree().create_timer(1.6).timeout.connect(_refresh_tally)
+	_note.text = I18n.t(key)
+	get_tree().create_timer(1.6).timeout.connect(func():
+		if is_instance_valid(_note):
+			_note.text = "")
 
 
 func _play_tutorial() -> void:
@@ -271,7 +291,19 @@ func _glow_right_bin() -> void:
 	var node: Node2D = bin["node"]
 	if is_instance_valid(node):
 		Juice.pop(node, 0.3)
-		Shapes.glow(node, Vector2(0, -60.0), 190.0, Color(1.0, 0.94, 0.55), 4, 0.45)
+		# One glow, on the bin the CURRENT thing wants. It used to be added and
+		# never removed, so after the drop the old bin kept shining and the
+		# next hint lit a second one: two answers to a one-answer question.
+		_unglow_bin()
+		_bin_glow = Shapes.glow(node, Vector2(0, -60.0), 190.0,
+			Color(1.0, 0.94, 0.55), 4, 0.45)
+		_bin_glow.set_meta("hint_glow", true)
+
+
+func _unglow_bin() -> void:
+	if _bin_glow != null and is_instance_valid(_bin_glow):
+		_bin_glow.queue_free()
+	_bin_glow = null
 
 
 func _show_the_drag() -> void:
@@ -290,6 +322,7 @@ func _do_it_for_them() -> void:
 		return
 	_field.place_for_them(_current)
 	_done += 1
+	_unglow_bin()
 	_refresh_tally()
 	get_tree().create_timer(0.5).timeout.connect(func():
 		if not _finished_level:
@@ -311,7 +344,7 @@ func _finish() -> void:
 	# says thank you.
 	for bin in _bins:
 		Juice.pop(bin["node"], 0.34)
-	Juice.burst(_field, Vector2(640, 420), 40)
+	Juice.burst(_field, Fit.at(_field, Vector2(640, 420)), 40)
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	await get_tree().create_timer(1.3).timeout
 	complete_level()

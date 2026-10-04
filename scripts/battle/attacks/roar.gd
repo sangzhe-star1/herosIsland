@@ -37,6 +37,6 @@ func fire(arena) -> void:
 	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	arena.arena_play_area().add_child(ring)
 	arena.arena_add_threat(ring)
-	var t: Tween = arena.arena_tween()
+	var t: Tween = arena.arena_tween().bind_node(ring)  # dies with the ring; see goo.gd
 	t.tween_property(ring, "position:x", arena.arena_hero_at().x - 85.0, 2.6)
 	t.tween_callback(func(): arena.arena_arrives(ring))

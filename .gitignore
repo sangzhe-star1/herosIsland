@@ -25,3 +25,6 @@ _to_delete/
 
 # 素材压缩包的落脚点，不进仓库
 tmp/
+
+# Python bytecode from tests/qa_run.py
+__pycache__/

@@ -35,7 +35,7 @@ var _steps := 4
 var _slips := 0
 var _helped := false
 var _quick := false               # solved without a single wrong turn
-var _tally: Label
+var _pips: HBoxContainer          # one per piece, lit as the path completes
 var _finished_level := false
 
 
@@ -235,7 +235,12 @@ func _on_tap(event: InputEvent) -> void:
 func _use(piece: Dictionary) -> void:
 	if _piece_ok(piece) and str(piece["kind"]) != "pipes" \
 			and str(piece["kind"]) != "mirrors":
-		return                          # already done and not re-turnable
+		# Already done and not re-turnable -- but a tap still gets an answer.
+		# A small pop and a soft sound say "yes, that one is finished";
+		# silence says "this button is broken".
+		Juice.pop(piece["node"], 0.12)
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		return
 	match str(piece["kind"]):
 		"order":
 			# Pressing out of turn is not a failure: everything unlights and
@@ -283,8 +288,7 @@ func _refresh() -> void:
 	for piece in _pieces:
 		if _piece_ok(piece):
 			done += 1
-	if _tally != null and is_instance_valid(_tally):
-		_tally.text = "%d / %d" % [done, _steps]
+	UiKit.pip_fill(_pips, done)
 	# The lamp brightens as the path completes, so progress is visible on the
 	# THING rather than only in a counter.
 	var lamp: Node2D = _goal.get_meta("lamp")
@@ -335,15 +339,12 @@ func _build_hud() -> void:
 	back.position = Vector2(24, 24)
 	_hud.add_child(back)
 
-	_tally = Label.new()
-	_tally.add_theme_font_size_override("font_size", 40)
-	_tally.add_theme_color_override("font_color", Palette.ON_COLOR)
-	UiKit.on_art(_tally)
-	_tally.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tally.position = Vector2(440, 28)
-	_tally.size = Vector2(400, 52)
-	_tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud.add_child(_tally)
+	# One gear per piece, lit as the path completes, centred on the real
+	# screen width. "2 / 4" was a sentence; four gears with two lit is a picture.
+	var view: Vector2 = _hud.get_viewport_rect().size
+	_pips = UiKit.pip_row("gear", _steps)
+	_pips.position = Vector2(view.x * 0.5 - UiKit.pip_row_width(_steps) * 0.5, 26)
+	_hud.add_child(_pips)
 
 
 ## The brief asks for one complete run-through before the child touches it.

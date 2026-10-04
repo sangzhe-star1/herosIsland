@@ -50,6 +50,7 @@ var _helped := false
 var _perfect := true
 var _encore := false               # the bonus round, worth star two
 var _lamps: HBoxContainer
+var _next_glow: Node2D            # the level-two hint, put out when the phrase moves on
 var _finished_level := false
 
 
@@ -173,6 +174,7 @@ func _start_round() -> void:
 func _build_phrase(length: int) -> void:
 	_phrase.clear()
 	_typed = 0
+	_unglow_next()
 	var last := -1
 	for i in range(clampi(length, 2, 5)):
 		# Never the same pad twice running: "red red" is unreadable at six --
@@ -218,7 +220,7 @@ func _sing(index: int) -> void:
 # --- tapping it back ------------------------------------------------------------
 
 func _on_tap(event: InputEvent) -> void:
-	if _finished_level or not _listening or not UiKit.is_press(event):
+	if _finished_level or not UiKit.is_press(event):
 		return
 	var at: Vector2 = Vector2.ZERO
 	if event is InputEventScreenTouch:
@@ -228,8 +230,19 @@ func _on_tap(event: InputEvent) -> void:
 	for pad in _pads:
 		if (pad["at"] as Vector2).distance_to(at) > 100.0:
 			continue
-		_press(pad)
+		if _listening:
+			_press(pad)
+		else:
+			_not_yet(pad)
 		return
+
+
+## A tap while the phrase is still playing. It cannot count -- but it cannot
+## be nothing either: a pad that ignores a finger is a pad that is broken, and
+## he will not try it again. A small shake and a soft pop say "wait".
+func _not_yet(pad: Dictionary) -> void:
+	Juice.nudge(pad["node"], 6.0)
+	AudioManager.play_sfx("res://assets/audio/pop.ogg")
 
 
 func _press(pad: Dictionary) -> void:
@@ -305,7 +318,18 @@ func _flash_next() -> void:
 	var index: int = int(_phrase[mini(_typed, _phrase.size() - 1)])
 	var pad: Dictionary = _pads[index]
 	Juice.pop(pad["node"], 0.34)
-	Shapes.glow(pad["node"], Vector2.ZERO, 210.0, PAD_COLOURS[index], 4, 0.5)
+	# One glow at a time, gone when the phrase moves on. It used to be left
+	# there for good, so by round four the pads wore the hints of rounds two
+	# and three and the current one was the least visible of them.
+	_unglow_next()
+	_next_glow = Shapes.glow(pad["node"], Vector2.ZERO, 210.0, PAD_COLOURS[index], 4, 0.5)
+	_next_glow.set_meta("hint_glow", true)
+
+
+func _unglow_next() -> void:
+	if _next_glow != null and is_instance_valid(_next_glow):
+		_next_glow.queue_free()
+	_next_glow = null
 
 
 ## Three: tap all of it except the last one, and leave that for the child.
@@ -339,7 +363,7 @@ func _finish() -> void:
 				lamp.modulate.a = 1.0
 			Juice.pop(pad["node"], 0.3)
 			AudioManager.play_sfx("res://assets/audio/notes/note_%d.ogg" % (i + 1)))
-	Juice.burst(_field, Vector2(640, 430), 40)
+	Juice.burst(_field, Fit.at(_field, Vector2(640, 430)), 40)
 	await get_tree().create_timer(1.5).timeout
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	complete_level()

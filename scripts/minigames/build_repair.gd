@@ -33,7 +33,7 @@ var _wanted := 4
 var _slips := 0
 var _helped := false
 var _golden_used := false
-var _tally: Label
+var _tally: HBoxContainer
 var _finished_level := false
 
 ## The shapes each machine is made of: where the slots sit, and what a part
@@ -101,14 +101,14 @@ func _build_machine(config: Dictionary) -> void:
 	# 1280x960. Only the anchor moves -- the slot offsets around it are the
 	# SHAPE of the machine and must stay exactly as drawn, or a bridge built
 	# on a tablet is a different bridge.
-	var anchor: Vector2 = Fit.at(_field, plan["anchor"])
+	var anchor: Vector2 = machine_anchor()
 	var places: Array = plan["slots"]
 	_wanted = places.size()
 
 	# Who we are building it FOR. A machine with nobody waiting is homework.
 	var who := str(config.get("waiting_for", "paw"))
 	var friend := Node2D.new()
-	friend.position = anchor + Vector2(430, -40)
+	friend.position = cross_path()[0]
 	_field.add_child(friend)
 	var art: Control = UiKit.picture(who, 92)
 	if art != null:
@@ -206,8 +206,28 @@ func _draw_part(node: Node2D, kind: String, ghost: bool, golden: bool = false) -
 			tint.lightened(0.22), 0.0)
 
 
+## Where the machine stands on the REAL screen. One answer for the slots, the
+## friend's walk across the bridge and the tower's flash of light, so the three
+## cannot disagree: they did once, and on a tablet the friend walked 240 px
+## above the bridge the child had just built.
+func machine_anchor() -> Vector2:
+	return Fit.at(_field, BLUEPRINTS[_kind]["anchor"])
+
+
+## The friend's walk across the finished bridge, [from, to], in field space.
+## Public so the tablet probe can check that the walk is ON the planks.
+func cross_path() -> PackedVector2Array:
+	var anchor := machine_anchor()
+	return PackedVector2Array([anchor + Vector2(430, -40), anchor + Vector2(-330, -60)])
+
+
 func _on_dropped(item: Dictionary, slot: Dictionary, correct: bool) -> void:
 	if _finished_level:
+		return
+	# Let go over empty grass: not a wrong answer, just a part that was not
+	# put anywhere. It has already floated home; scoring it as a mistake
+	# punished a child for a slipped thumb.
+	if slot.is_empty():
 		return
 	if not correct:
 		_slips += 1
@@ -277,8 +297,8 @@ func _run_light() -> void:
 			Juice.pop(node, 0.24))
 	get_tree().create_timer(0.9).timeout.connect(func():
 		AudioManager.play_sfx("res://assets/audio/power_on.ogg")
-		Juice.shockwave(_field, (BLUEPRINTS[_kind]["anchor"] as Vector2)
-			+ Vector2(0, -320.0), 420.0, Color(1.0, 0.94, 0.55)))
+		Juice.shockwave(_field, machine_anchor() + Vector2(0, -320.0), 420.0,
+			Color(1.0, 0.94, 0.55)))
 
 
 func _run_cross() -> void:
@@ -286,13 +306,14 @@ func _run_cross() -> void:
 	var friend: Node2D = _machine.get_meta("friend")
 	if not is_instance_valid(friend):
 		return
-	var anchor: Vector2 = BLUEPRINTS[_kind]["anchor"]
+	var path := cross_path()
+	var far_side: Vector2 = path[path.size() - 1]
 	AudioManager.play_sfx("res://assets/audio/water.ogg")
 	if not Juice.motion_enabled():
-		friend.position = anchor + Vector2(-330, -60)
+		friend.position = far_side
 		return
 	var t := friend.create_tween()
-	t.tween_property(friend, "position", anchor + Vector2(-330, -60), 1.9)\
+	t.tween_property(friend, "position", far_side, 1.9)\
 		.set_trans(Tween.TRANS_SINE)
 	# A little hop per plank, so it reads as walking rather than sliding.
 	for i in range(4):
@@ -345,21 +366,19 @@ func _build_hud() -> void:
 	back.position = Vector2(24, 24)
 	_hud.add_child(back)
 
-	_tally = Label.new()
-	_tally.add_theme_font_size_override("font_size", 40)
-	_tally.add_theme_color_override("font_color", Palette.ON_COLOR)
-	UiKit.on_art(_tally)
-	_tally.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tally.position = Vector2(440, 28)
-	_tally.size = Vector2(400, 52)
-	_tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# One pip per part, lit as it goes in: the same counter observation,
+	# sorting and the rest use now. "0 / 4" at 40 px was the last sentence
+	# on this screen he could not read.
+	_tally = UiKit.pip_row("gear", _wanted)
+	_tally.position = Vector2(
+		_hud.get_viewport_rect().size.x * 0.5 - UiKit.pip_row_width(_wanted) * 0.5, 26)
 	_hud.add_child(_tally)
 	_refresh_tally()
 
 
 func _refresh_tally() -> void:
 	if _tally != null and is_instance_valid(_tally):
-		_tally.text = "%d / %d" % [_placed, _wanted]
+		UiKit.pip_fill(_tally, _placed)
 
 
 func _play_tutorial() -> void:
@@ -429,7 +448,7 @@ func _finish() -> void:
 	# Feeds the streak that decides whether the next level offers
 	# a child one more thing to find. Only ever buys them more game.
 	Hints.record_run(_helped)
-	Juice.burst(_field, Vector2(640, 380), 44)
+	Juice.burst(_field, Fit.at(_field, Vector2(640, 380)), 44)
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	await get_tree().create_timer(1.0).timeout
 	complete_level()

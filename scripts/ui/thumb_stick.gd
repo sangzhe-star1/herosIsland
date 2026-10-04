@@ -22,9 +22,14 @@ extends Control
 
 signal moved(dir: float)          # -1 .. 1, 0 when let go
 
-## Where a thumb can land. The whole bottom-left quarter, because a child
-## putting their thumb down in a hurry misses a 130 px circle constantly.
-const AREA := Rect2(0, 380, 470, 340)
+const Fit := preload("res://scripts/shared/screen_fit.gd")
+
+## Where a thumb can land, drawn against 1280x720. The whole bottom-left
+## quarter, because a child putting their thumb down in a hurry misses a
+## 130 px circle constantly. Never used directly: `area()` measures it off the
+## real screen, so on a 4:3 tablet (a 1280x960 viewport) the zone still runs
+## to the bottom EDGE instead of stopping 240 px short of the thumb.
+const AREA_DESIGN := Rect2(0, 380, 470, 340)
 const RING := 104.0               # how far the knob travels before it stops
 const DEAD := 0.16                # fraction of RING that counts as "resting"
 const HOME := 0.12                # seconds to spring back
@@ -46,7 +51,8 @@ func _build() -> void:
 	# A faint resting ring, so the corner does not look dead before it is
 	# touched. It brightens and moves to the thumb the moment one lands.
 	_ring = Node2D.new()
-	_ring.position = AREA.position + AREA.size * 0.5
+	var zone := area()
+	_ring.position = zone.position + zone.size * 0.5
 	_ring.modulate.a = 0.34
 	add_child(_ring)
 	var outer := Line2D.new()
@@ -100,8 +106,16 @@ func _input(event: InputEvent) -> void:
 		_follow((event as InputEventMouseMotion).position)
 
 
+## The zone a thumb can land in, on the screen the child is holding. Its top
+## keeps its distance to the bottom edge (a thumb rests where the bezel is) and
+## its bottom IS the bottom edge, on every shape.
+func area() -> Rect2:
+	var top: float = Fit.bottom(self, AREA_DESIGN.position.y)
+	return Rect2(AREA_DESIGN.position.x, top, AREA_DESIGN.size.x, Fit.view(self).y - top)
+
+
 func _maybe_grab(index: int, at: Vector2) -> void:
-	if _touch != -1 or not AREA.has_point(at):
+	if _touch != -1 or not area().has_point(at):
 		return
 	_touch = index
 	# The ring goes to the thumb. Asking the thumb to go to the ring is the

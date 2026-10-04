@@ -19,6 +19,11 @@ extends LevelManager
 const Hints := preload("res://scripts/shared/hint_director.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
+## The scene is drawn against 1280x720; a tablet hands it 1280x960. Everything
+## placed below goes through Fit.at so the patient and the row of tools stay
+## the same fraction of the way down the screen instead of leaving the bottom
+## quarter empty.
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 
 ## Every situation: who needs help, what it looks like, and which tool fixes
 ## it. Hand-written, because "generate a problem" produces problems that make
@@ -100,7 +105,7 @@ func _next_case() -> void:
 
 	var story: Dictionary = _cases[_at]
 	_patient = Node2D.new()
-	_patient.position = Vector2(640, 300)
+	_patient.position = Fit.at(_field, Vector2(640, 300))
 	_field.add_child(_patient)
 	# The one who needs help, with a worried face floating over them. The face
 	# is a separate node because it is the thing that changes.
@@ -134,8 +139,9 @@ func _next_case() -> void:
 		var x: float = 640.0 + (float(i) - float(choices.size() - 1) * 0.5) \
 			* (span / float(choices.size()))
 		var node := Node2D.new()
-		node.position = Vector2(x, 570.0)
+		node.position = Fit.at(_field, Vector2(x, 570.0))
 		node.set_meta("tool", str(choices[i]))
+		node.set_meta("home", node.position)      # where a refused tool goes back to
 		_field.add_child(node)
 		Shapes.fill(node, Shapes.rounded_rect(Vector2(-74, -74), Vector2(148, 148), 32.0),
 			Color(0.96, 0.97, 1.0, 0.92), 0.0)
@@ -156,22 +162,27 @@ func _next_case() -> void:
 	_say(str(story["say"]))
 
 
+## The picture of what is WRONG, beside the patient. It must never be the
+## picture of the answer: the first cut showed a plaster next to the hurt paw
+## and an umbrella over the rained-on teddy, so the child matched pictures
+## instead of thinking about what a hurt paw needs. Each of these is a problem,
+## drawn with an icon the library already has.
 func _trouble_icon(trouble: String) -> String:
 	match trouble:
 		"hurt":
-			return "plaster"
+			return "warning"          # "ouch!" -- the fix is the plaster
 		"thirsty":
-			return "potion"
+			return "watering_can"     # dry, wants water -- the fix is the potion
 		"cold":
-			return "scarf"
+			return "scarf"            # shivering -- the fix is the blanket
 		"hungry":
-			return "berries"
+			return "berries"          # empty tummy -- the fix is the carrot
 		"rain":
-			return "umbrella"
+			return "cloud"            # weather -- the fix is the umbrella
 		"lost":
-			return "compass"
+			return "magnifier"        # looking for the way -- the fix is the compass
 		_:
-			return "moon"
+			return "moon"             # dark -- the fix is the spark
 
 
 ## The face over their head: worried, then delighted. Two circles and a curve,
@@ -260,7 +271,7 @@ func _resolve(node: Node2D, right: bool) -> void:
 	if is_instance_valid(node):
 		var back := node.create_tween()
 		back.tween_property(node, "position",
-			Vector2(node.position.x, 570.0), 0.34)\
+			node.get_meta("home", node.position), 0.34)\
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		back.tween_callback(func(): _busy = false)
 	else:
@@ -300,7 +311,7 @@ func _say(key: String) -> void:
 func _play_tutorial() -> void:
 	var demo := Tutorial.new()
 	_hud.add_child(demo)
-	demo.add_step(Vector2(640, 300), Vector2(640, 300), 1.0)
+	demo.add_step(_patient.position, _patient.position, 1.0)
 	if not _tools.is_empty():
 		demo.add_step((_tools[0] as Node2D).position,
 			(_tools[0] as Node2D).position, 1.0)
@@ -367,7 +378,7 @@ func _finish() -> void:
 	# a child one more thing to find. Only ever buys them more game.
 	Hints.record_run(_helped)
 	_say("rescue.all_safe")
-	Juice.burst(_field, Vector2(640, 340), 44)
+	Juice.burst(_field, Fit.at(_field, Vector2(640, 340)), 44)
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	await get_tree().create_timer(1.4).timeout
 	complete_level()

@@ -43,6 +43,10 @@ var _last_dir := 0.0
 ## By path, not by class name: a new class_name is invisible until the editor
 ## rescans, and that made every level in the game fail to parse once already.
 const Stick := preload("res://scripts/ui/thumb_stick.gd")
+## Every button below is drawn against 1280x720 and placed with Fit.corner:
+## thumb chrome keeps its GAP to the corner, so on a 1280x960 tablet the pad
+## sits under the thumb instead of 240 px up the screen.
+const Fit := preload("res://scripts/shared/screen_fit.gd")
 var _clock := 0.0
 
 
@@ -86,7 +90,8 @@ func _build_move() -> void:
 
 func _build_action() -> void:
 	# Jump, bottom right corner and biggest: the verb of the genre.
-	var jump := _round_button(Vector2(1098, 540), PAD_JUMP, Color(1.0, 0.86, 0.40))
+	var jump := _round_button(Fit.corner(self, Vector2(1098, 540)), PAD_JUMP,
+		Color(1.0, 0.86, 0.40))
 	_jump_button = jump
 	_jump_glyph(jump, PAD_JUMP)
 	jump.button_down.connect(func():
@@ -95,7 +100,8 @@ func _build_action() -> void:
 	jump.button_up.connect(func(): jump_released.emit())
 
 	# Attack, just left of jump, the second-most-pressed thing.
-	var attack := _round_button(Vector2(948, 566), PAD_ATTACK, Color(0.96, 0.52, 0.42))
+	var attack := _round_button(Fit.corner(self, Vector2(948, 566)), PAD_ATTACK,
+		Color(0.96, 0.52, 0.42))
 	_attack_button = attack
 	var fist: Control = UiKit.picture("power", PAD_ATTACK * 0.52)
 	if fist != null:
@@ -113,9 +119,12 @@ func add_skill(icon_name: String, colour: Color, cooldown: float) -> void:
 	var slot: int = _skill_buttons.size()
 	# An arc the thumb sweeps, not a row it reaches across. Tighter now that
 	# the buttons are smaller.
-	var spots := [Vector2(966, 430), Vector2(1096, 380), Vector2(1200, 292)]
-	var at: Vector2 = spots[slot] if slot < spots.size() \
+	# The third spot was 1200: with an 88 px button that ends at 1288, eight
+	# pixels past the right edge of a 1280 screen. 1184 keeps it inside.
+	var spots := [Vector2(966, 430), Vector2(1096, 380), Vector2(1184, 292)]
+	var design: Vector2 = spots[slot] if slot < spots.size() \
 		else Vector2(966.0 - 118.0 * float(slot), 430.0)
+	var at: Vector2 = Fit.corner(self, design)
 	var button := _round_button(at, PAD_SKILL, colour)
 	var icon: Control = UiKit.picture(icon_name, ICON_SKILL)
 	if icon != null:

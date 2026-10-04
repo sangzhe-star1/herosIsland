@@ -32,7 +32,8 @@ var _wobble := 0.0
 var _resting := false          # true between a plop and the next balloon
 var _ground_y := 620.0
 var _instruction: Label
-var _progress: Label
+var _pips: HBoxContainer       # one balloon per bounce to go, lit as they land
+var _progress: Label           # the number, only when there are too many for pips
 var _hero: SkinnedCharacter
 var _puppy: Node2D
 
@@ -74,31 +75,51 @@ func _build_scene(config: Dictionary) -> void:
 	back.position = Vector2(24, 24)
 	_play_area.add_child(back)
 
+	# The count, as balloons: one per bounce to go, lit as they happen. Right-
+	# aligned against the REAL edge -- 1050 was only the right x on a 1280-wide
+	# screen. Past a dozen the row turns into a barcode, so a number takes over.
+	var goal: int = target_value("correct", _target_bounces)
+	var view: Vector2 = _play_area.get_viewport_rect().size
+	var counter_left: float
+	if goal <= UiKit.PIP_MOST:
+		_pips = UiKit.pip_row("balloon", goal)
+		_pips.position = Vector2(view.x - 24.0 - UiKit.pip_row_width(goal), 24)
+		_play_area.add_child(_pips)
+		counter_left = _pips.position.x
+	else:
+		_progress = Label.new()
+		_progress.add_theme_font_size_override("font_size", 32)
+		_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
+		UiKit.on_art(_progress)
+		_progress.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_progress.size = Vector2(200, 52)
+		_progress.position = Vector2(view.x - 24.0 - 200.0, 24)
+		_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_play_area.add_child(_progress)
+		counter_left = _progress.position.x
+	_update_progress()
+
+	# The words and the picture sit in the gap between the back button and the
+	# counter, centred on THAT gap: centred on the screen they ran under the
+	# first two balloons.
+	var text_left := 160.0
+	var text_width: float = maxf(counter_left - 16.0 - text_left, 300.0)
 	_instruction = Label.new()
 	_instruction.text = I18n.t(str(config.get("instruction_key", "keepy.instruction")))
 	_instruction.add_theme_font_size_override("font_size", 36)
 	_instruction.add_theme_color_override("font_color", Palette.ON_COLOR)
 	UiKit.on_art(_instruction)
 	_instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_instruction.position = Vector2(240, 34)
-	_instruction.size = Vector2(800, 52)
+	_instruction.position = Vector2(text_left, 34)
+	_instruction.size = Vector2(text_width, 52)
 	_instruction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_instruction)
 
 	# Wordless: the balloon, ringed green. Tap THAT.
 	var picto: Control = UiKit.pictogram([{"icon": "balloon", "ok": true}], 72)
-	picto.position = Vector2(240, 86)
-	picto.size = Vector2(800, 76)
+	picto.position = Vector2(text_left, 86)
+	picto.size = Vector2(text_width, 76)
 	_play_area.add_child(picto)
-
-	_progress = Label.new()
-	_progress.add_theme_font_size_override("font_size", 32)
-	_progress.add_theme_color_override("font_color", Palette.ON_COLOR)
-	UiKit.on_art(_progress)
-	_progress.position = Vector2(1050, 40)
-	_progress.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play_area.add_child(_progress)
-	_update_progress()
 
 	# The family: hero on the left, puppy on the right, balloon between them.
 	_hero = SkinnedCharacter.new()
@@ -147,8 +168,7 @@ func _spawn_balloon(first: bool) -> void:
 	_hit.pressed.connect(_bounce)
 	_play_area.add_child(_hit)
 
-	_velocity = Vector2(randf_range(-40.0, 40.0), first if false else -60.0)
-	_velocity.y = -60.0
+	_velocity = Vector2(randf_range(-40.0, 40.0), -60.0)
 	_wobble = randf() * TAU
 	_resting = false
 	if Juice.motion_enabled() and not first:
@@ -237,6 +257,7 @@ func _plop() -> void:
 
 
 func _update_progress() -> void:
-	if _progress == null:
-		return
-	_progress.text = "%d / %d" % [result.correct, target_value("correct", _target_bounces)]
+	if _pips != null and is_instance_valid(_pips):
+		UiKit.pip_fill(_pips, result.correct)
+	if _progress != null and is_instance_valid(_progress):
+		_progress.text = "%d / %d" % [result.correct, target_value("correct", _target_bounces)]

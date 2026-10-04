@@ -34,6 +34,12 @@ static func burst(parent: Node, at: Vector2, amount: int = 22) -> void:
 	if parent == null or not is_instance_valid(parent):
 		return
 	if not motion_enabled():
+		# The still version: one warm ring where the confetti would have
+		# been, gone again after a moment. Nothing flies, nothing flashes --
+		# but "something happened HERE" still has a picture. Without this,
+		# reduce-motion turned every right answer into a sound alone, which
+		# for a child playing with the volume down is nothing at all.
+		_still_mark(parent, at, CONFETTI_COLORS[0], amount)
 		return
 
 	var particles := CPUParticles2D.new()
@@ -88,6 +94,10 @@ static func pop(node: Node, strength: float = 0.18) -> void:
 	if not node.has_method("create_tween"):
 		return
 	if not motion_enabled():
+		# Still version: the thing brightens for a beat and settles. A change
+		# of light on the thing he pressed, not a change of place -- that is
+		# the line the reduce-motion setting draws.
+		_still_flash(node, Color(1.30, 1.30, 1.22), 0.22)
 		return
 
 	var base: Vector2
@@ -117,6 +127,10 @@ static func nudge(node: Node, distance: float = 14.0) -> void:
 		return
 
 	if not motion_enabled():
+		# Still version of "not that one": the thing dims for a beat. Quiet
+		# and small, like the nudge it stands in for -- never red, never a
+		# flash of the whole screen.
+		_still_flash(node, Color(0.66, 0.66, 0.66), 0.22)
 		return
 	# Kill any nudge in flight and put the node back where it was first,
 	# otherwise a mid-nudge position becomes the next nudge's "home" and
@@ -133,6 +147,46 @@ static func nudge(node: Node, distance: float = 14.0) -> void:
 	t.tween_property(node, "position", origin + Vector2(distance, 0), 0.06)
 	t.tween_property(node, "position", origin - Vector2(distance, 0), 0.06)
 	t.tween_property(node, "position", origin, 0.06)
+
+
+## The reduce-motion stand-ins. Both leave the node exactly where it was.
+##
+## A modulate change is not motion: nothing moves, nothing scales, and the
+## brightness settles on its own. It IS a visible answer, which is the
+## promise the header of this file makes for every function in it.
+static func _still_flash(node: Node, tint: Color, seconds: float) -> void:
+	if not ("modulate" in node):
+		return
+	var base: Color
+	if node.has_meta("_flash_base"):
+		base = node.get_meta("_flash_base")
+	else:
+		base = node.get("modulate")
+		node.set_meta("_flash_base", base)
+	if node.has_meta("_flash_tween"):
+		var old: Variant = node.get_meta("_flash_tween")
+		if old is Tween and (old as Tween).is_valid():
+			(old as Tween).kill()
+	node.set("modulate", base * tint)
+	var t: Tween = node.create_tween()
+	node.set_meta("_flash_tween", t)
+	t.tween_property(node, "modulate", base, seconds)
+
+
+## A ring at the point, which fades. The still confetti.
+static func _still_mark(parent: Node, at: Vector2, color: Color, amount: int) -> void:
+	if not parent.is_inside_tree():
+		return
+	var holder := Node2D.new()
+	holder.position = at
+	holder.z_index = 40
+	parent.add_child(holder)
+	var radius := clampf(float(amount) * 3.0, 40.0, 90.0)
+	Shapes.glow(holder, Vector2.ZERO, radius, color, 3, 0.28)
+	var t: Tween = holder.create_tween()
+	t.tween_interval(0.35)
+	t.tween_property(holder, "modulate:a", 0.0, 0.35)
+	t.tween_callback(holder.queue_free)
 
 
 ## Dust kicked up where something lands. Six or so soft puffs that drift

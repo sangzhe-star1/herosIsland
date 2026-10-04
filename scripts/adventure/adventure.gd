@@ -855,9 +855,10 @@ func _build_hud() -> void:
 	back.position = Vector2(24, 24)
 	_hud.add_child(back)
 
-	# Hearts, top left under the back button.
+	# Hearts, top left under the back button. The back button is 96 tall from
+	# y=24, so it ends at 120; the hearts start at 132 to clear it.
 	_hearts_row = HBoxContainer.new()
-	_hearts_row.position = Vector2(30, 118)
+	_hearts_row.position = Vector2(30, 132)
 	_hearts_row.add_theme_constant_override("separation", 8)
 	_hearts_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hud.add_child(_hearts_row)
@@ -2162,7 +2163,9 @@ func _refresh_hearts(remaining: int) -> void:
 ## actually have. Hidden until the giant wakes up.
 func _build_boss_bar() -> void:
 	var holder := Control.new()
-	holder.position = Vector2(380, 168)
+	# Under the instruction line (y 120..166): the monster face hangs 12 px
+	# above this holder, so at 168 its top was at 156, inside the text.
+	holder.position = Vector2(380, 184)
 	holder.size = Vector2(520, 32)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.visible = false

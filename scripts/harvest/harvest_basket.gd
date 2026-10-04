@@ -216,10 +216,5 @@ func waiting(on: bool) -> void:
 
 ## No -- and said with a shake, not a buzzer.
 func refuse() -> void:
-	if not Juice.motion_enabled():
-		return
-	var t := create_tween()
-	var home := position
-	t.tween_property(self, "position", home + Vector2(8, 0), 0.06)
-	t.tween_property(self, "position", home - Vector2(8, 0), 0.06)
-	t.tween_property(self, "position", home, 0.06)
+	# See harvest_target.refuse: the nudge restores its origin first.
+	Juice.nudge(self, 8.0)

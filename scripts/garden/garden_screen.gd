@@ -1465,7 +1465,14 @@ func _tap_plot(index: int) -> void:
 		Farm.TILLED:
 			# Turned, empty, and tapped: he is trying to plant by tapping. Point
 			# at the rack rather than doing nothing, which is the same as being
-			# broken.
+			# broken. A 4% pulse of the whole shelf was the whole answer here,
+			# and with motion off it was nothing: now the line, a sound, and
+			# a ring on the first seed.
+			AudioManager.play_sfx("res://assets/audio/pop.ogg")
+			AudioManager.say("garden_tut_plant")
+			if _play != null and is_instance_valid(_play):
+				Juice.shockwave(_play, _seed_rack_centre(), 120.0,
+					Color(1.0, 0.94, 0.62, 0.5))
 			if _shelf != null:
 				Juice.pop(_shelf, 0.04)
 			return
@@ -1671,6 +1678,28 @@ func _celebrate_golden(index: int) -> void:
 ## planting in it. plant_cycle_id rises by one every time a seed goes in and
 ## never resets, so no two harvests in the history of a save can ever produce
 ## the same id, and the same id presented twice is always a repeat.
+## A ripe bed the ledger says was already paid for, turned back into earth.
+## Nothing is stored and nothing is paid: the ledger is the truth about
+## money, and this is the truth about the earth. Walks plant_cycle_id past
+## every id the ledger knows so the NEXT planting in this bed is a planting
+## that pays.
+func _free_a_bed_paid_twice(plot: Dictionary, paid: Array) -> void:
+	var plot_id := str(plot.get("plot_id", ""))
+	var cycle := int(plot.get("plant_cycle_id", 0))
+	var next := cycle + 1
+	while ("farm_harvest_%s_%d" % [plot_id, next]) in paid:
+		next += 1
+	push_warning("garden: bed %s cycle %d was already paid for; freed without pay"
+		% [plot_id, cycle])
+	var fresh: Dictionary = Farm.fresh_plot(0)
+	fresh["plot_id"] = plot_id
+	fresh["state"] = Farm.TILLED
+	fresh["plant_cycle_id"] = next - 1
+	for k in fresh.keys():
+		plot[k] = fresh[k]
+	AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
+
+
 func _harvest_core(plot: Dictionary) -> Dictionary:
 	var farm := _farm()
 	var plot_id := str(plot.get("plot_id", ""))
@@ -1685,6 +1714,15 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	# including no crops into the barn, which is the half that would otherwise
 	# have kept paying out silently.
 	if not RewardManager.record("garden:harvest:%s" % crop_id, key, paid):
+		# A repeat. The tap-while-animating and restart-after-save repeats
+		# arrive on a bed that is already reset; nothing to do. But a READY
+		# bed whose id is in the ledger is a bed that can never be picked:
+		# the tap returned here, silently, forever. Two tablets merging
+		# their ledgers can make one (paid_harvests is unioned while the
+		# beds are kept from one side). Free the bed -- no crops, no coins,
+		# and an id the ledger has not seen for its next planting.
+		if str(plot.get("state", "")) == Farm.READY:
+			_free_a_bed_paid_twice(plot, paid)
 		return {}
 	Farm.remember_paid(farm, key)
 	# The farm grows up a little. INSIDE the gate on purpose: a repeat that
@@ -1816,7 +1854,12 @@ func _plant_in(index: int, crop_id: String) -> void:
 	# seconds from seed to ripe so the child sees the end of what he started
 	# while he is still crouched over it. Cleared by the harvest, because a
 	# picked bed is reset from Farm.fresh_plot().
-	plot["growth_override_seconds"] = _tutorial_growth if _lesson_running else 0
+	# "The lesson's carrot, and nothing else ever" -- the code said "anything
+	# planted while the lesson is on". Corn in bed three grew in six seconds,
+	# every visit, until the first order was handed over.
+	var lesson_seed: bool = _lesson_running and index == _lesson_plot() \
+		and crop_id == str(GameData.garden_tutorial.get("crop_id", "carrot"))
+	plot["growth_override_seconds"] = _tutorial_growth if lesson_seed else 0
 	# One roll per PLANTING, not per crop: the whole plant is golden for its
 	# whole life, which is why the glow is worth walking over to see. Rare on
 	# purpose -- a bed in twenty-five -- because the whole value of gold is
@@ -2134,6 +2177,11 @@ func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
 	art.set_meta("destination", destination)
 	art.set_meta("destination_at", destination_at)
 	art.set_meta("golden", bool(receipt.get("golden", false)))
+	# The flight lives 0.4 s. A receipt of it stays on the screen so a slow
+	# frame (a probe under software GL, a tablet mid-save) can still ask
+	# "what flew, and how much" after the sprite itself has gone.
+	set_meta("last_harvest_flight", {"node": art.name, "crop_id": crop_id,
+		"amount": amount, "destination": destination})
 	if bool(receipt.get("golden", false)):
 		# The one that came up gold flies gold: the same flight, telling the
 		# same story, in the colour the bed promised.
@@ -2219,23 +2267,40 @@ func _deco_door(view: Vector2) -> void:
 ## deliberately mute: no input, no buttons, z below the beds. A decoration
 ## that can swallow a tap meant for a plot is furniture blocking the door --
 ## the home screen's clear_lane taught that lesson already.
+## What the furniture looked like when it was last drawn. See _draw_decorations.
+var _deco_drawn := ""
+
+
+func _drop_decorations(old: Node) -> void:
+	_deco_drawn = ""
+	if old != null:
+		old.name = "DecorationsGone"
+		old.queue_free()
+
+
 func _draw_decorations() -> void:
 	if _world == null or not is_instance_valid(_world):
 		return
 	var old: Node = _world.get_node_or_null("Decorations")
-	if old != null:
-		old.name = "DecorationsGone"
-		old.queue_free()
 	var room_id := str(level_data.get("config", {}).get("deco_room", ""))
-	if room_id == "":
-		return
-	var room: Dictionary = GameData.get_level(room_id)
+	var room: Dictionary = GameData.get_level(room_id) if room_id != "" else {}
 	if room.is_empty():
+		_drop_decorations(old)
 		return
 	var key := str(room.get("config", {}).get("canvas_id", room_id))
 	var placed: Array = SaveManager.get_creation(key)
 	if placed.is_empty():
+		_drop_decorations(old)
 		return
+	# Same arrangement, same furniture. The decorations used to be thrown
+	# away and redrawn on every rebuild: a wiggle in flight was cut off by
+	# the rebuild that followed the poke, and the idle bob restarted from
+	# zero every time anything happened.
+	var stamp := JSON.stringify(placed) + str(get_viewport_rect().size)
+	if stamp == _deco_drawn and old != null:
+		return
+	_drop_decorations(old)
+	_deco_drawn = stamp
 	var layer := Node2D.new()
 	layer.name = "Decorations"
 	_world.add_child(layer)
@@ -2254,8 +2319,13 @@ func _draw_decorations() -> void:
 		# The room's canvas is its design screen; the farm is a 2200x1150
 		# world. Fractions carry the arrangement across: left stays left,
 		# high stays high, and nothing depends on either screen's pixels.
-		var fx := clampf(float(entry.get("x", 640.0)) / 1280.0, 0.0, 1.0)
-		var fy := clampf(float(entry.get("y", 300.0)) / 720.0, 0.0, 1.0)
+		# The room lays its canvas out on the REAL viewport -- 1280x960 on
+		# a 4:3 tablet -- so the fraction is taken against that, not against
+		# the design size: divided by 720, everything he placed in the lower
+		# third of an iPad screen piled up on the bottom fence.
+		var canvas: Vector2 = get_viewport_rect().size
+		var fx := clampf(float(entry.get("x", 640.0)) / maxf(canvas.x, 1.0), 0.0, 1.0)
+		var fy := clampf(float(entry.get("y", 300.0)) / maxf(canvas.y, 1.0), 0.0, 1.0)
 		art.position = Vector2(fx * (world.x - size), fy * (world.y - size))
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		# 三期阶段 3：家具活了一点。围着自己的中心一点点呼吸式起伏，
@@ -2288,6 +2358,12 @@ func _poke_decoration(at: Vector2) -> void:
 			continue
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		Juice.pop(art, 0.16)
+		# Written down before the wiggle, for two readers: the probe, which
+		# used to read `rotation` 0.12 s later and lost the race on a slow
+		# frame; and the reduce-motion case, which used to be no answer.
+		art.set_meta("poked_at", GameClock.ticks_ms())
+		if not Juice.motion_enabled():
+			Juice.pop(art, 0.1)
 		if Juice.motion_enabled():
 			var t := art.create_tween()
 			t.tween_property(art, "rotation", 0.13, 0.11)\
@@ -2458,7 +2534,7 @@ func _order_board(view: Vector2) -> void:
 
 	# The way out, in the corner a back button is always in, and big enough for
 	# a thumb. Closing is never refused and never asks anything.
-	_sheet_close(sheet.position + Vector2(sheet.size.x - 72.0, 12.0),
+	_sheet_close(sheet.position + Vector2(sheet.size.x + 14.0, 0.0),
 		_close_orders)
 
 	var heading := UiKit.title_on_art(I18n.t("garden.orders"), 30)
@@ -2481,13 +2557,28 @@ func _order_board(view: Vector2) -> void:
 		card.size = ORDER_CARD
 		var tint := Color(0.90, 0.92, 0.88) if done \
 			else (Color(1.0, 0.99, 0.94) if can else Color(0.98, 0.97, 0.92))
-		for state in ["normal", "hover", "pressed", "focus"]:
+		# "disabled" is in the list on purpose: a Button with no disabled
+		# look falls back to Godot's own dark grey, and every card on the
+		# opening board came out that grey.
+		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 			card.add_theme_stylebox_override(state, UiKit.panel_style(tint, 22))
-		card.disabled = done or not can
 		_play.add_child(card)
+		# Every card answers a press. A card he cannot fill yet used to be a
+		# disabled Button -- no sound, no motion -- three cards on a board
+		# and a tap that did nothing. _deliver keeps the money honest (it
+		# refuses a repeat and refuses a short barn), so the card is free to
+		# say something: a small shrug for "not yet", a small nod for "done".
 		if not done and can:
 			card.pressed.connect(func(): _deliver(order))
 			UiKit.breathe(card, 0.02, 1.4)
+		else:
+			var this_card: Button = card
+			card.pressed.connect(func():
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+				if done:
+					Juice.pop(this_card, 0.04)
+				else:
+					Juice.nudge(this_card, 8.0))
 
 		var who := UiKit.picture(str(order.get("customer_icon", "heart")), 44.0)
 		if who != null:
@@ -2773,8 +2864,11 @@ func _chip_button(text: String, fill: Color, box: Vector2) -> Button:
 	b.add_theme_font_size_override("font_size", int(box.y * 0.44))
 	b.add_theme_color_override("font_color", Color(0.15, 0.13, 0.10))
 	b.add_theme_color_override("font_disabled_color", Color(0.55, 0.53, 0.48))
+	# chip_style, not panel_style: the panel's 20px margins would make a
+	# 48-tall chip 70 tall, and the size asked for here IS the layout --
+	# see _no_button_grew_or_landed_on_another in garden_touch_probe.
 	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
-		b.add_theme_stylebox_override(look, UiKit.panel_style(fill, 16))
+		b.add_theme_stylebox_override(look, UiKit.chip_style(fill, 16))
 	b.custom_minimum_size = box
 	b.size = box
 	return b
@@ -2802,9 +2896,13 @@ func _sheet_close(at: Vector2, on_pressed: Callable) -> Button:
 	shut.size = Vector2(60, 60)
 	for look in ["normal", "hover", "pressed", "focus"]:
 		shut.add_theme_stylebox_override(look,
-			UiKit.panel_style(Palette.SLATE, 16))
+			UiKit.chip_style(Palette.SLATE, 16))
 	shut.pressed.connect(on_pressed)
 	_play.add_child(shut)
+	# It stands over the farm now, not over the paper: a press on it must
+	# not also reach the bed underneath.
+	if _world != null and is_instance_valid(_world):
+		_world.add_blocker(shut)
 	return shut
 
 
@@ -2830,12 +2928,20 @@ func _panel_sheet(view: Vector2, title_key: String, wide: float,
 	# thumb floor the touch probe measures (60px, 3:1), and quiet about it --
 	# a 26-point letter in a tight little pill instead of a slab that shouts
 	# over the heading it sits beside. See _sheet_close.
-	_sheet_close(origin + Vector2(wide - 72.0, 12.0), _close_panels)
+	_sheet_close(origin + Vector2(wide + 14.0, 0.0), _close_panels)
 	return origin
 
 
 ## "X分" under an hour, "X时" from there up. Every crop's time is a whole
 ## number of one or the other on purpose -- crops.json is checked for it.
+func _longest_wait() -> int:
+	var longest := 0
+	for row in GameData.farm_seed_shop.get("seeds", []):
+		longest = maxi(longest, int(GameData.crop_total_seconds(
+			str(row.get("crop_id", "")))))
+	return longest
+
+
 func _grow_time_text(seconds: int) -> String:
 	if seconds < 3600:
 		return "%d分" % int(round(seconds / 60.0))
@@ -2940,10 +3046,19 @@ func _shop_panel(view: Vector2) -> void:
 		price_tag.position = Vector2(origin.x + 232.0, y + 7.0)
 		price_tag.size = Vector2(64, 30)
 		_play.add_child(price_tag)
-		var time_tag := UiKit.title(
-			_grow_time_text(int(GameData.crop_total_seconds(crop_id))), 24)
-		time_tag.position = Vector2(origin.x + 320.0, y + 7.0)
-		time_tag.size = Vector2(86, 30)
+		# How long it takes, as a picture first: a ring as full as this
+		# crop's wait is long, against the longest wait on the shelf. "30分"
+		# and "8时" are two words he cannot read; "a sliver" and "nearly the
+		# whole ring" he can compare. The number stays, smaller, for the
+		# adult in the room.
+		var seconds := int(GameData.crop_total_seconds(crop_id))
+		var ring := UiKit.wait_ring(float(seconds) / maxf(float(_longest_wait()), 1.0), 28.0)
+		ring.position = Vector2(origin.x + 318.0, y + 8.0)
+		_play.add_child(ring)
+		var time_tag := UiKit.title(_grow_time_text(seconds), 18,
+			Color(0.52, 0.48, 0.40))
+		time_tag.position = Vector2(origin.x + 352.0, y + 12.0)
+		time_tag.size = Vector2(60, 24)
 		_play.add_child(time_tag)
 		var pick := UiKit.picture("basket", 26.0)
 		if pick != null:
@@ -3526,11 +3641,13 @@ func _barn_panel(view: Vector2) -> void:
 func _upgrade_confirmed() -> void:
 	_confirm_upgrade = false
 	var farm := _farm()
-	if Barn.cap() >= Farm.WAREHOUSE_UPGRADED:
-		return
-	if not Barn.has("plank", UPGRADE_PLANKS, "inventory"):
-		return
-	if not Coins.spend(UPGRADE_COINS):
+	# Three ways to be refused, and all three used to return without a
+	# redraw: the confirm card stayed up over a button that did nothing.
+	if Barn.cap() >= Farm.WAREHOUSE_UPGRADED \
+			or not Barn.has("plank", UPGRADE_PLANKS, "inventory") \
+			or not Coins.spend(UPGRADE_COINS):
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		_queue_rebuild()
 		return
 	Barn.take("plank", UPGRADE_PLANKS, "inventory")
 	farm["warehouse_cap"] = Farm.WAREHOUSE_UPGRADED
@@ -4061,6 +4178,13 @@ func _undo_toast(view: Vector2) -> void:
 
 
 func _undo_pressed() -> void:
+	if GameClock.ticks_ms() > int(_pending_undo.get("until", 0)):
+		# Pressed after the window shut, on a toast the clock had not yet
+		# swept away. Too late is too late; say so quietly.
+		_pending_undo = {}
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		_queue_rebuild()
+		return
 	var kind := str(_pending_undo.get("kind", ""))
 	var id := str(_pending_undo.get("id", ""))
 	_pending_undo = {}
@@ -4423,7 +4547,13 @@ func _nudge() -> void:
 	var plots := _plots()
 	match str(plots[index].get("state", "")):
 		Farm.READY: AudioManager.say("garden_tut_harvest")
-		Farm.NEEDS_CARE: AudioManager.say("garden_tut_water")
+		Farm.NEEDS_CARE:
+			# "Give it some water" for a caterpillar sent him to the
+			# watering can. The line follows the badge.
+			match str(plots[index].get("care_event", "")):
+				Growth.CARE_WEEDS: AudioManager.say("harvest_pull_up")
+				Growth.CARE_BUG: AudioManager.say("harvest_shoo_bug")
+				_: AudioManager.say("garden_tut_water")
 		Farm.EMPTY: AudioManager.say("garden_tut_till")
 		_: AudioManager.say("garden_tut_plant")
 	Juice.shockwave(_play, _bed_centre(index), 140.0,

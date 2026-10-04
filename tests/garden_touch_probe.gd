@@ -36,7 +36,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1098
+const CHECKS_EXPECTED := 1148
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -114,6 +114,10 @@ func _run_on_a(window: Vector2i) -> void:
 	await _gold_blessing_from_the_days_care()
 	await _the_challenge_door_shows_what_is_next(view)
 	await _care_has_moves_of_its_own()
+	await _no_button_grew_or_landed_on_another()
+	await _a_bed_paid_twice_is_freed_not_frozen()
+	await _a_card_he_cannot_fill_still_answers()
+	await _the_lesson_clock_is_the_carrots_alone()
 
 	_close()
 
@@ -307,6 +311,11 @@ func _open() -> void:
 	GameManager.current_level_id = "star_garden"
 	_garden = load("res://scenes/garden/Garden.tscn").instantiate()
 	add_child(_garden)
+	# The quiet clock stays off: its 20 s beat is wall-clock, and settle_farm()
+	# swaps SaveManager.data["farm"] for a copy, which strands any `farm`
+	# reference a section is holding. The beat itself is tested below by
+	# calling _garden_tick_once() directly, where the probe chooses the moment.
+	_garden.set("_garden_tick_running", false)
 
 
 func _close() -> void:
@@ -910,9 +919,13 @@ func _the_decorating_door_and_its_furniture() -> void:
 	# 点下去它才答应（歪头回弹）。红线原文——家具从不吞掉给地里的
 	# 手指——两头都被按过才算数。
 	var world = _garden.get("_world")
+	# Where the room would have saved them on THIS screen: the room lays
+	# its canvas out on the real viewport, and the garden reads the
+	# fractions against it, so a 4:3 tablet writes taller y's.
+	var canvas: Vector2 = get_viewport().get_visible_rect().size
 	SaveManager.set_creation("garden", [
-		{"icon": "heart", "x": 259.0, "y": 255.0, "size": 84.0},
-		{"icon": "flag", "x": 477.0, "y": 377.0, "size": 84.0},
+		{"icon": "heart", "x": 259.0, "y": 255.0 * canvas.y / 720.0, "size": 84.0},
+		{"icon": "flag", "x": 477.0, "y": 377.0 * canvas.y / 720.0, "size": 84.0},
 	])
 	var plots := _plots()
 	plots[0]["state"] = Farm.EMPTY
@@ -946,7 +959,9 @@ func _the_decorating_door_and_its_furniture() -> void:
 		await get_tree().create_timer(0.12).timeout
 		_ok(grass_taps[0] == 1,
 			"a tap nothing else claimed is offered to the grass exactly once")
-		_ok(absf(open_air.rotation) > 0.001,
+		# The stamp, not the rotation: the wiggle is 0.39 s long and a frame
+		# on a loaded machine can land after it.
+		_ok(open_air.has_meta("poked_at"),
 			"...and the furniture answers it with a wiggle")
 
 	# And the hero base's shelf is exactly as it was.
@@ -1787,8 +1802,184 @@ func _the_panel_has_a_visible_way_out() -> void:
 	_ok(_contrast(fill, paper) >= 3.0,
 		"关闭键的底色和面板的纸对比度只有 %.2f:1 —— 按钮和纸糊在一起，找不到边"
 		% _contrast(fill, paper))
+	var grass := Color(0.71, 0.84, 0.58)  # FarmWorld's ground, where it stands now
+	_ok(_contrast(fill, grass) >= 3.0,
+		"关闭键的底色和它身后的草地对比度只有 %.2f:1 —— 它现在站在纸外面的草地上"
+		% _contrast(fill, grass))
 
 	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+
+## Every chip on every sheet is the size it was given, and no two of them
+## share a pixel.
+##
+## Found by a screenshot, 2026-09-25: the shop's two 买下 chips sat on top of
+## each other and the kitchen's 送给小熊 covered the bottom half of the X.
+## The layout code asked for 48-tall chips 56 apart and 46-tall chips 62
+## apart -- and got 70 and 68, because the button style carried the panel's
+## 20px content margins and Godot raises a Button to fit its margins without
+## a word. Every rebuild since the kitchen was written drew it that way.
+## Twelve probes were green: they asked whether the chips were WIRED, not
+## whether they were on top of each other.
+func _no_button_grew_or_landed_on_another() -> void:
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["farm_xp"] = 60
+	farm["unlocked_recipes"] = ["strawberry_soup", "tomato_stew"]
+	farm["warehouse"] = {"strawberry": 3, "tomato": 1, "carrot": 2}
+	SaveManager.data["inventory"] = {"dish_strawberry_soup": 1}
+	SaveManager.data["rewards"]["coins"] = 120
+	SaveManager.save_game()
+
+	for panel in ["shop", "kitchen", "orders", "market", "barn", "recipes",
+			"visits"]:
+		_garden.call("_close_panels")
+		_garden.call("_rebuild")
+		await get_tree().process_frame
+		_garden.call("_open_panel", panel)
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		# The sheet's own chips: what stands on _play.
+		var buttons: Array = []
+		for node in _every_control(_garden.get("_play")):
+			if node is Button and (node as Control).is_visible_in_tree():
+				buttons.append(node)
+
+		var grew: Array = []
+		for b in buttons:
+			var want: Vector2 = (b as Control).custom_minimum_size
+			var got: Vector2 = (b as Control).size
+			if want != Vector2.ZERO and not got.is_equal_approx(want):
+				grew.append("'%s' 要的是 %s 拿到的是 %s"
+					% [str((b as Button).text), str(want), str(got)])
+		_ok(grew.is_empty(),
+			"%s 面板上有按钮比布局要的大 —— %s。样式的内边距在替布局改尺寸，"
+			% [panel, "; ".join(grew)]
+			+ "而排版是按要的那个数算的")
+
+		var overlaps: Array = []
+		for i in range(buttons.size()):
+			for j in range(i + 1, buttons.size()):
+				var a: Rect2 = (buttons[i] as Control).get_global_rect()
+				var c: Rect2 = (buttons[j] as Control).get_global_rect()
+				if a.intersects(c):
+					overlaps.append("'%s' 压着 '%s' %s"
+						% [str((buttons[i] as Button).text),
+							str((buttons[j] as Button).text),
+							str(a.intersection(c).size)])
+		_ok(overlaps.is_empty(),
+			"%s 面板上有两个按钮叠在一起 —— %s。叠住的那半截按下去是另一个键"
+			% [panel, "; ".join(overlaps)])
+
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+
+## A ripe bed whose harvest id is already in the ledger is freed, not frozen.
+##
+## The tap used to return in silence when RewardManager refused the id, and
+## the bed stayed READY for ever: no sound, no crops, no way out. Two
+## tablets merging their saves can make one (the ledger is unioned, the beds
+## are kept from one side). Now the bed goes back to earth, pays nothing,
+## and its next planting gets an id the ledger has not seen.
+func _a_bed_paid_twice_is_freed_not_frozen() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	var plots: Array = farm["plots"]
+	var plot: Dictionary = plots[0]
+	var plot_id := str(plot.get("plot_id", ""))
+	plot["state"] = Farm.READY
+	plot["crop_id"] = "carrot"
+	plot["growth_stage"] = 4
+	plot["care_event"] = ""
+	plot["plant_cycle_id"] = 3
+	farm["paid_harvests"] = ["farm_harvest_%s_3" % plot_id,
+		"farm_harvest_%s_4" % plot_id]
+	plots[0] = plot
+	farm["plots"] = plots
+	SaveManager.save_game()
+	# With the hand, and with the camera home.
+	_garden.call("_select_tool", "hand")
+	(_garden.get("_world") as Node).call("go_home")
+	_garden.call("_rebuild")
+	for i in range(2):
+		await get_tree().process_frame
+
+	var coins := Coins.balance()
+	var carrots := Barn.count("carrot")
+	await _tap(_bed(0))
+	var after: Dictionary = _plots()[0]
+	_ok(str(after.get("state", "")) == Farm.TILLED,
+		"账本里已经付过款的熟地，点一下还是 '%s' —— 原来这一按悄悄什么都不做，"
+		% str(after.get("state", "")) + "这块地永远收不了")
+	_ok(Coins.balance() == coins and Barn.count("carrot") == carrots,
+		"...and freeing it pays nothing and stores nothing")
+	var next_key := "farm_harvest_%s_%d" % [plot_id,
+		int(after.get("plant_cycle_id", 0)) + 1]
+	_ok(not (next_key in (SaveManager.data["farm"].get("paid_harvests", []) as Array)),
+		"下一次种下去的编号 %s 账本已经见过 —— 下一茬又会收不了" % next_key)
+
+
+## An order card he cannot fill yet answers the press.
+##
+## It used to be a disabled Button: no sound, no motion. Three cards on a
+## board, and the one he taps does nothing. _deliver refuses a short barn
+## on its own, so the card is free to shrug.
+func _a_card_he_cannot_fill_still_answers() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["warehouse"] = {}
+	SaveManager.data["farm_orders"] = {"delivered": []}
+	SaveManager.save_game()
+	await _open_the_board()
+	var cards: Array = []
+	_collect_order_cards(_garden, cards)
+	_ok(not cards.is_empty(), "the board has a card on it")
+	if cards.is_empty():
+		return
+	var card: Button = cards[0]
+	_ok(not card.disabled,
+		"填不满的订单卡是 disabled 的 —— 一张按下去毫无反应的卡")
+	_ok(card.pressed.get_connections().size() > 0,
+		"...and it is wired to answer")
+	var coins := Coins.balance()
+	card.emit_signal("pressed")
+	for i in range(3):
+		await get_tree().process_frame
+	_ok(Coins.balance() == coins
+			and (SaveManager.data["farm_orders"]["delivered"] as Array).is_empty(),
+		"...and the answer is a shrug, not a delivery")
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+
+## The lesson's clock belongs to the lesson's carrot, in the lesson's bed.
+##
+## The override used to be "anything planted while the lesson is on": corn
+## in bed three grew in six seconds, every visit, until the first order was
+## handed over.
+func _the_lesson_clock_is_the_carrots_alone() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	var plots: Array = farm["plots"]
+	for index in [0, 2]:
+		var fresh: Dictionary = Farm.fresh_plot(index)
+		fresh["state"] = Farm.TILLED
+		plots[index] = fresh
+	farm["plots"] = plots
+	_garden.set("_lesson_running", true)
+	_garden.set("_tutorial_growth", 6)
+	_garden.call("_plant_in", 2, "corn")
+	_garden.call("_plant_in", 0, "carrot")
+	_ok(int(_plots()[2].get("growth_override_seconds", 0)) == 0,
+		"课上种的玉米也走 6 秒 —— 课没上完之前，任何地里种任何东西都是 6 秒")
+	_ok(int(_plots()[0].get("growth_override_seconds", 0)) == 6,
+		"课上那颗胡萝卜还是 6 秒")
+	_garden.set("_lesson_running", false)
+	_garden.set("_tutorial_growth", 0)
+	SaveManager.save_game()
+	_garden.call("_rebuild")
 	await get_tree().process_frame
 
 
@@ -1901,7 +2092,11 @@ func _handing_an_order_over_pays_once() -> void:
 	# Press the card again, if it is still there at all.
 	var again := _order_card(str(order.get("id", "")))
 	if again != null:
-		_ok(again.disabled, "a delivered order cannot be pressed again")
+		# Not disabled any more: a receipt answers a press with a nod, and
+		# _deliver is what keeps it from paying twice. The coin check below
+		# is the one that matters.
+		_ok(again.pressed.get_connections().size() > 0,
+			"a delivered order's card still answers a press")
 		again.emit_signal("pressed")
 		await get_tree().process_frame
 		await get_tree().process_frame

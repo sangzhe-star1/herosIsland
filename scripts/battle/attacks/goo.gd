@@ -66,7 +66,12 @@ func _lob(arena) -> void:
 	arena.arena_add_threat(goo)
 
 	var to: Vector2 = arena.arena_hero_at() + Vector2(0, -50)
-	var t: Tween = arena.arena_tween()
+	# Bound to the goo: when it is swatted (freed) mid-flight the tween dies
+	# with it. Unbound, the arena's tween kept calling _step with a freed
+	# argument every frame and the arrival lambda with a dead capture --
+	# two ERROR lines per swat since July, which the old smoke only grepped
+	# for SCRIPT ERROR and the isolated runner now rightly refuses.
+	var t: Tween = arena.arena_tween().bind_node(goo)
 	t.tween_method(_step.bind(goo, from, to), 0.0, 1.0, 2.4)
 	t.tween_callback(func(): arena.arena_arrives(goo))
 
