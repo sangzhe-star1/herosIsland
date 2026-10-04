@@ -159,9 +159,15 @@ func build(view: Vector2, top_bar: float, shelf: float, plots: Array) -> void:
 	_beds.clear()
 	_task_beacon_plot_index = -1
 
+	# Depth is the y of a thing's feet: beds, buildings, the dog, every tree
+	# and fence post sort by where they stand, nested through the layers, so
+	# near things cover far things the way they would on a table.
+	y_sort_enabled = true
 	_ground = Node2D.new()
+	_ground.y_sort_enabled = true
 	add_child(_ground)
 	_buildings = Node2D.new()
+	_buildings.y_sort_enabled = true
 	add_child(_buildings)
 
 	_draw_ground()
@@ -388,6 +394,20 @@ func _draw_ground() -> void:
 	var world := Layout.world_size()
 	Shapes.fill(_ground, Shapes.rounded_rect(Vector2.ZERO, world, 40.0),
 		Color(0.66, 0.81, 0.53), 1.0)
+	# A quiet grass texture over the paint: low-contrast mottling and a few
+	# blades, tiled. Not a baked picture of the farm -- a material for the
+	# ground, so the rendered things stand on grass rather than on a colour.
+	var grass := HarvestArt.prop_texture("grass_tile")
+	if grass != null:
+		var tile := TextureRect.new()
+		tile.name = "GrassTile"
+		tile.texture = grass
+		tile.stretch_mode = TextureRect.STRETCH_TILE
+		tile.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		tile.position = Vector2.ZERO
+		tile.size = world
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ground.add_child(tile)
 	# The passive scenery is a child Node2D with no input of its own. It gets
 	# every real bed and facility rectangle first, so a tree can make the world
 	# feel lived in without ever making a child wonder whether a carrot is
@@ -435,9 +455,13 @@ func _draw_ground() -> void:
 			continue
 		var sprig := HarvestArt.prop_texture(["sprig_pink", "sprig_yellow", "sprig_lilac"][i % 3])
 		if sprig != null:
-			var art := HarvestArt.grounded_sprite(sprig, 24.0, at + Vector2(0.0, 6.0), "Sprig")
+			var root := Node2D.new()
+			root.name = "Sprig"
+			root.position = at + Vector2(0.0, 6.0)
+			_ground.add_child(root)
+			var art := HarvestArt.grounded_sprite(sprig, 24.0, Vector2.ZERO, "SprigArt")
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_ground.add_child(art)
+			root.add_child(art)
 			continue
 		var tint: Color = [Color(0.96, 0.72, 0.78), Color(0.98, 0.86, 0.52),
 			Color(0.80, 0.78, 0.96)][i % 3]
@@ -453,9 +477,14 @@ func _fence_post(at: Vector2, along_y: bool = false) -> void:
 	# render whose rails go into the screen.
 	var rail := HarvestArt.prop_texture("fence_y" if along_y else "fence")
 	if rail != null:
-		var art := HarvestArt.grounded_sprite(rail, 132.0, at + Vector2(0.0, 30.0), "Fence")
+		var post := Node2D.new()
+		post.name = "Fence"
+		post.position = at + Vector2(0.0, 30.0)
+		_ground.add_child(post)
+		Shapes.ground_shadow(post, Vector2(0.0, -4.0), 60.0, 0.10)
+		var art := HarvestArt.grounded_sprite(rail, 132.0, Vector2.ZERO, "FenceArt")
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_ground.add_child(art)
+		post.add_child(art)
 		return
 	Shapes.fill(_ground, Shapes.rounded_rect(at - Vector2(6, 30),
 		Vector2(12, 60), 5.0), Color(0.78, 0.66, 0.48), 1.0)

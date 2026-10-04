@@ -88,7 +88,10 @@ func _flutter(life: Dictionary, sprite: Control, delta: float) -> void:
 			float(path[(to_i + 1) % path.size()][1]))
 	var at := from.lerp(to, float(life["t"]))
 	at.y += sin(_t * 9.0 + float(life["phase"])) * 6.0
-	# The sprite is anchored by its pivot; keep that anchor on the path.
-	sprite.position = at - (sprite.pivot_offset)
+	# The sprite is anchored by its pivot; keep that anchor on the path. The
+	# path is in the layer's space and the sprite hangs in a holder.
+	var holder := sprite.get_parent() as Node2D
+	var origin := holder.position if holder != null else Vector2.ZERO
+	sprite.position = at - origin - sprite.pivot_offset
 	sprite.scale.y = 0.55 + 0.45 * absf(cos(_t * 11.0))
 	sprite.flip_h = to.x < from.x

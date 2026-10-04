@@ -2,6 +2,86 @@
  "_comment": "Scenery the studio rendered, placed on the farm by FarmWorldArt.add_ground_dressing. at = ground point in world px, size = half-canvas in px (grounded_sprite's world_size). Anything that would cover a bed or a facility is skipped by _clear_of_targets. life: spin | bob | peck | flutter. attach_to aligns this sprite's `hub` pixel with the host's `host_hub` pixel (both in 512 source px).",
  "props": [
   {
+   "id": "tree",
+   "at": [
+    128,
+    384
+   ],
+   "size": 114
+  },
+  {
+   "id": "tree",
+   "at": [
+    1240,
+    210
+   ],
+   "size": 130
+  },
+  {
+   "id": "tree",
+   "at": [
+    1765,
+    804
+   ],
+   "size": 124
+  },
+  {
+   "id": "hedge",
+   "at": [
+    1010,
+    628
+   ],
+   "size": 85
+  },
+  {
+   "id": "stones",
+   "at": [
+    308,
+    194
+   ],
+   "size": 78
+  },
+  {
+   "id": "stones",
+   "at": [
+    1386,
+    290
+   ],
+   "size": 68
+  },
+  {
+   "id": "stones",
+   "at": [
+    1670,
+    432
+   ],
+   "size": 80
+  },
+  {
+   "id": "sprig_yellow",
+   "at": [
+    648,
+    296
+   ],
+   "size": 40
+  },
+  {
+   "id": "sprig_pink",
+   "at": [
+    505,
+    612
+   ],
+   "size": 36
+  },
+  {
+   "id": "sprig_yellow",
+   "at": [
+    1356,
+    314
+   ],
+   "size": 36
+  },
+  {
    "id": "windmill",
    "at": [
     1400,
@@ -81,26 +161,6 @@
    "size": 92
   },
   {
-   "id": "chicken",
-   "at": [
-    1500,
-    250
-   ],
-   "size": 44,
-   "life": "peck"
-  },
-  {
-   "id": "chicken",
-   "at": [
-    1815,
-    236
-   ],
-   "size": 40,
-   "flip": true,
-   "life": "peck",
-   "phase": 1.7
-  },
-  {
    "id": "scarecrow",
    "at": [
     650,
@@ -119,8 +179,8 @@
   {
    "id": "duck",
    "at": [
-    1348,
-    596
+    1338,
+    630
    ],
    "size": 40,
    "life": "bob"
@@ -236,6 +296,26 @@
     ]
    ],
    "speed": 50
+  },
+  {
+   "id": "chicken",
+   "at": [
+    1500,
+    250
+   ],
+   "size": 44,
+   "life": "peck"
+  },
+  {
+   "id": "chicken",
+   "at": [
+    1815,
+    236
+   ],
+   "size": 40,
+   "flip": true,
+   "life": "peck",
+   "phase": 1.7
   }
  ]
 }

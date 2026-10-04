@@ -25,6 +25,7 @@ static func add_ground_dressing(parent: Node2D, protected: Array[Rect2]) -> Node
 	var layer := Node2D.new()
 	layer.name = "LandmarkScenery"
 	layer.set_meta("input_passthrough", true)
+	layer.y_sort_enabled = true
 	parent.add_child(layer)
 
 	# The island first reads in three broad, low-contrast territories: supplies
@@ -58,60 +59,10 @@ static func add_ground_dressing(parent: Node2D, protected: Array[Rect2]) -> Node
 		Vector2(208.0, 614.0), Vector2(286.0, 600.0), Vector2(356.0, 574.0),
 	]), 32.0)
 
-	# Three edge clusters are enough to establish foreground/middle/background.
-	# They are deliberately fixed: a familiar farm should not rearrange itself
-	# after a child waters one carrot.
-	for tree in [
-		{"at": Vector2(128.0, 340.0), "scale": 0.76, "seed": 61},
-		{"at": Vector2(1460.0, 202.0), "scale": 0.88, "seed": 67},
-		{"at": Vector2(1765.0, 768.0), "scale": 0.82, "seed": 71},
-		# Small canopy islands in the gaps make the opening view feel like a
-		# base with routes through it, while their measured footprints leave the
-		# full child-sized hit areas around every bed untouched.
-		{"at": Vector2(650.0, 610.0), "scale": 0.48, "seed": 79},
-	]:
-		var at: Vector2 = tree["at"]
-		var scale: float = float(tree["scale"])
-		if _clear_of_targets(at, 78.0 * scale, protected):
-			_draw_tree_cluster(layer, at, scale, int(tree["seed"]))
-
-	# The matching gap gets a lower hedge instead of a second twin tree. That
-	# difference is small, but prevents the farm from reading as a grid of
-	# repeated stickers while still giving the route a little depth.
-	for hedge in [
-		{"at": Vector2(1010.0, 614.0), "scale": 0.92, "seed": 83},
-		{"at": Vector2(1368.0, 602.0), "scale": 0.76, "seed": 89},
-	]:
-		var at: Vector2 = hedge["at"]
-		var scale: float = float(hedge["scale"])
-		if _clear_of_targets(at, 36.0 * scale, protected):
-			_draw_hedge_cluster(layer, at, scale, int(hedge["seed"]))
-
-	for stones in [
-		{"at": Vector2(308.0, 182.0), "scale": 0.90},
-		{"at": Vector2(1386.0, 280.0), "scale": 0.78},
-		{"at": Vector2(1670.0, 420.0), "scale": 0.92},
-		{"at": Vector2(1330.0, 982.0), "scale": 0.88},
-	]:
-		var at: Vector2 = stones["at"]
-		var scale: float = float(stones["scale"])
-		if _clear_of_targets(at, 46.0 * scale, protected):
-			_draw_stone_cluster(layer, at, scale)
-
-	# Quiet middle-ground detail belongs in the corridors BETWEEN plots. It is
-	# purposefully smaller and lower-contrast than a crop: from a child’s first
-	# view it reads as “a cared-for place”, never as a second thing to tap.
-	for sprig in [
-		{"at": Vector2(648.0, 288.0), "scale": 0.88, "bloom": Color(0.99, 0.82, 0.42)},
-		{"at": Vector2(505.0, 604.0), "scale": 0.80, "bloom": Color(0.98, 0.68, 0.62)},
-		{"at": Vector2(1356.0, 306.0), "scale": 0.80, "bloom": Color(0.99, 0.82, 0.42)},
-		{"at": Vector2(1368.0, 602.0), "scale": 0.94, "bloom": Color(0.73, 0.73, 0.94)},
-	]:
-		var at: Vector2 = sprig["at"]
-		var scale: float = float(sprig["scale"])
-		if _clear_of_targets(at, 28.0 * scale, protected):
-			_draw_fern_patch(layer, at, scale, sprig["bloom"])
-
+	# The trees, hedges, stones and sprigs used to be four lists here; they
+	# live in data/farm_world_dressing.json now, beside the pond and the
+	# hens, so one file decides what stands where and nothing lands in the
+	# pond.
 	_add_dressing_props(layer, protected)
 	return layer
 
@@ -144,13 +95,14 @@ static func _add_dressing_props(layer: Node2D, protected: Array[Rect2]) -> void:
 			if texture == null:
 				continue
 			sprite = Art.grounded_sprite(texture, size, Vector2.ZERO, "Scenery_" + id)
+			# Hung in the host's holder, so the sails sort and move with the tower.
 			var host_hub := _pixel_on(host, entry.get("host_hub", [256.0, 467.0]))
 			var own_hub := Vector2(float(entry["hub"][0]), float(entry["hub"][1])) \
 				* sprite.size.x / Art.SOURCE_CANVAS_SIZE
 			sprite.position = host_hub - own_hub
 			sprite.pivot_offset = own_hub
 			sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			layer.add_child(sprite)
+			host.get_parent().add_child(sprite)
 		else:
 			var at := Vector2(float(entry["at"][0]), float(entry["at"][1]))
 			var floats := str(entry.get("life", "")) == "flutter"
@@ -163,7 +115,7 @@ static func _add_dressing_props(layer: Node2D, protected: Array[Rect2]) -> void:
 				# A butterfly is placed by its centre, not a ground pivot.
 				sprite.pivot_offset = sprite.size * 0.5
 			else:
-				sprite.pivot_offset = at - sprite.position
+				sprite.pivot_offset = -sprite.position     # the holder IS the ground point
 		if bool(entry.get("flip", false)):
 			sprite.flip_h = true
 		if entry.has("life"):
@@ -191,7 +143,7 @@ static func poke_scenery_kind(ground: Node2D, kind: String) -> void:
 		life.call("poke_kind", kind)
 
 
-## Where a source-canvas pixel of a placed sprite is, in the layer's space.
+## Where a source-canvas pixel of a placed sprite is, in its holder's space.
 static func _pixel_on(sprite: Control, px: Array) -> Vector2:
 	return sprite.position + Vector2(float(px[0]), float(px[1])) \
 		* sprite.size.x / Art.SOURCE_CANVAS_SIZE
@@ -274,6 +226,10 @@ static func _draw_building(parent: Node2D, id: String, box: Vector2) -> bool:
 	if seen.size.x <= 0.0:
 		return false
 	var world := 100.0 * box.x * 1.04 / seen.size.x
+	# The render carries no shadow of its own (its footprint is deep, a
+	# radial one would peek out in front); the farm's soft ellipse under
+	# the footprint seats it on the grass like the beds and the trees.
+	Shapes.ground_shadow(parent, Vector2(0.0, box.y * 0.30), box.x * 1.0, 0.15)
 	var sprite := Art.grounded_sprite(texture, world, Vector2(0.0, box.y * 0.44),
 		"Building_" + id)
 	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -370,9 +326,18 @@ static func _prop(parent: Node2D, id: String, at: Vector2, world_size: float) ->
 	var texture := Art.prop_texture(id)
 	if texture == null:
 		return null
-	var sprite := Art.grounded_sprite(texture, world_size, at, "Scenery_" + id)
+	# A holder AT the ground point, with the picture hung from it: Y-sorting
+	# orders nodes by their own origin, and a picture's origin is its corner.
+	# With the holder at the roots, a tree behind a bed is drawn behind it
+	# and a tree in front is drawn in front, which is most of what stops a
+	# rendered farm from reading as stickers on a green sheet.
+	var holder := Node2D.new()
+	holder.name = "Scenery_" + id
+	holder.position = at
+	parent.add_child(holder)
+	var sprite := Art.grounded_sprite(texture, world_size, Vector2.ZERO, "Scenery_" + id + "Art")
 	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(sprite)
+	holder.add_child(sprite)
 	return sprite
 
 

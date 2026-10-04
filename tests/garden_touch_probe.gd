@@ -36,7 +36,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1186
+const CHECKS_EXPECTED := 1188
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -2031,9 +2031,13 @@ func _the_bed_grows_the_same_crop_the_harvest_page_shows() -> void:
 		and patch.texture.resource_path == "res://assets/harvest_3d/props/soil_grass_patch.png",
 		"a turned bed is the studio's soil patch, not a brown blob")
 	var scenery := _find_named(_garden.get("_world"), "LandmarkScenery")
-	_ok(scenery != null and _find_named(scenery, "Scenery_tree") is TextureRect
-		and _find_named(scenery, "Scenery_hedge") is TextureRect,
+	_ok(scenery != null and _find_named(scenery, "Scenery_treeArt") is TextureRect
+		and _find_named(scenery, "Scenery_hedgeArt") is TextureRect,
 		"the trees and hedges are rendered props from the same pipeline")
+	var tree_root := _find_named(scenery, "Scenery_tree") as Node2D
+	_ok(tree_root != null and tree_root.y_sort_enabled == false
+		and (scenery as Node2D).y_sort_enabled and (_garden.get("_world") as Node2D).y_sort_enabled,
+		"the farm depth-sorts by where things stand, so near covers far")
 	for index in [0, 1, 2]:
 		plots[index] = Farm.fresh_plot(index)
 	farm["plots"] = plots
