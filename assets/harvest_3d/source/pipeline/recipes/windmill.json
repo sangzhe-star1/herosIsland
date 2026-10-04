@@ -1,0 +1,21 @@
+{
+  "id": "windmill",
+  "kind": "prop",
+  "model": "windmill",
+  "params": {},
+  "ortho_scale": 4.6,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/windmill.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.31,
+    0.454,
+    0.0
+  ]
+}

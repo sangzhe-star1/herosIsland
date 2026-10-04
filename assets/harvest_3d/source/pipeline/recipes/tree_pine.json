@@ -1,0 +1,21 @@
+{
+  "id": "tree_pine",
+  "kind": "prop",
+  "model": "tree_pine",
+  "params": {},
+  "ortho_scale": 3.6,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/tree_pine.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.141,
+    0.206,
+    0.0
+  ]
+}

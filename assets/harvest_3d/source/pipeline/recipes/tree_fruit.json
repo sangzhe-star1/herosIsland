@@ -1,0 +1,21 @@
+{
+  "id": "tree_fruit",
+  "kind": "prop",
+  "model": "tree_fruit",
+  "params": {},
+  "ortho_scale": 3.6,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/tree_fruit.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.141,
+    0.206,
+    0.0
+  ]
+}

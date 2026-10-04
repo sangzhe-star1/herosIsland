@@ -1,0 +1,21 @@
+{
+  "id": "chicken",
+  "kind": "prop",
+  "model": "chicken",
+  "params": {},
+  "ortho_scale": 1.4,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/chicken.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.056,
+    0.083,
+    0.0
+  ]
+}

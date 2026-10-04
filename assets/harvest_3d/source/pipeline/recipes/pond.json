@@ -1,0 +1,21 @@
+{
+  "id": "pond",
+  "kind": "prop",
+  "model": "pond",
+  "params": {},
+  "ortho_scale": 3.4,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/pond.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.395,
+    0.578,
+    0.0
+  ]
+}

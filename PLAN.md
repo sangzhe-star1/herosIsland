@@ -115,8 +115,10 @@ These are yours to make. Nothing below has been changed without asking.
    the twelve buildings, the fence, the dog and the bear followed, so the
    whole world layer is one toy set from one camera; the hero is his own
    drawing and stays, and the stickers are his. What is still yours:
-   whether runtime 3D stays closed, and which of the forty-three toys want
-   a second pass by eye (the bear's door is the weakest).
+   whether runtime 3D stays closed, and which of the sixty-one toys want a
+   second pass by eye (the bear's door is the weakest). The farm's extra
+   life (windmill, pond, hens, butterflies) is data in
+   `data/farm_world_dressing.json`: adding a toy is a recipe and a line.
 5. **The asset pipeline is one studio and nineteen recipes, and it has been
    run.** `assets/harvest_3d/source/pipeline/` opens the frozen render profile
    every shipped sprite came from, frames its camera on the (256, 467) pivot,

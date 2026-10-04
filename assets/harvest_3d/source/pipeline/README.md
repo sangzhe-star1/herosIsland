@@ -79,6 +79,7 @@ renders stay on disk for a look, nothing is installed.
 | soil_grass_patch | replaced on purpose: the old PNG came from the other rig |
 | tree, hedge, stones, tuft, sprig_yellow/pink/lilac | new on 4 October: the farm's scenery, drawn by `farm_world_art.gd` |
 | building_* (13), fence, fence_y, dog, bear | new on 4 October: the facilities, the fence, the dog and the neighbour; deep footprints use `origin_offset` and `deep_footprint` |
+| tree_pine, tree_fruit, bush_flower, flowerbed, mushrooms, log, hay_bale, wheelbarrow, scarecrow, windmill, windmill_blades, pond, duck, chicken, signpost, bench, butterfly, butterfly_blue | new on 4 October: the dressing in `data/farm_world_dressing.json`; `floats` marks the two that never touch the ground |
 
 ## Buildings and animals
 

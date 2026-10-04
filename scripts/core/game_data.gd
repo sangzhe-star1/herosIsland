@@ -55,6 +55,9 @@ var farm_visit_texts: Dictionary = {}
 var farm_visitor_milestones: Dictionary = {}
 ## The dog's numbers: speed, height, how far from a bed it sits.
 var farm_dog: Dictionary = {}
+## Where the farm's extra scenery stands (windmill, pond, hens...); read by
+## FarmWorldArt, which skips anything that would cover a bed or a building.
+var farm_dressing: Dictionary = {}
 ## The farm's five levels: where each threshold sits and what each of the
 ## three xp sources pays. Read-only; the child's own farm_xp is in the save.
 var farm_levels: Dictionary = {}
@@ -96,6 +99,7 @@ func _ready() -> void:
 	farm_visit_texts = _load_json("res://data/farm_visit_texts.json", {})
 	farm_visitor_milestones = _load_json("res://data/farm_visitors.json", {})
 	farm_dog = _load_json("res://data/farm_dog.json", {})
+	farm_dressing = _load_json("res://data/farm_world_dressing.json", {})
 	farm_levels = _load_json("res://data/farm_levels.json", {})
 	farm_expansions = _load_json("res://data/farm_expansions.json", {})
 
@@ -135,6 +139,7 @@ func _ready() -> void:
 			["visit text lines",
 				farm_visit_texts.get("bear", {}).get("lines", []).size()],
 			["farm dog numbers", farm_dog.size()],
+			["farm dressing props", farm_dressing.get("props", []).size()],
 			["farm levels", farm_levels.get("levels", []).size()],
 			["farm expansions", farm_expansions.get("slots", []).size()]]:
 		if int(pair[1]) == 0:

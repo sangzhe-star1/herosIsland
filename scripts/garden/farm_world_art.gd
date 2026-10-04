@@ -112,7 +112,69 @@ static func add_ground_dressing(parent: Node2D, protected: Array[Rect2]) -> Node
 		if _clear_of_targets(at, 28.0 * scale, protected):
 			_draw_fern_patch(layer, at, scale, sprig["bloom"])
 
+	_add_dressing_props(layer, protected)
 	return layer
+
+
+## The rest of the farm's life, from data/farm_world_dressing.json: trees,
+## a pond with its duck, hens by the barn, a scarecrow between the rows, a
+## windmill whose sails turn. Every entry is checked against the beds and
+## facilities like the fixed clusters above, so nothing stands on a target,
+## and every moving one is handed to FarmSceneryLife. Data, not code, so a
+## new toy is a line in a file and a recipe in the pipeline.
+static func _add_dressing_props(layer: Node2D, protected: Array[Rect2]) -> void:
+	var parsed: Dictionary = GameData.farm_dressing
+	if parsed.is_empty():
+		return
+	var life: Node2D = preload("res://scripts/garden/farm_scenery_life.gd").new()
+	life.name = "SceneryLife"
+	layer.add_child(life)
+	var placed := {}
+	for entry in parsed.get("props", []):
+		if not (entry is Dictionary):
+			continue
+		var id := str(entry.get("id", ""))
+		var size := float(entry.get("size", 60.0))
+		var sprite: Control = null
+		if entry.has("attach_to"):
+			var host: Control = placed.get(str(entry["attach_to"]))
+			if host == null:
+				continue
+			var texture := Art.prop_texture(id)
+			if texture == null:
+				continue
+			sprite = Art.grounded_sprite(texture, size, Vector2.ZERO, "Scenery_" + id)
+			var host_hub := _pixel_on(host, entry.get("host_hub", [256.0, 467.0]))
+			var own_hub := Vector2(float(entry["hub"][0]), float(entry["hub"][1])) \
+				* sprite.size.x / Art.SOURCE_CANVAS_SIZE
+			sprite.position = host_hub - own_hub
+			sprite.pivot_offset = own_hub
+			sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			layer.add_child(sprite)
+		else:
+			var at := Vector2(float(entry["at"][0]), float(entry["at"][1]))
+			var floats := str(entry.get("life", "")) == "flutter"
+			if not floats and not _clear_of_targets(at, size * 0.5, protected):
+				continue
+			sprite = _prop(layer, id, at, size)
+			if sprite == null:
+				continue
+			if floats:
+				# A butterfly is placed by its centre, not a ground pivot.
+				sprite.pivot_offset = sprite.size * 0.5
+			else:
+				sprite.pivot_offset = at - sprite.position
+		if bool(entry.get("flip", false)):
+			sprite.flip_h = true
+		if entry.has("life"):
+			life.add(sprite, str(entry["life"]), entry)
+		placed[id] = sprite
+
+
+## Where a source-canvas pixel of a placed sprite is, in the layer's space.
+static func _pixel_on(sprite: Control, px: Array) -> Vector2:
+	return sprite.position + Vector2(float(px[0]), float(px[1])) \
+		* sprite.size.x / Art.SOURCE_CANVAS_SIZE
 
 
 ## Large zones are compositional background, unlike a tree or stone that can

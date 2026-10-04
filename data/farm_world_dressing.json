@@ -1,0 +1,241 @@
+{
+ "_comment": "Scenery the studio rendered, placed on the farm by FarmWorldArt.add_ground_dressing. at = ground point in world px, size = half-canvas in px (grounded_sprite's world_size). Anything that would cover a bed or a facility is skipped by _clear_of_targets. life: spin | bob | peck | flutter. attach_to aligns this sprite's `hub` pixel with the host's `host_hub` pixel (both in 512 source px).",
+ "props": [
+  {
+   "id": "windmill",
+   "at": [
+    1400,
+    195
+   ],
+   "size": 150
+  },
+  {
+   "id": "windmill_blades",
+   "attach_to": "windmill",
+   "hub": [
+    256,
+    369.9
+   ],
+   "host_hub": [
+    227.1,
+    249.1
+   ],
+   "size": 118,
+   "life": "spin",
+   "speed": 0.9
+  },
+  {
+   "id": "tree_fruit",
+   "at": [
+    1010,
+    262
+   ],
+   "size": 120
+  },
+  {
+   "id": "flowerbed",
+   "at": [
+    600,
+    250
+   ],
+   "size": 80
+  },
+  {
+   "id": "tree_pine",
+   "at": [
+    2110,
+    600
+   ],
+   "size": 140
+  },
+  {
+   "id": "tree_pine",
+   "at": [
+    2140,
+    880
+   ],
+   "size": 120
+  },
+  {
+   "id": "tree_pine",
+   "at": [
+    1300,
+    1105
+   ],
+   "size": 110
+  },
+  {
+   "id": "hay_bale",
+   "at": [
+    118,
+    470
+   ],
+   "size": 92
+  },
+  {
+   "id": "wheelbarrow",
+   "at": [
+    122,
+    565
+   ],
+   "size": 92
+  },
+  {
+   "id": "chicken",
+   "at": [
+    328,
+    560
+   ],
+   "size": 44,
+   "life": "peck"
+  },
+  {
+   "id": "chicken",
+   "at": [
+    384,
+    592
+   ],
+   "size": 40,
+   "flip": true,
+   "life": "peck",
+   "phase": 1.7
+  },
+  {
+   "id": "scarecrow",
+   "at": [
+    650,
+    605
+   ],
+   "size": 110
+  },
+  {
+   "id": "pond",
+   "at": [
+    1362,
+    612
+   ],
+   "size": 108
+  },
+  {
+   "id": "duck",
+   "at": [
+    1348,
+    596
+   ],
+   "size": 40,
+   "life": "bob"
+  },
+  {
+   "id": "log",
+   "at": [
+    1300,
+    985
+   ],
+   "size": 90
+  },
+  {
+   "id": "mushrooms",
+   "at": [
+    640,
+    925
+   ],
+   "size": 60
+  },
+  {
+   "id": "flowerbed",
+   "at": [
+    1180,
+    935
+   ],
+   "size": 80
+  },
+  {
+   "id": "flowerbed",
+   "at": [
+    1800,
+    600
+   ],
+   "size": 84
+  },
+  {
+   "id": "bush_flower",
+   "at": [
+    1750,
+    900
+   ],
+   "size": 100
+  },
+  {
+   "id": "bench",
+   "at": [
+    1380,
+    1085
+   ],
+   "size": 90
+  },
+  {
+   "id": "signpost",
+   "at": [
+    1240,
+    1060
+   ],
+   "size": 80
+  },
+  {
+   "id": "butterfly",
+   "at": [
+    700,
+    600
+   ],
+   "size": 26,
+   "life": "flutter",
+   "path": [
+    [
+     700,
+     600
+    ],
+    [
+     1000,
+     560
+    ],
+    [
+     900,
+     650
+    ],
+    [
+     760,
+     540
+    ]
+   ],
+   "speed": 60
+  },
+  {
+   "id": "butterfly_blue",
+   "at": [
+    1700,
+    250
+   ],
+   "size": 26,
+   "life": "flutter",
+   "path": [
+    [
+     1700,
+     250
+    ],
+    [
+     1800,
+     320
+    ],
+    [
+     1650,
+     330
+    ],
+    [
+     1620,
+     260
+    ]
+   ],
+   "speed": 50
+  }
+ ]
+}

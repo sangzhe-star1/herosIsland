@@ -1,0 +1,21 @@
+{
+  "id": "duck",
+  "kind": "prop",
+  "model": "duck",
+  "params": {},
+  "ortho_scale": 1.7,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/duck.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.141,
+    0.206,
+    0.0
+  ]
+}

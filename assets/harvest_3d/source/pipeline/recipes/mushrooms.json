@@ -1,0 +1,21 @@
+{
+  "id": "mushrooms",
+  "kind": "prop",
+  "model": "mushrooms",
+  "params": {},
+  "ortho_scale": 1.6,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/mushrooms.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.056,
+    0.083,
+    0.0
+  ]
+}

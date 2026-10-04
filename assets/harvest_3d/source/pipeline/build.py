@@ -113,6 +113,8 @@ def main(argv):
             entry['footprint_reaches_edge'] = True
         if r.get('deep_footprint'):
             entry['deep_footprint'] = True
+        if r.get('floats'):
+            entry['floats'] = True
         if opts['glb']:
             glb = sprites / (r['id'] + '.glb')
             S.export_glb(coll, glb, list(colls.values()))

@@ -684,6 +684,186 @@
         0.3
       ],
       "roughness": 0.92
+    },
+    "pine": {
+      "label": "Pine | deep needle green",
+      "color": [
+        0.16,
+        0.4,
+        0.22
+      ],
+      "roughness": 0.9
+    },
+    "pine2": {
+      "label": "Pine | sunlit needle",
+      "color": [
+        0.26,
+        0.52,
+        0.28
+      ],
+      "roughness": 0.9
+    },
+    "hay": {
+      "label": "Hay | straw gold",
+      "color": [
+        0.9,
+        0.76,
+        0.42
+      ],
+      "roughness": 0.95
+    },
+    "hay2": {
+      "label": "Hay | shaded straw",
+      "color": [
+        0.78,
+        0.62,
+        0.3
+      ],
+      "roughness": 0.95
+    },
+    "mushroom_cap": {
+      "label": "Mushroom | red cap",
+      "color": [
+        0.86,
+        0.26,
+        0.22
+      ],
+      "roughness": 0.85
+    },
+    "mushroom_stem": {
+      "label": "Mushroom | cream stem",
+      "color": [
+        0.96,
+        0.92,
+        0.82
+      ],
+      "roughness": 0.9
+    },
+    "pond": {
+      "label": "Pond | still water",
+      "color": [
+        0.42,
+        0.66,
+        0.82
+      ],
+      "roughness": 0.25
+    },
+    "pond_edge": {
+      "label": "Pond | muddy bank",
+      "color": [
+        0.6,
+        0.5,
+        0.34
+      ],
+      "roughness": 0.95
+    },
+    "lily": {
+      "label": "Lily pad | green",
+      "color": [
+        0.3,
+        0.58,
+        0.26
+      ],
+      "roughness": 0.85
+    },
+    "duck": {
+      "label": "Duck | white",
+      "color": [
+        0.97,
+        0.95,
+        0.88
+      ],
+      "roughness": 0.9
+    },
+    "beak": {
+      "label": "Beak | orange",
+      "color": [
+        0.98,
+        0.6,
+        0.18
+      ],
+      "roughness": 0.7
+    },
+    "hen": {
+      "label": "Hen | warm brown",
+      "color": [
+        0.72,
+        0.46,
+        0.26
+      ],
+      "roughness": 0.95
+    },
+    "comb": {
+      "label": "Comb | red",
+      "color": [
+        0.88,
+        0.22,
+        0.2
+      ],
+      "roughness": 0.8
+    },
+    "scarecrow_shirt": {
+      "label": "Scarecrow | blue shirt",
+      "color": [
+        0.4,
+        0.56,
+        0.78
+      ],
+      "roughness": 0.9
+    },
+    "scarecrow_hat": {
+      "label": "Scarecrow | straw hat",
+      "color": [
+        0.86,
+        0.72,
+        0.42
+      ],
+      "roughness": 0.95
+    },
+    "sack": {
+      "label": "Sack | burlap",
+      "color": [
+        0.8,
+        0.68,
+        0.5
+      ],
+      "roughness": 0.95
+    },
+    "wheel": {
+      "label": "Wheel | dark iron",
+      "color": [
+        0.3,
+        0.3,
+        0.32
+      ],
+      "roughness": 0.7
+    },
+    "sail": {
+      "label": "Sail | canvas cream",
+      "color": [
+        0.96,
+        0.93,
+        0.84
+      ],
+      "roughness": 0.9
+    },
+    "butterfly": {
+      "label": "Butterfly | orange wing",
+      "color": [
+        0.98,
+        0.62,
+        0.2
+      ],
+      "roughness": 0.8
+    },
+    "butterfly2": {
+      "label": "Butterfly | blue wing",
+      "color": [
+        0.48,
+        0.66,
+        0.94
+      ],
+      "roughness": 0.8
     }
   }
 }

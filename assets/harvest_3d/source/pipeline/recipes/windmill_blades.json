@@ -1,0 +1,22 @@
+{
+  "id": "windmill_blades",
+  "kind": "prop",
+  "model": "windmill_blades",
+  "params": {},
+  "ortho_scale": 5.2,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/windmill_blades.png",
+  "_note": "hub at the origin; the farm rotates the sprite about its pivot pixel, which is the hub",
+  "floats": true,
+  "origin_offset": [
+    0.0,
+    0.0,
+    1.1
+  ]
+}

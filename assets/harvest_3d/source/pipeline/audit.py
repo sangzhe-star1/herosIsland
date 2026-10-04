@@ -55,8 +55,14 @@ def measure(path):
     }
 
 
-def check(path, m, allow_edge=False, deep=False):
+def check(path, m, allow_edge=False, deep=False, floats=False):
     rules = dict(CONTRACT['audit'])
+    if floats:
+        # A butterfly or a windmill's sails never touch the ground; the
+        # farm places them by their pivot, so only the canvas rules apply.
+        rules['lowest_solid_row_min'] = 0
+        rules['lowest_solid_row_max'] = int(CONTRACT['sprite_size']) - 2
+        rules['footprint_centre_tolerance_px'] = 10_000
     if deep:
         # A building or an animal stands on an area, not a point: its nearest
         # corner may sit well below and beside the pivot. The canvas-edge
@@ -140,12 +146,15 @@ def main(argv):
     pngs = [p for p in pngs if 'contact_sheet' not in p.name]
     edge_ok = set()
     deep = set()
+    floats = set()
     if manifest:
         for a in manifest.get('assets', []):
             if a.get('footprint_reaches_edge'):
                 edge_ok.add(a['id'])
             if a.get('deep_footprint'):
                 deep.add(a['id'])
+            if a.get('floats'):
+                floats.add(a['id'])
             if list(a.get('ground_pivot_pixel', [])) != list(CONTRACT['ground_pivot_pixel']):
                 print('ERROR manifest: %s pivot %s, contract %s'
                       % (a['id'], a.get('ground_pivot_pixel'), CONTRACT['ground_pivot_pixel']))
@@ -162,11 +171,14 @@ def main(argv):
                 edge_ok.add(r.stem)
             if recipe.get('deep_footprint'):
                 deep.add(r.stem)
+            if recipe.get('floats'):
+                floats.add(r.stem)
     failures = 0
     items = []
     for png in pngs:
         m = measure(png)
-        errors = check(png, m, allow_edge=png.stem in edge_ok, deep=png.stem in deep)
+        errors = check(png, m, allow_edge=png.stem in edge_ok, deep=png.stem in deep,
+                       floats=png.stem in floats)
         items.append((png.stem, m['image']))
         if errors:
             failures += 1

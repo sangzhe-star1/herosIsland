@@ -432,6 +432,12 @@ func _draw_ground() -> void:
 				break
 		if touches_target:
 			continue
+		var sprig := HarvestArt.prop_texture(["sprig_pink", "sprig_yellow", "sprig_lilac"][i % 3])
+		if sprig != null:
+			var art := HarvestArt.grounded_sprite(sprig, 24.0, at + Vector2(0.0, 6.0), "Sprig")
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_ground.add_child(art)
+			continue
 		var tint: Color = [Color(0.96, 0.72, 0.78), Color(0.98, 0.86, 0.52),
 			Color(0.80, 0.78, 0.96)][i % 3]
 		Shapes.fill(_ground, Shapes.circle_points(at, 9.0), tint, 1.0)

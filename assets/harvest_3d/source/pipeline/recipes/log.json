@@ -1,0 +1,21 @@
+{
+  "id": "log",
+  "kind": "prop",
+  "model": "log",
+  "params": {},
+  "ortho_scale": 2.4,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/log.png",
+  "deep_footprint": true,
+  "origin_offset": [
+    -0.113,
+    0.165,
+    0.0
+  ]
+}

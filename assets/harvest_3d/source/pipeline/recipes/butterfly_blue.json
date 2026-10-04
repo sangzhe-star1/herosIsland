@@ -1,0 +1,19 @@
+{
+  "id": "butterfly_blue",
+  "kind": "prop",
+  "model": "butterfly",
+  "params": {
+    "wing": "butterfly2"
+  },
+  "ortho_scale": 0.9,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.5,
+      0.3
+    ]
+  },
+  "install": "props/butterfly_blue.png",
+  "_note": "flies; the farm moves it, no ground contact",
+  "floats": true
+}
