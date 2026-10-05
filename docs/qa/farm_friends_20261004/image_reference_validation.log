@@ -1,0 +1,5 @@
+res://assets/harvest_3d/props/rabbit.png: checker exit=0, expected=0
+res://assets/harvest_3d/props/missing_friend.png: checker exit=1, expected=1
+res://scripts/garden/farm_save.gd: checker exit=1, expected=1
+unknown_friend: checker exit=1, expected=1
+IMAGE RESOURCE VALIDATION PASSED: 4 cases, no project data modified.

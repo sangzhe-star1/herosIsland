@@ -50,6 +50,8 @@ func _ready() -> void:
 	_ripeness_is_said_more_than_one_way()
 	_the_cheer_is_sparse()
 	_every_level_can_actually_be_finished()
+	_every_difficulty_has_whole_harvests_for_each_order()
+	_the_relay_customer_follows_the_current_order()
 	_clutter_is_never_asked_for()
 	_an_exception_names_a_basket_that_exists()
 	_every_pickable_target_has_one_sorting_home()
@@ -473,6 +475,57 @@ func _clutter_is_never_asked_for() -> void:
 					"%s asks for '%s', which is clutter -- it never reaches a "
 					% [id, str(entry.get("crop_id", ""))] + "basket, so the "
 					+ "order could never be filled")
+
+
+## Multi-yield crops are consumed as whole plants. Excess peas from one order
+## are not carried into the next, so enough total peas alone is insufficient.
+## Ask the production difficulty resolver, including each brave-only extra.
+func _every_difficulty_has_whole_harvests_for_each_order() -> void:
+	var previous_tier := int(SaveManager.data["settings"].get("difficulty", 1))
+	var action := HarvestAction.new()
+	for tier in range(3):
+		SaveManager.data["settings"]["difficulty"] = tier
+		for level in GameData.get_levels_for_mode("harvest"):
+			var config: Dictionary = level.get("config", {})
+			var allowed: Array = config.get("allowed_maturity", Maturity.PICKABLE)
+			var remaining: Dictionary = {}
+			for entry in config.get("targets", []):
+				if not Maturity.pickable(str(entry.get("maturity", "ready")), allowed):
+					continue
+				var crop_id := str(entry.get("crop_id", ""))
+				remaining[crop_id] = int(remaining.get(crop_id, 0)) + int(entry.get("count", 1))
+			var orders: Array = config.get("orders", [{"requirements": config.get("order", [])}])
+			for order_index in range(orders.size()):
+				var wanted: Dictionary = action.call("_requirements_for_order", orders[order_index])
+				for crop_id in wanted:
+					var yield_count := maxi(int(Crops.get_crop(str(crop_id)).get("harvest_count", 1)), 1)
+					var quantity := int(wanted[crop_id])
+					var context := "%s tier %d order %d %s" % [str(level["id"]), tier, order_index, crop_id]
+					_ok(quantity > 0 and quantity % yield_count == 0,
+						context + " asks for whole harvests, so a pod never loses a leftover pea")
+					var needed := int(ceil(float(quantity) / float(yield_count)))
+					_ok(int(remaining.get(crop_id, 0)) >= needed,
+						context + " has fresh plants after the previous deliveries")
+					remaining[crop_id] = int(remaining.get(crop_id, 0)) - needed
+	SaveManager.data["settings"]["difficulty"] = previous_tier
+	action.free()
+
+
+func _the_relay_customer_follows_the_current_order() -> void:
+	var action := HarvestAction.new()
+	action.level_data = GameData.get_level("harvest_16").duplicate(true)
+	action.set("_orders", action.level_data.get("config", {}).get("orders", []))
+	var expected := ["res://assets/harvest_3d/props/rabbit.png", "paw", "teddy"]
+	for index in range(expected.size()):
+		action.set("_order_index", index)
+		_ok(str(action.call("_current_customer_reference")) == expected[index],
+			"the relay resolves the customer for order %d, including checkpoint restoration" % index)
+	action.level_data = GameData.get_level("harvest_15").duplicate(true)
+	action.set("_orders", action.level_data.get("config", {}).get("orders", []))
+	action.set("_order_index", 1)
+	_ok(str(action.call("_current_customer_reference")) == "robot",
+		"an order with no portrait override keeps its level's customer")
+	action.free()
 
 
 ## An exception has to name a basket the level actually has.

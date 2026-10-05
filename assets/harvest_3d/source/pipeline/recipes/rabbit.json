@@ -1,0 +1,11 @@
+{
+  "id": "rabbit",
+  "kind": "prop",
+  "model": "rabbit",
+  "params": {},
+  "ortho_scale": 3.1,
+  "shadow": {"baked": true, "size": [0.44, 0.28]},
+  "install": "props/rabbit.png",
+  "origin_offset": [-0.20, 0.30, 0.0],
+  "deep_footprint": true
+}

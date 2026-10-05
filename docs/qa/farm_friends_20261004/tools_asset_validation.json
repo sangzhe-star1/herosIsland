@@ -1,0 +1,22 @@
+[
+  {
+    "id": "tool_trowel",
+    "png_sha256": "917c68e627262c741f5699b8591a85b3d50e06e68f818a4296352087cf047e52",
+    "source_png_equals_installed": true,
+    "glb_nodes": 12,
+    "glb_meshes": 12,
+    "glb_render_helper_nodes": [],
+    "float_or_edge_exemption": false,
+    "visual_review": "Checked full source PNG and 44/48px alpha-fitted badge comparison."
+  },
+  {
+    "id": "tool_watering_can",
+    "png_sha256": "d45a80a2b91034c138c2982d456a58765f74d118eea4f0049de68e18c7554a19",
+    "source_png_equals_installed": true,
+    "glb_nodes": 18,
+    "glb_meshes": 18,
+    "glb_render_helper_nodes": [],
+    "float_or_edge_exemption": false,
+    "visual_review": "Checked full source PNG and 44/48px alpha-fitted badge comparison."
+  }
+]

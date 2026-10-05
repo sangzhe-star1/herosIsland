@@ -1,0 +1,24 @@
+{
+  "shots": [
+    {
+      "name": "inventory_full_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_full",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 5.84
+    },
+    {
+      "name": "inventory_upgrade_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_upgrade",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": false,
+      "error": "Godot exited with 1; see /private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-small_type_shots-eurn_u35/qa_logs/inventory_upgrade_16x9.log"
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-small_type_shots-eurn_u35",
+  "all_passed": false
+}

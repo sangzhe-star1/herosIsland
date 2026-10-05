@@ -89,21 +89,28 @@ static func has(item_id: String, amount: int, which: String = WAREHOUSE) -> bool
 	return amount >= 0 and count(item_id, which) >= amount
 
 
-## What is in the barn, as a list of [id, count] sorted by the crop order in
-## the catalogue -- so the barn always reads in the same order it was learned
-## in, rather than in whatever order things happened to be picked.
+## What is in the barn, as [id, count]: crops first, then made produce, each
+## in catalogue order. Both kinds occupy space and can wait in the overflow
+## basket. Unknown saved items remain visible after the known catalogue.
 static func contents(which: String = WAREHOUSE) -> Array:
 	var store := _store(which)
 	var out: Array = []
-	for crop in GameData.crops:
-		var crop_id := str(crop.get("id", ""))
-		if int(store.get(crop_id, 0)) > 0:
-			out.append([crop_id, int(store[crop_id])])
+	var seen: Dictionary = {}
+	for catalogue in [GameData.crops, GameData.farm_produce.get("produce", [])]:
+		for item in catalogue:
+			var item_id := str(item.get("id", ""))
+			if seen.has(item_id):
+				continue
+			seen[item_id] = true
+			if int(store.get(item_id, 0)) > 0:
+				out.append([item_id, int(store[item_id])])
 	# Anything not in the catalogue still shows, at the end. A barn that
 	# silently hides something it is holding is worse than an odd sort order.
 	for key in store.keys():
-		if int(store[key]) > 0 and GameData.get_crop(str(key)).is_empty():
-			out.append([str(key), int(store[key])])
+		var item_id := str(key)
+		if int(store[key]) > 0 and not seen.has(item_id):
+			out.append([item_id, int(store[key])])
+			seen[item_id] = true
 	return out
 
 

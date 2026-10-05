@@ -1,0 +1,133 @@
+{
+  "version": 2,
+  "sprite_size": 512,
+  "contract": {
+    "_comment": "The numbers every harvest sprite is rendered and placed by. studio.py builds the camera from this and refuses to render if the ground origin does not land on ground_pivot_pixel; harvest_visual_art.gd reads the same pivot (GROUND_ORIGIN_PIXEL_Y = 467). Change it in both places or in neither. The rig comes from the frozen profile .blend that rendered every shipped sprite (catalog_profile_candidate, 3 October); 'legacy' is the original sprite-pack rig, kept for comparison only.",
+    "sprite_size": 512,
+    "ground_pivot_pixel": [
+      256,
+      467
+    ],
+    "ortho_scale": 2.6,
+    "rig": "profile",
+    "profile": {
+      "blend": "../catalog_profile_candidate/inputs/frozen_render_profile.blend",
+      "sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+      "light_types": [
+        "AREA",
+        "AREA",
+        "SUN"
+      ],
+      "view_transform": "Standard",
+      "exposure": -0.2,
+      "contact_shadow_baked": false,
+      "_what": "world 'soft blue sky', Sun key 1.1 + Area fill 240 + Area rim 180, Standard view at -0.2 EV, Cycles 24 samples; the camera keeps its orientation and is slid in its own plane until the world origin lands on ground_pivot_pixel"
+    },
+    "legacy": {
+      "camera": {
+        "type": "ORTHO",
+        "ortho_scale": 2.6,
+        "location": [
+          4.3,
+          -7.2,
+          6.73
+        ],
+        "target": [
+          0.0,
+          0.0,
+          1.28
+        ],
+        "lens": 50
+      },
+      "light": {
+        "type": "AREA",
+        "shape": "DISK",
+        "size": 7.0,
+        "energy": 1000,
+        "location": [
+          -3.0,
+          -4.0,
+          12.0
+        ],
+        "target": [
+          0.0,
+          0.0,
+          1.55
+        ]
+      },
+      "world": {
+        "background": [
+          0.55,
+          0.58,
+          0.6
+        ],
+        "strength": 0.62
+      },
+      "render": {
+        "engine": "CYCLES",
+        "samples": 32,
+        "denoise": true,
+        "view_transform": "AgX",
+        "transparent_max_bounces": 8
+      },
+      "contact_shadow_baked": true,
+      "_what": "build_pack.py's own rig: one warm softbox, AgX, baked radial shadow. Not what the game ships."
+    },
+    "textures": {
+      "props/grass_tile.png": {
+        "usage": "tileable_ground_overlay",
+        "size": [
+          256,
+          256
+        ],
+        "mode": "RGBA",
+        "alpha_max": 96,
+        "alpha_mean_min": 4,
+        "alpha_mean_max": 40,
+        "visible_fraction_min": 0.99,
+        "edge_premultiplied_mean_delta_max": 5,
+        "edge_alpha_mean_delta_max": 5,
+        "_comment": "Only this explicitly named ground material is tiled by FarmWorldController. It has deliberately low alpha and no ground pivot. Compare opposing edges in premultiplied RGB and alpha so hidden RGB noise does not masquerade as a visible seam; 5/255 bounds the average edge discontinuity. Unknown PNGs remain subject to all sprite rules."
+      }
+    },
+    "audit": {
+      "lowest_solid_row_min": 427,
+      "lowest_solid_row_max": 503,
+      "footprint_centre_tolerance_px": 90,
+      "edge_margin_px": 1,
+      "black_fringe_max_fraction": 0.01,
+      "solid_alpha": 250,
+      "semi_alpha": [
+        12,
+        160
+      ]
+    }
+  },
+  "assets": [
+    {
+      "id": "rabbit",
+      "kind": "prop",
+      "model": "rabbit",
+      "params": {},
+      "file": "sprites/rabbit.png",
+      "resolution": [
+        512,
+        512
+      ],
+      "ortho_scale": 3.0999999046325684,
+      "ground_pivot_pixel": [
+        256,
+        467
+      ],
+      "pivot_offset_from_texture_center_px": [
+        0,
+        211
+      ],
+      "contact_shadow_baked": true,
+      "rig": "profile",
+      "install": "props/rabbit.png",
+      "deep_footprint": true,
+      "glb": "sprites/rabbit.glb"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+OpenGL API 4.1 Metal - 90.5 - Compatibility - Using Device: Apple - Apple M5 Pro
+
+SCRIPT ERROR: Parse Error: Identifier "ProbeLifecycle" not declared in the current scope.
+          at: GDScript::reload (res://tests/farm_world_probe.gd:59)
+ERROR: Failed to load script "res://tests/farm_world_probe.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+[autoload] GameClock ok
+[autoload] GameData starting
+[autoload] GameData ok: 5 worlds, 67 levels, 15 monsters, 106 shop items, 2 characters, 12 outfit sets
+[autoload] SaveManager starting
+[autoload] SaveManager ok
+[autoload] I18n starting
+[autoload] I18n ok: locale=zh, 2 locales loaded
+[autoload] AudioManager starting
+[autoload] AudioManager ok
+[autoload] SceneManager starting
+[autoload] SceneManager ok
+[autoload] TouchSparkles ok

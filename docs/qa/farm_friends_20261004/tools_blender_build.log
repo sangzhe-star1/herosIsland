@@ -1,0 +1,82 @@
+00:00.791  blend            | Read blend: "/opt/heroesIsland/assets/harvest_3d/source/catalog_profile_candidate/inputs/frozen_render_profile.blend"
+00:03.530  render           | Saved: 'assets/harvest_3d/source/farm_friends_20261004/tools/exports/sprites/tool_trowel.png'
+INFO Draco is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_draco_bridge.dylib
+INFO MeshOptimizer is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_meshopt_bridge.dylib
+19:58:53 | INFO: Starting glTF 2.0 export
+19:58:53 | INFO: Extracting primitive: Trowel | curved scoop Mesh
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: 柱体
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: Trowel | grain Curve
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: Trowel | grain Curve.001
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: 球体.001
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: 球体
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: 球体.002
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: Trowel | neck Curve
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: Trowel | rolled rim Curve
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: Trowel | rolled rim Curve.001
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: Trowel | rounded toe Curve
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Extracting primitive: 柱体.001
+19:58:53 | INFO: Primitives created: 1
+19:58:53 | INFO: Finished glTF 2.0 export in 0.035243988037109375 s
+
+RENDERED tool_trowel
+00:06.906  render           | Saved: 'assets/harvest_3d/source/farm_friends_20261004/tools/exports/sprites/tool_watering_can.png'
+19:58:57 | INFO: Starting glTF 2.0 export
+19:58:57 | INFO: Extracting primitive: 柱体.004
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.011
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.012
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 柱体.003
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: Watering can | handle highlight Curve
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: Watering can | loop handle Curve
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: Watering can | rising spout Curve
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 柱体.006
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.004
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.005
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.006
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.007
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.008
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.009
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.010
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 球体.003
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 柱体.005
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Extracting primitive: 柱体.002
+19:58:57 | INFO: Primitives created: 1
+19:58:57 | INFO: Finished glTF 2.0 export in 0.047334909439086914 s
+
+RENDERED tool_watering_can
+ok    tool_trowel.png        ground row 468, footprint centre +8 px
+ok    tool_watering_can.png  ground row 469, footprint centre +0 px
+audit: 2 sprites, 0 textures, 0 failed
+信息: 已另存为 "harvest_studio.blend"
+INSTALLED /opt/heroesIsland/assets/harvest_3d/props/tool_trowel.png
+INSTALLED /opt/heroesIsland/assets/harvest_3d/props/tool_watering_can.png
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:49:19)
+
+Blender quit

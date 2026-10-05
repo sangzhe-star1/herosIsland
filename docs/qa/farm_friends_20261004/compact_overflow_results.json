@@ -1,0 +1,16 @@
+{
+  "results": [
+    {
+      "name": "compact_overflow_16x9",
+      "passed": true,
+      "seconds": 6.98
+    },
+    {
+      "name": "compact_overflow_4x3",
+      "passed": true,
+      "seconds": 6.99
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-compact-overflow-a75n4atd",
+  "all_passed": true
+}

@@ -241,15 +241,16 @@ func _draw_ground(plot: Dictionary) -> void:
 					Color(0.34, 0.56, 0.28), 0.0)
 		return
 
-	# The bed itself is the studio's soil patch: a soft loam oval inside a
-	# raised grass lip, with its own short contact shadow, rendered by the
-	# same camera and light as the crop that will stand in it. The patch's
-	# ground pivot is its centre, placed just above the plant's root so the
-	# crop grows out of the loam, not off its front rim. Dry earth is the
-	# same patch warmed and lightened, with the cracks drawn over it.
+	# The Blender surface anchor sits on the soil's top, above the model's
+	# ground origin. Pin that surface to the same root as the crop so a raised
+	# bed cannot leave the plant floating over its front edge. Dry earth uses
+	# the same geometry with the existing tint and cracks.
 	var patch := Art.prop_texture("soil_grass_patch")
 	if patch != null:
-		var bed := Art.grounded_sprite(patch, BED_PATCH_SIZE, Vector2(0.0, 4.0), "BedPatch")
+		var legacy_surface := Vector2(256.0, Art.GROUND_ORIGIN_PIXEL_Y + 8.0
+			* Art.SOURCE_CANVAS_SIZE / (BED_PATCH_SIZE * Art.SPRITE_CANVAS_MULTIPLIER))
+		var surface := Art.prop_anchor_pixel("soil_grass_patch", "planting_surface", legacy_surface)
+		var bed := Art.anchored_sprite(patch, BED_PATCH_SIZE, surface, PLANT_ROOT, "BedPatch")
 		bed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if thirsty:
 			bed.modulate = Color(1.0, 0.92, 0.78)
@@ -311,7 +312,7 @@ func _draw_dry_cracks(earth: Color) -> void:
 		{"from": Vector2(-44.0, -13.0), "to": Vector2(-53.0, -1.0)},
 		{"from": Vector2(55.0, 26.0), "to": Vector2(63.0, 15.0)},
 		{"from": Vector2(63.0, 15.0), "to": Vector2(48.0, 7.0)},
-		{"from": Vector2(21.0, -43.0), "to": Vector2(35.0, -35.0)},
+		{"from": Vector2(21.0, -4.0), "to": Vector2(35.0, 4.0)},
 	]:
 		var from: Vector2 = segment["from"]
 		var to: Vector2 = segment["to"]

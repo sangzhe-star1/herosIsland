@@ -34,6 +34,7 @@ const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
+const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
 
 const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
 const NOON := 1_699_963_200
@@ -56,6 +57,7 @@ func _ok(condition: bool, description: String) -> void:
 
 
 func _ready() -> void:
+	ProbeLifecycle.isolate_desktop_pointer(self)
 	print("\n=== farm world probe ===")
 	_the_layout_is_legal()
 	_the_stroke_bookkeeping_refuses_seconds()
@@ -752,18 +754,29 @@ func _the_furniture_is_not_a_hole_in_the_farm(view: Vector2) -> void:
 	# not be touched, and the pair must not read as the go-home double tap.
 	var wc: Vector2 = _camera().window.get_center()
 	var plus: Vector2 = ((_garden.get("_panel_buttons"))["zoom_in"] as Button) \
-		.position + Vector2(32, 32)
+		.get_global_rect().get_center()
 	_camera().zoom = float(Layout.zoom_steps().back())
-	_camera().centre = Layout.clamp_centre(
-		Layout.plot_at(2) - (plus - wc) / _camera().zoom,
-		_camera().window.size, _camera().zoom)
+	# The taller farm window can clamp an upper-row bed before it reaches the
+	# button. Choose a live bed whose centre can actually get there while the
+	# camera obeys its normal limits; do not move the world outside those limits.
+	var parked_bed := -1
+	for index in range(_plots().size()):
+		_camera().centre = Layout.clamp_centre(
+			Layout.plot_at(index) - (plus - wc) / _camera().zoom,
+			_camera().window.size, _camera().zoom)
+		if _camera().world_to_screen(Layout.plot_at(index)).distance_to(plus) <= 0.5:
+			parked_bed = index
+			break
 	_camera().apply(_world())
 	await get_tree().process_frame
-	_ok(_world().bed_under(plus) == 2, "a bed can be parked under the + button")
-	var bed_state := str(_plots()[2].get("state", ""))
+	_ok(parked_bed >= 0 and _world().bed_under(plus) == parked_bed,
+		"a bed can be parked under the + button")
+	if parked_bed < 0:
+		return
+	var bed_state := str(_plots()[parked_bed].get("state", ""))
 	var parked: Vector2 = _camera().centre
 	await _double_tap(plus)
-	_ok(str(_plots()[2].get("state", "")) == bed_state,
+	_ok(str(_plots()[parked_bed].get("state", "")) == bed_state,
 		"pressing the button does not reach the bed underneath it")
 	_ok(_camera().centre.is_equal_approx(parked),
 		"and two presses are not the go-home double tap")

@@ -41,7 +41,7 @@ const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 554
+const CHECKS_EXPECTED := 640
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -79,11 +79,14 @@ func _ready() -> void:
 	_care_restarts_growth_from_the_action()
 	_settling_twice_at_the_same_moment_never_compounds()
 	_recurring_orders_hold_up_the_endgame()
+	_friend_requests_get_a_turn_and_routines_rotate()
 	_the_days_little_jobs_hold_water()
 	# --- stage four: the barn, the orders, and the money ---
 	_the_barn_never_goes_negative()
+	_made_produce_occupies_the_barn_and_survives_overflow()
 	_a_full_barn_never_loses_anything()
 	_the_overflow_basket_has_a_stable_shelf_anchor()
+	_compact_seed_grabs_do_not_reach_the_tool_row()
 	_an_order_is_all_or_nothing()
 	_an_order_pays_once()
 	_the_garden_cannot_touch_his_score()
@@ -838,6 +841,72 @@ func _the_barn_never_goes_negative() -> void:
 		"an empty shelf shows nothing at all, not a zero")
 
 
+## Produced foods share the same shelves, capacity and overflow as crops.
+func _made_produce_occupies_the_barn_and_survives_overflow() -> void:
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["warehouse_cap"] = 12
+	# Deliberately reverse arrival order and include an item an older/newer
+	# catalogue does not know. Zero and negative rows are not stored goods.
+	farm["warehouse"] = {"flour": 3, "egg": 2, "carrot": 1,
+		"keepsake": 4, "empty": 0, "broken": -2}
+	farm["harvest_basket"] = {}
+	var expected := [["carrot", 1], ["egg", 2], ["flour", 3], ["keepsake", 4]]
+	_ok(Barn.contents() == expected,
+		"crops precede egg and flour in catalogue order, followed by unknown positive goods")
+	_ok(Barn.total() == 10 and Barn.room_left() == 2,
+		"egg, flour and unknown goods all occupy warehouse space exactly once")
+	# Duplicate definitions must not make the same physical egg occupy two
+	# slots, including a name repeated across the crop and produce catalogues.
+	var original_produce: Dictionary = GameData.farm_produce
+	GameData.farm_produce = original_produce.duplicate(true)
+	GameData.farm_produce["produce"].append({"id": "egg"})
+	GameData.farm_produce["produce"].append({"id": "carrot"})
+	_ok(Barn.contents() == expected and Barn.total() == 10,
+		"duplicate catalogue entries never duplicate warehouse goods or their capacity")
+	GameData.farm_produce = original_produce
+	farm["warehouse"] = {"keepsake": 4, "carrot": 1, "egg": 2, "flour": 3}
+	_ok(Barn.contents() == expected,
+		"changing collection order does not move egg or flour on the shelf")
+	_ok(Barn.put("flour", 4) == 2 and Barn.count("flour") == 5,
+		"made produce fills only the last two available warehouse slots")
+	_ok(Barn.total() == 12 and Barn.room_left() == 0 and Barn.is_full(),
+		"a barn filled with crops and made produce is really full")
+	_ok(Barn.put("egg", 1) == 0 and Barn.count("egg") == 2,
+		"a full barn refuses another egg without inventing capacity")
+	var eggs: Dictionary = Barn.store_harvest("egg", 3)
+	var flour: Dictionary = Barn.store_harvest("flour", 2)
+	_ok(eggs == {"stored": 0, "spilled": 3},
+		"a coop harvest goes entirely to overflow when the barn is full")
+	_ok(flour == {"stored": 0, "spilled": 2},
+		"a mill harvest also waits safely in overflow")
+	_ok(Barn.contents(Barn.BASKET) == [["egg", 3], ["flour", 2]],
+		"both kinds of made produce are visible in stable overflow order")
+	_ok(Barn.total() + Barn.total(Barn.BASKET) == 17,
+		"the full warehouse and overflow conserve all seventeen goods")
+	_ok(Barn.take("keepsake", 3) and Barn.room_left() == 3,
+		"taking unknown saved goods releases real space without discarding the remainder")
+	_ok(Barn.tip_basket_in() == 3,
+		"three waiting eggs enter the barn as soon as three spaces open")
+	_ok(Barn.count("egg") == 5 and Barn.count("egg", Barn.BASKET) == 0,
+		"tipping moves eggs between stores without duplication")
+	_ok(Barn.count("flour", Barn.BASKET) == 2 and Barn.total() == 12,
+		"flour keeps waiting when the earlier eggs fill the available space")
+	_ok(Barn.total() + Barn.total(Barn.BASKET) == 14,
+		"partial tipping conserves the goods left after taking three away")
+	_ok(Barn.tip_basket_in() == 0 and Barn.total(Barn.BASKET) == 2,
+		"tipping the same full barn again consumes nothing")
+	_ok(Barn.pay({"flour": 2}), "an order can pay with made produce")
+	_ok(Barn.total(Barn.BASKET) == 0 and Barn.count("flour") == 5,
+		"paying flour automatically tips in the two waiting flour bags")
+	_ok(Barn.total() == 12 and Barn.count("keepsake") == 1,
+		"payment removes only its two goods and preserves the unknown item")
+	SaveManager.data["inventory"] = {"flour": 1, "egg": 1, "part": 2}
+	_ok(Barn.contents("inventory") == [["egg", 1], ["flour", 1], ["part", 2]]
+		and Barn.cap("inventory") == Barn.NO_CAP,
+		"the same listing keeps inventory goods visible without adding a capacity limit")
+
+
 ## A full barn never eats a harvest.
 ##
 ## The barn has a ceiling now, and a ceiling is the first thing in this garden
@@ -913,6 +982,28 @@ func _the_overflow_basket_has_a_stable_shelf_anchor() -> void:
 
 ## An order one carrot short takes nothing. Emptying the barn of everything it
 ## CAN cover and then refusing is the worst of both.
+func _compact_seed_grabs_do_not_reach_the_tool_row() -> void:
+	var centre := Vector2(52, 680)
+	var slot := Rect2(Vector2(-32, -30), Vector2(64, 60))
+	_ok(DragField.accepts_grab(centre, centre, slot), "the compact seed centre remains draggable")
+	for delta in [Vector2(-31, -29), Vector2(31, -29), Vector2(-31, 29), Vector2(31, 29)]:
+		_ok(DragField.accepts_grab(centre + delta, centre, slot),
+			"every interior corner of the visible seed slot accepts a thumb")
+	for delta in [Vector2(0, -68), Vector2(0, -31), Vector2(-33, 0), Vector2(33, 0), Vector2(68, 0)]:
+		_ok(not DragField.accepts_grab(centre + delta, centre, slot),
+			"the compact seed does not steal its neighbouring tool, gap or seed")
+	_ok(DragField.accepts_grab(centre + Vector2(0, -68), centre),
+		"other drag games keep their original forgiving circular target")
+	_ok(DragField.accepts_grab(centre + Vector2(83, 0), centre)
+		and not DragField.accepts_grab(centre + Vector2(84, 0), centre),
+		"the default grab radius keeps its original strict boundary")
+	_ok(not DragField.accepts_grab(centre + Vector2(60, 60), centre),
+		"legacy targets stay circular rather than gaining square corners")
+	_ok(DragField.accepts_grab(Vector2(232, 800), Vector2(232, 800), slot)
+		and not DragField.accepts_grab(Vector2(232, 732), Vector2(232, 800), slot),
+		"local seed bounds follow its shelf position on a taller screen")
+
+
 func _an_order_is_all_or_nothing() -> void:
 	_fresh_save()
 	Barn.put("strawberry", 2)
@@ -2070,3 +2161,95 @@ func _the_days_little_jobs_hold_water() -> void:
 		Dailies.claim_key(reloaded_dailies, water), reloaded_claims)
 	_ok(paid_again == 0 and Coins.balance() == coins_after_reload,
 		"the reward gate refuses the same daily claim after a restart")
+
+
+## Story requests appended after routines must still be seen, and old saves
+## without the optional count ledger keep a deterministic first board.
+func _friend_requests_get_a_turn_and_routines_rotate() -> void:
+	var catalogue: Array = GameData.garden_orders
+	var all_story: Array = []
+	var recurring_ids: Array = []
+	var new_ids := ["rabbit_picnic", "rabbit_seed_share", "robot_cookie_day",
+		"robot_mill_team", "puppy_morning_basket", "bear_autumn_pantry"]
+	var seen_ids: Dictionary = {}
+	var rabbit_requests := 0
+	for order in catalogue:
+		var oid := str(order.get("id", ""))
+		if bool(order.get("recurring", false)):
+			recurring_ids.append(oid)
+		else:
+			all_story.append(oid)
+		if not oid in new_ids:
+			continue
+		_ok(not seen_ids.has(oid), "friend request %s has a unique id" % oid)
+		seen_ids[oid] = true
+		var gate := str(order.get("unlock_condition", ""))
+		var farm_level := int(gate.substr(6)) if gate.begins_with("level:") else 1
+		var worth := 0
+		for crop_id in order.get("requirements", {}).keys():
+			var crop: Dictionary = GameData.get_crop(str(crop_id))
+			_ok(not crop.is_empty(), "%s requests existing food %s" % [oid, crop_id])
+			var source := str(crop.get("source", ""))
+			var available := 1
+			if source != "":
+				available = int(load("res://scripts/garden/farm_layout.gd").facility(source).get("level", 1))
+			else:
+				for seed in GameData.farm_seed_shop.get("seeds", []):
+					if str(seed.get("crop_id", "")) == str(crop_id):
+						available = int(seed.get("level", 1))
+			_ok(farm_level >= available,
+				"%s never appears before %s can be grown or made" % [oid, crop_id])
+			worth += GameData.market_price(str(crop_id)) * int(order["requirements"][crop_id])
+		_ok(int(order.get("rewards", {}).get("coins", 0)) > worth,
+			"%s pays more than its market basket" % oid)
+		_ok(not str(order.get("purpose_key", "")).is_empty()
+			and not str(order.get("thanks_key", "")).is_empty(),
+			"%s has a reason to help and a response" % oid)
+		_ok(not bool(order.get("recurring", false)), "%s is a one-time friend request" % oid)
+		if str(order.get("customer_icon", "")) == "res://assets/harvest_3d/props/rabbit.png":
+			rabbit_requests += 1
+	_ok(seen_ids.size() == 6, "six new friend requests are present")
+	_ok(rabbit_requests == 2, "rabbit has two distinct reasons to visit")
+	var fresh := GardenScreen.select_orders_for_board(catalogue, [], {}, 1)
+	_ok(_board_ids(fresh) == ["bear_carrots", "robot_supply", "puppy_berries"],
+		"the original three introductory baskets keep their order")
+	# Mark every story except a formerly starved egg request paid: routine
+	# rows earlier in the JSON may not hide a newly eligible one-time request.
+	var paid := all_story.duplicate()
+	paid.erase("puppy_breakfast")
+	var eligible := GardenScreen.select_orders_for_board(catalogue, paid, {}, 2)
+	_ok(_board_ids(eligible)[0] == "puppy_breakfast",
+		"the egg breakfast is first even though routines precede it in JSON")
+	paid = all_story.duplicate()
+	paid.erase("robot_bakery")
+	eligible = GardenScreen.select_orders_for_board(catalogue, paid, {}, 3)
+	_ok(_board_ids(eligible)[0] == "robot_bakery", "the flour story is never starved by routines")
+	_ok(not "robot_bakery" in _board_ids(GardenScreen.select_orders_for_board(catalogue, paid, {}, 2)),
+		"flour requests wait for the level-three windmill")
+	paid.erase("puppy_breakfast")
+	_ok(not "puppy_breakfast" in _board_ids(GardenScreen.select_orders_for_board(catalogue, paid, {}, 1)),
+		"egg requests wait for the level-two coop")
+	# Deliver the head repeatedly: the least-served rule must visit every
+	# routine before any routine can get a second visit.
+	var counts: Dictionary = {}
+	var visited: Array = []
+	for delivery in range(recurring_ids.size()):
+		var board := GardenScreen.select_orders_for_board(catalogue, all_story, counts, 5)
+		_ok(board.size() == 3, "rotation keeps three baskets available")
+		var oid := str(board[0].get("id", ""))
+		_ok(not oid in visited, "rotation serves each routine before repeating: %s" % oid)
+		visited.append(oid)
+		counts[oid] = int(counts.get(oid, 0)) + 1
+	_ok(visited == recurring_ids, "equal-count ties preserve the catalogue's order")
+	_ok(_board_ids(GardenScreen.select_orders_for_board(catalogue, all_story, {}, 5)) == recurring_ids.slice(0, 3),
+		"a legacy save with no counts starts deterministically")
+	var snapshot := JSON.stringify(counts)
+	GardenScreen.select_orders_for_board(catalogue, all_story, counts, 5)
+	_ok(JSON.stringify(counts) == snapshot, "displaying the board never changes the payment ledger")
+
+
+func _board_ids(board: Array) -> Array:
+	var ids: Array = []
+	for order in board:
+		ids.append(str(order.get("id", "")))
+	return ids

@@ -1,0 +1,42 @@
+{
+  "shots": [
+    {
+      "name": "inventory_full_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_full",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 6.08
+    },
+    {
+      "name": "inventory_empty_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_empty",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 6.02
+    },
+    {
+      "name": "inventory_upgrade_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_upgrade",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 5.92
+    },
+    {
+      "name": "rack_held_16x9",
+      "env": {
+        "SHOT_WHAT": "rack_held",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": false,
+      "error": "Godot exited with 1; see /private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-dense_preview-i250e4iy/qa_logs/rack_held_16x9.log"
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-dense_preview-i250e4iy",
+  "all_passed": false
+}

@@ -1,0 +1,79 @@
+{
+  "probes": [
+    {
+      "name": "GardenRules",
+      "args": [
+        "--headless",
+        "res://tests/GardenProbe.tscn"
+      ],
+      "expect": "GARDEN PROBE PASSED",
+      "window": false,
+      "timeout": 120
+    },
+    {
+      "name": "HarvestRules",
+      "args": [
+        "--headless",
+        "res://tests/HarvestProbe.tscn"
+      ],
+      "expect": "HARVEST PROBE PASSED",
+      "window": false,
+      "timeout": 120
+    },
+    {
+      "name": "FarmLife",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/FarmLifeProbe.tscn"
+      ],
+      "expect": "FARM LIFE PROBE PASSED",
+      "window": true,
+      "timeout": 150
+    },
+    {
+      "name": "GardenTouch",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/GardenTouchProbe.tscn"
+      ],
+      "expect": "GARDEN TOUCH PROBE PASSED",
+      "window": true,
+      "timeout": 150
+    },
+    {
+      "name": "FarmWorld",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/FarmWorldProbe.tscn"
+      ],
+      "expect": "FARM WORLD PROBE PASSED",
+      "window": true,
+      "timeout": 120
+    },
+    {
+      "name": "HarvestTouch",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/HarvestTouchProbe.tscn"
+      ],
+      "expect": "HARVEST TOUCH PROBE PASSED",
+      "window": true,
+      "timeout": 200
+    },
+    {
+      "name": "HarvestCoverage",
+      "args": [
+        "--rendering-driver",
+        "opengl3",
+        "res://tests/HarvestCoverageProbe.tscn"
+      ],
+      "expect": "HARVEST COVERAGE PROBE PASSED",
+      "window": true,
+      "timeout": 400
+    }
+  ]
+}

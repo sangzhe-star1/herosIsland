@@ -2,6 +2,13 @@
  "_comment": "Scenery the studio rendered, placed on the farm by FarmWorldArt.add_ground_dressing. at = ground point in world px, size = half-canvas in px (grounded_sprite's world_size). Anything that would cover a bed or a facility is skipped by _clear_of_targets. life: spin | bob | peck | flutter. attach_to aligns this sprite's `hub` pixel with the host's `host_hub` pixel (both in 512 source px).",
  "props": [
   {
+   "id": "rabbit",
+   "at": [1530, 600],
+   "size": 95,
+   "life": "greet",
+   "phase": 0.7
+  },
+  {
    "id": "tree",
    "at": [
     120,

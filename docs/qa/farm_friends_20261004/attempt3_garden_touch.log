@@ -1,0 +1,84 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+OpenGL API 4.1 Metal - 90.5 - Compatibility - Using Device: Apple - Apple M5 Pro
+
+[autoload] GameClock ok
+[autoload] GameData starting
+[autoload] GameData ok: 5 worlds, 67 levels, 15 monsters, 106 shop items, 2 characters, 12 outfit sets
+[autoload] SaveManager starting
+[autoload] SaveManager ok
+[autoload] I18n starting
+[autoload] I18n ok: locale=zh, 2 locales loaded
+[autoload] AudioManager starting
+[autoload] AudioManager ok
+[autoload] SceneManager starting
+[autoload] SceneManager ok
+[autoload] TouchSparkles ok
+
+=== garden touch probe ===
+-- window (1280, 720) -> viewport (1280.0, 720.0)
+WARNING: garden: bed plot_3 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1843)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1876)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1779)
+         [3] _a_harvest_is_paid_for_once (res://tests/garden_touch_probe.gd:785)
+WARNING: garden: bed plot_3 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1843)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1876)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1779)
+         [3] _a_harvest_is_paid_for_once (res://tests/garden_touch_probe.gd:797)
+DBG care ctx: garden_valid=true world=true finger=-1 locked=false blockers=4 level_id=harvest_02
+DBG care after pour: state=GROWING care='' dailies_water=3
+DBG final tap: bed=(-34.0, 133.0) inside=false blocked=false under=0 wants=true state=NEEDS_CARE care='thirsty'
+DBG final after: state=GROWING care=''
+WARNING: garden: bed plot_1 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1843)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1876)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1779)
+         [3] _tap_plot (res://scripts/garden/garden_screen.gd:1613)
+         [4] press_at (res://scripts/garden/farm_world_controller.gd:1151)
+         [5] _up (res://scripts/garden/farm_world_controller.gd:1132)
+         [6] _input (res://scripts/garden/farm_world_controller.gd:967)
+-- window (1024, 768) -> viewport (1280.0, 960.0)
+WARNING: garden: bed plot_3 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1843)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1876)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1779)
+         [3] _a_harvest_is_paid_for_once (res://tests/garden_touch_probe.gd:785)
+WARNING: garden: bed plot_3 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1843)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1876)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1779)
+         [3] _a_harvest_is_paid_for_once (res://tests/garden_touch_probe.gd:797)
+DBG care ctx: garden_valid=true world=true finger=-1 locked=false blockers=4 level_id=harvest_02
+DBG care after pour: state=GROWING care='' dailies_water=3
+DBG final tap: bed=(-33.99994, 253.0) inside=false blocked=false under=0 wants=true state=NEEDS_CARE care='thirsty'
+DBG final after: state=GROWING care=''
+WARNING: garden: bed plot_1 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1843)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1876)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1779)
+         [3] _tap_plot (res://scripts/garden/garden_screen.gd:1613)
+         [4] press_at (res://scripts/garden/farm_world_controller.gd:1151)
+         [5] _up (res://scripts/garden/farm_world_controller.gd:1132)
+         [6] _input (res://scripts/garden/farm_world_controller.gd:967)
+FAIL  [1280x720] rabbit_picnic purpose stays within its own card
+FAIL  [1280x720] rabbit_seed_share purpose stays within its own card
+FAIL  [1280x720] robot_cookie_day purpose stays within its own card
+FAIL  [1024x768] rabbit_picnic purpose stays within its own card
+FAIL  [1024x768] rabbit_seed_share purpose stays within its own card
+FAIL  [1024x768] robot_cookie_day purpose stays within its own card
+FAIL  [1024x768] picker rows never press the soil behind the sheet
+asked 1342 questions
+GARDEN TOUCH PROBE FAILED

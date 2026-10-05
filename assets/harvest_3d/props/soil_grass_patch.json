@@ -1,0 +1,10 @@
+{
+  "contact_shadow_baked": true,
+  "source": "pipeline/recipes/soil_grass_patch.json",
+  "anchors_px": {
+    "planting_surface": [
+      255.9056,
+      422.9964
+    ]
+  }
+}

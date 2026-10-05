@@ -43,10 +43,14 @@ func set_pose(pose: int) -> void:
 
 
 func _process(delta: float) -> void:
-	if _art == null or not is_instance_valid(_art) or not Juice.motion_enabled():
+	if _art == null or not is_instance_valid(_art):
+		return
+	var rest := -_art.size.y * Art.GROUND_ORIGIN_PIXEL_Y / Art.SOURCE_CANVAS_SIZE
+	if not Juice.motion_enabled():
+		_art.rotation = 0.0
+		_art.position.y = rest
 		return
 	_t += delta
-	var rest := -_art.size.y * Art.GROUND_ORIGIN_PIXEL_Y / Art.SOURCE_CANVAS_SIZE
 	match _pose:
 		HeroArt.Pose.WALK:
 			_art.rotation = sin(_t * 14.0) * 0.06

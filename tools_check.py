@@ -764,9 +764,13 @@ if os.path.exists("data/garden_orders.json"):
         if str(order.get("name_key", "")) == "":
             errors.append(f"garden_orders.json: order '{oid}' has no name_key")
         icon = str(order.get("customer_icon", ""))
-        if icon != "" and icon not in order_icon_names:
+        image_icon = (icon.startswith("res://") and os.path.isfile(res(icon))
+                      and os.path.splitext(icon)[1].lower() in
+                      (".png", ".webp", ".jpg", ".jpeg", ".svg"))
+        if icon != "" and icon not in order_icon_names and not image_icon:
             errors.append(f"garden_orders.json: order '{oid}' asks for icon "
-                          f"'{icon}', which IconLibrary cannot draw")
+                          f"'{icon}', which is neither a real image resource "
+                          f"nor a name IconLibrary can draw")
 
 # --- 5u. the day's little jobs have to be findable, fillable and worth it
 if os.path.exists("data/garden_dailies.json"):

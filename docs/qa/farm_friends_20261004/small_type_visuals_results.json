@@ -1,0 +1,84 @@
+{
+  "shots": [
+    {
+      "name": "overflow_collection_16x9",
+      "env": {
+        "SHOT_WHAT": "overflow_collection",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 5.81
+    },
+    {
+      "name": "rack_p0_16x9",
+      "env": {
+        "SHOT_WHAT": "rack",
+        "SHOT_WIN": "1280x720",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.74
+    },
+    {
+      "name": "inventory_full_4x3",
+      "env": {
+        "SHOT_WHAT": "inventory_full",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 5.95
+    },
+    {
+      "name": "inventory_empty_4x3",
+      "env": {
+        "SHOT_WHAT": "inventory_empty",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 6.13
+    },
+    {
+      "name": "overflow_collection_4x3",
+      "env": {
+        "SHOT_WHAT": "overflow_collection",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 7.15
+    },
+    {
+      "name": "rack_p0_4x3",
+      "env": {
+        "SHOT_WHAT": "rack",
+        "SHOT_WIN": "1024x768",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 6.88
+    },
+    {
+      "name": "inventory_full_en",
+      "env": {
+        "SHOT_WHAT": "inventory_full",
+        "SHOT_WIN": "1280x720",
+        "SHOT_LOCALE": "en",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 6.58
+    },
+    {
+      "name": "overflow_collection_en",
+      "env": {
+        "SHOT_WHAT": "overflow_collection",
+        "SHOT_WIN": "1280x720",
+        "SHOT_LOCALE": "en",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.92
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-small_type_visuals-p5n4po74",
+  "all_passed": true
+}

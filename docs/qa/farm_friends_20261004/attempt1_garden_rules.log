@@ -1,0 +1,37 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+SCRIPT ERROR: Parse Error: Cannot infer the type of "source" variable because the value doesn't have a set type.
+          at: GDScript::reload (res://scripts/garden/farm_scenery_life.gd:16)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "bounds" variable because the value doesn't have a set type.
+          at: GDScript::reload (res://scripts/garden/farm_scenery_life.gd:18)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+          at: GDScript::reload (res://scripts/garden/farm_world_art.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+          at: GDScript::reload (res://scripts/garden/farm_world_controller.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+          at: GDScript::reload (res://scripts/garden/garden_screen.gd:0)
+SCRIPT ERROR: Compile Error: Failed to compile depended scripts.
+          at: GDScript::reload (res://tests/garden_probe.gd:0)
+ERROR: Failed to load script "res://tests/garden_probe.gd" with error "Compilation failed".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)
+[autoload] GameClock ok
+[autoload] GameData starting
+[autoload] GameData ok: 5 worlds, 67 levels, 15 monsters, 106 shop items, 2 characters, 12 outfit sets
+[autoload] SaveManager starting
+[autoload] SaveManager ok
+[autoload] I18n starting
+[autoload] I18n ok: locale=zh, 2 locales loaded
+[autoload] AudioManager starting
+[autoload] AudioManager ok
+[autoload] SceneManager starting
+[autoload] SceneManager ok
+[autoload] TouchSparkles ok
+
+=== garden probe ===
+asked 631 questions
+GARDEN PROBE PASSED
+
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

@@ -1,0 +1,99 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+OpenGL API 4.1 Metal - 90.5 - Compatibility - Using Device: Apple - Apple M5 Pro
+
+[autoload] GameClock ok
+[autoload] GameData starting
+[autoload] GameData ok: 5 worlds, 67 levels, 15 monsters, 106 shop items, 2 characters, 12 outfit sets
+[autoload] SaveManager starting
+[autoload] SaveManager ok
+[autoload] I18n starting
+[autoload] I18n ok: locale=zh, 2 locales loaded
+[autoload] AudioManager starting
+[autoload] AudioManager ok
+[autoload] SceneManager starting
+[autoload] SceneManager ok
+[autoload] TouchSparkles ok
+
+=== garden touch probe ===
+-- window (1280, 720) -> viewport (1280.0, 720.0)
+DBG first grass: { "at": (376.0, 180.0), "glass": (376.0, 180.0), "inside": true, "blocked": false, "under": 0, "locked": false, "finger_before": -1, "state_before": "EMPTY", "down": { "finger": -2, "locked": false, "brush": false, "cloud": false, "fetch": false, "state": "EMPTY", "seed_held": false }, "up": { "finger": -1, "locked": false, "brush": false, "cloud": false, "fetch": false, "state": "EMPTY", "seed_held": false } }
+WARNING: garden: bed plot_3 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1810)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1843)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1746)
+         [3] _a_harvest_is_paid_for_once (res://tests/garden_touch_probe.gd:880)
+WARNING: garden: bed plot_3 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1810)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1843)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1746)
+         [3] _a_harvest_is_paid_for_once (res://tests/garden_touch_probe.gd:892)
+DBG care ctx: garden_valid=true world=true finger=-1 locked=false blockers=4 level_id=harvest_16
+DBG care after pour: state=GROWING care='' dailies_water=3
+DBG final tap: bed=(-34.0, 140.0) inside=false blocked=false under=0 wants=true state=NEEDS_CARE care='thirsty'
+DBG final after: state=GROWING care=''
+WARNING: garden: bed plot_1 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1810)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1843)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1746)
+         [3] _tap_plot (res://scripts/garden/garden_screen.gd:1580)
+         [4] press_at (res://scripts/garden/farm_world_controller.gd:1153)
+         [5] _up (res://scripts/garden/farm_world_controller.gd:1134)
+         [6] _input (res://scripts/garden/farm_world_controller.gd:967)
+-- window (1024, 768) -> viewport (1280.0, 960.0)
+WARNING: garden: bed plot_3 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1810)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1843)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1746)
+         [3] _a_harvest_is_paid_for_once (res://tests/garden_touch_probe.gd:880)
+WARNING: garden: bed plot_3 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1810)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1843)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1746)
+         [3] _a_harvest_is_paid_for_once (res://tests/garden_touch_probe.gd:892)
+DBG care ctx: garden_valid=true world=true finger=-1 locked=false blockers=4 level_id=harvest_16
+DBG care after pour: state=GROWING care='' dailies_water=3
+DBG final tap: bed=(-33.99994, 260.0) inside=false blocked=false under=0 wants=true state=NEEDS_CARE care='thirsty'
+DBG final after: state=GROWING care=''
+WARNING: garden: bed plot_1 cycle 3 was already paid for; freed without pay
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] _free_a_bed_paid_twice (res://scripts/garden/garden_screen.gd:1810)
+         [1] _harvest_core (res://scripts/garden/garden_screen.gd:1843)
+         [2] _harvest (res://scripts/garden/garden_screen.gd:1746)
+         [3] _tap_plot (res://scripts/garden/garden_screen.gd:1580)
+         [4] press_at (res://scripts/garden/farm_world_controller.gd:1153)
+         [5] _up (res://scripts/garden/farm_world_controller.gd:1134)
+         [6] _input (res://scripts/garden/farm_world_controller.gd:967)
+FAIL  [1280x720] one tap on grass turns it into earth -- no tool to pick first
+FAIL  [1280x720] the seed brush is live when one bed has been turned
+FAIL  [1280x720] choosing seed circles only the turned bed it can really plant in
+FAIL  [1280x720] a possible-bed halo is world art, never a control that can eat a drag
+FAIL  [1280x720] a seed released near a bed is planted in it, not dropped on the floor
+FAIL  [1280x720] and it is planted at the time it was planted
+FAIL  [1280x720] picking a ripe bed puts exactly its yield in the barn
+FAIL  [1280x720] and leaves bare earth behind
+FAIL  [1280x720] and nothing left to pick
+FAIL  [1280x720] tap harvesting keeps the strawberry visible while it flies
+FAIL  [1280x720] tap harvesting says the real yield, not one picked bed
+FAIL  [1280x720] tapping the same bed again pays nothing -- one planting, one harvest
+FAIL  [1280x720] the harvest is recorded against the bed and the planting it came from
+FAIL  [1280x720] a nearly full barn stores two carrots and spills the truthful remainder
+FAIL  [1280x720] a partial harvest creates one receipt flight to each real destination
+FAIL  [1280x720] the rebuilt overflow basket is exactly where the spill flight is headed
+FAIL  [1280x720] the spill receipt lands on the visible centre of the overflow basket
+FAIL  [1280x720] a full barn sends the whole harvest only to the overflow basket
+FAIL  [1280x720] a full barn keeps every strawberry in the overflow basket, not nowhere
+FAIL  [1280x720] the shelf redraws both spilled crop kinds under the fixed basket
+FAIL  [1280x720] a new crop row grows left without moving the visible basket rim
+asked 1758 questions
+GARDEN TOUCH PROBE FAILED

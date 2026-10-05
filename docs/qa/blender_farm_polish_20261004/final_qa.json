@@ -1,0 +1,34 @@
+{
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-blender-farm-final-shots-v2-xguajz6b",
+  "isolated": true,
+  "serial": true,
+  "same_snapshot_as_additional_shots": true,
+  "plot_view_sha256": "1bcb8979bd9f716e762830ee3fba6c5545f667d2190d5c0db03730cf322e4c2e",
+  "additional_shots": "additional_shots_results.json",
+  "import_passed": true,
+  "probes": [
+    {
+      "label": "final_garden_touch",
+      "scene": "res://tests/GardenTouchProbe.tscn",
+      "expected_marker": "GARDEN TOUCH PROBE PASSED",
+      "passed": true,
+      "returncode": 0,
+      "elapsed_seconds": 49.56,
+      "checks": 1238,
+      "actual_marker_present": true,
+      "log": "docs/qa/blender_farm_polish_20261004/final_garden_touch.log"
+    },
+    {
+      "label": "final_farm_world",
+      "scene": "res://tests/FarmWorldProbe.tscn",
+      "expected_marker": "FARM WORLD PROBE PASSED",
+      "passed": true,
+      "returncode": 0,
+      "elapsed_seconds": 17.5,
+      "checks": 736,
+      "actual_marker_present": true,
+      "log": "docs/qa/blender_farm_polish_20261004/final_farm_world.log"
+    }
+  ],
+  "all_passed": true
+}

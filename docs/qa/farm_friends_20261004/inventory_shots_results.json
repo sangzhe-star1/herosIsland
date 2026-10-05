@@ -1,0 +1,122 @@
+{
+  "shots": [
+    {
+      "name": "inventory_full_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_full",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 5.85
+    },
+    {
+      "name": "inventory_empty_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_empty",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 5.9
+    },
+    {
+      "name": "inventory_upgrade_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_upgrade",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 5.94
+    },
+    {
+      "name": "rack_p0_16x9",
+      "env": {
+        "SHOT_WHAT": "rack",
+        "SHOT_WIN": "1280x720",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.73
+    },
+    {
+      "name": "rack_p1_16x9",
+      "env": {
+        "SHOT_WHAT": "rack",
+        "SHOT_WIN": "1280x720",
+        "SHOT_PAGE": "1"
+      },
+      "passed": true,
+      "seconds": 5.83
+    },
+    {
+      "name": "inventory_full_4x3",
+      "env": {
+        "SHOT_WHAT": "inventory_full",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 5.8
+    },
+    {
+      "name": "inventory_empty_4x3",
+      "env": {
+        "SHOT_WHAT": "inventory_empty",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 5.86
+    },
+    {
+      "name": "inventory_upgrade_4x3",
+      "env": {
+        "SHOT_WHAT": "inventory_upgrade",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 5.9
+    },
+    {
+      "name": "rack_p0_4x3",
+      "env": {
+        "SHOT_WHAT": "rack",
+        "SHOT_WIN": "1024x768",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.72
+    },
+    {
+      "name": "rack_p1_4x3",
+      "env": {
+        "SHOT_WHAT": "rack",
+        "SHOT_WIN": "1024x768",
+        "SHOT_PAGE": "1"
+      },
+      "passed": true,
+      "seconds": 5.89
+    },
+    {
+      "name": "inventory_full_en",
+      "env": {
+        "SHOT_WHAT": "inventory_full",
+        "SHOT_WIN": "1280x720",
+        "SHOT_LOCALE": "en",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.85
+    },
+    {
+      "name": "inventory_empty_en",
+      "env": {
+        "SHOT_WHAT": "inventory_empty",
+        "SHOT_WIN": "1280x720",
+        "SHOT_LOCALE": "en",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.87
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-inventory_shots-ogom94kf",
+  "all_passed": true
+}

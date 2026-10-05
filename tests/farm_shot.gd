@@ -17,7 +17,10 @@ extends Node
 ##         line, one strawberry icon, told over an ordinary visit.
 ## poke:   the farm with furniture standing -- captured mid-wiggle, one
 ##         decoration answering a tap.
-## rack:   all fourteen crops owned -- the seed rack with its page arrows.
+## rack:   all fourteen crops owned -- the compact rack needs no page arrows.
+## rack_held: first seed held through real input before any motion.
+## overflow_many/overflow_collection: all sixteen waiting foods, in the dock
+##         summary or its collection sheet opened through real input.
 ## shop:   level 3, the batch that just went on sale and the level-5 batch
 ##         still standing as starred ground. SHOT_PAGE=1 flips to page two.
 ## book:   the recipe book, twelve recipes across two pages.
@@ -28,8 +31,16 @@ extends Node
 ##         unfinished. Checks the real once-gate and three button states.
 ## overflow: real touches split a carrot harvest, then spill a full strawberry
 ##         harvest. SHOT_DIR receives flight/settled/barn PNGs for each step.
-##         SHOT_FULL_RACK=1 includes the seven-seed page and its real next arrow.
+##         SHOT_FULL_RACK=1 includes all fourteen crops in the compact rack.
+## friends: rabbit in the real farm, answering one real touch with a heart.
+## friends_orders: new friend commissions, with a fillable rabbit picnic.
+## friend_thanks: that picnic actually delivered through the visible card.
+## challenge_picker: replay panel; SHOT_PAGE selects its page.
+## inventory_full/empty/upgrade: the collection sheet, including all sixteen
+##         foods or its empty state; upgrade captures the real confirmation.
 ## SHOT_PAGE=N flips the mode's paged surface to page N before the shot.
+## SHOT_REDUCE_MOTION=1 enables the existing low-motion setting before entry.
+## SHOT_FOCUS_FACILITY=bear_door centres the garden view on that facility.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
@@ -47,6 +58,7 @@ var _overflow_asked := 0
 
 
 func _ready() -> void:
+	ProbeLifecycle.isolate_desktop_pointer(self)
 	if DisplayServer.get_name() == "headless":
 		print("FAIL FarmShot requires a rendered window")
 		await ProbeLifecycle.finish(self, 1)
@@ -65,6 +77,10 @@ func _ready() -> void:
 	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 	SaveManager.load_game()
+	if OS.get_environment("SHOT_LOCALE") != "":
+		I18n.set_locale(OS.get_environment("SHOT_LOCALE"))
+	if OS.get_environment("SHOT_REDUCE_MOTION") == "1":
+		SaveManager.set_setting("reduce_motion", true)
 	var farm: Dictionary = SaveManager.data["farm"]
 	farm["tutorial_completed"] = true
 	farm["last_seen_at"] = NOON
@@ -130,7 +146,8 @@ func _ready() -> void:
 				(farm["unlocked_recipes"] as Array).append(str(recipe.get("id", "")))
 			plots[4] = _bed(4, {"state": Farm.READY, "crop_id": "carrot",
 				"growth_stage": 4, "plant_cycle_id": 51, "planted_at": NOON - 7200})
-			SaveManager.data["settings"]["reduce_motion"] = false
+			SaveManager.data["settings"]["reduce_motion"] = \
+				OS.get_environment("SHOT_REDUCE_MOTION") == "1"
 		if what == "daily":
 			# A deterministic all-cared-for day: this fixture only makes the
 			# existing daily manager's display state visible; it does not invent
@@ -188,11 +205,31 @@ func _ready() -> void:
 			farm["coop"] = {"fed_at": 0, "eggs": 2}
 			farm["mill"] = {"started_at": 0, "done": 1}
 			farm["warehouse"] = {"corn": 3, "wheat": 4}
-		if what == "rack":
+		if what in ["rack", "rack_held", "overflow_many", "overflow_collection"]:
 			farm["farm_xp"] = 200
 			farm["unlocked_crops"] = ["carrot", "corn", "strawberry",
 				"tomato", "lettuce", "potato", "peas", "wheat", "broccoli",
 				"pumpkin", "watermelon", "grape", "orange", "apple"]
+		if what in ["overflow_many", "overflow_collection"]:
+			farm["warehouse"] = {"corn": Farm.WAREHOUSE_START}
+			farm["harvest_basket"] = {}
+			for crop in GameData.crops:
+				farm["harvest_basket"][str(crop["id"])] = 2
+			farm["harvest_basket"]["egg"] = 2
+			farm["harvest_basket"]["flour"] = 2
+		if what in ["inventory_full", "inventory_empty", "inventory_upgrade"]:
+			farm["farm_xp"] = 200
+			farm["unlocked_crops"] = []
+			farm["warehouse"] = {}
+			for crop in GameData.crops:
+				(farm["unlocked_crops"] as Array).append(str(crop["id"]))
+				if what != "inventory_empty":
+					farm["warehouse"][str(crop["id"])] = 2
+			if what != "inventory_empty":
+				farm["warehouse"]["egg"] = 2
+				farm["warehouse"]["flour"] = 2
+			SaveManager.data["inventory"]["plank"] = 3
+			SaveManager.data["rewards"]["coins"] = 120
 		if what == "shop":
 			farm["farm_xp"] = 60
 			SaveManager.data["rewards"]["coins"] = 120
@@ -205,6 +242,14 @@ func _ready() -> void:
 			SaveManager.data["farm_orders"] = {"delivered": ["bear_carrots",
 				"robot_supply", "puppy_berries", "robot_wheat_run",
 				"bear_pumpkin_treat"]}
+		if what in ["friends_orders", "friend_thanks"]:
+			farm["farm_xp"] = 200
+			var delivered: Array = []
+			for order in GameData.garden_orders:
+				if not bool(order.get("recurring", false)) and not order.has("purpose_key"):
+					delivered.append(str(order["id"]))
+			SaveManager.data["farm_orders"] = {"delivered": delivered}
+			farm["warehouse"] = {"carrot": 4, "strawberry": 2, "corn": 2}
 		scene.call("_rebuild")
 		await get_tree().process_frame
 		var page := int(OS.get_environment("SHOT_PAGE")) \
@@ -248,6 +293,41 @@ func _ready() -> void:
 		elif what == "orders":
 			scene.call("_tap_building", "orders")
 			await get_tree().process_frame
+		elif what in ["friends_orders", "friend_thanks"]:
+			scene.call("_tap_building", "orders")
+			await get_tree().process_frame
+			await get_tree().process_frame
+			_daily_check(scene.find_child("OrderCard_rabbit_picnic", true, false) != null,
+				"new rabbit order is actually present on the board")
+		elif what == "challenge_picker":
+			scene.call("_open_panel", "challenges")
+			scene.set("_challenge_page", page)
+			scene.call("_rebuild")
+			await get_tree().process_frame
+			_daily_check(scene.find_child("ChallengeLevel_harvest_%02d" % (page * 4 + 1), true, false) != null,
+				"the requested replay page contains real level buttons")
+		elif what in ["inventory_full", "inventory_empty", "inventory_upgrade"]:
+			var shortcut := scene.find_child("BarnShortcut", true, false) as Control
+			_daily_check(shortcut != null, "the actual collection shortcut exists")
+			if shortcut != null:
+				await _overflow_tap(shortcut.get_global_rect().get_center())
+			_daily_check(bool(scene.get("_barn_open")), "real input opens the collection panel")
+			if what == "inventory_upgrade":
+				var upgrade := (scene.get("_panel_buttons") as Dictionary).get("upgrade") as Control
+				_daily_check(upgrade != null, "collection has its real upgrade button")
+				if upgrade != null:
+					await _overflow_tap(upgrade.get_global_rect().get_center())
+				_daily_check(bool(scene.get("_confirm_upgrade")), "real input opens the upgrade confirmation")
+			var sheet := scene.find_child("BarnCollectionPanel", true, false) as Control
+			_daily_check(sheet != null, "the styled collection sheet exists")
+			var slots := scene.find_children("BarnCollectionSlot_*", "Panel", true, false)
+			_daily_check(slots.size() == (0 if what == "inventory_empty" else 16),
+				"the collection displays exactly the stock in the fixture")
+			_daily_check(Barn.total() == (0 if what == "inventory_empty" else 32),
+				"collection capacity counts eggs and flour")
+			for slot in slots:
+				_daily_check(sheet != null and sheet.get_global_rect().encloses(slot.get_global_rect()),
+					"each food slot remains inside its collection sheet")
 		elif what == "market":
 			scene.call("_open_panel", "market")
 			await get_tree().process_frame
@@ -270,6 +350,64 @@ func _ready() -> void:
 	# Long enough for the dog to have RUN from his kennel to the ripe bed and
 	# sat down beside it -- a farm standing at attention is not this farm.
 	await get_tree().create_timer(3.4).timeout
+	if what == "rack_held":
+		var seed := scene.find_child("GardenSeed_carrot", true, false) as Control
+		_daily_check(seed != null, "the compact carrot seed is visible")
+		if seed != null:
+			var down := InputEventScreenTouch.new()
+			down.index = 0
+			down.pressed = true
+			down.position = seed.get_global_rect().get_center() \
+				* Vector2(get_window().size) / get_viewport().get_visible_rect().size
+			Input.parse_input_event(down)
+			await get_tree().create_timer(0.16).timeout
+			var field: DragField = scene.get("_field")
+			_daily_check(str(field.held().get("key", "")) == "carrot",
+				"the seed is held through the real touch path")
+			var visual := scene.find_child("SeedSlot_carrot", true, false) as Control
+			_daily_check(visual != null and get_viewport().get_visible_rect().encloses(visual.get_global_rect()),
+				"the enlarged seed stays inside the screen before dragging")
+	if what in ["overflow_many", "overflow_collection"]:
+		var before := Barn.total() + Barn.total(Barn.BASKET)
+		_daily_check(Barn.contents(Barn.BASKET).size() == 16 and Barn.total(Barn.BASKET) == 32,
+			"all sixteen waiting foods remain in the overflow ledger")
+		var shortcut := scene.find_child("OverflowShortcut", true, false) as Control
+		_daily_check(shortcut != null, "the waiting-food summary can be opened")
+		if what == "overflow_collection" and shortcut != null:
+			await _overflow_tap(shortcut.get_global_rect().get_center())
+			var slots := scene.find_children("BarnCollectionSlot_*", "Panel", true, false)
+			_daily_check(slots.size() == 16, "real input reveals all sixteen waiting foods")
+		_daily_check(Barn.total() + Barn.total(Barn.BASKET) == before,
+			"viewing the waiting foods does not move or duplicate stock")
+	if what == "friends":
+		var friend: Control = null
+		var life := scene.find_child("SceneryLife", true, false)
+		if life != null:
+			for entry: Dictionary in life.get("_alive"):
+				var sprite: Control = entry["sprite"]
+				if str(sprite.get_meta("prop_id", "")) == "rabbit":
+					friend = sprite
+					break
+		_daily_check(friend != null, "the Blender rabbit is in the farm")
+		if friend != null:
+			var world: Node = scene.get("_world")
+			world.call("look_at_world", friend.get_parent().position)
+			await get_tree().process_frame
+			var source := (friend as TextureRect).texture.get_image().get_used_rect()
+			var centre := Vector2(source.get_center()) * friend.size / 512.0
+			await _overflow_tap(friend.get_global_transform_with_canvas() * centre)
+			await get_tree().create_timer(0.16).timeout
+			_daily_check(friend.find_child("FriendGreeting", true, false) != null,
+				"a real touch makes the rabbit greet")
+	if what == "friend_thanks":
+		var card := scene.find_child("OrderCard_rabbit_picnic", true, false) as Button
+		if card != null:
+			await _overflow_tap(card.get_global_rect().get_center())
+			await get_tree().create_timer(0.2).timeout
+		_daily_check("rabbit_picnic" in SaveManager.data["farm_orders"].get("delivered", []),
+			"the visible friend order is paid through real input")
+		_daily_check(scene.find_child("OrderThanks", true, false) != null,
+			"delivery shows the friend's actual thank-you")
 	if what == "overflow":
 		await _overflow_sequence(scene)
 		for failure in _fixture_failures:
@@ -281,6 +419,12 @@ func _ready() -> void:
 	if what == "coop":
 		(scene.get("_world") as Node).call("look_at_facility", "coop")
 		await get_tree().process_frame
+	var focus_facility := OS.get_environment("SHOT_FOCUS_FACILITY")
+	if focus_facility != "" and what != "bear" and what != "home":
+		(scene.get("_world") as Node).call("look_at_facility", focus_facility)
+		await get_tree().process_frame
+	print("FarmShot options reduce_motion=", SaveManager.get_setting("reduce_motion", false),
+		" focus_facility=", focus_facility)
 	if what == "poke":
 		# Fire the wiggle NOW and catch it mid-tilt: the answer lasts four
 		# tenths of a second, which is the point -- and the reason it cannot
@@ -343,7 +487,11 @@ func _ready() -> void:
 			Input.parse_input_event(drag)
 			await get_tree().process_frame
 		await get_tree().create_timer(0.4).timeout
-	await RenderingServer.frame_post_draw
+	# Static reduced-motion scenes may not emit a fresh frame_post_draw.
+	# Submit the tree changes, then request a draw instead of waiting forever.
+	for _frame in range(3):
+		await get_tree().process_frame
+	RenderingServer.force_draw(false)
 	var image := get_viewport().get_texture().get_image()
 	var rendered := ProbeLifecycle.image_has_content(image)
 	var save_error := image.save_png(out)
@@ -357,6 +505,12 @@ func _ready() -> void:
 		print("DAILY BOARD SHOT ", "PASSED" if _fixture_failures.is_empty() else "FAILED")
 	elif not rendered:
 		print("FAIL farm screenshot contains no rendered content")
+	if what in ["friends", "friends_orders", "friend_thanks", "challenge_picker", "rack", "rack_held",
+			"overflow_many", "overflow_collection",
+			"inventory_full", "inventory_empty", "inventory_upgrade"]:
+		for failure in _fixture_failures:
+			print("FAIL ", failure)
+		print("FARM FRIENDS SHOT ", "PASSED" if _fixture_failures.is_empty() and rendered and save_error == OK else "FAILED")
 	await ProbeLifecycle.finish(self, 0 if rendered and save_error == OK and _fixture_failures.is_empty() else 1)
 
 
@@ -498,13 +652,15 @@ func _overflow_layout(scene: Node, basket: Control) -> void:
 		"the decoration door does not hide the task ribbon")
 	if OS.get_environment("SHOT_FULL_RACK") == "1":
 		var seeds := scene.find_children("GardenSeed_*", "Button", true, false)
-		_overflow_check(seeds.size() == 7, "the full first seed page has seven real tiles")
+		_overflow_check(seeds.size() == GameData.crops.size(),
+			"the compact rack shows all fourteen real crops beside the overflow basket")
 		var buttons: Dictionary = scene.get("_panel_buttons")
 		var arrow := buttons.get("rack_next") as Control
-		_overflow_check(arrow != null, "the full first seed page has its real next arrow")
-		_overflow_check(arrow != null and get_viewport().get_visible_rect().encloses(arrow.get_global_rect())
-			and not arrow.get_global_rect().intersects(basket.get_global_rect()),
-			"the seed page arrow stays visible beside the overflow basket")
+		_overflow_check(arrow == null, "all current seeds fit without an extra page control")
+		for seed in seeds:
+			_overflow_check(get_viewport().get_visible_rect().encloses(seed.get_global_rect())
+				and not seed.get_global_rect().intersects(basket.get_global_rect()),
+				"each compact seed target stays visible and clear of the overflow basket")
 
 
 func _validate_daily_board(scene: Node) -> void:

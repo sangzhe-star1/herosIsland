@@ -2,15 +2,17 @@
   "id": "soil_grass_patch",
   "kind": "prop",
   "model": "soil_grass_patch",
-  "params": {},
+  "params": {"surface_height": 0.10},
+  "anchors": {"planting_surface": [0.0, 0.0, 0.10]},
+  "origin_offset": [-0.17, 0.25, 0.0],
   "shadow": {
     "baked": true,
     "size": [
-      0.5,
-      0.32
+      0.84,
+      0.44
     ]
   },
   "install": "props/soil_grass_patch.png",
-  "footprint_reaches_edge": true,
-  "_note": "Re-rendered 4 October through the frozen profile and installed over the older softbox/AgX render, so the patch is lit like the crops standing on it. The previous PNG had no recorded source."
+  "deep_footprint": true,
+  "_note": "4 October Blender refinement: low rounded earth bed, sparse grass, raked surface. The planting_surface anchor is projected by the frozen studio and consumed by PlotView; offset keeps the whole soil edge inside the PNG."
 }

@@ -9,6 +9,8 @@ Checks every PNG against contract.json:
     by), within the band the 3/4 camera gives a wide footprint
   * the footprint is centred under the pivot column
   * no black fringe: semi-transparent pixels keep their colour
+Explicitly named tileable ground overlays in contract.textures instead get
+their own size, alpha coverage/strength and opposing-edge seam checks.
 When the directory has a manifest.json, each entry's pivot must match the
 contract and its file must exist. Then it draws a contact sheet with the
 ground line marked, so the eye gets the last word.
@@ -17,6 +19,7 @@ Exit code 1 on any error. Plain Python plus Pillow; no Blender needed, so
 the check also runs on the PNGs already checked into ../../crops.
 """
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -28,7 +31,9 @@ CONTRACT = json.loads((HERE / 'contract.json').read_text())
 
 def measure(path):
     """The few numbers the rules are written against."""
-    im = Image.open(path).convert('RGBA')
+    with Image.open(path) as source:
+        mode = source.mode
+        im = source.convert('RGBA')
     w, h = im.size
     px = im.load()
     rules = CONTRACT['audit']
@@ -48,7 +53,7 @@ def measure(path):
     feet = [x for y in range(max(0, lowest - 3), lowest + 1)
             for x in range(w) if px[x, y][3] >= solid] if lowest >= 0 else []
     return {
-        'size': (w, h), 'mode': Image.open(path).mode, 'bbox': im.getbbox(),
+        'size': (w, h), 'mode': mode, 'bbox': im.getbbox(),
         'lowest_solid_row': lowest,
         'foot_centre': (min(feet) + max(feet)) / 2.0 if feet else None,
         'semi': semi, 'black_fringe': black, 'image': im,
@@ -106,6 +111,80 @@ def check(path, m, allow_edge=False, deep=False, floats=False):
     return errors
 
 
+def texture_contract(path):
+    """Match a declared install path, never just a filename or an image's size.
+
+    Copies of props/ can be audited, but crops/grass_tile.png is still a
+    sprite. A render manifest is always audited as sprites by main().
+    """
+    for install_path, spec in CONTRACT.get('textures', {}).items():
+        parts = Path(install_path).parts
+        if len(parts) != 2 or parts[0] != 'props' or parts[1] != Path(install_path).name:
+            raise ValueError('texture contract requires an exact props/<file> install path')
+        if tuple(path.parts[-len(parts):]) == parts:
+            if spec.get('usage') != 'tileable_ground_overlay':
+                raise ValueError('unsupported texture usage %r' % spec.get('usage'))
+            return spec
+    return None
+
+
+def check_texture(path, m, spec):
+    """An overlay can be faint, but cannot be blank, opaque, or visibly seamed."""
+    errors = []
+    if m['size'] != tuple(spec['size']):
+        errors.append('texture is %dx%d, the contract says %dx%d'
+                      % (*m['size'], *spec['size']))
+    if m['mode'] != spec['mode']:
+        errors.append('texture is %s, not %s' % (m['mode'], spec['mode']))
+    im = m['image']
+    alpha = im.getchannel('A')
+    histogram = alpha.histogram()
+    count = im.width * im.height
+    visible = 1 - histogram[0] / count
+    mean = sum(value * frequency for value, frequency in enumerate(histogram)) / count
+    if alpha.getextrema()[1] == 0:
+        errors.append('texture is empty: no visible pixels')
+        return errors
+    if visible < spec['visible_fraction_min']:
+        errors.append('texture coverage %.3f is below %.3f; an overlay must cover its tile'
+                      % (visible, spec['visible_fraction_min']))
+    if alpha.getextrema()[1] > spec['alpha_max']:
+        errors.append('texture alpha exceeds %d; ground overlay is too opaque' % spec['alpha_max'])
+    if not spec['alpha_mean_min'] <= mean <= spec['alpha_mean_max']:
+        errors.append('texture mean alpha %.2f is outside %s..%s'
+                      % (mean, spec['alpha_mean_min'], spec['alpha_mean_max']))
+    px = im.load()
+    for axis in ('horizontal', 'vertical'):
+        pairs = ([(px[0, y], px[im.width - 1, y]) for y in range(im.height)]
+                 if axis == 'horizontal' else
+                 [(px[x, 0], px[x, im.height - 1]) for x in range(im.width)])
+        # Premultiplied RGB plus alpha bounds visible mismatch on any backing
+        # colour. Straight-alpha RGB alone over-penalises nearly hidden pixels.
+        rgb_delta = sum(max(abs(a[c] * a[3] - b[c] * b[3]) / 255
+                            for c in range(3)) for a, b in pairs) / len(pairs)
+        alpha_delta = sum(abs(a[3] - b[3]) for a, b in pairs) / len(pairs)
+        if rgb_delta > spec['edge_premultiplied_mean_delta_max'] \
+                or alpha_delta > spec['edge_alpha_mean_delta_max']:
+            errors.append('%s tile seam: mean premultiplied RGB delta %.2f, alpha delta %.2f'
+                          % (axis, rgb_delta, alpha_delta))
+    return errors
+
+
+def check_anchors(anchors):
+    if not isinstance(anchors, dict):
+        return ['anchors_px must be a dictionary']
+    errors = []
+    size = CONTRACT['sprite_size']
+    for name, point in anchors.items():
+        if not isinstance(name, str) or not name or not isinstance(point, (list, tuple)) \
+                or len(point) != 2 or not all(isinstance(v, (int, float))
+                                             and not isinstance(v, bool)
+                                             and math.isfinite(v) and 0 <= v < size for v in point):
+            errors.append('anchor %r must be a finite pixel point inside the %d px canvas'
+                          % (name, size))
+    return errors
+
+
 def contact_sheet(items, path, cell=96):
     """Every asset at about runtime size, ground line drawn through each cell."""
     cols = 6
@@ -116,13 +195,19 @@ def contact_sheet(items, path, cell=96):
     draw = ImageDraw.Draw(sheet)
     size = CONTRACT['sprite_size']
     py = CONTRACT['ground_pivot_pixel'][1]
-    for i, (name, im) in enumerate(items):
+    for i, (name, im, texture) in enumerate(items):
         cx = pad + (i % cols) * (cell + pad)
         cy = pad + (i // cols) * (cell + 26 + pad)
-        ground = cy + int(py * cell / size)
-        draw.line([(cx, ground), (cx + cell, ground)], fill=(120, 96, 60, 255), width=1)
-        small = im.resize((cell, cell), Image.LANCZOS)
-        sheet.alpha_composite(small, (cx, cy))
+        if texture:
+            # A 2x2 repeat makes the material's seams visible in the review.
+            small = im.resize((cell // 2, cell // 2), Image.LANCZOS)
+            for dx, dy in ((0, 0), (cell // 2, 0), (0, cell // 2), (cell // 2, cell // 2)):
+                sheet.alpha_composite(small, (cx + dx, cy + dy))
+        else:
+            ground = cy + int(py * cell / size)
+            draw.line([(cx, ground), (cx + cell, ground)], fill=(120, 96, 60, 255), width=1)
+            small = im.resize((cell, cell), Image.LANCZOS)
+            sheet.alpha_composite(small, (cx, cy))
         draw.text((cx + 2, cy + cell + 4), name[:16], fill=(40, 40, 40, 255))
     sheet.save(path)
 
@@ -162,6 +247,9 @@ def main(argv):
             if not (root / a['file']).exists():
                 print('ERROR manifest: %s names %s, which is not there' % (a['id'], a['file']))
                 return 1
+            for error in check_anchors(a.get('anchors_px', {})):
+                print('ERROR manifest: %s %s' % (a['id'], error))
+                return 1
     else:
         # Checked-in game folders carry no manifest; the one prop that reaches
         # the edge by design says so in its recipe.
@@ -174,23 +262,32 @@ def main(argv):
             if recipe.get('floats'):
                 floats.add(r.stem)
     failures = 0
+    textures = 0
     items = []
     for png in pngs:
         m = measure(png)
-        errors = check(png, m, allow_edge=png.stem in edge_ok, deep=png.stem in deep,
-                       floats=png.stem in floats)
-        items.append((png.stem, m['image']))
+        spec = texture_contract(png) if manifest is None else None
+        if spec:
+            textures += 1
+            errors = check_texture(png, m, spec)
+        else:
+            errors = check(png, m, allow_edge=png.stem in edge_ok, deep=png.stem in deep,
+                           floats=png.stem in floats)
+        items.append((png.stem, m['image'], spec is not None))
         if errors:
             failures += 1
             for e in errors:
                 print('ERROR %s: %s' % (png.name, e))
         elif not quiet:
-            print('ok    %-22s ground row %d, footprint centre %+.0f px'
-                  % (png.name, m['lowest_solid_row'],
-                     (m['foot_centre'] or 0) - CONTRACT['ground_pivot_pixel'][0]))
+            if spec:
+                print('ok    %-22s tileable ground overlay, coverage/alpha/seams checked' % png.name)
+            else:
+                print('ok    %-22s ground row %d, footprint centre %+.0f px'
+                      % (png.name, m['lowest_solid_row'],
+                         (m['foot_centre'] or 0) - CONTRACT['ground_pivot_pixel'][0]))
     if items:
-        contact_sheet(items, sheet_path or (root / 'contact_sheet.png'))
-    print('audit: %d sprites, %d failed' % (len(items), failures))
+        contact_sheet(items, sheet_path or ((root if root.is_dir() else root.parent) / 'contact_sheet.png'))
+    print('audit: %d sprites, %d textures, %d failed' % (len(items) - textures, textures, failures))
     return 1 if failures else 0
 
 

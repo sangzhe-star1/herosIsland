@@ -34,8 +34,9 @@ const PROP_IDS := ["basket_empty", "soil_grass_patch", "soil_cover",
 	"hay_bale", "wheelbarrow", "scarecrow", "windmill", "windmill_blades", "pond",
 	"duck", "chicken", "signpost", "bench", "butterfly", "butterfly_blue",
 	"building_coop", "egg", "grass_tile", "clearing", "meadow_patch",
-	"building_mill", "flour", "stick", "cloud"]
-static var _crop_badge_region_cache: Dictionary = {}
+	"building_mill", "flour", "stick", "cloud", "rabbit",
+	"tool_trowel", "tool_watering_can"]
+static var _badge_region_cache: Dictionary = {}
 static var _crop_ground_width_cache: Dictionary = {}
 static var _plant_spec_cache: Dictionary = {}
 static var _texture_used_region_cache: Dictionary = {}
@@ -159,16 +160,50 @@ static func prop_has_baked_contact_shadow(prop_id: String) -> bool:
 	return bool(parsed.get("contact_shadow_baked", true)) if parsed is Dictionary else true
 
 
+## Named surface points come from the actual Blender camera, alongside the
+## sprite. Missing metadata keeps the old ground-pivot placement available.
+static func prop_anchor_pixel(prop_id: String, anchor_name: String,
+		fallback: Vector2 = Vector2(256.0, 467.0)) -> Vector2:
+	var path := PROP_ROOT + prop_id + ".json"
+	if not FileAccess.file_exists(path):
+		return fallback
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not parsed is Dictionary:
+		return fallback
+	var anchors: Variant = parsed.get("anchors_px", {})
+	if not anchors is Dictionary:
+		return fallback
+	var point: Variant = anchors.get(anchor_name, [])
+	if not point is Array or point.size() != 2:
+		return fallback
+	if not (point[0] is float or point[0] is int) \
+			or not (point[1] is float or point[1] is int):
+		return fallback
+	var result := Vector2(float(point[0]), float(point[1]))
+	return result if result.is_finite() else fallback
+
+
 ## A compact square crop picture for the order card or a basket's sample tag.
 ## Unlike `grounded_sprite()`, this does not scale the transparent ground-pivot
 ## canvas to a world object; the icon keeps the same source artwork while
 ## fitting the existing UI badge box.
 static func crop_badge(crop_id: String, box_size: float,
 		node_name: String = "HarvestCropBadge") -> Control:
-	var texture := crop_texture(crop_id)
+	return _picture_badge(crop_texture(crop_id), "crop:" + crop_id, box_size, node_name)
+
+
+## Character portraits use their visible silhouette, not the studio's padding.
+## The source PNG stays unchanged, so portraits and world friends share art.
+static func prop_badge(prop_id: String, box_size: float,
+		node_name: String = "FarmPropBadge") -> Control:
+	return _picture_badge(prop_texture(prop_id), "prop:" + prop_id, box_size, node_name)
+
+
+static func _picture_badge(texture: Texture2D, cache_key: String, box_size: float,
+		node_name: String) -> Control:
 	if texture == null:
 		return null
-	var region := _crop_badge_region(crop_id, texture)
+	var region := _badge_region(cache_key, texture)
 	if region.size.x <= 0.0 or region.size.y <= 0.0:
 		return null
 	var badge := Control.new()
@@ -188,10 +223,10 @@ static func crop_badge(crop_id: String, box_size: float,
 
 
 
-static func _crop_badge_region(crop_id: String, source: Texture2D) -> Rect2:
+static func _badge_region(cache_key: String, source: Texture2D) -> Rect2:
 	var region: Rect2
-	if _crop_badge_region_cache.has(crop_id):
-		region = _crop_badge_region_cache[crop_id]
+	if _badge_region_cache.has(cache_key):
+		region = _badge_region_cache[cache_key]
 	else:
 		var image := source.get_image()
 		if image == null:
@@ -200,7 +235,7 @@ static func _crop_badge_region(crop_id: String, source: Texture2D) -> Rect2:
 		if used.size.x <= 0 or used.size.y <= 0:
 			return Rect2()
 		region = Rect2(used.position, used.size)
-		_crop_badge_region_cache[crop_id] = region
+		_badge_region_cache[cache_key] = region
 	return region
 
 

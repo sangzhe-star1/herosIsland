@@ -112,6 +112,11 @@ func _input(event: InputEvent) -> void:
 
 
 func _handle(event: InputEvent) -> void:
+	# Godot mirrors touch as mouse (and desktop mouse as touch). This field
+	# handles both real sources itself: claiming the mirrored press would let
+	# an unrelated pointer move carry an active finger's crop away.
+	if event.device == InputEvent.DEVICE_ID_EMULATION:
+		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and _touch == -1:
@@ -132,8 +137,18 @@ func _handle(event: InputEvent) -> void:
 		elif not click.pressed and _touch == -2:
 			_release(click.position)
 			_touch = -1
-	elif event is InputEventMouseMotion and _touch == -2:
+	elif event is InputEventMouseMotion and _touch == -2 \
+			and ((event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
 		_move((event as InputEventMouseMotion).position)
+
+
+## Compact docks may give an item a local `grab_rect` matching its visible
+## slot. Their neighbouring buttons must not pick up a seed through the
+## forgiving radius. Other games retain the original circular target.
+static func accepts_grab(at: Vector2, centre: Vector2, grab_rect: Variant = null) -> bool:
+	if at.distance_to(centre) >= GRAB:
+		return false
+	return not (grab_rect is Rect2) or (grab_rect as Rect2).has_point(at - centre)
 
 
 func _grab(at: Vector2) -> bool:
@@ -144,6 +159,9 @@ func _grab(at: Vector2) -> bool:
 			continue
 		var node: Node2D = item["node"]
 		if not is_instance_valid(node):
+			continue
+		var grab_rect: Variant = node.get_meta("grab_rect") if node.has_meta("grab_rect") else null
+		if not accepts_grab(at, node.position, grab_rect):
 			continue
 		var d: float = node.position.distance_to(at)
 		if d < best_d:

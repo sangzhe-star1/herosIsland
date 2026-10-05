@@ -244,7 +244,7 @@
       "coins": 30,
       "items": {}
     },
-    "unlock_condition": "",
+    "unlock_condition": "level:2",
     "completion_transaction_key": "farm_order_puppy_breakfast"
   },
   {
@@ -260,7 +260,109 @@
       "coins": 36,
       "items": {}
     },
-    "unlock_condition": "",
+    "unlock_condition": "level:3",
     "completion_transaction_key": "farm_order_robot_bakery"
+  },
+  {
+    "id": "rabbit_picnic",
+    "customer_id": "rabbit",
+    "customer_icon": "res://assets/harvest_3d/props/rabbit.png",
+    "name_key": "npc.rabbit",
+    "requirements": {
+      "carrot": 2,
+      "strawberry": 2
+    },
+    "rewards": {
+      "coins": 24
+    },
+    "unlock_condition": "",
+    "completion_transaction_key": "farm_order_rabbit_picnic",
+    "purpose_key": "garden.order.rabbit_picnic.purpose",
+    "thanks_key": "garden.order.rabbit_picnic.thanks"
+  },
+  {
+    "id": "rabbit_seed_share",
+    "customer_id": "rabbit",
+    "customer_icon": "res://assets/harvest_3d/props/rabbit.png",
+    "name_key": "npc.rabbit",
+    "requirements": {
+      "lettuce": 2,
+      "peas": 2
+    },
+    "rewards": {
+      "coins": 24
+    },
+    "unlock_condition": "level:3",
+    "completion_transaction_key": "farm_order_rabbit_seed_share",
+    "purpose_key": "garden.order.rabbit_seed_share.purpose",
+    "thanks_key": "garden.order.rabbit_seed_share.thanks"
+  },
+  {
+    "id": "robot_cookie_day",
+    "customer_id": "robot",
+    "customer_icon": "robot",
+    "name_key": "npc.robot",
+    "requirements": {
+      "flour": 2,
+      "egg": 2
+    },
+    "rewards": {
+      "coins": 40
+    },
+    "unlock_condition": "level:3",
+    "completion_transaction_key": "farm_order_robot_cookie_day",
+    "purpose_key": "garden.order.robot_cookie_day.purpose",
+    "thanks_key": "garden.order.robot_cookie_day.thanks"
+  },
+  {
+    "id": "robot_mill_team",
+    "customer_id": "robot",
+    "customer_icon": "robot",
+    "name_key": "npc.robot",
+    "requirements": {
+      "wheat": 3,
+      "flour": 1
+    },
+    "rewards": {
+      "coins": 30
+    },
+    "unlock_condition": "level:3",
+    "completion_transaction_key": "farm_order_robot_mill_team",
+    "purpose_key": "garden.order.robot_mill_team.purpose",
+    "thanks_key": "garden.order.robot_mill_team.thanks"
+  },
+  {
+    "id": "puppy_morning_basket",
+    "customer_id": "puppy",
+    "customer_icon": "paw",
+    "name_key": "npc.puppy",
+    "requirements": {
+      "egg": 2,
+      "tomato": 1
+    },
+    "rewards": {
+      "coins": 30
+    },
+    "unlock_condition": "level:2",
+    "completion_transaction_key": "farm_order_puppy_morning_basket",
+    "purpose_key": "garden.order.puppy_morning_basket.purpose",
+    "thanks_key": "garden.order.puppy_morning_basket.thanks"
+  },
+  {
+    "id": "bear_autumn_pantry",
+    "customer_id": "bear",
+    "customer_icon": "teddy",
+    "name_key": "npc.bear",
+    "requirements": {
+      "pumpkin": 2,
+      "apple": 2
+    },
+    "rewards": {
+      "coins": 78
+    },
+    "unlock_condition": "level:5",
+    "completion_transaction_key": "farm_order_bear_autumn_pantry",
+    "purpose_key": "garden.order.bear_autumn_pantry.purpose",
+    "thanks_key": "garden.order.bear_autumn_pantry.thanks"
   }
 ]

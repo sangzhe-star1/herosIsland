@@ -1,0 +1,111 @@
+{
+  "purpose": "Final low-motion and bear-door focus rendered verification after dry-crack correction",
+  "isolated": true,
+  "serial": true,
+  "import": {
+    "passed": true,
+    "returncode": 0,
+    "elapsed_seconds": 4.16,
+    "log": "docs/qa/blender_farm_polish_20261004/additional_import.log"
+  },
+  "runs": [
+    {
+      "label": "16x9_reduce_motion",
+      "window": "1280x720",
+      "reduce_motion_requested": true,
+      "focus_facility_requested": "",
+      "screenshot": "docs/qa/blender_farm_polish_20261004/after_16x9_reduce_motion.png",
+      "returncode": 0,
+      "elapsed_seconds": 5.68,
+      "actual_options_log": "FarmShot options reduce_motion=true focus_facility=",
+      "options_match": true,
+      "png_dimensions": [
+        1280,
+        720
+      ],
+      "dimensions_match": true,
+      "screenshot_sha256": "b48e18168f0af5e09b840adaea32ca61e0bc3185d3d757d6eb0867e62a94a979",
+      "passed": true,
+      "log": "docs/qa/blender_farm_polish_20261004/additional_16x9_reduce_motion.log"
+    },
+    {
+      "label": "4x3_reduce_motion",
+      "window": "1024x768",
+      "reduce_motion_requested": true,
+      "focus_facility_requested": "",
+      "screenshot": "docs/qa/blender_farm_polish_20261004/after_4x3_reduce_motion.png",
+      "returncode": 0,
+      "elapsed_seconds": 5.71,
+      "actual_options_log": "FarmShot options reduce_motion=true focus_facility=",
+      "options_match": true,
+      "png_dimensions": [
+        1024,
+        768
+      ],
+      "dimensions_match": true,
+      "screenshot_sha256": "00aba7ba5c1226f3d8d03c1911844115f078d1da1024f77191f11a5d76a2ed7b",
+      "passed": true,
+      "log": "docs/qa/blender_farm_polish_20261004/additional_4x3_reduce_motion.log"
+    },
+    {
+      "label": "16x9_bear_door",
+      "window": "1280x720",
+      "reduce_motion_requested": false,
+      "focus_facility_requested": "bear_door",
+      "screenshot": "docs/qa/blender_farm_polish_20261004/after_16x9_bear_door.png",
+      "returncode": 0,
+      "elapsed_seconds": 5.71,
+      "actual_options_log": "FarmShot options reduce_motion=false focus_facility=bear_door",
+      "options_match": true,
+      "png_dimensions": [
+        1280,
+        720
+      ],
+      "dimensions_match": true,
+      "screenshot_sha256": "e4cb29030a321670fcb6054107d2b2e87786d72c75f9d5d0aa851b6fe11492d9",
+      "passed": true,
+      "log": "docs/qa/blender_farm_polish_20261004/additional_16x9_bear_door.log"
+    },
+    {
+      "label": "4x3_bear_door",
+      "window": "1024x768",
+      "reduce_motion_requested": false,
+      "focus_facility_requested": "bear_door",
+      "screenshot": "docs/qa/blender_farm_polish_20261004/after_4x3_bear_door.png",
+      "returncode": 0,
+      "elapsed_seconds": 5.78,
+      "actual_options_log": "FarmShot options reduce_motion=false focus_facility=bear_door",
+      "options_match": true,
+      "png_dimensions": [
+        1024,
+        768
+      ],
+      "dimensions_match": true,
+      "screenshot_sha256": "82baab67d9aa124c65d3f5842eabd6e54497c8e480018f7749b3f8e77de4f0f7",
+      "passed": true,
+      "log": "docs/qa/blender_farm_polish_20261004/additional_4x3_bear_door.log"
+    }
+  ],
+  "visual_review": {
+    "passed": true,
+    "reviewed_screenshots": [
+      "docs/qa/blender_farm_polish_20261004/after_16x9_reduce_motion.png",
+      "docs/qa/blender_farm_polish_20261004/after_4x3_reduce_motion.png",
+      "docs/qa/blender_farm_polish_20261004/after_16x9_bear_door.png",
+      "docs/qa/blender_farm_polish_20261004/after_4x3_bear_door.png"
+    ],
+    "corn_cracks_inside_soil": true,
+    "new_severe_occlusion_or_clipping": false,
+    "obvious_floating": false,
+    "notes": [
+      "Low-motion corn cracks remain inside the dirt surface in both aspect ratios.",
+      "The bear-door focus shows the inset door and arch clearly; the existing foreground fence partly covers the lower area.",
+      "A static capture confirms the selected low-motion setting and rendering, not the complete motion behavior."
+    ]
+  },
+  "supersedes_qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-blender-farm-final-shots-e2r1y6xx",
+  "superseded_reason": "Earlier snapshot preceded final corn dry-crack coordinate correction; all four captures replaced.",
+  "plot_view_sha256": "1bcb8979bd9f716e762830ee3fba6c5545f667d2190d5c0db03730cf322e4c2e",
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-blender-farm-final-shots-v2-xguajz6b",
+  "all_passed": true
+}

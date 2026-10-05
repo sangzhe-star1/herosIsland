@@ -15,14 +15,15 @@ self-test need only Pillow.
 
 | | |
 |---|---|
-| `contract.json` | the numbers: 512 px, pivot (256, 467), span 2.60 m, the frozen profile's hash, audit tolerances; the old sprite-pack rig under `legacy` |
+| `contract.json` | the numbers: 512 px, pivot (256, 467), span 2.60 m, the frozen profile's hash, audit tolerances; explicitly named tiled materials under `textures`; the old sprite-pack rig under `legacy` |
 | `palette.json` | every material the models use, by key (`M['leaf']`) |
 | `studio.py` | Blender side: opens the frozen profile (world, Sun key, two Area lights, Standard view at −0.2 EV), keeps only its camera and lamps, frames the camera so the world origin lands on the pivot, and offers the primitives, the optional baked shadow, mesh repair, render and GLB |
 | `models/<name>.py` | geometry only: `build(S, P)`; `S` is the studio, `P` the recipe's params. `from_glb.py` imports existing geometry instead |
-| `recipes/<id>.json` | which model, which params, shadow policy, optional `ortho_scale`, where it installs |
+| `recipes/<id>.json` | which model, which params, shadow policy, optional `ortho_scale` and named local `anchors`, where it installs |
 | `build.py` | walks the recipes, renders, writes `manifest.json`, runs the audit |
-| `audit.py` | no Blender: size, alpha, ground line, footprint, fringe, contact sheet |
+| `audit.py` | no Blender: size, alpha, ground line, footprint, fringe, projected anchors, tiled material coverage/seams, contact sheet |
 | `test_pipeline.py` | recipes ↔ `data/harvest_crops.json` ↔ `harvest_visual_art.gd`, audit on the shipped PNGs, break-it-once |
+| `test_pipeline_contracts.py` | no Blender: audit interpreter selection, anchor coordinates/sidecars, texture fault injection |
 
 ## Run it
 
@@ -39,9 +40,26 @@ python3 $P/audit.py assets/harvest_3d/crops            # audit what the game shi
 python3 $P/test_pipeline.py                            # the self-test
 ```
 
+On a Mac whose default Python has no Pillow, use the already available
+interpreter explicitly; Blender's own Python is not used for the audit:
+
+```bash
+AUDIT_PY=/Users/xhzhou/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+/Applications/Blender.app/Contents/MacOS/Blender -b -P "$P/build.py" -- \
+  --only soil_grass_patch --install --audit-python "$AUDIT_PY"
+"$AUDIT_PY" "$P/test_pipeline.py"
+```
+
+Without `--audit-python`, the existing `python3` on `PATH` behaviour is
+unchanged. Executable and output paths containing spaces are supported.
+
 Output lands in `source/rendered/` (git-ignored): `sprites/<id>.png`,
 `manifest.json`, `contact_sheet.png`. A failing audit is a failing build: the
 renders stay on disk for a look, nothing is installed.
+
+GLB exports omit only the studio's render-only contact-shadow quad and use
+the target engine's lighting and shadows. Procedural soil Noise/Bump is not
+baked into GLB textures; the PNG and editable `.blend` retain that shading.
 
 ## What the shipped art actually is (found while matching it)
 
@@ -93,11 +111,11 @@ box and scales it to the box width. `"deep_footprint": true` tells the audit
 that the nearest corner, not the centre, is what touches the ground line.
 Spans run 3.4 to 4.8 m for buildings, 2.6 for the dog, 3.4 for the bear.
 
-A ground patch (soil_grass_patch, clearing, meadow_patch) is its own
-ground: no radial shadow (it would reach the canvas edge in front), and the
-newer two are slid back like a building so the farm anchors them by their
-front rim. `build.py` audits before it installs; a failing sprite never
-reaches the game.
+A ground patch is its own ground. `clearing` and `meadow_patch` have no
+radial shadow and are slid back like a building to anchor their front rim.
+The refined `soil_grass_patch` uses a short baked shadow contained inside
+the canvas and publishes a planting-surface anchor for the crop root.
+`build.py` audits before it installs; a failing sprite never reaches the game.
 
 ## Add an asset
 
@@ -133,6 +151,38 @@ of the pivot column. `"shadow": {"baked": true}` renders the short radial
 contact shadow into the alpha; `false` means the runtime draws
 `Shapes.ground_shadow`, and the install step writes `<id>.json` with
 `contact_shadow_baked: false` for a prop so the game never draws two.
+
+### Named surface anchors
+
+An asset can publish a precise attachment point, for example a thick soil
+bed's planting surface, in its recipe:
+
+```json
+"anchors": {"planting_surface": [0.0, 0.0, 0.16]}
+```
+
+The coordinates are in the model's local space. After each render,
+`build.py` adds that recipe's `origin_offset` and projects the point with
+the actual camera at that asset's `ortho_scale`. The resulting
+`anchors_px.planting_surface` is a two-number pixel coordinate measured
+from the PNG's top-left corner, stored in both the manifest and the
+installed `<id>.json`. Anchors must be finite points inside the canvas.
+A baked-shadow asset retains its sidecar when it has anchors, with
+`contact_shadow_baked: true`; assets without anchors keep the existing
+shadow/default behaviour. The runtime can use this projected point to seat
+a crop on the soil surface instead of estimating an offset by eye.
+
+### Tiled material audit
+
+`props/grass_tile.png` is explicitly declared in `contract.textures` as a
+256 × 256 RGBA `tileable_ground_overlay`. The farm repeats it over its
+painted ground, so a solid ground-contact row does not apply. The separate
+contract checks dimensions, mode, visible coverage, maximum/mean alpha,
+and opposing-edge continuity in premultiplied RGB and alpha. Its contact
+sheet cell shows a 2 × 2 repeat. Empty, overly opaque, incomplete or visibly
+seamed tiles fail. This is an exact install-path exception: unknown images,
+the same filename under `crops/`, and all images in a render manifest still
+use the full sprite audit. No sprite tolerances are relaxed.
 
 ## What this does not decide
 

@@ -530,10 +530,29 @@ class Studio:
         return float(self.camera.data.ortho_scale)
 
     def export_glb(self, coll, path, all_colls):
-        """The same asset as a GLB, Z-up to Y-up, origin at the ground pivot."""
+        """Export geometry; the target engine supplies its own contact shadows."""
+        def is_render_shadow_helper(obj):
+            # Recognise the exact quad made by asset(), including in existing
+            # saved .blend files. A real model may have an entrance/roof mesh
+            # named "shadow", so neither a name alone nor transparency suffices.
+            if obj.type != 'MESH' or not obj.name.startswith('Shadow | '):
+                return False
+            mesh = obj.data
+            if len(mesh.vertices) != 4 or len(mesh.polygons) != 1 \
+                    or mesh.uv_layers.get('Shadow radial UV') is None \
+                    or len(mesh.materials) != 1 or mesh.materials[0] is None:
+                return False
+            name = mesh.materials[0].name
+            expected = 'Studio | soft contact shadow in alpha'
+            # Blender can append a numeric suffix when rebuilding in a scene
+            # that still owns an earlier copy of the same studio material.
+            base, separator, suffix = name.rpartition('.')
+            return name == expected or (separator and base == expected and suffix.isdigit())
+
         bpy.ops.object.select_all(action='DESELECT')
         for o in coll.all_objects:
-            o.select_set(True)
+            if not is_render_shadow_helper(o):
+                o.select_set(True)
         bpy.ops.export_scene.gltf(filepath=str(path), export_format='GLB',
                                   use_selection=True, export_apply=True,
                                   export_yup=True)

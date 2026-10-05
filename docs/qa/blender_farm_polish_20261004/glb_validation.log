@@ -1,0 +1,51 @@
+GLB export and helper-selection validation evidence
+Saved from the actual command outputs of the completed validation; no rerun.
+
+EXPORT COMMAND
+/Applications/Blender.app/Contents/MacOS/Blender -b --python-exit-code 1 -P /var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes_blender_reexport_20261004.py
+
+The script opened exports/harvest_studio.blend without executing embedded scripts,
+then called Studio.export_glb for building_bear_door, building_warehouse, and
+soil_grass_patch. It did not render PNGs or save a .blend file.
+
+EXPORT OUTPUT (completion excerpts; per-mesh extraction messages omitted)
+00:00.310  blend            | Read blend: "/opt/heroesIsland/assets/harvest_3d/source/blender_polish_20261004/exports/harvest_studio.blend"
+19:33:27 | INFO: Finished glTF 2.0 export in 0.041841983795166016 s
+REEXPORTED building_bear_door
+19:33:27 | INFO: Finished glTF 2.0 export in 0.07112884521484375 s
+REEXPORTED building_warehouse
+19:33:27 | INFO: Finished glTF 2.0 export in 0.01856207847595215 s
+REEXPORTED soil_grass_patch
+GLB_REEXPORT_COMPLETE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:49:19)
+Blender quit
+Export process exit code: 0
+
+VALIDATION
+Interpreter: /Users/xhzhou/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+Before export, the validator recorded node names, mesh and triangle counts from
+each GLB and SHA-256 hashes for 59 source .blend/export PNG/installed prop PNG
+files. After export it checked GLB headers, declared binary lengths, node-set
+differences, triangle counts, absence of Studio shadow-helper nodes/materials,
+absence of external buffer/image URIs, and all protected hashes.
+
+The six-case regression executed the actual export_glb method extracted from
+studio.py with mocked Blender selection/export APIs. A matching Studio helper
+and one with a Blender numeric material suffix were omitted. A real entrance
+shadow, a similarly named larger mesh, a quad with a different material, and a
+quad without the Studio UV marker were retained.
+
+VALIDATION OUTPUT (complete)
+building_bear_door.glb: PASS; nodes 39->39, triangles 18273->18273, removed=[], added=[], no external URIs
+building_warehouse.glb: PASS; nodes 101->101, triangles 18733->18733, removed=[], added=[], no external URIs
+soil_grass_patch.glb: PASS; nodes 22->21, triangles 11230->11228, removed=['Shadow | soil_grass_patch'], added=[], no external URIs
+Protected .blend/PNG files: 59 SHA-256 hashes unchanged
+6-case exact-helper selection regression: PASS (2 helpers omitted, 4 real geometry cases kept)
+Validation process exit code: 0
+
+git diff --check -- assets/harvest_3d/source/pipeline/studio.py assets/harvest_3d/source/pipeline/README.md
+Output: none; exit code: 0
+
+Remaining material scope: GLBs use the target engine's lighting and shadows.
+The procedural soil Noise/Bump has not been baked into GLB textures. Current
+PNGs and editable .blend files retain that shading.

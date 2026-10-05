@@ -1,0 +1,39 @@
+Python: /Users/xhzhou/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+Command: /opt/heroesIsland/assets/harvest_3d/source/pipeline/test_pipeline.py
+
+audit: 17 sprites, 0 textures, 0 failed
+audit: 53 sprites, 1 textures, 0 failed
+test_anchor_outside_camera_is_refused (__main__.BuildContractTests.test_anchor_outside_camera_is_refused) ... ok
+test_anchor_projection_uses_local_point_plus_origin_offset (__main__.BuildContractTests.test_anchor_projection_uses_local_point_plus_origin_offset) ... ok
+test_audit_python_default_and_explicit (__main__.BuildContractTests.test_audit_python_default_and_explicit) ... ok
+test_audit_python_keeps_path_default (__main__.BuildContractTests.test_audit_python_keeps_path_default) ... ok
+test_audit_python_missing_is_actionable (__main__.BuildContractTests.test_audit_python_missing_is_actionable) ... ok
+test_manifest_anchor_coordinates_must_be_finite_in_canvas (__main__.BuildContractTests.test_manifest_anchor_coordinates_must_be_finite_in_canvas) ... ok
+test_rejects_bad_model_anchors (__main__.BuildContractTests.test_rejects_bad_model_anchors) ... ok
+test_sidecar_preserves_anchors_and_existing_shadow_defaults (__main__.BuildContractTests.test_sidecar_preserves_anchors_and_existing_shadow_defaults) ... ok
+test_empty_tile_is_refused (__main__.GroundTextureTests.test_empty_tile_is_refused) ... ok
+test_exception_is_an_exact_install_path (__main__.GroundTextureTests.test_exception_is_an_exact_install_path) ... ok
+test_horizontal_rgb_seam_is_refused (__main__.GroundTextureTests.test_horizontal_rgb_seam_is_refused) ... ok
+test_incomplete_coverage_is_refused (__main__.GroundTextureTests.test_incomplete_coverage_is_refused) ... ok
+test_opaque_and_almost_invisible_tiles_are_refused (__main__.GroundTextureTests.test_opaque_and_almost_invisible_tiles_are_refused) ... ok
+test_render_manifest_cannot_opt_sprite_out_with_texture_filename (__main__.GroundTextureTests.test_render_manifest_cannot_opt_sprite_out_with_texture_filename) ... ok
+test_shipped_texture_is_a_valid_overlay (__main__.GroundTextureTests.test_shipped_texture_is_a_valid_overlay) ... ok
+test_vertical_alpha_seam_is_refused (__main__.GroundTextureTests.test_vertical_alpha_seam_is_refused) ... ok
+test_wrong_size_and_mode_are_refused (__main__.GroundTextureTests.test_wrong_size_and_mode_are_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.182s
+
+OK
+pipeline: 69 recipes, 63 models, 96 palette entries, audit and break-it-once all good
+
+Pipeline exit code: 0
+Frozen source profile: /opt/heroesIsland/assets/harvest_3d/source/catalog_profile_candidate/inputs/frozen_render_profile.blend
+Expected SHA-256: 4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512
+Actual SHA-256:   4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512
+Profile unchanged: True
+building_bear_door: installed PNG matches rendered PNG: True
+building_warehouse: installed PNG matches rendered PNG: True
+soil_grass_patch: installed PNG matches rendered PNG: True
+soil_grass_patch: manifest anchors_px={'planting_surface': [255.9056, 422.9964]}; sidecar anchors_px={'planting_surface': [255.9056, 422.9964]}; exact match: True; shadow policy match: True
+Validation result: PASS

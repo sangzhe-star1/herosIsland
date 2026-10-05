@@ -2332,6 +2332,589 @@
     "mode": "harvest"
   },
   {
+    "id": "harvest_11",
+    "world": "sunny_park",
+    "name_key": "level.harvest_11",
+    "game_type": "harvest_action",
+    "difficulty": 3,
+    "target": {},
+    "reward": {
+      "coins": 24,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "harvest.l11",
+      "customer_icon": "res://assets/harvest_3d/props/rabbit.png",
+      "teaches": "cut_stem",
+      "teach_voice": "harvest_cut",
+      "targets": [
+        {
+          "crop_id": "lettuce",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "carrot",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "tomato",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "lettuce",
+          "maturity": "almost_ready",
+          "count": 2
+        }
+      ],
+      "order": [
+        {
+          "crop_id": "lettuce",
+          "count": 2
+        },
+        {
+          "crop_id": "carrot",
+          "count": 2
+        },
+        {
+          "crop_id": "tomato",
+          "count": 2
+        }
+      ],
+      "allowed_maturity": [
+        "ready",
+        "golden"
+      ],
+      "exit_room": "star_garden"
+    },
+    "mode": "harvest"
+  },
+  {
+    "id": "harvest_12",
+    "world": "sunny_park",
+    "name_key": "level.harvest_12",
+    "game_type": "harvest_action",
+    "difficulty": 3,
+    "target": {},
+    "reward": {
+      "coins": 26,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "harvest.l12",
+      "customer_icon": "teddy",
+      "teaches": "twist",
+      "teach_voice": "harvest_twist",
+      "targets": [
+        {
+          "crop_id": "orange",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "apple",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "grape",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "apple",
+          "maturity": "unripe",
+          "count": 2
+        }
+      ],
+      "order": [
+        {
+          "crop_id": "orange",
+          "count": 2
+        },
+        {
+          "crop_id": "apple",
+          "count": 2
+        },
+        {
+          "crop_id": "grape",
+          "count": 2
+        }
+      ],
+      "baskets": [
+        {
+          "id": "red",
+          "icon": "basket",
+          "accepts_tags": [
+            "red"
+          ],
+          "sample": "res://assets/crops/apple.png"
+        },
+        {
+          "id": "orange",
+          "icon": "basket",
+          "accepts_tags": [
+            "orange"
+          ],
+          "sample": "res://assets/crops/orange.png"
+        },
+        {
+          "id": "purple",
+          "icon": "basket",
+          "accepts_tags": [
+            "purple"
+          ],
+          "sample": "res://assets/crops/grape.png"
+        }
+      ],
+      "allowed_maturity": [
+        "ready",
+        "golden"
+      ],
+      "exit_room": "star_garden"
+    },
+    "mode": "harvest"
+  },
+  {
+    "id": "harvest_13",
+    "world": "sunny_park",
+    "name_key": "level.harvest_13",
+    "game_type": "harvest_action",
+    "difficulty": 3,
+    "target": {},
+    "reward": {
+      "coins": 26,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "harvest.l13",
+      "customer_icon": "paw",
+      "teaches": "dig_search",
+      "teach_voice": "harvest_dig",
+      "targets": [
+        {
+          "crop_id": "potato",
+          "maturity": "ready",
+          "count": 3
+        },
+        {
+          "crop_id": "carrot",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "golden_carrot",
+          "maturity": "golden",
+          "count": 1
+        },
+        {
+          "crop_id": "stone",
+          "maturity": "ready",
+          "count": 2
+        }
+      ],
+      "orders": [
+        {
+          "requirements": [
+            {
+              "crop_id": "potato",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "requirements": [
+            {
+              "crop_id": "carrot",
+              "count": 2
+            }
+          ],
+          "brave_extra": [
+            {
+              "crop_id": "golden_carrot",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "baskets": [
+        {
+          "id": "veg",
+          "icon": "basket",
+          "accepts_tags": [
+            "vegetable"
+          ],
+          "sample": "res://assets/crops/carrot.png"
+        },
+        {
+          "id": "gift",
+          "icon": "basket",
+          "accepts_tags": [
+            "golden"
+          ],
+          "sample": "res://assets/crops/golden_carrot.png"
+        }
+      ],
+      "exceptions": [
+        {
+          "tag": "golden",
+          "basket": "gift"
+        }
+      ],
+      "allowed_maturity": [
+        "ready",
+        "golden"
+      ],
+      "exit_room": "star_garden"
+    },
+    "mode": "harvest"
+  },
+  {
+    "id": "harvest_14",
+    "world": "sunny_park",
+    "name_key": "level.harvest_14",
+    "game_type": "harvest_action",
+    "difficulty": 4,
+    "target": {},
+    "reward": {
+      "coins": 28,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "harvest.l14",
+      "customer_icon": "res://assets/harvest_3d/props/rabbit.png",
+      "teaches": "open_pod",
+      "teach_voice": "harvest_pod",
+      "targets": [
+        {
+          "crop_id": "peas",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "corn",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "pumpkin",
+          "maturity": "ready",
+          "count": 1
+        },
+        {
+          "crop_id": "watermelon",
+          "maturity": "ready",
+          "count": 1
+        },
+        {
+          "crop_id": "bug",
+          "maturity": "ready",
+          "count": 1
+        }
+      ],
+      "orders": [
+        {
+          "requirements": [
+            {
+              "crop_id": "peas",
+              "count": 6
+            },
+            {
+              "crop_id": "corn",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "requirements": [
+            {
+              "crop_id": "pumpkin",
+              "count": 1
+            },
+            {
+              "crop_id": "watermelon",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "baskets": [
+        {
+          "id": "veg",
+          "icon": "basket",
+          "accepts_tags": [
+            "vegetable"
+          ],
+          "sample": "res://assets/crops/carrot.png"
+        },
+        {
+          "id": "fruit",
+          "icon": "basket",
+          "accepts_tags": [
+            "fruit"
+          ],
+          "sample": "res://assets/crops/strawberry.png"
+        }
+      ],
+      "allowed_maturity": [
+        "ready",
+        "golden"
+      ],
+      "exit_room": "star_garden"
+    },
+    "mode": "harvest"
+  },
+  {
+    "id": "harvest_15",
+    "world": "sunny_park",
+    "name_key": "level.harvest_15",
+    "game_type": "harvest_action",
+    "difficulty": 4,
+    "target": {},
+    "reward": {
+      "coins": 28,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "harvest.l15",
+      "customer_icon": "robot",
+      "teaches": "swipe_cut",
+      "teach_voice": "harvest_cut",
+      "targets": [
+        {
+          "crop_id": "wheat",
+          "maturity": "ready",
+          "count": 3
+        },
+        {
+          "crop_id": "apple",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "corn",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "strawberry",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "wheat",
+          "maturity": "unripe",
+          "count": 1
+        }
+      ],
+      "orders": [
+        {
+          "requirements": [
+            {
+              "crop_id": "wheat",
+              "count": 3
+            },
+            {
+              "crop_id": "apple",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "requirements": [
+            {
+              "crop_id": "corn",
+              "count": 2
+            },
+            {
+              "crop_id": "strawberry",
+              "count": 2
+            }
+          ]
+        }
+      ],
+      "baskets": [
+        {
+          "id": "grain",
+          "icon": "basket",
+          "accepts_tags": [
+            "grain"
+          ],
+          "sample": "res://assets/crops/wheat.png"
+        },
+        {
+          "id": "fruit",
+          "icon": "basket",
+          "accepts_tags": [
+            "fruit"
+          ],
+          "sample": "res://assets/crops/strawberry.png"
+        },
+        {
+          "id": "veg",
+          "icon": "basket",
+          "accepts_tags": [
+            "vegetable"
+          ],
+          "sample": "res://assets/crops/carrot.png"
+        }
+      ],
+      "allowed_maturity": [
+        "ready",
+        "golden"
+      ],
+      "exit_room": "star_garden"
+    },
+    "mode": "harvest"
+  },
+  {
+    "id": "harvest_16",
+    "world": "sunny_park",
+    "name_key": "level.harvest_16",
+    "game_type": "harvest_action",
+    "difficulty": 4,
+    "target": {},
+    "reward": {
+      "coins": 32,
+      "badge": ""
+    },
+    "config": {
+      "instruction_key": "harvest.l16",
+      "customer_icon": "res://assets/harvest_3d/props/rabbit.png",
+      "teaches": "",
+      "targets": [
+        {
+          "crop_id": "lettuce",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "tomato",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "carrot",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "strawberry",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "wheat",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "grape",
+          "maturity": "ready",
+          "count": 2
+        },
+        {
+          "crop_id": "golden_carrot",
+          "maturity": "golden",
+          "count": 1
+        },
+        {
+          "crop_id": "tomato",
+          "maturity": "unripe",
+          "count": 1
+        }
+      ],
+      "orders": [
+        {
+          "requirements": [
+            {
+              "crop_id": "lettuce",
+              "count": 2
+            },
+            {
+              "crop_id": "tomato",
+              "count": 2
+            }
+          ],
+          "customer_icon": "res://assets/harvest_3d/props/rabbit.png"
+        },
+        {
+          "requirements": [
+            {
+              "crop_id": "carrot",
+              "count": 2
+            },
+            {
+              "crop_id": "strawberry",
+              "count": 2
+            }
+          ],
+          "customer_icon": "paw"
+        },
+        {
+          "requirements": [
+            {
+              "crop_id": "wheat",
+              "count": 2
+            },
+            {
+              "crop_id": "grape",
+              "count": 2
+            }
+          ],
+          "customer_icon": "teddy",
+          "brave_extra": [
+            {
+              "crop_id": "golden_carrot",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "baskets": [
+        {
+          "id": "veg",
+          "icon": "basket",
+          "accepts_tags": [
+            "vegetable",
+            "grain"
+          ],
+          "sample": "res://assets/crops/carrot.png"
+        },
+        {
+          "id": "fruit",
+          "icon": "basket",
+          "accepts_tags": [
+            "fruit"
+          ],
+          "sample": "res://assets/crops/strawberry.png"
+        },
+        {
+          "id": "gift",
+          "icon": "basket",
+          "accepts_tags": [
+            "golden"
+          ],
+          "sample": "res://assets/crops/golden_carrot.png"
+        }
+      ],
+      "exceptions": [
+        {
+          "tag": "golden",
+          "basket": "gift"
+        }
+      ],
+      "allowed_maturity": [
+        "ready",
+        "golden"
+      ],
+      "exit_room": "star_garden"
+    },
+    "mode": "harvest"
+  },
+  {
     "id": "bonus_keepy",
     "world": "sunny_park",
     "name_key": "level.bonus_keepy",

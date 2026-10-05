@@ -11,6 +11,7 @@
   5. the audit passes on the PNGs the game ships
   6. and it fails when a sprite is wrong (break it once): a render shifted
      off the ground line, and one with a black fringe, must both be refused
+  7. texture coverage/seams and projected anchor metadata resist bad inputs
 """
 import json
 import re
@@ -129,5 +130,8 @@ with tempfile.TemporaryDirectory() as tmp:
 if failures:
     print('%d failure(s)' % len(failures))
     sys.exit(1)
+code = subprocess.call([sys.executable, str(HERE / 'test_pipeline_contracts.py')])
+if code != 0:
+    sys.exit(code)
 print('pipeline: %d recipes, %d models, %d palette entries, audit and break-it-once all good'
       % (len(recipes), len(models), len(palette)))

@@ -1,0 +1,26 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+OpenGL API 4.1 Metal - 90.5 - Compatibility - Using Device: Apple - Apple M5 Pro
+
+[autoload] GameClock ok
+[autoload] GameData starting
+[autoload] GameData ok: 5 worlds, 67 levels, 15 monsters, 106 shop items, 2 characters, 12 outfit sets
+[autoload] SaveManager starting
+[autoload] SaveManager ok
+[autoload] I18n starting
+[autoload] I18n ok: locale=zh, 2 locales loaded
+[autoload] AudioManager starting
+[autoload] AudioManager ok
+[autoload] SceneManager starting
+[autoload] SceneManager ok
+[autoload] TouchSparkles ok
+OVERFLOW RECEIPT HarvestFlight_carrot amount=2 destination=(1188.0, 682.0)
+OVERFLOW RECEIPT HarvestSpillFlight_carrot amount=1 destination=(1177.0, 616.0)
+overflow_shot -> /opt/heroesIsland/docs/qa/farm_friends_20261004/compact_overflow_16x9/partial_flight.png OK
+overflow_shot -> /opt/heroesIsland/docs/qa/farm_friends_20261004/compact_overflow_16x9/partial_settled.png OK
+overflow_shot -> /opt/heroesIsland/docs/qa/farm_friends_20261004/compact_overflow_16x9/partial_barn.png OK
+OVERFLOW RECEIPT HarvestSpillFlight_strawberry amount=4 destination=(1177.0, 616.0)
+overflow_shot -> /opt/heroesIsland/docs/qa/farm_friends_20261004/compact_overflow_16x9/full_flight.png OK
+overflow_shot -> /opt/heroesIsland/docs/qa/farm_friends_20261004/compact_overflow_16x9/full_settled.png OK
+overflow_shot -> /opt/heroesIsland/docs/qa/farm_friends_20261004/compact_overflow_16x9/full_barn.png OK
+asked 78 questions
+OVERFLOW SHOT PASSED

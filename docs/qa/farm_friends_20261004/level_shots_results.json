@@ -1,0 +1,246 @@
+{
+  "shots": [
+    {
+      "name": "h11_normal_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_11",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.43
+    },
+    {
+      "name": "h12_normal_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_12",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.31
+    },
+    {
+      "name": "h13_normal_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_13",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.31
+    },
+    {
+      "name": "h14_normal_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_14",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.26
+    },
+    {
+      "name": "h15_normal_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_15",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.3
+    },
+    {
+      "name": "h16_normal_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_16",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.28
+    },
+    {
+      "name": "h16_held_o0_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_LEVEL": "harvest_16",
+        "SHOT_ORDER_INDEX": "0",
+        "SHOT_CROP_ID": "lettuce",
+        "SHOT_DIFFICULTY": "1"
+      },
+      "passed": true,
+      "seconds": 2.81
+    },
+    {
+      "name": "h16_held_o1_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_LEVEL": "harvest_16",
+        "SHOT_ORDER_INDEX": "1",
+        "SHOT_CROP_ID": "strawberry",
+        "SHOT_DIFFICULTY": "1"
+      },
+      "passed": true,
+      "seconds": 2.76
+    },
+    {
+      "name": "h16_held_o2_16x9",
+      "env": {
+        "SHOT_WINDOW": "1280x720",
+        "SHOT_LEVEL": "harvest_16",
+        "SHOT_ORDER_INDEX": "2",
+        "SHOT_CROP_ID": "golden_carrot",
+        "SHOT_DIFFICULTY": "2"
+      },
+      "passed": true,
+      "seconds": 2.93
+    },
+    {
+      "name": "h11_normal_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_11",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.35
+    },
+    {
+      "name": "h12_normal_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_12",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.3
+    },
+    {
+      "name": "h13_normal_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_13",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.32
+    },
+    {
+      "name": "h14_normal_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_14",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.29
+    },
+    {
+      "name": "h15_normal_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_15",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.3
+    },
+    {
+      "name": "h16_normal_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_SCENE": "res://scenes/minigames/harvest_action/HarvestAction.tscn",
+        "SHOT_LEVEL": "harvest_16",
+        "SHOT_SKIP_TUTORIAL": "1",
+        "SHOT_DIFFICULTY": "1",
+        "SHOT_WAIT": "1.6",
+        "SHOT_REDUCE_MOTION": "0"
+      },
+      "passed": true,
+      "seconds": 3.48
+    },
+    {
+      "name": "h16_held_o0_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_LEVEL": "harvest_16",
+        "SHOT_ORDER_INDEX": "0",
+        "SHOT_CROP_ID": "lettuce",
+        "SHOT_DIFFICULTY": "1"
+      },
+      "passed": true,
+      "seconds": 2.94
+    },
+    {
+      "name": "h16_held_o1_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_LEVEL": "harvest_16",
+        "SHOT_ORDER_INDEX": "1",
+        "SHOT_CROP_ID": "strawberry",
+        "SHOT_DIFFICULTY": "1"
+      },
+      "passed": true,
+      "seconds": 2.76
+    },
+    {
+      "name": "h16_held_o2_4x3",
+      "env": {
+        "SHOT_WINDOW": "1024x768",
+        "SHOT_LEVEL": "harvest_16",
+        "SHOT_ORDER_INDEX": "2",
+        "SHOT_CROP_ID": "golden_carrot",
+        "SHOT_DIFFICULTY": "2"
+      },
+      "passed": true,
+      "seconds": 2.97
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-level_shots-50mnffbl",
+  "all_passed": true
+}

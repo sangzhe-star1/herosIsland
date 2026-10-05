@@ -1,15 +1,27 @@
 extends Node2D
 ## The farm's small motions: sails that turn, a duck that bobs, hens that
-## peck, butterflies that wander. Scenery only -- nothing here is a target,
+## peck, butterflies that wander, and a friend who answers a hello.
+## Scenery only -- nothing here is a gameplay target,
 ## nothing reads the save, and everything holds still under reduced motion.
 ## FarmWorldArt registers each moving sprite with the kind of life it has.
 
 var _alive: Array = []        # [{sprite, kind, base, phase, speed, path, t}]
 var _t := 0.0
+const GREETING_SECONDS := 0.9
 
 
 func add(sprite: Control, kind: String, spec: Dictionary) -> void:
+	var hit := Rect2(Vector2.ZERO, sprite.size)
+	var textured := sprite as TextureRect
+	if kind == "greet" and textured != null and textured.texture != null:
+		var source: Image = textured.texture.get_image()
+		if source != null:
+			var bounds: Rect2i = source.get_used_rect()
+			var factor: Vector2 = sprite.size / Vector2(source.get_size())
+			hit = Rect2(Vector2(bounds.position) * factor, Vector2(bounds.size) * factor)
 	_alive.append({"sprite": sprite, "kind": kind, "base": sprite.position,
+		"base_rotation": sprite.rotation, "base_scale": sprite.scale,
+		"hit": hit, "hop": 0.0, "greeting_left": 0.0, "greeting": null,
 		"phase": float(spec.get("phase", 0.0)), "speed": float(spec.get("speed", 1.0)),
 		"path": spec.get("path", []), "leg": 0, "t": 0.0})
 
@@ -21,7 +33,9 @@ func poke_at(screen_at: Vector2) -> String:
 		var sprite: Control = life["sprite"]
 		if not is_instance_valid(sprite) or str(life["kind"]) == "flutter":
 			continue
-		if sprite.get_global_rect().grow(8.0).has_point(screen_at):
+		var local_at := sprite.get_global_transform_with_canvas().affine_inverse() * screen_at
+		var hit: Rect2 = life["hit"]
+		if hit.grow(8.0).has_point(local_at):
 			_hop(life)
 			return str(sprite.get_meta("prop_id", ""))
 	return ""
@@ -35,19 +49,60 @@ func poke_kind(kind: String) -> void:
 
 
 func _hop(life: Dictionary) -> void:
+	# A held/repeated hello has one response, not one new heart per input.
+	if float(life.get("greeting_left", 0.0)) > 0.0 \
+			or float(life.get("hop", 0.0)) > 0.0:
+		return
 	life["hop"] = 0.5
 	var sprite: Control = life["sprite"]
-	if Juice.motion_enabled():
-		Juice.pop(sprite, 0.16)
+	if str(life["kind"]) != "greet":
+		return
+	var heart := UiKit.picture("heart", 30.0)
+	if heart == null:
+		return
+	heart.name = "FriendGreeting"
+	heart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hit: Rect2 = life["hit"]
+	heart.position = Vector2(hit.get_center().x - 15.0, hit.position.y - 34.0)
+	sprite.add_child(heart)
+	life["greeting"] = heart
+	life["greeting_base"] = heart.position
+	life["greeting_left"] = GREETING_SECONDS
+
+
+func _rest(life: Dictionary, sprite: Control) -> void:
+	sprite.position = life["base"]
+	sprite.rotation = float(life["base_rotation"])
+	sprite.scale = life["base_scale"]
+
+
+func _greeting_tick(life: Dictionary, delta: float, moving: bool) -> void:
+	var heart: Control = life.get("greeting")
+	if heart == null or not is_instance_valid(heart):
+		return
+	life["greeting_left"] = maxf(0.0, float(life["greeting_left"]) - delta)
+	if float(life["greeting_left"]) <= 0.0:
+		heart.queue_free()
+		life["greeting"] = null
+		return
+	var progress := 1.0 - float(life["greeting_left"]) / GREETING_SECONDS
+	var base: Vector2 = life["greeting_base"]
+	heart.position = base - Vector2(0.0, 18.0 * progress) if moving else base
+	heart.modulate.a = minf(1.0, (1.0 - progress) * 3.0) if moving else 1.0
 
 
 func _process(delta: float) -> void:
-	if not Juice.motion_enabled():
-		return
-	_t += delta
+	var moving := Juice.motion_enabled()
+	if moving:
+		_t += delta
 	for life in _alive:
 		var sprite: Control = life["sprite"]
 		if not is_instance_valid(sprite):
+			continue
+		_greeting_tick(life, delta, moving)
+		_rest(life, sprite)
+		if not moving:
+			life["hop"] = 0.0
 			continue
 		var base: Vector2 = life["base"]
 		var phase: float = life["phase"]
@@ -55,9 +110,11 @@ func _process(delta: float) -> void:
 		if float(life.get("hop", 0.0)) > 0.0:
 			life["hop"] = float(life["hop"]) - delta
 			hop = sin(clampf(float(life["hop"]) / 0.5, 0.0, 1.0) * PI) * 14.0
+			var base_scale: Vector2 = life["base_scale"]
+			sprite.scale = base_scale * (1.0 + hop / 100.0)
 		match str(life["kind"]):
 			"spin":
-				sprite.rotation += delta * float(life["speed"])
+				sprite.rotation += _t * float(life["speed"])
 			"bob":
 				sprite.position.y = base.y + sin(_t * 1.6 + phase) * 2.5 - hop
 				sprite.rotation = sin(_t * 1.1 + phase) * 0.05
@@ -68,6 +125,11 @@ func _process(delta: float) -> void:
 				sprite.position.y = base.y - hop
 			"flutter":
 				_flutter(life, sprite, delta)
+			"greet":
+				# The pivot is the feet: a quiet breath does not float the bunny.
+				sprite.scale.y *= 1.0 + sin(_t * 1.8 + phase) * 0.012
+				sprite.rotation += sin(_t * 2.4) * hop * 0.006
+				sprite.position.y = base.y - hop * 0.45
 
 
 func _flutter(life: Dictionary, sprite: Control, delta: float) -> void:

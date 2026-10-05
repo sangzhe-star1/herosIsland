@@ -1,0 +1,17 @@
+{
+  "glb_valid_header": true,
+  "glb_bytes": 841732,
+  "nodes": 46,
+  "meshes": 46,
+  "materials": 12,
+  "render_shadow_helper_nodes": [],
+  "render_shadow_materials": [],
+  "lights_extension_present": false,
+  "cameras": 0,
+  "source_png_equals_installed": true,
+  "png_sha256": "32155f986298ce9d78431ccfb7f2b235dd2ef4dc5c2c42d168e277109f168dfb",
+  "frozen_profile_sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+  "blend_file": "assets/harvest_3d/source/farm_friends_20261004/exports/harvest_studio.blend",
+  "source_png_visual_review": "Recognizable long ears, teal apron, raised paw, carrot basket; complete silhouette without clipping.",
+  "godot_status": "Not run by character agent; root owns serial QA."
+}

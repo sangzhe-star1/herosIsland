@@ -1,0 +1,107 @@
+00:02.963  blend            | Read blend: "/opt/heroesIsland/assets/harvest_3d/source/catalog_profile_candidate/inputs/frozen_render_profile.blend"
+00:04.632  render           | Saved: 'assets/harvest_3d/source/farm_friends_20261004/exports/sprites/rabbit.png'
+INFO Draco is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_draco_bridge.dylib
+INFO MeshOptimizer is available, use library at /Applications/Blender.app/Contents/Resources/5.2/scripts/addons_core/io_scene_gltf2/libbf_intern_meshopt_bridge.dylib
+19:44:42 | INFO: Starting glTF 2.0 export
+19:44:42 | INFO: Extracting primitive: 球体.006
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.007
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.008
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | apron strap Curve
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | apron strap Curve.001
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | basket arm Curve
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.026
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | basket handle Curve
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.025
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | basket weave Curve
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | basket weave Curve.001
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | basket weave Curve.002
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | carrot leaf Curve
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | carrot leaf Curve.001
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | carrot leaf Curve.002
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | carrot leaf Curve.003
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | carrot leaf Curve.004
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | carrot leaf Curve.005
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.011
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.017
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.013
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.014
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.020
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.019
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.002
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.004
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.009
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.010
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.016
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.012
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.018
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.022
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.027
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.028
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 立方体
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | pocket seam Curve
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.015
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.021
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | smile Curve
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.001
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.003
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.005
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: Rabbit | waving arm Curve
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.024
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Extracting primitive: 球体.023
+19:44:42 | INFO: Primitives created: 1
+19:44:42 | INFO: Finished glTF 2.0 export in 0.04780912399291992 s
+
+RENDERED rabbit
+ok    rabbit.png             ground row 466, footprint centre +10 px
+audit: 1 sprites, 0 textures, 0 failed
+信息: 已另存为 "harvest_studio.blend"
+INSTALLED /opt/heroesIsland/assets/harvest_3d/props/rabbit.png
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:49:19)
+
+Blender quit

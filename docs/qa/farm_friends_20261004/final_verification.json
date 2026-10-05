@@ -1,0 +1,37 @@
+{
+  "current_farm_checks": [
+    {
+      "name": "garden_rules",
+      "passed": true,
+      "seconds": 0.78,
+      "log": "compact_verified_garden_rules.log"
+    },
+    {
+      "name": "garden_touch",
+      "passed": true,
+      "seconds": 52.66,
+      "log": "compact_verified_garden_touch.log"
+    },
+    {
+      "name": "farm_world",
+      "passed": true,
+      "seconds": 17.19,
+      "log": "compact_world_final_farm_world.log"
+    }
+  ],
+  "all_current_farm_passed": true,
+  "latest_visual_runs": [
+    {
+      "report": "small_type_visuals_results.json",
+      "passed": true,
+      "scenarios": 8
+    },
+    {
+      "report": "compact_final_shots_results.json",
+      "passed": true,
+      "scenarios": 6
+    }
+  ],
+  "source_manifest": "final_source_manifest.json",
+  "note": "Character and harvest checks retain the earlier successful logs listed in the implementation plan. This is targeted validation, not a full project smoke run."
+}

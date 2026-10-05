@@ -1,0 +1,21 @@
+{
+  "attempt": "attempt1",
+  "results": [
+    {
+      "name": "garden_rules",
+      "passed": false,
+      "error": "Script error found; see /private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-attempt1-mtv1vvz7/qa_logs/garden_rules.log",
+      "log": "attempt1_garden_rules.log"
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-attempt1-mtv1vvz7",
+  "source_sha256": {
+    "scripts/garden/garden_screen.gd": "0b7926b8105ba01afa37cee4d68e8027e64a20c36f82baa9da4ef0a84716cbec",
+    "scripts/minigames/harvest_action.gd": "2fcf8a5621a5326e1e95c3447a8cba8574b8c7d7801689d3ef0d3a659d576672",
+    "scripts/garden/farm_scenery_life.gd": "082139f0b422a69509ffc23b5e904f6dab06e7fc5f183a7f57ca0389683bc92b",
+    "data/levels.json": "9e06776335cd70d7c9499744664e41a5dcfd1ee88b5539e172964d81cee304cf",
+    "data/garden_orders.json": "55cf2c91de94dcb773017042f4e6bdaeb7c5032b8f4ed719c4800bf369c8ffbb"
+  },
+  "import_passed": true,
+  "all_passed": false
+}

@@ -3,6 +3,15 @@ extends RefCounted
 ## Stopping during the final quit frame leaves Ogg cleanup warnings even when
 ## repeated playback keeps a stable resource count (Dummy and CoreAudio).
 
+## Rendered automation injects real events through Input.parse_input_event.
+## Keep the user's unrelated desktop pointer from moving a native Button's
+## hover target between those presses. Synthetic mouse/touch still traverse
+## the normal viewport and GUI pipeline; mixed-source tests inject both.
+static func isolate_desktop_pointer(probe: Node) -> void:
+	probe.get_window().unfocusable = true
+	probe.get_window().mouse_passthrough = true
+
+
 ## Screenshot checks are explicit QA calls, never part of a product frame.
 ## A saved PNG may still be a uniform clear buffer. Sample the whole image
 ## cheaply; contact sheets also check each picture region independently.

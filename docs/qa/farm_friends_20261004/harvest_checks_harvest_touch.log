@@ -1,0 +1,26 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+OpenGL API 4.1 Metal - 90.5 - Compatibility - Using Device: Apple - Apple M5 Pro
+
+[autoload] GameClock ok
+[autoload] GameData starting
+[autoload] GameData ok: 5 worlds, 67 levels, 15 monsters, 106 shop items, 2 characters, 12 outfit sets
+[autoload] SaveManager starting
+[autoload] SaveManager ok
+[autoload] I18n starting
+[autoload] I18n ok: locale=zh, 2 locales loaded
+[autoload] AudioManager starting
+[autoload] AudioManager ok
+[autoload] SceneManager starting
+[autoload] SceneManager ok
+[autoload] TouchSparkles ok
+
+=== harvest touch probe ===
+-- window (1280, 720) -> viewport (1280.0, 720.0)
+  held-shift shape=1280x720 crop=tomato x=0.0 fruit_alpha=[P: (845.5105, 262.9945), S: (35.32849, 39.41742)] plant_alpha=[P: (814.4026, 318.4119), S: (94.93542, 138.0154)]
+-- window (1024, 768) -> viewport (1280.0, 960.0)
+  held-shift shape=1024x768 crop=tomato x=0.0 fruit_alpha=[P: (286.6403, 466.8986), S: (28.26276, 31.53394)] plant_alpha=[P: (261.754, 514.4325), S: (75.9483, 110.4122)]
+  decoys g/n/b: 3/5/7   hints: 1/2/3   angle: 44/35/28
+FAIL  [1280x720] 果园摇一摇 names none, so the tally sits as it always did
+FAIL  [1024x768] 果园摇一摇 names none, so the tally sits as it always did
+  questions asked with a thumb: 2310
+HARVEST TOUCH PROBE FAILED

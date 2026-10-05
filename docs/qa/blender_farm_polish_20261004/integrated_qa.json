@@ -1,0 +1,31 @@
+{
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-blender-polish-integrated-v84klyj6",
+  "results": [
+    {
+      "name": "after_16x9_normal",
+      "passed": true
+    },
+    {
+      "name": "after_16x9_out",
+      "passed": true
+    },
+    {
+      "name": "after_4x3_normal",
+      "passed": true
+    },
+    {
+      "name": "after_4x3_out",
+      "passed": true
+    },
+    {
+      "name": "garden_touch",
+      "passed": true,
+      "seconds": 57.8
+    },
+    {
+      "name": "farm_world",
+      "passed": true,
+      "seconds": 20.3
+    }
+  ]
+}

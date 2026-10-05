@@ -1,0 +1,33 @@
+{
+  "attempt": "attempt2",
+  "results": [
+    {
+      "name": "garden_rules",
+      "passed": true,
+      "seconds": 0.83,
+      "log": "attempt2_garden_rules.log"
+    },
+    {
+      "name": "harvest_rules",
+      "passed": true,
+      "seconds": 1.3,
+      "log": "attempt2_harvest_rules.log"
+    },
+    {
+      "name": "farm_life",
+      "passed": false,
+      "error": "Wall-clock timeout; see /private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-attempt2-q37e50mp/qa_logs/farm_life.log",
+      "log": "attempt2_farm_life.log"
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-attempt2-q37e50mp",
+  "source_sha256": {
+    "scripts/garden/garden_screen.gd": "dd1129a8099132035ae2397c50e62d55d52e739bd932b6b8f8252633812be139",
+    "scripts/minigames/harvest_action.gd": "2fcf8a5621a5326e1e95c3447a8cba8574b8c7d7801689d3ef0d3a659d576672",
+    "scripts/garden/farm_scenery_life.gd": "ecf8b2c2f7f612998cba534a8b297d3ad3687a2c84b64b4e4301701a0bbfbf14",
+    "data/levels.json": "9e06776335cd70d7c9499744664e41a5dcfd1ee88b5539e172964d81cee304cf",
+    "data/garden_orders.json": "55cf2c91de94dcb773017042f4e6bdaeb7c5032b8f4ed719c4800bf369c8ffbb"
+  },
+  "import_passed": true,
+  "all_passed": false
+}

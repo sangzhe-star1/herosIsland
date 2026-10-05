@@ -1,0 +1,73 @@
+{
+  "shots": [
+    {
+      "name": "overflow_many_16x9",
+      "env": {
+        "SHOT_WHAT": "overflow_many",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 6.72
+    },
+    {
+      "name": "overflow_collection_16x9",
+      "env": {
+        "SHOT_WHAT": "overflow_collection",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 6.08
+    },
+    {
+      "name": "rack_p0_16x9",
+      "env": {
+        "SHOT_WHAT": "rack",
+        "SHOT_WIN": "1280x720",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 7.94
+    },
+    {
+      "name": "overflow_many_4x3",
+      "env": {
+        "SHOT_WHAT": "overflow_many",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 6.1
+    },
+    {
+      "name": "overflow_collection_4x3",
+      "env": {
+        "SHOT_WHAT": "overflow_collection",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 5.52
+    },
+    {
+      "name": "rack_p0_4x3",
+      "env": {
+        "SHOT_WHAT": "rack",
+        "SHOT_WIN": "1024x768",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.51
+    },
+    {
+      "name": "overflow_collection_en",
+      "env": {
+        "SHOT_WHAT": "overflow_collection",
+        "SHOT_WIN": "1280x720",
+        "SHOT_LOCALE": "en",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.53
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-compact_header_preview-zve98xpi",
+  "all_passed": true
+}

@@ -1,0 +1,11 @@
+{
+  "id": "tool_watering_can",
+  "kind": "prop",
+  "model": "tool_watering_can",
+  "params": {},
+  "ortho_scale": 2.55,
+  "shadow": {"baked": false, "size": [0.32, 0.22]},
+  "install": "props/tool_watering_can.png",
+  "origin_offset": [-0.11, 0.16, 0.0],
+  "deep_footprint": true
+}

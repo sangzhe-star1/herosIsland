@@ -1,0 +1,9 @@
+{
+  "id": "tool_trowel",
+  "kind": "prop",
+  "model": "tool_trowel",
+  "params": {},
+  "ortho_scale": 2.1,
+  "shadow": {"baked": false, "size": [0.18, 0.08]},
+  "install": "props/tool_trowel.png"
+}

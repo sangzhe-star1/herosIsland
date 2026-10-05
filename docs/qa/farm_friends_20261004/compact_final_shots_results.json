@@ -1,0 +1,64 @@
+{
+  "shots": [
+    {
+      "name": "friends_orders_16x9",
+      "env": {
+        "SHOT_WHAT": "friends_orders",
+        "SHOT_WIN": "1280x720",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.59
+    },
+    {
+      "name": "friend_thanks_16x9",
+      "env": {
+        "SHOT_WHAT": "friend_thanks",
+        "SHOT_WIN": "1280x720",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.88
+    },
+    {
+      "name": "inventory_upgrade_16x9",
+      "env": {
+        "SHOT_WHAT": "inventory_upgrade",
+        "SHOT_WIN": "1280x720"
+      },
+      "passed": true,
+      "seconds": 5.78
+    },
+    {
+      "name": "friends_orders_4x3",
+      "env": {
+        "SHOT_WHAT": "friends_orders",
+        "SHOT_WIN": "1024x768",
+        "SHOT_PAGE": "0"
+      },
+      "passed": true,
+      "seconds": 5.62
+    },
+    {
+      "name": "challenge_picker_4x3",
+      "env": {
+        "SHOT_WHAT": "challenge_picker",
+        "SHOT_WIN": "1024x768",
+        "SHOT_PAGE": "3"
+      },
+      "passed": true,
+      "seconds": 5.58
+    },
+    {
+      "name": "inventory_upgrade_4x3",
+      "env": {
+        "SHOT_WHAT": "inventory_upgrade",
+        "SHOT_WIN": "1024x768"
+      },
+      "passed": true,
+      "seconds": 5.66
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-compact_final_shots-r1mcw1m4",
+  "all_passed": true
+}

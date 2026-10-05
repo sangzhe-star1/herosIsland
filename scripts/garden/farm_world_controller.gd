@@ -945,6 +945,10 @@ func celebrate_new_bed(index: int) -> void:
 func _input(event: InputEvent) -> void:
 	if locked or not is_inside_tree():
 		return
+	# Own the physical source, not Godot's mirrored mouse/touch event. A mouse
+	# moving while a finger is down must not turn that tap into a camera pan.
+	if event.device == InputEvent.DEVICE_ID_EMULATION:
+		return
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and _finger == -1:
@@ -966,7 +970,8 @@ func _input(event: InputEvent) -> void:
 		elif not click.pressed and _finger == -2:
 			_up(click.position)
 			_finger = -1
-	elif event is InputEventMouseMotion and _finger == -2:
+	elif event is InputEventMouseMotion and _finger == -2 \
+			and ((event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
 		_moved((event as InputEventMouseMotion).position)
 
 
@@ -1050,16 +1055,18 @@ func _blocked(at: Vector2) -> bool:
 	# script error -- which aborted the whole input handler, so every press
 	# on the farm went nowhere until the next rebuild swept the list.
 	var alive: Array = []
+	var blocked := false
 	for node in blockers:
 		if not is_instance_valid(node) or not (node is Control):
 			continue
 		alive.append(node)
 		if (node as Control).visible and Rect2((node as Control).global_position,
 				(node as Control).size).has_point(at):
-			blockers = alive
-			return true
+			blocked = true
+	# Keep scanning after a hit: close/pager controls may be registered after
+	# the sheet. Truncating here would let the next press reach the soil.
 	blockers = alive
-	return false
+	return blocked
 
 
 func _moved(at: Vector2) -> void:

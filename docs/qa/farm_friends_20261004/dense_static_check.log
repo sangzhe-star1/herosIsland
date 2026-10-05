@@ -1,0 +1,210 @@
+============================================================
+scripts: 186   scenes: 92   levels: 67
+playable now: 67/67  -> sunny_park_01, sunny_park_02, sunny_park_03, sunny_park_04, sunny_park_05, sunny_park_06, night_city_01, night_city_02, night_city_03, night_city_04, night_city_05, night_city_06, monster_valley_01, monster_valley_02, monster_valley_03, monster_valley_04, monster_valley_05, monster_valley_06, sky_base_01, sky_base_02, sky_base_03, sky_base_04, sky_base_05, sky_base_06, dark_castle_01, dark_castle_02, dark_castle_03, dark_castle_04, dark_castle_05, dark_castle_06, hero_studio, star_garden, garden_deco, battle_01, battle_02, battle_03, battle_04, battle_05, battle_06, battle_07, battle_08, battle_09, battle_10, battle_11, battle_12, battle_13, battle_14, battle_15, harvest_01, harvest_02, harvest_03, harvest_04, harvest_05, harvest_06, harvest_07, harvest_08, harvest_09, harvest_10, harvest_11, harvest_12, harvest_13, harvest_14, harvest_15, harvest_16, bonus_keepy, bonus_blaster, bonus_echo
+templates still to build: none
+============================================================
+WARN  scripts/minigames/roleplay_rescue.gd:33: space indentation after tabs
+WARN  scripts/minigames/roleplay_rescue.gd:35: space indentation after tabs
+WARN  scripts/minigames/roleplay_rescue.gd:37: space indentation after tabs
+WARN  scripts/minigames/roleplay_rescue.gd:39: space indentation after tabs
+WARN  scripts/minigames/roleplay_rescue.gd:41: space indentation after tabs
+WARN  scripts/minigames/roleplay_rescue.gd:43: space indentation after tabs
+WARN  scripts/minigames/roleplay_rescue.gd:45: space indentation after tabs
+WARN  scripts/shop/outfit_layer.gd:151: space indentation after tabs
+WARN  strings.json: key 'adventure.unlocked_double_jump' defined but not referenced yet
+WARN  strings.json: key 'album.empty' defined but not referenced yet
+WARN  strings.json: key 'battle.all_met' defined but not referenced yet
+WARN  strings.json: key 'bin.books' defined but not referenced yet
+WARN  strings.json: key 'bin.clothes' defined but not referenced yet
+WARN  strings.json: key 'bin.cold' defined but not referenced yet
+WARN  strings.json: key 'bin.danger' defined but not referenced yet
+WARN  strings.json: key 'bin.hungry' defined but not referenced yet
+WARN  strings.json: key 'bin.hurt' defined but not referenced yet
+WARN  strings.json: key 'bin.safe' defined but not referenced yet
+WARN  strings.json: key 'bin.toys' defined but not referenced yet
+WARN  strings.json: key 'collect.instruction_avoid' defined but not referenced yet
+WARN  strings.json: key 'garden.daily.title' defined but not referenced yet
+WARN  strings.json: key 'garden.next.bug' defined but not referenced yet
+WARN  strings.json: key 'garden.next.deliver' defined but not referenced yet
+WARN  strings.json: key 'garden.next.growing' defined but not referenced yet
+WARN  strings.json: key 'garden.next.harvest' defined but not referenced yet
+WARN  strings.json: key 'garden.next.seed' defined but not referenced yet
+WARN  strings.json: key 'garden.next.till' defined but not referenced yet
+WARN  strings.json: key 'garden.next.water' defined but not referenced yet
+WARN  strings.json: key 'garden.next.weed' defined but not referenced yet
+WARN  strings.json: key 'garden.tool.basket' defined but not referenced yet
+WARN  strings.json: key 'garden.tool.bug' defined but not referenced yet
+WARN  strings.json: key 'garden.tool.hand' defined but not referenced yet
+WARN  strings.json: key 'garden.tool.seed' defined but not referenced yet
+WARN  strings.json: key 'garden.tool.shovel' defined but not referenced yet
+WARN  strings.json: key 'garden.tool.water' defined but not referenced yet
+WARN  strings.json: key 'garden.tool.weed' defined but not referenced yet
+WARN  strings.json: key 'house.hint' defined but not referenced yet
+WARN  strings.json: key 'house.new' defined but not referenced yet
+WARN  strings.json: key 'house.preset_saved' defined but not referenced yet
+WARN  strings.json: key 'house.tap_me' defined but not referenced yet
+WARN  strings.json: key 'house.who_hint' defined but not referenced yet
+WARN  strings.json: key 'item.ball' defined but not referenced yet
+WARN  strings.json: key 'item.bandage' defined but not referenced yet
+WARN  strings.json: key 'item.berries' defined but not referenced yet
+WARN  strings.json: key 'item.blanket' defined but not referenced yet
+WARN  strings.json: key 'item.blocks' defined but not referenced yet
+WARN  strings.json: key 'item.carrot' defined but not referenced yet
+WARN  strings.json: key 'item.comic' defined but not referenced yet
+WARN  strings.json: key 'item.crayon' defined but not referenced yet
+WARN  strings.json: key 'item.fish' defined but not referenced yet
+WARN  strings.json: key 'item.hat' defined but not referenced yet
+WARN  strings.json: key 'item.knife' defined but not referenced yet
+WARN  strings.json: key 'item.matches' defined but not referenced yet
+WARN  strings.json: key 'item.medicine' defined but not referenced yet
+WARN  strings.json: key 'item.picture_book' defined but not referenced yet
+WARN  strings.json: key 'item.pillow' defined but not referenced yet
+WARN  strings.json: key 'item.plaster' defined but not referenced yet
+WARN  strings.json: key 'item.scarf' defined but not referenced yet
+WARN  strings.json: key 'item.scissors' defined but not referenced yet
+WARN  strings.json: key 'item.socket' defined but not referenced yet
+WARN  strings.json: key 'item.socks' defined but not referenced yet
+WARN  strings.json: key 'item.tshirt' defined but not referenced yet
+WARN  strings.json: key 'lesson.castle.1' defined but not referenced yet
+WARN  strings.json: key 'lesson.castle.2' defined but not referenced yet
+WARN  strings.json: key 'lesson.castle.3' defined but not referenced yet
+WARN  strings.json: key 'lesson.castle.title' defined but not referenced yet
+WARN  strings.json: key 'lesson.city.1' defined but not referenced yet
+WARN  strings.json: key 'lesson.city.2' defined but not referenced yet
+WARN  strings.json: key 'lesson.city.3' defined but not referenced yet
+WARN  strings.json: key 'lesson.city.title' defined but not referenced yet
+WARN  strings.json: key 'lesson.park.1' defined but not referenced yet
+WARN  strings.json: key 'lesson.park.2' defined but not referenced yet
+WARN  strings.json: key 'lesson.park.3' defined but not referenced yet
+WARN  strings.json: key 'lesson.park.title' defined but not referenced yet
+WARN  strings.json: key 'lesson.sky.1' defined but not referenced yet
+WARN  strings.json: key 'lesson.sky.2' defined but not referenced yet
+WARN  strings.json: key 'lesson.sky.3' defined but not referenced yet
+WARN  strings.json: key 'lesson.sky.title' defined but not referenced yet
+WARN  strings.json: key 'lesson.valley.1' defined but not referenced yet
+WARN  strings.json: key 'lesson.valley.2' defined but not referenced yet
+WARN  strings.json: key 'lesson.valley.3' defined but not referenced yet
+WARN  strings.json: key 'lesson.valley.title' defined but not referenced yet
+WARN  strings.json: key 'level.adventure_valley_01' defined but not referenced yet
+WARN  strings.json: key 'level.adventure_valley_02' defined but not referenced yet
+WARN  strings.json: key 'level.adventure_valley_03' defined but not referenced yet
+WARN  strings.json: key 'level.adventure_valley_04' defined but not referenced yet
+WARN  strings.json: key 'level.adventure_valley_challenge' defined but not referenced yet
+WARN  strings.json: key 'level.bluey_park_01' defined but not referenced yet
+WARN  strings.json: key 'level.bluey_park_02' defined but not referenced yet
+WARN  strings.json: key 'level.bluey_park_03' defined but not referenced yet
+WARN  strings.json: key 'level.bluey_park_04' defined but not referenced yet
+WARN  strings.json: key 'level.bluey_park_challenge' defined but not referenced yet
+WARN  strings.json: key 'level.hero_city_01' defined but not referenced yet
+WARN  strings.json: key 'level.hero_city_02' defined but not referenced yet
+WARN  strings.json: key 'level.hero_city_03' defined but not referenced yet
+WARN  strings.json: key 'level.hero_city_04' defined but not referenced yet
+WARN  strings.json: key 'level.hero_city_05' defined but not referenced yet
+WARN  strings.json: key 'level.hero_city_06' defined but not referenced yet
+WARN  strings.json: key 'level.hero_city_07' defined but not referenced yet
+WARN  strings.json: key 'level.hero_city_challenge' defined but not referenced yet
+WARN  strings.json: key 'level.monster_arena_01' defined but not referenced yet
+WARN  strings.json: key 'level.monster_arena_02' defined but not referenced yet
+WARN  strings.json: key 'level.monster_arena_03' defined but not referenced yet
+WARN  strings.json: key 'level.monster_arena_04' defined but not referenced yet
+WARN  strings.json: key 'level.monster_arena_05' defined but not referenced yet
+WARN  strings.json: key 'level.monster_arena_06' defined but not referenced yet
+WARN  strings.json: key 'level.monster_arena_07' defined but not referenced yet
+WARN  strings.json: key 'level.monster_arena_challenge' defined but not referenced yet
+WARN  strings.json: key 'level.piglet_town_01' defined but not referenced yet
+WARN  strings.json: key 'level.piglet_town_02' defined but not referenced yet
+WARN  strings.json: key 'level.piglet_town_03' defined but not referenced yet
+WARN  strings.json: key 'level.piglet_town_04' defined but not referenced yet
+WARN  strings.json: key 'level.piglet_town_05' defined but not referenced yet
+WARN  strings.json: key 'level.piglet_town_06' defined but not referenced yet
+WARN  strings.json: key 'level.piglet_town_challenge' defined but not referenced yet
+WARN  strings.json: key 'level.rescue_forest_01' defined but not referenced yet
+WARN  strings.json: key 'level.rescue_forest_02' defined but not referenced yet
+WARN  strings.json: key 'level.rescue_forest_03' defined but not referenced yet
+WARN  strings.json: key 'level.rescue_forest_04' defined but not referenced yet
+WARN  strings.json: key 'level.rescue_forest_05' defined but not referenced yet
+WARN  strings.json: key 'level.rescue_forest_06' defined but not referenced yet
+WARN  strings.json: key 'level.rescue_forest_challenge' defined but not referenced yet
+WARN  strings.json: key 'level.safety_01' defined but not referenced yet
+WARN  strings.json: key 'level.safety_02' defined but not referenced yet
+WARN  strings.json: key 'level.safety_03' defined but not referenced yet
+WARN  strings.json: key 'level.safety_04' defined but not referenced yet
+WARN  strings.json: key 'level.safety_05' defined but not referenced yet
+WARN  strings.json: key 'level.safety_06' defined but not referenced yet
+WARN  strings.json: key 'level.safety_challenge' defined but not referenced yet
+WARN  strings.json: key 'level.safety_danger_01' defined but not referenced yet
+WARN  strings.json: key 'level.safety_danger_02' defined but not referenced yet
+WARN  strings.json: key 'level.safety_fire_01' defined but not referenced yet
+WARN  strings.json: key 'level.safety_traffic_01' defined but not referenced yet
+WARN  strings.json: key 'level.safety_traffic_02' defined but not referenced yet
+WARN  strings.json: key 'level.safety_traffic_03' defined but not referenced yet
+WARN  strings.json: key 'level.safety_traffic_04' defined but not referenced yet
+WARN  strings.json: key 'level.star_trials_01' defined but not referenced yet
+WARN  strings.json: key 'level.star_trials_02' defined but not referenced yet
+WARN  strings.json: key 'level.star_trials_03' defined but not referenced yet
+WARN  strings.json: key 'level.star_trials_04' defined but not referenced yet
+WARN  strings.json: key 'level.star_trials_05' defined but not referenced yet
+WARN  strings.json: key 'level.star_trials_challenge' defined but not referenced yet
+WARN  strings.json: key 'map.completion' defined but not referenced yet
+WARN  strings.json: key 'rescue.instruction_fire' defined but not referenced yet
+WARN  strings.json: key 'rescue.instruction_route' defined but not referenced yet
+WARN  strings.json: key 'rest.come_back' defined but not referenced yet
+WARN  strings.json: key 'rest.done_today' defined but not referenced yet
+WARN  strings.json: key 'rest.stretch' defined but not referenced yet
+WARN  strings.json: key 'rest.well_played' defined but not referenced yet
+WARN  strings.json: key 'shop.bundle.park' defined but not referenced yet
+WARN  strings.json: key 'shop.cat.action' defined but not referenced yet
+WARN  strings.json: key 'shop.cat.base' defined but not referenced yet
+WARN  strings.json: key 'shop.cat.fx' defined but not referenced yet
+WARN  strings.json: key 'shop.cat.keepsake' defined but not referenced yet
+WARN  strings.json: key 'shop.cat.pal' defined but not referenced yet
+WARN  strings.json: key 'shop.cat.ride' defined but not referenced yet
+WARN  strings.json: key 'shop.cat.wardrobe' defined but not referenced yet
+WARN  strings.json: key 'shop.item.act_hero' defined but not referenced yet
+WARN  strings.json: key 'shop.item.act_spin' defined but not referenced yet
+WARN  strings.json: key 'shop.item.act_wave' defined but not referenced yet
+WARN  strings.json: key 'shop.item.boots_bolt' defined but not referenced yet
+WARN  strings.json: key 'shop.item.cap_cloud' defined but not referenced yet
+WARN  strings.json: key 'shop.item.cape_star' defined but not referenced yet
+WARN  strings.json: key 'shop.item.crown_brave' defined but not referenced yet
+WARN  strings.json: key 'shop.item.deco_lamp' defined but not referenced yet
+WARN  strings.json: key 'shop.item.deco_shelf' defined but not referenced yet
+WARN  strings.json: key 'shop.item.deco_sofa' defined but not referenced yet
+WARN  strings.json: key 'shop.item.fx_halo' defined but not referenced yet
+WARN  strings.json: key 'shop.item.fx_starstep' defined but not referenced yet
+WARN  strings.json: key 'shop.item.fx_trail' defined but not referenced yet
+WARN  strings.json: key 'shop.item.gloves_rainbow' defined but not referenced yet
+WARN  strings.json: key 'shop.item.pal_orb' defined but not referenced yet
+WARN  strings.json: key 'shop.item.pal_puppy' defined but not referenced yet
+WARN  strings.json: key 'shop.item.pal_robot' defined but not referenced yet
+WARN  strings.json: key 'shop.item.ride_board' defined but not referenced yet
+WARN  strings.json: key 'shop.item.ride_cloud' defined but not referenced yet
+WARN  strings.json: key 'shop.item.set_park_stickers' defined but not referenced yet
+WARN  strings.json: key 'shop.item.vest_rescue' defined but not referenced yet
+WARN  strings.json: key 'sorting.instruction_color' defined but not referenced yet
+WARN  strings.json: key 'sorting.instruction_count' defined but not referenced yet
+WARN  strings.json: key 'sorting.instruction_danger' defined but not referenced yet
+WARN  strings.json: key 'sorting.instruction_tidy' defined but not referenced yet
+WARN  strings.json: key 'sorting.instruction_tools' defined but not referenced yet
+WARN  strings.json: key 'world.adventure_valley' defined but not referenced yet
+WARN  strings.json: key 'world.bluey_park' defined but not referenced yet
+WARN  strings.json: key 'world.harvest_farm' defined but not referenced yet
+WARN  strings.json: key 'world.hero_city' defined but not referenced yet
+WARN  strings.json: key 'world.monster_arena' defined but not referenced yet
+WARN  strings.json: key 'world.piglet_town' defined but not referenced yet
+WARN  strings.json: key 'world.rescue_forest' defined but not referenced yet
+WARN  strings.json: key 'world.safety' defined but not referenced yet
+WARN  strings.json: key 'world.star_trials' defined but not referenced yet
+WARN  memory_match.gd:114: the right edge of the screen, hard-coded as 1280 -- ask the viewport instead; a width that is only right by coincidence is the treasure-chip bug waiting to happen again
+WARN  creative_play.gd:250: the right edge of the screen, hard-coded as 1280 -- ask the viewport instead; a width that is only right by coincidence is the treasure-chip bug waiting to happen again
+WARN  animal_rescue.gd:146: the right edge of the screen, hard-coded as 1280 -- ask the viewport instead; a width that is only right by coincidence is the treasure-chip bug waiting to happen again
+WARN  animal_rescue.gd:147: a y near the bottom of a 720-tall screen, hard-coded -- a 4:3 tablet viewport is 960 tall
+WARN  item_sorting.gd:93: the right edge of the screen, hard-coded as 1280 -- ask the viewport instead; a width that is only right by coincidence is the treasure-chip bug waiting to happen again
+WARN  monster_expedition.gd:130: a y near the bottom of a 720-tall screen, hard-coded -- a 4:3 tablet viewport is 960 tall
+WARN  monster_expedition.gd:202: a y near the bottom of a 720-tall screen, hard-coded -- a 4:3 tablet viewport is 960 tall
+WARN  collect_energy.gd:177: the right edge of the screen, hard-coded as 1280 -- ask the viewport instead; a width that is only right by coincidence is the treasure-chip bug waiting to happen again
+WARN  collect_energy.gd:217: the right edge of the screen, hard-coded as 1280 -- ask the viewport instead; a width that is only right by coincidence is the treasure-chip bug waiting to happen again
+WARN  result_screen.gd:221: the right edge of the screen, hard-coded as 1280 -- ask the viewport instead; a width that is only right by coincidence is the treasure-chip bug waiting to happen again
+WARN  rewards.json: badge 'arena_champion' is not awarded by any level
+============================================================
+0 errors, 203 warnings

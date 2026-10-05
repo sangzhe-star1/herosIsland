@@ -1,0 +1,33 @@
+{
+  "attempt": "compact_verified",
+  "results": [
+    {
+      "name": "garden_rules",
+      "passed": true,
+      "seconds": 0.78,
+      "log": "compact_verified_garden_rules.log"
+    },
+    {
+      "name": "garden_touch",
+      "passed": true,
+      "seconds": 52.66,
+      "log": "compact_verified_garden_touch.log"
+    },
+    {
+      "name": "farm_world",
+      "passed": false,
+      "error": "Godot exited with -15; see /private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-compact_verified-kkgpah5i/qa_logs/farm_world.log",
+      "log": "compact_verified_farm_world.log"
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-compact_verified-kkgpah5i",
+  "source_sha256": {
+    "scripts/garden/garden_screen.gd": "a62c2056a9427afa1c40c3d26096a62b6cedfcee6a653782264140349e620110",
+    "scripts/minigames/harvest_action.gd": "ebee80ca47806d69bf6ad91a216242fe01c9b3a29015f8002b0e235ce1b3b2fd",
+    "scripts/garden/farm_scenery_life.gd": "ecf8b2c2f7f612998cba534a8b297d3ad3687a2c84b64b4e4301701a0bbfbf14",
+    "data/levels.json": "9e06776335cd70d7c9499744664e41a5dcfd1ee88b5539e172964d81cee304cf",
+    "data/garden_orders.json": "55cf2c91de94dcb773017042f4e6bdaeb7c5032b8f4ed719c4800bf369c8ffbb"
+  },
+  "import_passed": true,
+  "all_passed": false
+}

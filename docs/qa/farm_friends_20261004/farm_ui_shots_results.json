@@ -1,0 +1,16 @@
+{
+  "shots": [
+    {
+      "name": "friends_16x9",
+      "env": {
+        "SHOT_WHAT": "friends",
+        "SHOT_WIN": "1280x720",
+        "SHOT_PAGE": "0"
+      },
+      "passed": false,
+      "error": "Godot exited with 1; see /private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-farm_ui_shots-1mv7b7_i/qa_logs/friends_16x9.log"
+    }
+  ],
+  "qa_root": "/private/var/folders/rb/q_d47yds3195hn023328yl_00000gn/T/heroes-qa-farm-friends-farm_ui_shots-1mv7b7_i",
+  "all_passed": false
+}

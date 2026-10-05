@@ -36,7 +36,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1230
+const CHECKS_EXPECTED := 1780
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -52,6 +52,7 @@ func _ok(condition: bool, description: String) -> void:
 
 
 func _ready() -> void:
+	ProbeLifecycle.isolate_desktop_pointer(self)
 	print("\n=== garden touch probe ===")
 	for shape in SHAPES:
 		_shape = "%dx%d" % [shape.x, shape.y]
@@ -123,6 +124,10 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_mill_turns_wheat_into_flour()
 	await _a_drag_from_the_dog_is_a_throw()
 	await _the_cloud_waters_the_bed_it_is_dropped_on()
+	await _friends_have_purposes_and_say_thanks(view)
+	await _harvest_levels_can_be_chosen_and_replayed(view)
+	await _inventory_keeps_its_rendered_food_and_readable_slots(view)
+	await _touch_and_mouse_keep_their_own_gestures()
 
 	_close()
 
@@ -139,6 +144,8 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 	_ok(top is Control, "the garden has one named top-bar reading lane")
 	_ok(_visible_control_inside(top, screen),
 		"the whole top-bar reading lane stays on the screen")
+	_ok(top is Control and (top as Control).size.y == 68.0,
+		"the compact header returns the title's unused height to the farm")
 	_ok(top is Control and (top as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE,
 		"the painted top bar itself never eats a farm touch")
 
@@ -147,9 +154,10 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 	var plaque: Node = _find_named(_garden, "GardenTitlePlaque")
 	var title: Node = _find_named(_garden, "GardenTitle")
 	var challenge: Node = _find_named(_garden, "HarvestChallenge")
+	var chooser: Node = _find_named(_garden, "HarvestChallengeChooser")
 	var purse: Node = _find_named(_garden, "FarmCoinPurse")
-	var top_items: Array[Node] = [back, level, plaque, challenge, purse]
-	var top_names := ["back", "level", "garden title", "harvest challenge", "coin purse"]
+	var top_items: Array[Node] = [back, level, challenge, chooser, purse]
+	var top_names := ["back", "level", "harvest challenge", "level chooser", "coin purse"]
 	for i in range(top_items.size()):
 		var item: Node = top_items[i]
 		_ok(_visible_control_inside(item, screen),
@@ -157,18 +165,19 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 		_ok(_control_contains(top, item),
 			"the %s stays inside the top reading lane" % str(top_names[i]))
 
-	_ok(_control_contains(plaque, title) and _title_has_side_gutters(plaque, title, 8.0),
-		"the garden title leaves real side gutters inside its plaque")
+	_ok(plaque == null and title == null,
+		"the farm does not spend a header card repeating its screen title")
 	for left_index in range(top_items.size()):
 		for right_index in range(left_index + 1, top_items.size()):
 			_ok(_controls_are_separate(top_items[left_index], top_items[right_index], 2.0),
 				"top-bar cards never sit on top of each other")
 	_ok(_horizontal_gutter(back, level) >= 10.0,
 		"back and level keep a thumb-width visual gutter")
-	_ok(_horizontal_gutter(level, plaque) >= 12.0,
-		"level and title keep separate reading lanes")
-	_ok(_horizontal_gutter(plaque, challenge) >= 12.0,
-		"title words do not run into the harvest challenge")
+	_ok(_horizontal_gutter(level, challenge) >= 12.0,
+		"the level and challenge retain separate reading lanes")
+	_ok(back is Control and chooser is Button and (back as Control).size.y >= 60.0
+		and (chooser as Button).size == Vector2(48.0, 48.0),
+		"the header retains its return target and gives the icon picker a complete square target")
 	_ok(_horizontal_gutter(challenge, purse) >= 10.0,
 		"the challenge and coin count do not stick together")
 
@@ -186,15 +195,26 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 	var challenge_label: Node = _find_named(_garden, "ChallengeLabel")
 	var challenge_count: Node = _find_named(_garden, "ChallengeCount")
 	var challenge_icon: Node = _find_named(_garden, "ChallengeIcon")
-	_ok(challenge_label is Label and challenge_count is Label
-			and _control_contains(challenge, challenge_label)
-			and _control_contains(challenge, challenge_count),
-		"challenge words and tally both stay inside their own warm card")
-	_ok(_controls_are_separate(challenge_label, challenge_count, 2.0),
-		"challenge title and progress tally do not stack on the same reading line")
-	_ok(challenge_icon is Control and _horizontal_gutter(challenge_icon, challenge_label) >= 6.0
-			and _horizontal_gutter(challenge_icon, challenge_count) >= 6.0,
-		"challenge words leave a clear gutter after their basket picture")
+	var next_icon: Node = _find_named(_garden, "ChallengeNext")
+	var play_icon: Node = _find_named(_garden, "ChallengePlayIcon")
+	var chooser_icon: Node = _find_named(_garden, "ChallengeChooserIcon")
+	_ok(challenge_label == null and challenge_icon == null
+		and challenge is Control and (challenge as Control).size == Vector2(88.0, 48.0),
+		"the small challenge entrance uses its crop picture instead of repeating a title and basket")
+	_ok(challenge_count is Label and _control_contains(challenge, challenge_count)
+		and _control_contains(challenge, next_icon) and _control_contains(challenge, play_icon),
+		"the challenge crop, play hint and real progress all fit inside the small entrance")
+	_ok(_controls_are_separate(next_icon, challenge_count, 2.0)
+		and _controls_are_separate(play_icon, challenge_count, 1.0),
+		"the small progress count leaves clear space around both challenge pictures")
+	_ok(challenge_press is Button and (challenge_press as Button).tooltip_text == I18n.t("garden.harvest_challenge")
+		and chooser is Button and (chooser as Button).text.is_empty()
+		and (chooser as Button).tooltip_text == I18n.t("garden.choose_challenge"),
+		"both icon-only entrances keep their full meaning in the existing localized tooltips")
+	_ok(chooser_icon is Control and chooser_icon.get_child_count() == 4
+		and (chooser_icon as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE
+		and _control_contains(chooser, chooser_icon, 4.0),
+		"the four-square picker picture fits its button and never steals its click")
 	var level_value: Node = _find_named(_garden, "FarmLevelValue")
 	var level_rail: Node = _find_named(_garden, "FarmLevelRail")
 	var level_icon: Node = _find_named(_garden, "FarmLevelIcon")
@@ -242,7 +262,7 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 		_ok(_visible_control_inside(tool, screen),
 			"the %s tool remains a visible touch target" % tool_id)
 		_ok(_control_contains(tool_deck, tool),
-			"the %s tool belongs inside the blue tool lane" % tool_id)
+			"the %s tool belongs inside the warm tool lane" % tool_id)
 		if previous_tool != null:
 			_ok(_horizontal_gutter(previous_tool, tool) >= 8.0,
 				"neighbouring tools have a finger-sized horizontal gutter")
@@ -258,13 +278,13 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 			"the %s tool keeps both its picture and its word" % tool_id)
 		_ok(_control_contains(tool, icon, 2.0) and _control_contains(tool, label, 2.0),
 			"the %s picture and word stay inside their own button" % tool_id)
-		_ok(_vertical_gutter(icon, label) >= 6.0,
-			"the %s tool leaves at least six pixels between picture and word" % tool_id)
+		_ok(_vertical_gutter(icon, label) >= 2.0,
+			"the %s tool leaves at least two pixels between picture and readable word" % tool_id)
 		_ok(_controls_are_separate(icon, label),
 			"the %s picture and word never overlap" % tool_id)
 
 	var unlocked: Array = SaveManager.data.get("farm", {}).get("unlocked_crops", [])
-	var visible_seed_slots := mini(7, unlocked.size())
+	var visible_seed_slots := mini(14, unlocked.size())
 	var actual_seed_slots := 0
 	var highest_seed_edge := INF
 	var previous_seed: Node = null
@@ -275,9 +295,9 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 		_ok(_visible_control_inside(seed, screen),
 			"seed slot %d stays visible on this screen shape" % (index + 1))
 		_ok(_control_contains(seed_deck, seed),
-			"seed slot %d belongs inside the green seed lane" % (index + 1))
+			"seed slot %d belongs inside the warm seed lane" % (index + 1))
 		if previous_seed != null:
-			_ok(_horizontal_gutter(previous_seed, seed) >= 8.0,
+			_ok(_horizontal_gutter(previous_seed, seed) >= 4.0,
 				"neighbouring seed choices do not touch")
 		previous_seed = seed
 		if seed is Control:
@@ -355,26 +375,39 @@ func _glass(at: Vector2) -> Vector2:
 	return Vector2(at.x * win.x / view.x, at.y * win.y / view.y)
 
 
-func _tap(at: Vector2) -> void:
+func _tap(at: Vector2, trace: Dictionary = {}) -> void:
+	if not trace.is_empty():
+		trace["before"] = _input_trace_snapshot(at)
 	for pressed in [true, false]:
 		var touch := InputEventScreenTouch.new()
 		touch.index = 0
 		touch.pressed = pressed
 		touch.position = _glass(at)
 		Input.parse_input_event(touch)
+		if not trace.is_empty():
+			trace["down_dispatch" if pressed else "up_dispatch"] = _input_trace_snapshot(at)
 		await get_tree().process_frame
+		if not trace.is_empty():
+			trace["down_frame" if pressed else "up_frame"] = _input_trace_snapshot(at)
 	# The screen rebuilds itself one frame after an action.
 	await get_tree().process_frame
 	await get_tree().process_frame
 
 
-func _finger(from: Vector2, to: Vector2, after_press: Callable = Callable()) -> void:
+func _finger(from: Vector2, to: Vector2, after_press: Callable = Callable(),
+		trace: Dictionary = {}) -> void:
+	if not trace.is_empty():
+		trace["before"] = _input_trace_snapshot(from)
 	var down := InputEventScreenTouch.new()
 	down.index = 0
 	down.pressed = true
 	down.position = _glass(from)
 	Input.parse_input_event(down)
+	if not trace.is_empty():
+		trace["down_dispatch"] = _input_trace_snapshot(from)
 	await get_tree().process_frame
+	if not trace.is_empty():
+		trace["down_frame"] = _input_trace_snapshot(from)
 	if after_press.is_valid():
 		await after_press.call()
 
@@ -387,6 +420,8 @@ func _finger(from: Vector2, to: Vector2, after_press: Callable = Callable()) -> 
 		drag.relative = _glass(at) - _glass(last)
 		last = at
 		Input.parse_input_event(drag)
+		if not trace.is_empty() and step == 7:
+			trace["last_move_dispatch"] = _input_trace_snapshot(to)
 		await get_tree().process_frame
 
 	var up := InputEventScreenTouch.new()
@@ -394,9 +429,52 @@ func _finger(from: Vector2, to: Vector2, after_press: Callable = Callable()) -> 
 	up.pressed = false
 	up.position = _glass(to)
 	Input.parse_input_event(up)
+	if not trace.is_empty():
+		trace["up_dispatch"] = _input_trace_snapshot(to)
+	await get_tree().process_frame
+	if not trace.is_empty():
+		trace["up_frame"] = _input_trace_snapshot(to)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	await get_tree().process_frame
+	if not trace.is_empty():
+		trace["settled"] = _input_trace_snapshot(to)
+
+
+## Only used when a traced real gesture fails. Sampling state never waits,
+## retries input, moves a target or changes the farm's decision.
+func _input_trace_snapshot(at: Vector2) -> Dictionary:
+	var world: Node = _garden.get("_world")
+	var hit_blockers: Array = []
+	for blocker in world.get("blockers"):
+		if is_instance_valid(blocker) and blocker is Control and (blocker as Control).visible \
+				and (blocker as Control).get_global_rect().has_point(at):
+			hit_blockers.append({"name": str(blocker.name), "queued": blocker.is_queued_for_deletion(),
+				"rect": (blocker as Control).get_global_rect()})
+	var fields: Array = []
+	_collect_drag_trace(_garden, fields)
+	return {"at": at, "glass": _glass(at), "inside": _camera().inside(at),
+		"bed": world.call("bed_under", at), "facility": world.call("facility_under", at),
+		"finger": world.get("_finger"), "locked": world.get("locked"),
+		"fetch": world.get("_fetch_live"), "cloud": world.get("_cloud_live"),
+		"brush": world.get("brush_armed"), "stroke": world.get("_stroke"),
+		"rebuild": _garden.get("_rebuild_queued"), "blockers": hit_blockers, "fields": fields,
+		"orders_open": _garden.get("_orders_open"), "market_open": _garden.get("_market_open")}
+
+
+func _collect_drag_trace(node: Node, fields: Array) -> void:
+	if node is DragField:
+		var field := node as DragField
+		var held := field.held()
+		var held_node: Node2D = held.get("node") as Node2D
+		fields.append({"id": field.get_instance_id(), "queued": field.is_queued_for_deletion(),
+			"input": field.is_processing_input(), "touch": field.get("_touch"),
+			"held": str(held.get("key", "")), "position": held_node.position if is_instance_valid(held_node) else Vector2.INF,
+			"market": field == _garden.get("_market_field")})
+	for child in node.get_children():
+		# Both live and retiring fields live below the screen's Control layer.
+		# Do not traverse every painted leaf in the unrelated Node2D farm.
+		if child is Control:
+			_collect_drag_trace(child, fields)
 
 
 ## Nothing he has to reach for is off the glass, and the beds are far enough
@@ -417,7 +495,7 @@ func _the_beds_are_on_the_screen_he_is_holding(view: Vector2) -> void:
 		var half := _bed_box() * 0.5
 		_ok(at.x - half.x > 60.0 and at.x + half.x < view.x - 60.0,
 			"bed %d is on the screen horizontally" % i)
-		_ok(at.y - half.y > 96.0 and at.y + half.y < view.y - 168.0,
+		_ok(at.y - half.y > 96.0 and at.y + half.y < view.y - 140.0,
 			"bed %d sits between the top bar and the seed rack" % i)
 
 	# The rule that makes a mis-drop impossible: DragField clicks a released
@@ -432,7 +510,28 @@ func _the_beds_are_on_the_screen_he_is_holding(view: Vector2) -> void:
 
 func _tapping_grass_turns_it_over() -> void:
 	_ok(str(_plots()[0].get("state", "")) == Farm.EMPTY, "bed 0 starts as grass")
-	await _tap(_bed(0))
+	var world: Node = _garden.get("_world")
+	var at := _bed(0)
+	var trace := {"at": at, "glass": _glass(at),
+		"inside": _camera().inside(at), "blocked": world.call("_blocked", at),
+		"under": world.call("bed_under", at), "locked": world.get("locked"),
+		"finger_before": world.get("_finger"), "state_before": _plots()[0].get("state", "")}
+	for pressed in [true, false]:
+		var touch := InputEventScreenTouch.new()
+		touch.index = 0
+		touch.pressed = pressed
+		touch.position = _glass(at)
+		Input.parse_input_event(touch)
+		await get_tree().process_frame
+		trace["down" if pressed else "up"] = {"finger": world.get("_finger"),
+			"locked": world.get("locked"), "brush": world.get("brush_armed"),
+			"cloud": world.get("_cloud_live"), "fetch": world.get("_fetch_live"),
+			"state": _plots()[0].get("state", ""),
+			"seed_held": not (_garden.get("_field") as DragField).held().is_empty()}
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not Farm.is_tilled(_plots()[0]):
+		print("DBG first grass: ", trace)
 	_ok(Farm.is_tilled(_plots()[0]),
 		"one tap on grass turns it into earth -- no tool to pick first")
 	# ...and the OTHER beds are untouched. One tap, one bed.
@@ -1113,38 +1212,38 @@ func _fourteen_seeds_take_turns() -> void:
 	_garden.call("_rebuild")
 	await get_tree().process_frame
 
-	# 货架第一页：七块整整齐齐，向右的箭头站在第八块的位置上。
-	_ok(_rack_tiles() == 7, "page one of the rack holds seven tiles")
+	_ok(_rack_tiles() == 14, "all fourteen owned seeds fit the first rack row")
 	var buttons: Dictionary = _garden.get("_panel_buttons")
-	_ok(not (buttons.get("rack_back") is Button),
-		"no back arrow on the first page -- an arrow that shakes its head "
-		+ "is a lock")
+	_ok(not (buttons.get("rack_back") is Button), "the full first row has no useless back arrow")
+	_ok(not (buttons.get("rack_next") is Button), "the familiar collection needs no extra page")
+	# Exercise the retained paging path with an actual extra crop definition,
+	# then restore the catalogue; duplicates in unlocked_crops would be a lie.
+	var future: Dictionary = GameData.get_crop("wheat").duplicate(true)
+	future["id"] = "qa_future_seed"
+	GameData.crops.append(future)
+	var crop_index: Dictionary = GameData.get("_crops_by_id")
+	crop_index["qa_future_seed"] = future
+	SaveManager.data["farm"]["unlocked_crops"].append("qa_future_seed")
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	buttons = _garden.get("_panel_buttons")
 	var next: Variant = buttons.get("rack_next")
-	_ok(next is Button, "fourteen crops give the rack a next arrow")
 	var seed_deck: Node = _find_named(_garden, "GardenSeedDeck")
 	var pager_deck: Node = _find_named(_garden, "GardenSeedPagerDeck")
+	_ok(next is Button, "a future fifteenth seed activates the same rack pager")
 	_ok(next is Button and seed_deck is Control and pager_deck is Control
-			and (pager_deck as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE
-			and absf((pager_deck as Control).get_global_rect().position.x
-				- (seed_deck as Control).get_global_rect().end.x) <= 4.0
-			and _control_contains(pager_deck, next, 2.0),
-		"the first-page arrow lives in a passive eighth seed slot, not empty shelf space")
-
-	# 翻到第二页，把第二页的第一颗（小麦）真的拖进地里。
-	if next is Button:
-		(next as Button).pressed.emit()
-		for i in range(3):
-			await get_tree().process_frame
-		_ok(_rack_tiles() == 7, "page two holds the other seven")
+		and _controls_are_separate(_rack_seed_button(13), next)
+		and _control_contains(pager_deck, next, 2.0),
+		"the future-page arrow has a separate sixty-pixel target after the last seed")
+	if next is Control:
+		await _tap((next as Control).get_global_rect().get_center())
+		_ok(_rack_tiles() == 1, "the fifteenth crop owns the second page")
 		var back: Variant = (_garden.get("_panel_buttons") as Dictionary).get("rack_back")
-		_ok(back is Button, "and now there is a way back")
-		seed_deck = _find_named(_garden, "GardenSeedDeck")
+		_ok(back is Button, "the future page offers a real way back")
 		pager_deck = _find_named(_garden, "GardenSeedPagerDeck")
-		_ok(back is Button and seed_deck is Control and pager_deck is Control
-			and absf((pager_deck as Control).get_global_rect().position.x
-				- (seed_deck as Control).get_global_rect().end.x) <= 4.0
-			and _control_contains(pager_deck, back, 2.0),
-		"the return arrow keeps the same eighth-slot home beside the seed pouch")
+		_ok(back is Control and _control_contains(pager_deck, back, 2.0),
+			"the return arrow stays inside the page's own passive slot")
 		var plots := _plots()
 		plots[0]["state"] = Farm.TILLED
 		plots[0]["crop_id"] = ""
@@ -1152,8 +1251,12 @@ func _fourteen_seeds_take_turns() -> void:
 		_garden.call("_rebuild")
 		await get_tree().process_frame
 		await _finger(_seed_tile(0), _bed(0))
-		_ok(str(_plots()[0].get("crop_id", "")) == "wheat",
-			"a seed dragged off page two lands in the bed like any seed")
+		_ok(str(_plots()[0].get("crop_id", "")) == "qa_future_seed",
+			"a real touch drag from the future page plants its actual crop")
+	GameData.crops.pop_back()
+	crop_index.erase("qa_future_seed")
+	SaveManager.data["farm"]["plots"][0] = Farm.fresh_plot(0)
+	_garden.set("_rack_page", 0)
 
 	# 种子铺：2 级农场翻到第二页，没长到的排上一个能按的芽都没有。
 	farm = SaveManager.data["farm"]
@@ -1326,46 +1429,30 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 		var hero_action := ribbon.get_node_or_null("HeroTaskAction") as Label
 		var hero_preview := ribbon.get_node_or_null("HeroTaskPreview/HeroTaskProgress") as Label
 		_ok(hero_icon != null and hero_icon.visible and hero_action != null \
-			and hero_action.visible and (compact or (hero_preview != null \
-			and hero_preview.visible)),
+			and hero_action.visible and hero_preview != null and hero_preview.visible,
 			"the hero task card keeps its picture and one clear action, plus an order preview when it fits")
 		var daily := ribbon.get_node_or_null("HeroTaskDaily") as Control
 		var daily_icon := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyIcon") as Control
 		var daily_progress := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyProgress") as Label
-		if compact:
-			_ok(daily == null,
-				"the compact task card yields its secondary daily row to one action")
-			_ok(daily_icon == null and daily_progress == null,
-				"the compact card leaves no hidden daily picture or words beside the action")
-			_ok(hero_preview == null,
-				"the compact task card also yields its optional order preview")
-			_ok(hero_action != null and absf(hero_action.get_global_rect().get_center().y
-				- task_rect.get_center().y) <= 1.0,
-				"the one compact next-action line is vertically centred in its card")
-			_ok(hero_action != null
-				and hero_action.get_global_rect().position.y >= task_rect.position.y + 12.0
-				and hero_action.get_global_rect().end.y <= task_rect.end.y - 12.0,
-				"the compact next-action line keeps real top and bottom breathing room")
-		else:
-			_ok(daily != null and int(daily.get_meta("done", -1)) == 2
-				and int(daily.get_meta("total", -1)) == 3
-				and not bool(daily.get_meta("all_done", true)),
-				"the task card shows the same two-of-three daily care state as the save")
-			_ok(daily_progress != null and daily_progress.text == "2/3"
-				and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") != null
-				and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_2") != null,
-				"the daily crest keeps both a readable tally and all three small stars")
-			_ok(daily_progress != null and hero_action != null
-				and not daily_progress.get_global_rect().intersects(hero_action.get_global_rect()),
-				"daily words and the next action keep separate reading lines")
-			_ok(daily_icon != null and daily_progress != null
-				and daily_progress.get_global_rect().position.x - daily_icon.get_global_rect().end.x >= 7.0,
-				"the daily reward words do not stick to their crest icon")
-			var daily_star := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") as Control
-			_ok(daily_star != null and daily_progress != null
-				and daily_star.get_global_rect().position.x
-				- daily_progress.get_global_rect().end.x >= 6.0,
-				"the daily tally words leave air before their decorative stars")
+		_ok(daily != null and int(daily.get_meta("done", -1)) == 2
+			and int(daily.get_meta("total", -1)) == 3
+			and not bool(daily.get_meta("all_done", true)),
+			"the task card shows the same two-of-three daily care state as the save")
+		_ok(daily_progress != null and daily_progress.text == "2/3"
+			and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") != null
+			and ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_2") != null,
+			"the daily crest keeps both a readable tally and all three small stars")
+		_ok(daily_progress != null and hero_action != null
+			and not daily_progress.get_global_rect().intersects(hero_action.get_global_rect()),
+			"daily words and the next action keep separate reading lines")
+		_ok(daily_icon != null and daily_progress != null
+			and daily_progress.get_global_rect().position.x - daily_icon.get_global_rect().end.x >= 7.0,
+			"the daily reward words do not stick to their crest icon")
+		var daily_star := ribbon.get_node_or_null("HeroTaskDaily/HeroTaskDailyStar_0") as Control
+		_ok(daily_star != null and daily_progress != null
+			and daily_star.get_global_rect().position.x
+			- daily_progress.get_global_rect().end.x >= 6.0,
+			"the daily tally words leave air before their decorative stars")
 		_ok(hero_badge != null and hero_action != null
 			and hero_action.get_global_rect().position.x - hero_badge.get_global_rect().end.x >= 11.0,
 			"the primary task words leave a clear gutter after their picture badge")
@@ -1377,10 +1464,12 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 				- preview_icon.get_global_rect().end.x >= 6.0,
 				"order progress words do not stick to their crop picture")
 		else:
-			_ok(compact,
-				"a compact shelf yields optional order text before squeezing three reading lines")
-			_ok(compact,
-				"a compact shelf has no hidden order icon next to the next-action words")
+			_ok(false, "the dense shelf keeps its order preview on both screen shapes")
+			_ok(false, "the dense shelf keeps the order picture beside its progress")
+		_ok(_control_contains(ribbon, daily) and _control_contains(ribbon, hero_preview)
+			and _controls_are_separate(daily, hero_action)
+			and _controls_are_separate(daily, hero_preview),
+			"the dense card retains separate daily and order progress inside its sixty-pixel height")
 		var arrow := ribbon.get_node_or_null("HeroTaskArrow") as Label
 		_ok(hero_action != null and arrow != null
 			and arrow.get_global_rect().position.x - hero_action.get_global_rect().end.x >= 10.0,
@@ -1541,7 +1630,7 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 ## 96×72 rectangle that no longer exists.
 func _rack_tiles() -> int:
 	var found := 0
-	for index in range(7):
+	for index in range(14):
 		if _rack_seed_button(index) != null:
 			found += 1
 	return found
@@ -1679,7 +1768,7 @@ func _there_is_a_way_out() -> void:
 	_ok(back != null, "there is a way out of the garden")
 	if back == null:
 		return
-	_ok(back.visible and back.size.x > 60.0 and back.size.y > 60.0,
+	_ok(back.visible and back.size.x >= 60.0 and back.size.y >= 60.0,
 		"...and it is big enough for a thumb")
 	var view: Vector2 = get_viewport().get_visible_rect().size
 	_ok(back.global_position.x >= 0.0 and back.global_position.y >= 0.0
@@ -1837,7 +1926,7 @@ func _no_button_grew_or_landed_on_another() -> void:
 	SaveManager.save_game()
 
 	for panel in ["shop", "kitchen", "orders", "market", "barn", "recipes",
-			"visits"]:
+			"visits", "challenges"]:
 		_garden.call("_close_panels")
 		_garden.call("_rebuild")
 		await get_tree().process_frame
@@ -2034,6 +2123,19 @@ func _the_bed_grows_the_same_crop_the_harvest_page_shows() -> void:
 	_ok(patch != null and patch.texture != null
 		and patch.texture.resource_path == "res://assets/harvest_3d/props/soil_grass_patch.png",
 		"a turned bed is the studio's soil patch, not a brown blob")
+	var visual_art := preload("res://scripts/harvest/harvest_visual_art.gd")
+	var surface := visual_art.prop_anchor_pixel("soil_grass_patch", "planting_surface", Vector2(-1, -1))
+	_ok(surface.x >= 0.0 and surface.y >= 0.0 and surface.y < 467.0,
+		"the raised soil declares its real Blender surface above the ground origin")
+	if patch != null and ripe != null:
+		var surface_at := patch.position + surface * patch.size / 512.0
+		var crop_root := ripe.position + Vector2(ripe.size.x * 0.5, ripe.size.y * 467.0 / 512.0)
+		_ok(surface_at.distance_to(crop_root) < 0.5,
+			"the soil surface meets the crop root, not the bed's front edge")
+		_ok(patch.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+			"the raised bed art still passes every touch to the existing plot")
+	_ok(visual_art.prop_anchor_pixel("missing_prop", "planting_surface", Vector2(13, 29)) == Vector2(13, 29),
+		"an asset without anchor metadata preserves its caller's legacy placement")
 	var scenery := _find_named(_garden.get("_world"), "LandmarkScenery")
 	_ok(scenery != null and _find_named(scenery, "Scenery_treeArt") is TextureRect
 		and _find_named(scenery, "Scenery_hedgeArt") is TextureRect,
@@ -2447,7 +2549,10 @@ func _open_the_board() -> void:
 		world.look_at_facility("orders")
 		await get_tree().process_frame
 		at = world.facility_screen_position("orders")
-	await _tap(at)
+	var trace := {"gesture": "open orders", "frame": Engine.get_process_frames()}
+	await _tap(at, trace)
+	if not bool(_garden.get("_orders_open")):
+		print("DBG failed order-board touch: ", trace)
 	_ok(bool(_garden.get("_orders_open")),
 		"pressing the order board opens it")
 	await get_tree().process_frame
@@ -3045,9 +3150,12 @@ func _the_board_never_runs_dry() -> void:
 			in SaveManager.data["farm_orders"]["delivered"]),
 		"while the friends' own ledger stays untouched")
 
-	# One more basket, so the ribbon keeps its oldest instruction.
-	for crop_id in wants.keys():
-		Barn.put(str(crop_id), int(wants[crop_id]))
+	# The board rotates the served basket out; fill a CURRENT card, so the
+	# ribbon points at a delivery the child can actually see.
+	var rotated: Array = scene.call("_orders_for_board", story_ids)
+	var current_wants: Dictionary = rotated[0].get("requirements", {})
+	for crop_id in current_wants.keys():
+		Barn.put(str(crop_id), int(current_wants[crop_id]))
 	SaveManager.save_game()
 	var task: Dictionary = scene.call("_next_task")
 	_ok(str(task.get("kind", "")) == "deliver",
@@ -3112,8 +3220,11 @@ func _drag_market_crop_to_box(crop_id: String, refresh_mid_drag: bool = false) -
 				"a clock refresh keeps the market card and drag field alive mid-drag")
 			_ok(bool(_garden.get("_rebuild_queued")),
 				"the market refresh remains pending until the finger releases")
+	var trace := {"gesture": "market drag", "crop": crop_id, "frame": Engine.get_process_frames()}
 	await _finger(card.get_global_transform_with_canvas().origin,
-		box.get_global_transform_with_canvas().origin + Vector2(0.0, 34.0), after_press)
+		box.get_global_transform_with_canvas().origin + Vector2(0.0, 34.0), after_press, trace)
+	if int((_garden.get("_market_sell") as Dictionary).get(crop_id, 0)) <= 0:
+		print("DBG failed market drag: ", trace)
 	if refresh_mid_drag:
 		_ok(not is_instance_valid(field)
 				and _garden.get("_market_field") is DragField,
@@ -3702,8 +3813,6 @@ func _gold_shines_and_the_dog_says_hello() -> void:
 ## lives in the same actions the child performs.
 func _the_day_has_its_own_little_jobs() -> void:
 	var scene: Node = _garden
-	var view: Vector2 = get_viewport().get_visible_rect().size
-	var compact := view.x / maxf(view.y, 1.0) < 1.6
 	# A fresh day, clean tallies.
 	GameClock.set_test_now(NOON, 0)
 	SaveManager.data["farm"]["dailies"] = {"date": GameClock.now_date(),
@@ -3781,34 +3890,21 @@ func _the_day_has_its_own_little_jobs() -> void:
 	# rebuild the real shelf to prove the last star becomes the same golden-luck
 	# state that planting uses -- no separate UI counter is allowed here.
 	var partial_daily: Node = _find_named(scene, "HeroTaskDaily")
-	if compact:
-		_ok(partial_daily == null,
-			"the compact task card keeps the daily tally out of the one action line")
-	else:
-		_ok(partial_daily != null and int(partial_daily.get_meta("done", -1)) == 2
-			and not bool(partial_daily.get_meta("all_done", true)),
-			"two finished daily verbs light two stars before the final little job")
+	_ok(partial_daily != null and int(partial_daily.get_meta("done", -1)) == 2
+		and not bool(partial_daily.get_meta("all_done", true)),
+		"both screen shapes retain the two-of-three daily progress")
 	scene.call("_daily_progress", "harvest", 2)
 	scene.call("_rebuild")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var lucky_daily: Node = _find_named(scene, "HeroTaskDaily")
 	var lucky_label: Node = _find_named(scene, "HeroTaskDailyProgress")
-	if compact:
-		var summary: Dictionary = Dailies.summary(SaveManager.data["farm"].get("dailies", {}))
-		_ok(lucky_daily == null and lucky_label == null
-			and bool(summary.get("all_done", false)),
-			"the compact card hides the completed crest without changing its derived state")
-		_ok(is_equal_approx(scene.call("_golden_chance"), 0.08),
-			"the compact action-only card keeps today's golden luck active")
-	else:
-		_ok(lucky_daily != null and int(lucky_daily.get_meta("done", -1)) == 3
-			and int(lucky_daily.get_meta("total", -1)) == 3
-			and bool(lucky_daily.get_meta("all_done", false)),
-			"the final daily star lights the complete care crest on the real task card")
-		_ok(lucky_label is Label and (lucky_label as Label).text
-			== I18n.t("garden.daily.lucky"),
-			"the complete crest tells the child that today's golden luck is active")
+	_ok(lucky_daily != null and int(lucky_daily.get_meta("done", -1)) == 3
+		and int(lucky_daily.get_meta("total", -1)) == 3
+		and bool(lucky_daily.get_meta("all_done", false)),
+		"the final daily star remains visible in the dense task card")
+	_ok(lucky_label is Label and (lucky_label as Label).text == I18n.t("garden.daily.lucky"),
+		"both screen shapes retain the complete golden-luck text")
 
 	# Claim on the board, once. The second press meets a tick, not a purse.
 	Barn.put("carrot", 2)   # room is irrelevant; the tally is what gates
@@ -3898,12 +3994,14 @@ func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
 	var press_rect := (press as Control).get_global_rect() if press is Control else Rect2()
 	_ok(door is Control and press is Control and door_rect.size.is_equal_approx(press_rect.size),
 		"the whole visible challenge card is the whole press target")
-	var compact := view.x / maxf(view.y, 1.0) < 1.6
-	_ok(next_card is Control and (next_card as Control).visible == not compact,
-		"the next-crop card stays out of the farm window on a compact tablet")
+	_ok(_visible_control_inside(next_card, Rect2(Vector2.ZERO, view))
+		and _control_contains(door, next_card),
+		"both screen shapes retain the next crop inside the challenge's header card")
 
 	# The tally, honest against the save: no stars anywhere reads zero.
 	var count: Node = _find_named(scene, "ChallengeCount")
+	_ok(_controls_are_separate(next_card, count, 2.0),
+		"the next crop keeps clear of the completed-level count")
 	_ok(count is Label and (count as Label).text
 			== "0/%d" % levels.size(),
 		"a fresh save reads 0 over every harvest level")
@@ -3943,10 +4041,11 @@ func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
 		var expected := str(levels[1].get("id", ""))
 		var was_busy := bool(SceneManager.get("_busy"))
 		SceneManager.set("_busy", true)
-		(press as Button).emit_signal("pressed")
-		await get_tree().process_frame
+		next_card = _find_named(scene, "ChallengeNext")
+		if next_card is Control:
+			await _mouse_click((next_card as Control).get_global_rect().get_center())
 		_ok(GameManager.current_level_id == expected,
-			"pressing the door starts the next unstarred harvest challenge")
+			"a real mouse click on the crop icon starts the next unstarred harvest challenge")
 		SceneManager.set("_busy", was_busy)
 
 	# Once every challenge has a star, there is no crop left to promise. The
@@ -3963,6 +4062,19 @@ func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
 	_ok(next_card != null and str(next_card.get_meta("shows", "")) == "star",
 		"a completed harvest shelf previews a star, not a stale crop")
 	await _challenge_preview_keeps_its_art_owned(scene, "star")
+	next_card = _find_named(scene, "ChallengeNext")
+	door = _find_named(scene, "HarvestChallenge")
+	count = _find_named(scene, "ChallengeCount")
+	_ok(count is Label and (count as Label).text == "%d/%d" % [levels.size(), levels.size()]
+		and _control_contains(door, count) and _controls_are_separate(next_card, count, 2.0),
+		"the complete sixteen-of-sixteen count stays readable inside the small entrance")
+	var complete_was_busy := bool(SceneManager.get("_busy"))
+	SceneManager.set("_busy", true)
+	if next_card is Control:
+		await _tap((next_card as Control).get_global_rect().get_center())
+	_ok(GameManager.current_level_id == str(levels[-1].get("id", "")),
+		"a real touch on the completion star still replays the last harvest challenge")
+	SceneManager.set("_busy", complete_was_busy)
 
 
 ## A crop preview used to build its fallback star and then overwrite the
@@ -4144,3 +4256,564 @@ func _care_has_moves_of_its_own() -> void:
 		str(after_t.get("state")), str(after_t.get("care_event", ""))])
 	_ok(str(_plots()[0].get("care_event", "")) == "",
 		"a plain tap still waters, weeds and shoos -- no wrong tap here")
+
+
+func _mouse_click(at: Vector2) -> void:
+	var motion := InputEventMouseMotion.new()
+	motion.position = _glass(at)
+	Input.parse_input_event(motion)
+	await get_tree().process_frame
+	for down in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.pressed = down
+		event.position = _glass(at)
+		Input.parse_input_event(event)
+		await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _friends_have_purposes_and_say_thanks(view: Vector2) -> void:
+	var saved := SaveManager.data.duplicate(true)
+	var new_ids := ["rabbit_picnic", "rabbit_seed_share", "robot_cookie_day",
+		"robot_mill_team", "puppy_morning_basket", "bear_autumn_pantry"]
+	var done: Array = []
+	var rabbit: Dictionary = {}
+	for order in GameData.garden_orders:
+		var oid := str(order.get("id", ""))
+		if not bool(order.get("recurring", false)) and not oid in new_ids:
+			done.append(oid)
+		if oid == "rabbit_picnic":
+			rabbit = order
+	SaveManager.data["farm_orders"] = {"delivered": done}
+	SaveManager.data["farm"]["farm_xp"] = 200
+	SaveManager.data["farm"]["warehouse"] = {"carrot": 2, "strawberry": 2}
+	SaveManager.data["farm"]["harvest_basket"] = {}
+	SaveManager.data["settings"]["reduce_motion"] = true
+	_garden.call("_open_panel", "orders")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var screen := Rect2(Vector2.ZERO, view)
+	for oid in new_ids.slice(0, 3):
+		var card: Node = _find_named(_garden, "OrderCard_%s" % oid)
+		var purpose: Node = _find_named(_garden, "OrderPurpose_%s" % oid)
+		_ok(card is Button, "%s has a reachable friend card" % oid)
+		_ok(_visible_control_inside(card, screen), "%s card stays inside the screen" % oid)
+		_ok(purpose is Label and _control_contains(card, purpose),
+			"%s purpose stays within its own card (card=%s, purpose=%s)" % [oid,
+				str((card as Control).get_global_rect()) if card is Control else "missing",
+				str((purpose as Control).get_global_rect()) if purpose is Control else "missing"])
+		_ok(purpose is Label and (purpose as Label).mouse_filter == Control.MOUSE_FILTER_IGNORE,
+			"%s purpose never steals the card touch" % oid)
+		var price: Node = _find_named(_garden, "OrderPrice_%s" % oid)
+		_ok(price is Label and purpose is Label
+			and (price as Control).get_global_rect().end.y + 2.0 <= (purpose as Control).get_global_rect().position.y,
+			"%s price and purpose keep separate reading lines" % oid)
+		_ok(purpose is Label and not (purpose as Label).tooltip_text.is_empty(),
+			"%s keeps a complete purpose even when a translation is trimmed" % oid)
+		var tallies: Array = []
+		for order in GameData.garden_orders:
+			if str(order.get("id", "")) != oid:
+				continue
+			for crop_id in (order.get("requirements", {}) as Dictionary).keys():
+				var tally: Node = _find_named(_garden, "OrderTally_%s_%s" % [oid, crop_id])
+				_ok(tally is Label and _control_contains(card, tally)
+					and _controls_are_separate(tally, price, 2.0)
+					and _vertical_gutter(tally, purpose) >= 2.0,
+					"%s %s count owns a readable space before the reward and purpose" % [oid, crop_id])
+				tallies.append(tally)
+		for index in range(tallies.size() - 1):
+			_ok(_controls_are_separate(tallies[index], tallies[index + 1], 2.0),
+				"%s keeps its required food counts apart" % oid)
+	var portrait: Node = _find_named(_garden, "RabbitOrderPortrait")
+	_ok(portrait is Control and (portrait as Control).size == Vector2(44, 44),
+		"rabbit uses the alpha-fitted 44px portrait, not the whole transparent canvas")
+	var first: Node = _find_named(_garden, "OrderCard_rabbit_picnic")
+	var before := Coins.balance()
+	var plot_snapshot := JSON.stringify(_plots())
+	if first is Control:
+		await _tap((first as Control).get_global_rect().get_center())
+	_ok(Coins.balance() == before + int(rabbit.get("rewards", {}).get("coins", 0)),
+		"a real touch on the rabbit request pays its promised reward")
+	_ok(Barn.count("carrot") == 0 and Barn.count("strawberry") == 0,
+		"the friend consumes exactly the requested picnic food")
+	_ok(JSON.stringify(_plots()) == plot_snapshot,
+		"the friend card blocks any farm bed behind it")
+	var thanks: Node = _find_named(_garden, "OrderThanks")
+	var thanks_text: Node = _find_named(_garden, "OrderThanksText")
+	_ok(thanks is Control and _visible_control_inside(thanks, screen),
+		"a quiet thank-you remains visible after the board redraws")
+	_ok(thanks is Control and (thanks as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"the thank-you is non-blocking in reduced-motion mode")
+	_ok(thanks_text is Label and (thanks_text as Label).text == I18n.t(str(rabbit.get("thanks_key", ""))),
+		"the friend's thanks match the completed request")
+	var close := _find_button_labelled(_garden, "X")
+	var remaining: Node = _find_named(_garden, "OrderCard_rabbit_seed_share")
+	_ok(_controls_are_separate(thanks, close, 2.0) and _controls_are_separate(thanks, remaining, 2.0),
+		"the quiet thanks leave both close and the next friend's requirements unobscured")
+	_ok(_control_contains(thanks, thanks_text), "the complete thanks stay inside their own toast")
+	_garden.call("_deliver", rabbit)
+	_ok(Coins.balance() == before + int(rabbit.get("rewards", {}).get("coins", 0)),
+		"a repeated friend delivery cannot pay a second time")
+	SaveManager.data = saved
+	SaveManager.save_game()
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _harvest_levels_can_be_chosen_and_replayed(view: Vector2) -> void:
+	var levels: Array = GameData.get_levels_for_mode("harvest")
+	_ok(levels.size() == 16, "the farm picker can reach all sixteen harvest adventures")
+	var first_id := str(levels[0].get("id", ""))
+	SaveManager.data["levels"][first_id] = {"stars": 2, "completed": true}
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var chooser: Node = _find_named(_garden, "HarvestChallengeChooser")
+	var shortcut: Node = _find_named(_garden, "HarvestChallengeShortcut")
+	var purse: Node = _find_named(_garden, "FarmCoinPurse")
+	_ok(_visible_control_inside(chooser, Rect2(Vector2.ZERO, view)),
+		"the picker has its own visible top-bar target")
+	_ok(_controls_are_separate(chooser, shortcut, 4.0)
+		and _controls_are_separate(chooser, purse, 4.0),
+		"pick and next remain separate from each other and the purse")
+	if chooser is Control:
+		await _mouse_click((chooser as Control).get_global_rect().get_center())
+	_ok(bool(_garden.get("_challenges_open")), "mouse opens the existing farm's picker sheet")
+	var first: Node = _find_named(_garden, "ChallengeLevel_%s" % first_id)
+	_ok(first is Button and int(first.get_meta("stars", -1)) == 2,
+		"a replayable row shows the stars already earned")
+	var name_label: Node = _find_named(first, "ChallengeLevelName") if first != null else null
+	_ok(name_label is Label and (name_label as Label).text == I18n.t(str(levels[0].get("name_key", ""))),
+		"the row names the actual level instead of a second catalogue")
+	var paid_before := JSON.stringify(SaveManager.data.get("farm_orders", {}))
+	var barn_before := JSON.stringify(SaveManager.data["farm"].get("warehouse", {}))
+	var plots_before := JSON.stringify(_plots())
+	var was_busy := bool(SceneManager.get("_busy"))
+	SceneManager.set("_busy", true)
+	if first is Control:
+		await _mouse_click((first as Control).get_global_rect().get_center())
+	_ok(GameManager.current_level_id == first_id, "mouse can replay an already-starred challenge")
+	SceneManager.set("_busy", was_busy)
+	for page in range(3):
+		var next: Variant = (_garden.get("_panel_buttons") as Dictionary).get("page_next")
+		_ok(next is Button, "page %d has an accessible next arrow" % (page + 1))
+		var plot_snapshot := JSON.stringify(_plots())
+		if next is Control:
+			var world: Node = _garden.get("_world")
+			var arrow_at := (next as Control).get_global_rect().get_center()
+			# Clicking the sheet must not prune later registered blockers.
+			# The arrow is outside the sheet, above live soil on the tablet.
+			_ok(bool(world.call("_blocked", arrow_at)),
+				"page %d arrow still blocks farm input after a sheet row was pressed" % (page + 1))
+			await _tap(arrow_at)
+		_ok(JSON.stringify(_plots()) == plot_snapshot,
+			"page %d arrow never acts on a bed behind it" % (page + 1))
+		_ok(int(_garden.get("_challenge_page")) == page + 1,
+			"a real touch turns to page %d" % (page + 2))
+	var last_id := str(levels[-1].get("id", ""))
+	var last: Node = _find_named(_garden, "ChallengeLevel_%s" % last_id)
+	_ok(last is Button and _visible_control_inside(last, Rect2(Vector2.ZERO, view)),
+		"the sixteenth challenge is visible and reachable on its page")
+	SceneManager.set("_busy", true)
+	if last is Control:
+		await _tap((last as Control).get_global_rect().get_center())
+	_ok(GameManager.current_level_id == last_id, "touch can start the last new challenge")
+	SceneManager.set("_busy", was_busy)
+	_ok(JSON.stringify(SaveManager.data.get("farm_orders", {})) == paid_before
+		and JSON.stringify(SaveManager.data["farm"].get("warehouse", {})) == barn_before,
+		"choosing a challenge never touches farm food or its reward ledger")
+	_ok(JSON.stringify(_plots()) == plots_before, "picker rows never press the soil behind the sheet")
+	var close: Button = _find_button_labelled(_garden, "X")
+	_ok(close != null, "the picker has the familiar close button")
+	if close != null:
+		await _tap(close.get_global_rect().get_center())
+	_ok(not bool(_garden.get("_challenges_open")), "touching X closes the picker")
+	chooser = _find_named(_garden, "HarvestChallengeChooser")
+	if chooser is Control:
+		await _tap((chooser as Control).get_global_rect().get_center())
+	_ok(bool(_garden.get("_challenges_open")) and int(_garden.get("_challenge_page")) == 0,
+		"touch reopens the picker on its first page")
+	var back := _find_back_button(_garden)
+	if back != null:
+		await _mouse_click(back.get_global_rect().get_center())
+	_ok(not bool(_garden.get("_challenges_open")) and is_instance_valid(_garden),
+		"mouse on the shared back button closes the sheet before leaving the farm")
+	GameManager.current_level_id = "star_garden"
+
+
+func _badge_has_rendered_asset(node: Node, path: String, box: float) -> bool:
+	if not (node is Control) or not is_instance_valid(node):
+		return false
+	var control := node as Control
+	if control.size != Vector2.ONE * box or not control.is_visible_in_tree() 			or control.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		return false
+	for child in control.get_children():
+		if child is Sprite2D:
+			var sprite := child as Sprite2D
+			if sprite.texture != null and sprite.texture.resource_path == path 					and sprite.region_enabled and sprite.region_rect.size.x > 0.0 					and sprite.region_rect.size.y > 0.0:
+				return true
+	return false
+
+
+func _inventory_keeps_its_rendered_food_and_readable_slots(view: Vector2) -> void:
+	var saved := SaveManager.data.duplicate(true)
+	SaveManager.data["settings"]["reduce_motion"] = true
+	var foods: Array = []
+	var stock: Dictionary = {}
+	var seeds: Array = []
+	for crop in GameData.crops:
+		var crop_id := str(crop.get("id", ""))
+		foods.append(crop_id)
+		seeds.append(crop_id)
+		stock[crop_id] = 1
+	for produce in GameData.farm_produce.get("produce", []):
+		var crop_id := str(produce.get("id", ""))
+		foods.append(crop_id)
+		stock[crop_id] = 1
+	stock["carrot"] = Farm.WAREHOUSE_START - foods.size() + 1
+	SaveManager.data["farm"]["warehouse_cap"] = Farm.WAREHOUSE_START
+	SaveManager.data["farm"]["warehouse"] = stock
+	SaveManager.data["farm"]["harvest_basket"] = {}
+	SaveManager.data["farm"]["unlocked_crops"] = seeds
+	SaveManager.data["farm"]["farm_xp"] = 200
+	SaveManager.data["inventory"]["plank"] = 3
+	SaveManager.data["rewards"]["coins"] = 600
+	_garden.set("_rack_page", 0)
+	_garden.call("_choose_seed", "carrot")
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for crop_id in seeds:
+		var art: Node = _find_named(_garden, "SeedPicture_%s" % crop_id)
+		var target: Node = _find_named(_garden, "GardenSeed_%s" % crop_id)
+		_ok(_badge_has_rendered_asset(art, "res://assets/harvest_3d/crops/%s.png" % crop_id, 46.0),
+			"%s seed uses the visible fitted 3D crop and ignores input" % crop_id)
+		_ok(_control_contains(target, art), "%s seed picture stays in its sixty-pixel drag target" % crop_id)
+		_ok(art != null and art.get_parent() is Node2D,
+			"%s crop picture travels with the existing dragged seed node" % crop_id)
+	_ok(_find_named(_garden, "SeedSelectedMark") != null,
+		"one chosen seed has a visible selection mark inside its slot")
+	for pair in [["shovel", "tool_trowel"], ["water", "tool_watering_can"], ["basket", "basket_empty"]]:
+		var tool: Node = _find_named(_garden, "GardenTool_%s" % str(pair[0]))
+		var art: Node = tool.get_node_or_null("GardenToolIcon") if tool != null else null
+		_ok(_badge_has_rendered_asset(art, "res://assets/harvest_3d/props/%s.png" % str(pair[1]), 30.0),
+			"%s tool uses its real Blender model in the fixed icon box" % str(pair[0]))
+		_ok(_control_contains(tool, art), "%s tool picture stays inside its own button" % str(pair[0]))
+	var basket: Node = _find_named(_garden, "BarnBasketPicture")
+	_ok(_badge_has_rendered_asset(basket, "res://assets/harvest_3d/props/basket_empty.png", 36.0),
+		"the bottom collection shortcut uses the rendered basket")
+	await _dense_tools_do_not_pick_up_neighbouring_seeds(view)
+	_garden.call("_open_panel", "barn")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var panel: Node = _find_named(_garden, "BarnCollectionPanel")
+	_ok(panel is Control and _visible_control_inside(panel, Rect2(Vector2.ZERO, view)),
+		"the collection panel stays above the shelf on both screen shapes")
+	_ok(foods.size() == 16 and Barn.contents().size() == foods.size(),
+		"all fourteen crops plus eggs and flour appear in the full collection")
+	var slots: Array = []
+	var controls: Array = [(_garden.get("_panel_buttons") as Dictionary).get("upgrade"),
+		_find_named(_garden, "RecipeBook")]
+	for crop_id in foods:
+		var slot: Node = _find_named(_garden, "BarnCollectionSlot_%s" % crop_id)
+		var art: Node = _find_named(_garden, "BarnPicture_%s" % crop_id)
+		var quantity: Node = _find_named(_garden, "BarnQuantity_%s" % crop_id)
+		var crop_name: Node = _find_named(_garden, "BarnName_%s" % crop_id)
+		_ok(crop_name is Label and (crop_name as Label).text == I18n.t(str(GameData.get_crop(crop_id).get("name_key", "")))
+			and _control_contains(slot, crop_name) and _controls_are_separate(crop_name, quantity),
+			"%s has a readable actual name above its separate quantity" % crop_id)
+		var asset := "props" if crop_id in ["egg", "flour"] else "crops"
+		_ok(slot is Control and (slot as Control).size == Vector2(154.0, 60.0)
+			and _control_contains(panel, slot), "%s has one fixed slot inside the collection sheet" % crop_id)
+		_ok(_badge_has_rendered_asset(art, "res://assets/harvest_3d/%s/%s.png" % [asset, crop_id], 40.0),
+			"the collected %s uses the same rendered food as its source" % crop_id)
+		_ok(_control_contains(slot, art) and _control_contains(slot, quantity),
+			"%s picture and count stay inside their own slot" % crop_id)
+		_ok(quantity is Label and (quantity as Label).text == "×%d" % int(stock[crop_id])
+			and _controls_are_separate(art, quantity), "%s count is exact and does not sit over its picture" % crop_id)
+		var clear := true
+		for control in controls:
+			clear = clear and _controls_are_separate(slot, control)
+		_ok(clear, "%s collection slot leaves recipe and upgrade actions clear" % crop_id)
+		slots.append(slot)
+	var separate := true
+	for index in range(slots.size()):
+		for other in range(index + 1, slots.size()):
+			separate = separate and _controls_are_separate(slots[index], slots[other])
+	_ok(separate, "all sixteen collection slots have separate bounds")
+	var up: Variant = (_garden.get("_panel_buttons") as Dictionary).get("upgrade")
+	if up is Control:
+		await _tap((up as Control).get_global_rect().get_center())
+	_ok(bool(_garden.get("_confirm_upgrade")), "a real touch still asks before enlarging the collection")
+	var yes: Variant = (_garden.get("_panel_buttons") as Dictionary).get("confirm_upgrade")
+	var no: Variant = (_garden.get("_panel_buttons") as Dictionary).get("cancel_upgrade")
+	_ok(yes is Control and no is Control and _controls_are_separate(yes, no),
+		"upgrade confirm and cancel keep separate visible buttons")
+	var actions_clear := true
+	for crop_id in foods:
+		var slot: Node = _find_named(_garden, "BarnCollectionSlot_%s" % crop_id)
+		actions_clear = actions_clear and _controls_are_separate(slot, yes) and _controls_are_separate(slot, no)
+	_ok(actions_clear, "upgrade confirmation does not cover any collected food or quantity")
+	if no is Control:
+		await _mouse_click((no as Control).get_global_rect().get_center())
+	_ok(not bool(_garden.get("_confirm_upgrade")) and Barn.cap() == Farm.WAREHOUSE_START
+		and Coins.balance() == 600, "mouse cancel preserves capacity, coins and the full collection")
+	SaveManager.data["farm"]["warehouse"] = {}
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(_badge_has_rendered_asset(_find_named(_garden, "BarnEmptyBasket"),
+		"res://assets/harvest_3d/props/basket_empty.png", 104.0),
+		"an empty collection still has a visible 3D basket")
+	var empty_hint: Node = _find_named(_garden, "BarnEmptyHint")
+	_ok(empty_hint is Label and (empty_hint as Label).text == I18n.t("garden.collection_empty"),
+		"the empty collection explains where a harvest will go")
+	stock["future_crop_a"] = 1
+	stock["future_crop_b"] = 1
+	stock["future_crop_c"] = 1
+	SaveManager.data["farm"]["warehouse"] = stock
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var extra: Node = _find_named(_garden, "BarnExtraItemsScroll")
+	_ok(extra is ScrollContainer and (extra as ScrollContainer).clip_contents
+		and _visible_control_inside(extra, Rect2(Vector2.ZERO, view)),
+		"extra migrated foods stay in a clipped collection window instead of drawing over the shelf")
+	var waiting: Dictionary = {}
+	for crop_id in foods:
+		waiting[crop_id] = 2
+	SaveManager.data["farm"]["warehouse"] = {"corn": Farm.WAREHOUSE_START}
+	SaveManager.data["farm"]["harvest_basket"] = waiting
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var overflow: Node = _find_named(_garden, "OverflowShortcut")
+	var more: Node = _find_named(_garden, "OverflowMoreKinds")
+	_ok(more is Label and (more as Label).text == "+14",
+		"a full waiting harvest keeps its bounded summary and exact additional-kind count")
+	_ok(_visible_control_inside(overflow, Rect2(Vector2.ZERO, view))
+		and _controls_are_separate(overflow, _find_named(_garden, "NextTask"), 4.0)
+		and _controls_are_separate(overflow, _find_named(_garden, "DecoDoor"), 2.0),
+		"sixteen waiting kinds have their own reachable space beside the task and decoration doors")
+	var stored_before := JSON.stringify(SaveManager.data["farm"]["warehouse"])
+	var waiting_before := JSON.stringify(SaveManager.data["farm"]["harvest_basket"])
+	if overflow is Control:
+		await _tap((overflow as Control).get_global_rect().get_center())
+	_ok(bool(_garden.get("_barn_open")) and bool(_garden.get("_barn_show_overflow")),
+		"a real touch on the summary opens the existing collection sheet on waiting food")
+	panel = _find_named(_garden, "BarnCollectionPanel")
+	for crop_id in foods:
+		var slot: Node = _find_named(_garden, "BarnCollectionSlot_%s" % crop_id)
+		var quantity: Node = _find_named(_garden, "BarnQuantity_%s" % crop_id)
+		_ok(_control_contains(panel, slot) and quantity is Label and (quantity as Label).text == "×2",
+			"the waiting collection exposes both %s beyond the two-kind summary" % crop_id)
+	var storage_switch: Node = _find_named(_garden, "BarnStorageSwitch")
+	if storage_switch is Control:
+		await _mouse_click((storage_switch as Control).get_global_rect().get_center())
+	_ok(bool(_garden.get("_barn_open")) and not bool(_garden.get("_barn_show_overflow")),
+		"mouse on the storage switch returns to the ordinary collection")
+	_ok(JSON.stringify(SaveManager.data["farm"]["warehouse"]) == stored_before
+		and JSON.stringify(SaveManager.data["farm"]["harvest_basket"]) == waiting_before,
+		"viewing either collection preserves every stored and waiting crop")
+	SaveManager.data = saved
+	SaveManager.save_game()
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _dense_tools_do_not_pick_up_neighbouring_seeds(view: Vector2) -> void:
+	var hand: Node = _find_named(_garden, "GardenTool_hand")
+	_ok(hand is Button, "the dense dock keeps the hand tool as an actual button")
+	if not hand is Control:
+		return
+	var at := (hand as Control).get_global_rect().get_center()
+	var plots_before := JSON.stringify(_plots())
+	await _finger(at, at + Vector2(14.0, 0.0), func():
+		var field: DragField = _garden.get("_field")
+		_ok(field.held().is_empty() and not bool(_garden.get("_world").get("locked")),
+			"touching a tool in the tight upper lane never picks up the seed below it"))
+	_ok(JSON.stringify(_plots()) == plots_before,
+		"a short touch drag on the tool does not plant or act on the soil")
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.position = _glass(at)
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+	var field: DragField = _garden.get("_field")
+	_ok(field.held().is_empty() and not bool(_garden.get("_world").get("locked")),
+		"mouse-down on the tool never captures its neighbouring seed")
+	var move := InputEventMouseMotion.new()
+	move.position = _glass(at + Vector2(14.0, 0.0))
+	move.relative = _glass(Vector2(14.0, 0.0))
+	move.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Input.parse_input_event(move)
+	await get_tree().process_frame
+	_ok(field.held().is_empty(), "dragging the mouse within a tool still holds no seed")
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	up.position = move.position
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(JSON.stringify(_plots()) == plots_before,
+		"a short mouse drag on the tool leaves every soil transaction unchanged")
+	var seed_at := _seed_tile(0)
+	await _finger(seed_at, seed_at, func():
+		var seed_field: DragField = _garden.get("_field")
+		var slot: Node = _find_named(_garden, "SeedSlot_carrot")
+		_ok(not seed_field.held().is_empty(), "the sixty-pixel seed itself remains grabbable")
+		_ok(_visible_control_inside(slot, Rect2(Vector2.ZERO, view)),
+			"a seed held without moving can lift to full size without clipping the bottom edge"))
+
+
+## A desktop pointer can move while a real touch is held. Engine-generated
+## mirror events must not let that independent device take over the gesture.
+## Drive both true sources through Input, with emulation left enabled.
+func _touch_and_mouse_keep_their_own_gestures() -> void:
+	var saved := SaveManager.data.duplicate(true)
+	var saved_lesson := bool(_garden.get("_lesson_running"))
+	var controller: RefCounted = _garden.get("_tools")
+	var saved_tool := str(controller.get("selected"))
+	var saved_seed := str(controller.get("seed_crop"))
+	var saved_rack_page := int(_garden.get("_rack_page"))
+	var world: Node = _garden.get("_world")
+	var saved_centre: Vector2 = _camera().centre
+	var saved_zoom: float = _camera().zoom
+	SaveManager.data["settings"]["reduce_motion"] = true
+	SaveManager.data["farm"]["tutorial_completed"] = true
+	SaveManager.data["farm"]["unlocked_crops"] = ["carrot", "corn", "strawberry", "tomato"]
+	var clean_plots: Array = []
+	for index in range(_plots().size()):
+		clean_plots.append(Farm.fresh_plot(index))
+	SaveManager.data["farm"]["plots"] = clean_plots
+	_garden.set("_lesson_running", false)
+	_garden.set("_rack_page", 0)
+	controller.set("selected", Tools.HAND)
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	world.call("go_home")
+	var at := _bed(0)
+	var camera_before: Vector2 = _camera().centre
+	await _source_touch(at, true)
+	_ok(int(world.get("_finger")) == 0,
+		"the real touch owns the soil gesture instead of its emulated mouse copy")
+	await _source_mouse_motion(at, at + Vector2(170.0, 0.0), 0)
+	_ok(int(world.get("_finger")) == 0 and is_zero_approx(float(world.get("_travelled")))
+		and _camera().centre.is_equal_approx(camera_before),
+		"an independent unpressed mouse move cannot turn a held touch into a farm pan")
+	await _source_touch(at, false)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(Farm.is_tilled(_plots()[0]), "the same touch still tills exactly its grass bed after pointer noise")
+
+	var seed_at := _seed_tile(0)
+	var target := _bed(0) + Vector2(0.0, 34.0)
+	await _source_touch(seed_at, true)
+	var field: DragField = _garden.get("_field")
+	_ok(int(field.get("_touch")) == 0 and str(field.held().get("key", "")) == "carrot",
+		"the real touch owns its lifted carrot instead of an emulated mouse")
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = _glass(target)
+	drag.relative = _glass(target) - _glass(seed_at)
+	Input.parse_input_event(drag)
+	await get_tree().process_frame
+	var held_node: Node2D = field.held().get("node") as Node2D
+	var held_at := held_node.position if is_instance_valid(held_node) else Vector2.INF
+	await _source_mouse_motion(target, Vector2(1050.0, 120.0), 0)
+	_ok(int(field.get("_touch")) == 0 and is_instance_valid(held_node)
+		and held_node.position.is_equal_approx(held_at),
+		"an unrelated mouse motion cannot move the seed away from its touch destination")
+	await _source_touch(target, false)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(str(_plots()[0].get("crop_id", "")) == "carrot"
+		and int(_plots()[0].get("planted_at", 0)) == GameClock.now_unix(),
+		"the touched carrot plants at its intended time and bed despite the other pointer")
+
+	at = _bed(1)
+	await _source_mouse_button(at, true)
+	_ok(int(world.get("_finger")) == -2,
+		"a real mouse press still owns its soil gesture after emulated copies are ignored")
+	camera_before = _camera().centre
+	await _source_mouse_motion(at, at + Vector2(180.0, 0.0), 0)
+	_ok(int(world.get("_finger")) == -2 and is_zero_approx(float(world.get("_travelled")))
+		and _camera().centre.is_equal_approx(camera_before),
+		"an unpressed hover cannot become part of a currently held mouse gesture")
+	await _source_mouse_motion(at, at + Vector2(4.0, 3.0), MOUSE_BUTTON_MASK_LEFT)
+	_ok(int(world.get("_finger")) == -2 and is_equal_approx(float(world.get("_travelled")), 5.0),
+		"actual pressed-mouse motion still reaches the farm gesture")
+	await _source_mouse_button(at + Vector2(4.0, 3.0), false)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(Farm.is_tilled(_plots()[1]) and str(_plots()[0].get("crop_id", "")) == "carrot",
+		"the small real mouse click tills its own bed and leaves the carrot alone")
+	seed_at = _seed_tile(1)
+	target = _bed(1) + Vector2(0.0, 34.0)
+	await _source_mouse_button(seed_at, true)
+	field = _garden.get("_field")
+	_ok(int(field.get("_touch")) == -2 and str(field.held().get("key", "")) == "corn",
+		"a real mouse can still pick up the next seed through the shared drag field")
+	held_node = field.held().get("node") as Node2D
+	held_at = held_node.position if is_instance_valid(held_node) else Vector2.INF
+	await _source_mouse_motion(seed_at, Vector2(1050.0, 120.0), 0)
+	_ok(int(field.get("_touch")) == -2 and is_instance_valid(held_node)
+		and held_node.position.is_equal_approx(held_at),
+		"an unpressed hover cannot carry a mouse-held seed away from its owner")
+	await _source_mouse_motion(seed_at, target, MOUSE_BUTTON_MASK_LEFT)
+	await _source_mouse_button(target, false)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(str(_plots()[1].get("crop_id", "")) == "corn",
+		"real mouse dragging still plants the corn in its chosen bed")
+	SaveManager.data = saved
+	SaveManager.save_game()
+	_garden.set("_lesson_running", saved_lesson)
+	_garden.set("_rack_page", saved_rack_page)
+	controller.set("selected", saved_tool)
+	controller.set("seed_crop", saved_seed)
+	_garden.call("_rebuild")
+	_camera().zoom = saved_zoom
+	_camera().centre = saved_centre
+	world.call("_settle")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _source_touch(at: Vector2, pressed: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.index = 0
+	event.position = _glass(at)
+	event.pressed = pressed
+	Input.parse_input_event(event)
+	await get_tree().process_frame
+
+
+func _source_mouse_button(at: Vector2, pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.device = InputEvent.DEVICE_ID_MOUSE
+	event.position = _glass(at)
+	event.global_position = _glass(at)
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+	event.pressed = pressed
+	Input.parse_input_event(event)
+	await get_tree().process_frame
+
+
+func _source_mouse_motion(from: Vector2, to: Vector2, mask: int) -> void:
+	var event := InputEventMouseMotion.new()
+	event.device = InputEvent.DEVICE_ID_MOUSE
+	event.position = _glass(to)
+	event.global_position = _glass(to)
+	event.relative = _glass(to) - _glass(from)
+	event.button_mask = mask
+	Input.parse_input_event(event)
+	await get_tree().process_frame

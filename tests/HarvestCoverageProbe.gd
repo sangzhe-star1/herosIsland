@@ -15,6 +15,8 @@ var _asked := 0
 var _level: Node = null
 var _shape := ""
 var _finished_levels: Array[LevelResult] = []
+var _mouse_path := false
+var _last_pointer_track := PackedVector2Array()
 
 
 func _ready() -> void:
@@ -34,6 +36,7 @@ func _ready() -> void:
 		await _clear_case()
 		await _golden_second_order(window)
 		await _clear_case()
+		await _friend_challenges(window)
 
 	GameManager.level_finished.disconnect(_on_level_finished)
 	for failure in _failures:
@@ -244,6 +247,108 @@ func _golden_second_order(window: Vector2i) -> void:
 	await _wait_for_result("harvest_10")
 
 
+## The new errands are completed through gestures, basket taps and the real
+## result page. 16:9 uses touch, 4:3 mouse; the shared gameplay must accept both.
+## Expected deliveries describe the level's promise independently of its JSON.
+func _friend_challenges(window: Vector2i) -> void:
+	_mouse_path = window.x == 1024
+	var cases := [
+		{"id": "harvest_11", "orders": [{"lettuce": 2, "carrot": 2, "tomato": 2}]},
+		{"id": "harvest_12", "orders": [{"orange": 2, "apple": 2, "grape": 2}]},
+		{"id": "harvest_13", "orders": [{"potato": 3}, {"carrot": 2}]},
+		{"id": "harvest_14", "orders": [{"peas": 6, "corn": 2}, {"pumpkin": 1, "watermelon": 1}]},
+		{"id": "harvest_15", "orders": [{"wheat": 3, "apple": 2}, {"corn": 2, "strawberry": 2}]},
+		{"id": "harvest_16", "orders": [{"lettuce": 2, "tomato": 2}, {"carrot": 2, "strawberry": 2}, {"wheat": 2, "grape": 2}]},
+		{"id": "harvest_13", "tier": 2, "orders": [{"potato": 3}, {"carrot": 2, "golden_carrot": 1}]},
+		{"id": "harvest_16", "tier": 2, "orders": [{"lettuce": 2, "tomato": 2}, {"carrot": 2, "strawberry": 2}, {"wheat": 2, "grape": 2, "golden_carrot": 1}]},
+	]
+	for scenario in cases:
+		await _complete_friend_challenge(scenario, window)
+		await _clear_case()
+	_mouse_path = false
+
+
+func _complete_friend_challenge(scenario: Dictionary, window: Vector2i) -> void:
+	var level_id := str(scenario["id"])
+	var tier := int(scenario.get("tier", 1))
+	var expected_orders: Array = scenario["orders"]
+	await _open_case(level_id, window, tier)
+	if not _has_level():
+		return
+	var farm_before: Dictionary = SaveManager.data.get("farm", {}).duplicate(true)
+	var daily_before: Dictionary = SaveManager.data.get("farm_orders", {}).duplicate(true)
+	var slot := _level.get("_order_customer") as Control
+	_check(slot != null and slot.visible, "%s shows the friend who requested this order" % level_id)
+	var expected_delivered: Dictionary = {}
+	for order_index in range(expected_orders.size()):
+		var expected: Dictionary = expected_orders[order_index]
+		var context := "%s tier %d order %d" % [level_id, tier, order_index]
+		_check(int(_level.get("_order_index")) == order_index
+			and (_level.get("_wanted") as Dictionary) == expected,
+			context + " reaches the promised delivery")
+		_check(_level.get("_order_customer") == slot,
+			context + " keeps the same customer slot as the order changes")
+		if level_id == "harvest_16" and slot != null:
+			var portraits := ["res://assets/harvest_3d/props/rabbit.png", "paw", "teddy"]
+			_check(str(slot.get_meta("customer_reference", "")) == portraits[order_index]
+				and slot.get_node_or_null("CustomerPortrait") != null,
+				context + " changes to the next friend's visible portrait")
+		# A gesture at a future-only crop must not consume it or satisfy this
+		# order. Check each order, since a later delivery must stay equally safe.
+		var future: Node2D
+		for candidate: Node2D in _targets():
+			if not candidate.taken and not candidate.visible \
+					and not expected.has(str(candidate.crop.get("id", ""))) \
+					and candidate.step in [Maturity.READY, Maturity.GOLDEN]:
+				future = candidate
+				break
+		if future != null:
+			var picked_before: Dictionary = (_level.get("_picked") as Dictionary).duplicate(true)
+			await _stroke(_gesture_points(future))
+			_check(not future.taken and (_level.get("_picked") as Dictionary) == picked_before
+				and _in_hand() == null, context + " cannot pick a future delivery early")
+		if level_id == "harvest_11":
+			var almost := _available("lettuce", Maturity.ALMOST, false)
+			_check(almost != null, context + " includes young lettuce to distinguish")
+			if almost != null:
+				await _stroke(_gesture_points(almost))
+				_check(not almost.taken and _in_hand() == null,
+					context + " leaves young lettuce growing after a real cut")
+		for crop_id in expected:
+			var delivered_count := 0
+			while delivered_count < int(expected[crop_id]):
+				var target := _available(str(crop_id))
+				_check(target != null, context + " exposes a fresh " + str(crop_id))
+				if target == null:
+					return
+				var yield_count := int(target.crop.get("harvest_count", 1))
+				var basket := _level.call("_destination_for", target) as Node2D
+				_check(basket != null, context + " has a destination for " + str(crop_id))
+				if basket == null:
+					return
+				if (_level.get("_baskets") as Array).size() == 1:
+					await _stroke(_gesture_points(target))
+					_check(target.taken and _in_hand() == null,
+						context + " completes the single-basket gesture")
+				else:
+					await _pick_and_deliver(target, str(basket.id), context,
+						str(crop_id) == "golden_carrot")
+				delivered_count += yield_count
+				expected_delivered[crop_id] = int(expected_delivered.get(crop_id, 0)) + yield_count
+		_check((_level.get("_delivered") as Dictionary) == expected_delivered,
+			context + " records whole harvests exactly once across completed orders")
+		if order_index < expected_orders.size() - 1:
+			var mark := SaveManager.get_harvest_checkpoint()
+			_check(str(mark.get("level_id", "")) == level_id
+				and int(mark.get("order_index", -1)) == order_index + 1
+				and mark.get("delivered", {}) == expected_delivered,
+				context + " checkpoints delivery before the next friend arrives")
+	_check(SaveManager.data.get("farm", {}) == farm_before
+		and SaveManager.data.get("farm_orders", {}) == daily_before,
+		level_id + " leaves the real garden, barn and daily orders untouched")
+	await _wait_for_result(level_id)
+
+
 func _pick_and_deliver(target: Node2D, basket_id: String, context: String,
 		try_wrong_basket: bool = false) -> void:
 	var destination := _level.call("_destination_for", target) as Node2D
@@ -261,6 +366,9 @@ func _pick_and_deliver(target: Node2D, basket_id: String, context: String,
 	_check(_in_hand() == target,
 		"%s reaches the hand through the crop's real gesture" % context)
 	if _in_hand() != target:
+		print("gesture failure context=%s crop=%s recogniser=%s mouse=%s params=%s track=%s"
+			% [context, str(target.crop.get("id", "")), str(target.crop.get("recogniser", "")),
+				str(_mouse_path), str(target.crop.get("gesture_params", {})), str(_last_pointer_track)])
 		return
 	if try_wrong_basket:
 		var wrong_basket: Node2D
@@ -323,6 +431,9 @@ func _stroke(points: Array) -> void:
 	if points.is_empty():
 		_check(false, "real touch path is not empty")
 		return
+	if _mouse_path:
+		await _mouse_stroke(points)
+		return
 	var down := InputEventScreenTouch.new()
 	down.index = 0
 	down.pressed = true
@@ -343,6 +454,35 @@ func _stroke(points: Array) -> void:
 	up.index = 0
 	up.pressed = false
 	up.position = _glass(points[points.size() - 1])
+	Input.parse_input_event(up)
+	for _frame in range(5):
+		await get_tree().process_frame
+
+
+func _mouse_stroke(points: Array) -> void:
+	var down := InputEventMouseButton.new()
+	down.button_index = MOUSE_BUTTON_LEFT
+	down.pressed = true
+	down.position = _glass(points[0])
+	down.global_position = down.position
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+	var last: Vector2 = points[0]
+	for index in range(1, points.size()):
+		var motion := InputEventMouseMotion.new()
+		motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+		motion.position = _glass(points[index])
+		motion.global_position = motion.position
+		motion.relative = motion.position - _glass(last)
+		last = points[index]
+		Input.parse_input_event(motion)
+		await get_tree().process_frame
+	var up := InputEventMouseButton.new()
+	up.button_index = MOUSE_BUTTON_LEFT
+	up.pressed = false
+	up.position = _glass(points[points.size() - 1])
+	up.global_position = up.position
+	_last_pointer_track = _level.get("_track")
 	Input.parse_input_event(up)
 	for _frame in range(5):
 		await get_tree().process_frame

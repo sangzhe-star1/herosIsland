@@ -775,6 +775,57 @@ func _load_order() -> void:
 	_wanted.merge(_requirements_for_order(_orders[_order_index]))
 	_refresh_order_targets()
 	_rebuild_order_strip()
+	_refresh_order_customer()
+
+
+## A relay changes the portrait inside the same HUD slot. Ordinary orders
+## inherit the level's customer, including when resuming a saved delivery.
+func _current_customer_reference() -> String:
+	var config: Dictionary = level_data.get("config", {})
+	var fallback := str(config.get("customer_icon", ""))
+	if _order_index < 0 or _order_index >= _orders.size():
+		return fallback
+	return str((_orders[_order_index] as Dictionary).get("customer_icon", fallback))
+
+
+func _refresh_order_customer() -> void:
+	# The first order is loaded before the HUD is built. A later order may
+	# introduce its own customer even when the level has no default portrait.
+	if not is_instance_valid(_tally):
+		return
+	var reference := _current_customer_reference()
+	if is_instance_valid(_order_customer) \
+			and str(_order_customer.get_meta("customer_reference", "")) == reference:
+		return
+	var portrait: Control
+	if reference.begins_with("res://assets/harvest_3d/props/") and reference.ends_with(".png"):
+		portrait = HarvestVisualArt.prop_badge(reference.get_file().get_basename(), 72.0,
+			"CustomerPortrait")
+	else:
+		portrait = UiKit.picture(reference, 72.0)
+	# No customer means no node or empty layout slot, as in the original
+	# single-order lessons. A relay with real portraits keeps the same slot.
+	if portrait == null:
+		if is_instance_valid(_order_customer):
+			_order_customer.get_parent().remove_child(_order_customer)
+			_order_customer.queue_free()
+		_order_customer = null
+		return
+	if not is_instance_valid(_order_customer):
+		_order_customer = Control.new()
+		_order_customer.name = "OrderCustomer"
+		_order_customer.custom_minimum_size = Vector2(72.0, 72.0)
+		_order_customer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var row := _tally.get_parent()
+		row.add_child(_order_customer)
+		row.move_child(_order_customer, _tally.get_index())
+	var previous := _order_customer.get_node_or_null("CustomerPortrait")
+	if previous != null:
+		_order_customer.remove_child(previous)
+		previous.queue_free()
+	_order_customer.set_meta("customer_reference", reference)
+	portrait.name = "CustomerPortrait"
+	_order_customer.add_child(portrait)
 
 
 ## Is this target allowed to answer a finger right now?
@@ -1229,21 +1280,11 @@ func _build_hud(config: Dictionary) -> void:
 	order_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	order_hud.add_child(order_row)
 
-	# Who the order is for, as a face. Optional per level: a level naming no
-	# customer_icon simply has no face, and the tally sits where it always
-	# did. IconLibrary names only (teddy/robot/paw) -- the same faces the
-	# garden's order board uses, so a customer stays recognisable across
-	# rooms without a word being read.
-	var face: Control = UiKit.picture(str(config.get("customer_icon", "")), 72.0)
-	if face != null:
-		face.name = "OrderCustomer"
-		_order_customer = face
-		order_row.add_child(face)
-
 	_tally = HBoxContainer.new()
 	_tally.add_theme_constant_override("separation", 24)
 	_tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	order_row.add_child(_tally)
+	_refresh_order_customer()
 
 	_order_strip = HBoxContainer.new()
 	_order_strip.add_theme_constant_override("separation", 14)

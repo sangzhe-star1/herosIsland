@@ -10,7 +10,7 @@ extends Button
 ## A daily crest, the next action and an order preview are three independent
 ## reading lines. They need this much vertical room at the project's caption
 ## size; below it, both secondary rows yield so the action can own the card.
-## Callers that want all three use this same component at 78px.
+## Callers that want all three use 78px height, or opt into the wide dense lane.
 const THREE_LINE_HEIGHT := 78.0
 const DAILY_ACTION_Y := 25.0
 const SECONDARY_TEXT_SIZE := 16
@@ -24,6 +24,11 @@ const ACTION_ARROW_GAP := 12.0
 const STATUS_ICON_SIZE := 17.0
 const PREVIEW_ICON_SIZE := 20.0
 const DAILY_STARS_MIN_WIDTH := 112.0
+## A wide, short host can put the two secondary rows beside the action.
+## Their data and components stay the same; only their reading lanes change.
+const DENSE_STATUS_WIDTH := 130.0
+const DENSE_MIN_WIDTH := 360.0
+const DENSE_MIN_HEIGHT := 56.0
 
 
 func configure(spec: Dictionary, box: Vector2) -> void:
@@ -36,6 +41,8 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 	tooltip_text = str(spec.get("hint", ""))
 	custom_minimum_size = box
 	size = box
+	var dense := bool(spec.get("dense", false)) \
+		and box.x >= DENSE_MIN_WIDTH and box.y >= DENSE_MIN_HEIGHT
 	var tint: Color = spec.get("tint", Palette.YELLOW)
 	for look in ["normal", "hover", "pressed", "focus"]:
 		var fill := tint
@@ -48,7 +55,7 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 		style.set_border_width_all(3)
 		add_theme_stylebox_override(look, style)
 
-	var badge_size := clampf(box.y - 20.0, 38.0, 46.0)
+	var badge_size := 38.0 if dense else clampf(box.y - 20.0, 38.0, 46.0)
 	var badge := Panel.new()
 	badge.name = "HeroTaskIconBadge"
 	badge.position = Vector2(9.0, (box.y - badge_size) * 0.5)
@@ -59,7 +66,7 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 	badge.add_theme_stylebox_override("panel", badge_style)
 	add_child(badge)
 
-	var art_size := badge_size - 10.0
+	var art_size := badge_size if dense else badge_size - 10.0
 	var art: Control = UiKit.picture(str(spec.get("icon", "star")), art_size)
 	if art != null:
 		art.name = "HeroTaskIcon"
@@ -68,7 +75,9 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 		badge.add_child(art)
 
 	var content_left := badge.position.x + badge_size + PRIMARY_ICON_TEXT_GAP
-	var action_right := box.x - 29.0 - ACTION_ARROW_GAP
+	var secondary_left := box.x - 10.0 - DENSE_STATUS_WIDTH
+	var arrow_left := secondary_left - 33.0 if dense else box.x - 29.0
+	var action_right := arrow_left - ACTION_ARROW_GAP
 	var content_width := maxf(40.0, action_right - content_left)
 	var preview: Dictionary = spec.get("preview", {})
 	var marker_text := str(spec.get("marker", ""))
@@ -79,14 +88,12 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 	var daily: Dictionary = spec.get("daily", {})
 	var has_daily := not daily.is_empty()
 	# A marker is the caller's explicit header, so it wins over an optional
-	# daily crest. More importantly, never pretend a three-line card fits in a
-	# shorter slot: both secondary rows yield and the action stays centered.
-	# This matters on the 4:3 shelf, where an extra "today" line otherwise
-	# competes with the one sentence that says what to touch now.
+	# daily crest. Ordinary short cards yield both secondary rows; a dense host
+	# gives those same rows their own right column and keeps the action centred.
 	var has_three_lines := box.y >= THREE_LINE_HEIGHT
-	var show_daily := has_daily and marker_text == "" and has_three_lines
-	var show_preview := not preview.is_empty() and has_three_lines
-	var action_y := 8.0 if show_preview else (box.y - 27.0) * 0.5
+	var show_daily := has_daily and marker_text == "" and (has_three_lines or dense)
+	var show_preview := not preview.is_empty() and (has_three_lines or dense)
+	var action_y := 8.0 if show_preview and not dense else (box.y - 27.0) * 0.5
 	if marker_text != "":
 		var marker := UiKit.title(marker_text, UiKit.TYPE_CAPTION,
 			Color(0.32, 0.30, 0.24))
@@ -98,8 +105,12 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 		add_child(marker)
 		action_y = 18.0
 	elif show_daily:
-		_add_daily_badge(daily, content_left, box)
-		action_y = DAILY_ACTION_Y
+		if dense:
+			_add_daily_badge(daily, content_left, box,
+				Rect2(Vector2(secondary_left, 7.0), Vector2(DENSE_STATUS_WIDTH, 18.0)))
+		else:
+			_add_daily_badge(daily, content_left, box)
+			action_y = DAILY_ACTION_Y
 
 	var action := UiKit.title(str(spec.get("title", "")), UiKit.TYPE_CAPTION)
 	action.name = "HeroTaskAction"
@@ -113,7 +124,7 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 
 	var arrow := UiKit.title(">", UiKit.TYPE_BODY, Color(0.34, 0.30, 0.22))
 	arrow.name = "HeroTaskArrow"
-	arrow.position = Vector2(box.x - 29.0, (box.y - 28.0) * 0.5)
+	arrow.position = Vector2(arrow_left, (box.y - 28.0) * 0.5)
 	arrow.size = Vector2(20.0, 28.0)
 	arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -121,7 +132,11 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 	add_child(arrow)
 
 	if show_preview:
-		_add_preview(preview, content_left, box)
+		if dense:
+			_add_preview(preview, content_left, box,
+				Rect2(Vector2(secondary_left, box.y - 28.0), Vector2(DENSE_STATUS_WIDTH, 20.0)))
+		else:
+			_add_preview(preview, content_left, box)
 	if bool(spec.get("primary", false)):
 		UiKit.breathe(self, 0.016, 1.4)
 
@@ -131,11 +146,15 @@ func configure(spec: Dictionary, box: Vector2) -> void:
 ## spark and the existing garden's doubled rare-crop chance.  These are a
 ## secondary status, not new buttons or a second task list, so the one large
 ## action above remains the only thing asking for a thumb.
-func _add_daily_badge(daily: Dictionary, left: float, box: Vector2) -> void:
+func _add_daily_badge(daily: Dictionary, left: float, box: Vector2,
+		bounds: Rect2 = Rect2()) -> void:
 	var row := Control.new()
 	row.name = "HeroTaskDaily"
 	row.position = Vector2(left, 2.0)
 	row.size = Vector2(maxf(74.0, box.x - left - 36.0), 18.0)
+	if bounds.has_area():
+		row.position = bounds.position
+		row.size = bounds.size
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var done := clampi(int(daily.get("done", 0)), 0,
 		maxi(int(daily.get("total", 0)), 0))
@@ -192,11 +211,15 @@ func _add_daily_badge(daily: Dictionary, left: float, box: Vector2) -> void:
 		row.add_child(star)
 
 
-func _add_preview(preview: Dictionary, left: float, box: Vector2) -> void:
+func _add_preview(preview: Dictionary, left: float, box: Vector2,
+		bounds: Rect2 = Rect2()) -> void:
 	var row := Control.new()
 	row.name = "HeroTaskPreview"
 	row.position = Vector2(left, box.y - 22.0)
 	row.size = Vector2(maxf(44.0, box.x - left - 36.0), 20.0)
+	if bounds.has_area():
+		row.position = bounds.position
+		row.size = bounds.size
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(row)
 	var x := 0.0
