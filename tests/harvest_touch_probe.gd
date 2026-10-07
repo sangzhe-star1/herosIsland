@@ -596,31 +596,30 @@ func _world_texture_alpha_rect(sprite: TextureRect) -> Rect2:
 		used.size * factor * transform.get_scale())
 
 
-## Did a refusal shake its display group? The shake is four keys over 0.22 s. At 60 fps a dozen samples see the
-## sprite leave its origin; under software GL one frame can outlast the whole
-## shake, so every sample lands on the origin and the sprite looks still. The
-## evidence then is the refuse tween itself: alive and not yet stepped at the
-## first sample (it was made by the stroke this very frame), finished by a
-## later one. Either the eye saw it move, or the tween ran its course.
+## Did a refusal shake its display group? The shake is four keys over 0.22 s.
+## At 60 fps a dozen samples see the sprite leave its origin. Under software
+## GL a frame can take 125 ms, and the stroke's own four trailing frames then
+## outlast the whole shake before this is asked, so every sample lands on the
+## origin. The evidence then is the refuse tween the target keeps: it exists
+## only if refuse() built the shake, and it is no longer valid once the shake
+## ran its course. Either the eye saw it move, or the tween was made and done.
 func _shake_seen(target: Node2D, visual: Node2D, seconds: float) -> bool:
 	var tween: Tween = target.get("_refuse_tween") as Tween
-	var started: bool = tween != null and tween.is_valid()
+	var created: bool = tween != null
 	var swing := 0.0
-	var finished := false
 	var left := seconds
 	var frames := 0
 	while visual != null and is_instance_valid(visual) and frames < 90:
 		swing = maxf(swing, visual.position.length())
-		if started and not tween.is_valid():
-			finished = true
-		if swing > 0.1 or finished:
+		if swing > 0.1:
 			break
-		if left <= 0.0 and not started:
+		var running: bool = created and tween.is_valid()
+		if left <= 0.0 and not running:
 			break
 		left -= get_process_delta_time()
 		frames += 1
 		await get_tree().process_frame
-	return swing > 0.1 or (started and finished)
+	return created and (swing > 0.1 or not tween.is_valid())
 
 
 ## Rejection feedback changes only the local visual group, even when a lift

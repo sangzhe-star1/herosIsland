@@ -177,8 +177,21 @@ static func get_3d_model_for_world(world_id: String) -> String:
 			return "res://assets/scenes_3d/park_observatory.glb"
 
 
+## A CPU rasterizer (llvmpipe under xvfb, SwiftShader, the QA runner's
+## software GL) draws a full-size shadowed 3D stage at seconds per frame:
+## the harvest probe ran at 8 fps with it, and stalled outright on the
+## meadow diorama. On such a renderer every stage keeps its painted 2D
+## layers and skips the 3D one. Real GPUs never take this branch.
+static func software_renderer() -> bool:
+	var adapter := RenderingServer.get_video_adapter_name().to_lower()
+	for mark in ["llvmpipe", "softpipe", "swiftshader", "lavapipe"]:
+		if adapter.contains(mark):
+			return true
+	return false
+
+
 func _build_3d_stage() -> bool:
-	if style == null:
+	if style == null or software_renderer():
 		return false
 	var glb_path := get_3d_model_for_world(style.id)
 	if not ResourceLoader.exists(glb_path):

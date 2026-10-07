@@ -293,18 +293,13 @@ func _screen_to_ground_3d(screen_pos: Vector2, ground_y: float = 0.12) -> Vector
 	return ray_origin + ray_normal * t
 
 
-## A CPU rasterizer (llvmpipe under xvfb, SwiftShader, the QA runner's
-## software GL) draws the 1280x720 shadowed diorama at a frame every few
-## seconds; HarvestTouchProbe stalled on its first screen for 300 s. On such a
-## renderer the meadow is the painted backdrop and the crops stay their 2.5D
-## selves: every 3D attachment in this file already checks
+## On a CPU rasterizer (see Stage.software_renderer) the 1280x720 shadowed
+## diorama took seconds per frame and HarvestTouchProbe stalled on its first
+## screen for 300 s. There the meadow is the painted backdrop and the crops
+## stay their 2.5D selves: every 3D attachment in this file already checks
 ## `_harvest_3d_world == null`. Real GPUs never take this branch.
 static func software_renderer() -> bool:
-	var adapter := RenderingServer.get_video_adapter_name().to_lower()
-	for mark in ["llvmpipe", "softpipe", "swiftshader", "lavapipe"]:
-		if adapter.contains(mark):
-			return true
-	return false
+	return Stage.software_renderer()
 
 
 ## The painted meadow: the backdrop every harvest level had before the 3D
