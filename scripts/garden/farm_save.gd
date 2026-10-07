@@ -196,6 +196,8 @@ static func default_farm() -> Dictionary:
 		"paid_harvests": [],
 		"coop": {"fed_at": 0, "eggs": 0},   # the hens: when last fed, eggs waiting
 		"mill": {"started_at": 0, "done": 0},  # the windmill: grinding since, flour waiting
+		"cow_shed": {"fed_at": 0, "ready": 0},  # the cow: when last fed, milk waiting
+		"beehive": {"fed_at": 0, "ready": 0},  # the bees: when last fed, honey waiting
 		# The market's receipts. The counter only rises, so every sale in the
 		# history of a save has its own id -- the same shape as plant_cycle_id,
 		# because it is solving the same problem: a second press of the same
@@ -222,6 +224,7 @@ static func default_farm() -> Dictionary:
 		"dailies": {"date": "", "progress": {}, "claimed": []},
 		# Morning dew date stamp: waters every bed once each morning.
 		"last_dew_date": "",
+		"fed_visitor_date": "",  # the day the visitor at the board last got a dish
 		# Pond fishing: total fish caught and last fish timestamp.
 		"fish_caught_total": 0,
 		"last_fish_at": 0,

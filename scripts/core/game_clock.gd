@@ -64,6 +64,19 @@ func now_datetime() -> Dictionary:
 	return Time.get_datetime_dict_from_system()
 
 
+## The calendar dictionary of any unix time (weekday 0 = Sunday), for a caller
+## asking about another moment than now; same fields as now_datetime().
+func datetime_at(unix_time: int) -> Dictionary:
+	return Time.get_datetime_dict_from_unix_time(unix_time)
+
+
+## The date of a calendar dictionary as a whole-day count, so consecutive
+## dates are consecutive numbers whatever the hour. The dictionary is read as
+## if it were UTC on purpose: this counts the date the child sees.
+func day_index_of(dt: Dictionary) -> int:
+	return int(floor(float(Time.get_unix_time_from_datetime_dict(dt)) / 86400.0))
+
+
 func now_datetime_string() -> String:
 	if _test_unix >= 0:
 		return Time.get_datetime_string_from_unix_time(_test_unix)

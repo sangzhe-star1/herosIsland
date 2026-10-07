@@ -160,9 +160,10 @@ func _firefly(life: Dictionary, sprite: Control, delta: float) -> void:
 			cos(_t * 1.2 * speed + phase) * 28.0 + sin(_t * 0.6 * speed) * 14.0,
 			sin(_t * 1.7 * speed + phase) * 18.0 + cos(_t * 0.8 * speed) * 10.0
 		)
-		var holder := sprite.get_parent() as Node2D
-		var origin := holder.position if holder != null else Vector2.ZERO
-		sprite.position = base + offset - origin - sprite.pivot_offset
+		# `base` is already the sprite's position inside its holder, and the
+		# holder sits at the world point; subtracting the holder again sent
+		# the fireflies 1,300 px off the pond.
+		sprite.position = base + offset
 
 
 func _flutter(life: Dictionary, sprite: Control, delta: float) -> void:

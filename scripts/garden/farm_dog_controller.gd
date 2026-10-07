@@ -176,7 +176,9 @@ func pet() -> void:
 	var tricks: Array = DogManager.tricks_unlocked(farm)
 	var active_trick := ""
 	if not tricks.is_empty():
-		active_trick = str(tricks[randi() % tricks.size()])
+		# The newest trick he knows, every time: a pat always gets the same
+		# answer, and the answer changes only when he learns something.
+		active_trick = str(tricks.back())
 		if _pup != null and is_instance_valid(_pup) and _pup.has_method("set_trick"):
 			_pup.call("set_trick", active_trick)
 	if active_trick == "" and _pup != null and is_instance_valid(_pup):
@@ -198,11 +200,15 @@ func pet() -> void:
 			t.tween_callback(heart.queue_free)
 	await get_tree().create_timer(seconds).timeout
 	_petting = false
-	if not is_inside_tree() or _walking or _digging:
+	if not is_inside_tree():
+		return
+	# Whatever he does next, the trick pose ends here: a dog sent walking
+	# mid-pat used to keep rolling all the way across the farm.
+	if _pup != null and is_instance_valid(_pup) and _pup.has_method("set_trick"):
+		_pup.call("set_trick", "")
+	if _walking or _digging:
 		return
 	if _pup != null and is_instance_valid(_pup):
-		if _pup.has_method("set_trick"):
-			_pup.call("set_trick", "")
 		_pup.set_pose(HeroArt.Pose.BEAM)
 
 

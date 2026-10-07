@@ -7,12 +7,17 @@ extends RefCounted
 ## Child-first design principles:
 ## - Fetch count unlocks tricks (sit, roll, carry the basket).
 ## - Once per day, he digs at one marked spot on the grass and finds a seed.
-## - Never coins, never a surprise box, never a fail state.
-## - Dog state stays off the save except the trick list and fetch tally.
+## - Never coins, never a surprise box, never a fail state. The seed is one
+##   of the four starter crops every farm already has, chosen by the weekday,
+##   so it is a ritual with the dog and never a shop unlock for free.
+## - On the save: the fetch tally, the trick list and the day of the last dig.
+##   Nothing about where he stands or what he is doing.
 
-const Barn := preload("res://scripts/garden/inventory_manager.gd")
-
-const DIG_SPOT_POSITION := Vector2(510.0, 980.0)
+## Open grass in the south-east, below the expansion beds and left of the
+## decor stand: the point farthest from every bed, facility and dressing prop
+## (the rules probe checks the beds and facilities). The first spot sat inside
+## the visit board's box, and the board took every tap meant for the mound.
+const DIG_SPOT_POSITION := Vector2(1750.0, 890.0)
 const DIG_SPOT_RADIUS := 44.0
 
 
@@ -59,36 +64,30 @@ static func is_near_dig_spot(world_pos: Vector2) -> bool:
 	return world_pos.distance_to(DIG_SPOT_POSITION) <= (DIG_SPOT_RADIUS + 25.0)
 
 
-## Digs at the marked spot: finds a seed for the day, unlocks crop if unowned,
-## and records today's date.
+## The seed the dog finds today: a starter crop the child already grows,
+## picked by the weekday so Monday's find is Monday's find. Only crops on the
+## child's own rack qualify -- the shop ladder stays the one way to a new crop.
+static func todays_seed(farm: Dictionary) -> String:
+	var config: Dictionary = GameData.farm_dog
+	var seeds: Array = config.get("daily_dig_seeds", ["carrot", "corn", "strawberry", "tomato"])
+	var owned: Array = farm.get("unlocked_crops", [])
+	var allowed: Array = []
+	for id in seeds:
+		if str(id) in owned:
+			allowed.append(str(id))
+	if allowed.is_empty():
+		return "carrot"
+	var weekday := int(GameClock.now_datetime().get("weekday", 0))
+	return str(allowed[weekday % allowed.size()])
+
+
+## Digs at the marked spot once a day: names the seed, stamps the day. It
+## changes nothing else on the save -- no coins, no unlock, no inventory row
+## nothing reads -- the find is the little flight to the barn and a word.
 static func perform_dig(farm: Dictionary) -> Dictionary:
 	if not can_dig_today(farm):
 		return {"success": false, "reason": "already_dug"}
-	var config: Dictionary = GameData.farm_dog
-	var seeds: Array = config.get("daily_dig_seeds", ["carrot", "corn", "strawberry", "tomato"])
-	if seeds.is_empty():
-		seeds = ["carrot"]
 	var date_str := GameClock.now_date()
-	var hash_val := 0
-	for ch in date_str.to_utf8_buffer():
-		hash_val = (hash_val * 31 + int(ch)) & 0x7FFFFFFF
-	var crop_id := str(seeds[hash_val % seeds.size()])
-
-	# Put seed into pouch/inventory
-	Barn.put("seed_" + crop_id, 1, "inventory")
-
-	# Also unlock on rack if unowned so the child can grow it!
-	var unlocked_crops: Array = farm.get("unlocked_crops", [])
-	var newly_unlocked := false
-	if not (crop_id in unlocked_crops):
-		unlocked_crops.append(crop_id)
-		farm["unlocked_crops"] = unlocked_crops
-		newly_unlocked = true
-
+	var crop_id := todays_seed(farm)
 	farm["last_dog_dig_date"] = date_str
-	return {
-		"success": true,
-		"crop_id": crop_id,
-		"newly_unlocked_crop": newly_unlocked,
-		"date": date_str
-	}
+	return {"success": true, "crop_id": crop_id, "date": date_str}

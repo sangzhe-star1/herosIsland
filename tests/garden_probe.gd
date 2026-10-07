@@ -1936,6 +1936,20 @@ func _the_pens_and_new_recipes_work() -> void:
 	_ok(Barn.count("honey") == 1, "honey is stored in barn")
 	_ok(Pen.state(farm, Pen.BEEHIVE, now + 90) == Pen.HUNGRY, "beehive returns to hungry after collection")
 
+	# 2b. The pens survive a restart. normalise_farm() keeps only keys the
+	# default farm knows; the first cut forgot the cow shed, the beehive and
+	# the visitor's day, so two wheat went into a shed that was hungry again
+	# at the next launch, and the visitor could be fed (and paid) twice.
+	_ok(Pen.feed(farm, Pen.COW_SHED, now), "feed the cow shed again before the restart")
+	farm["fed_visitor_date"] = GameClock.now_date()
+	var reloaded := Farm.normalise_farm(farm.duplicate(true))
+	_ok(Pen.state(reloaded, Pen.COW_SHED, now + 10) == Pen.PRODUCING,
+		"the cow shed is still producing after a reload")
+	_ok(str(reloaded.get("fed_visitor_date", "")) == GameClock.now_date(),
+		"the visitor's dish is still remembered after a reload")
+	_ok(reloaded.get("beehive") is Dictionary and reloaded.get("coop") is Dictionary,
+		"every pen has a place in the default farm")
+
 	# 3. New recipes: cheese_toast (flour + milk) and honey_cake (flour + honey + egg)
 	farm["unlocked_recipes"] = ["cheese_toast", "honey_cake"]
 	Barn.put("flour", 2)
@@ -2162,25 +2176,52 @@ func _the_dog_grows_tricks_and_daily_dig_work() -> void:
 	_ok(DogManager.has_trick(farm, "carry_basket"), "dog unlocked carry_basket trick at 10 fetches")
 	_ok(DogManager.tricks_unlocked(farm).size() == 3, "all three tricks unlocked")
 
-	# 3. Daily marked dig spot
-	_ok(DogManager.DIG_SPOT_POSITION == Vector2(510, 980), "dig spot has fixed clear position")
-	_ok(DogManager.is_near_dig_spot(Vector2(510, 980)), "dig spot center is within touch range")
+	# 3. Daily marked dig spot. The mound is a touch target, so it has to sit
+	# on grass nothing else claims: press_at asks beds and facilities first,
+	# and the first spot sat inside the visit board's box and never got a tap.
+	var Layout := preload("res://scripts/garden/farm_layout.gd")
+	var spot: Vector2 = DogManager.DIG_SPOT_POSITION
+	var reach: float = DogManager.DIG_SPOT_RADIUS + 25.0
+	var claimed: Array = []
+	for f in Layout.facilities():
+		var box := Rect2(Layout.facility_at(f) - Layout.facility_size(f) / 2.0,
+			Layout.facility_size(f)).grow(reach)
+		if box.has_point(spot):
+			claimed.append(str(f.get("id", "?")))
+	for index in range(Layout.places_for_plots()):
+		var bed := Rect2(Layout.plot_at(index) - Layout.plot_box() / 2.0,
+			Layout.plot_box()).grow(reach)
+		if bed.has_point(spot):
+			claimed.append("bed %d" % index)
+	_ok(claimed.is_empty(),
+		"the dig spot is on open grass, not under %s" % str(claimed))
+	_ok(DogManager.is_near_dig_spot(spot), "dig spot center is within touch range")
 	_ok(not DogManager.is_near_dig_spot(Vector2(100, 100)), "far point is outside dig spot range")
 
-	# First dig today
+	# First dig today: a starter seed he already grows, nothing else changes.
+	var owned_before: Array = farm.get("unlocked_crops", []).duplicate()
+	var coins_before := Coins.balance()
 	var d1 := DogManager.perform_dig(farm)
 	_ok(bool(d1.get("success", false)), "first daily dig succeeds")
 	var crop_id := str(d1.get("crop_id", ""))
-	_ok(not crop_id.is_empty(), "dog found a seed: %s" % crop_id)
-	_ok(Barn.count("seed_" + crop_id, "inventory") == 1, "found seed placed into pouch/inventory")
-	_ok(crop_id in farm.get("unlocked_crops", []), "found seed is unlocked for planting")
+	_ok(crop_id in ["carrot", "corn", "strawberry", "tomato"],
+		"the dog finds a starter seed, never a shop crop (%s)" % crop_id)
+	_ok(crop_id in owned_before, "...one the child already grows")
+	_ok(farm.get("unlocked_crops", []) == owned_before, "the dig unlocks nothing")
+	_ok(Coins.balance() == coins_before, "the dig pays no coins")
 	_ok(str(farm.get("last_dog_dig_date", "")) == GameClock.now_date(), "last_dog_dig_date recorded")
+	# A rack with a shop crop on it does not change what he digs up.
+	var rich := farm.duplicate(true)
+	rich["unlocked_crops"] = owned_before + ["potato", "lettuce", "peas"]
+	rich["last_dog_dig_date"] = ""
+	_ok(str(DogManager.perform_dig(rich).get("crop_id", "")) == crop_id,
+		"a shop crop on the rack is never the seed he finds")
+	_ok(DogManager.todays_seed(farm) == crop_id, "the same day names the same seed")
 
 	# Second dig on same day is refused
 	_ok(not DogManager.can_dig_today(farm), "cannot dig a second time today")
 	var d2 := DogManager.perform_dig(farm)
 	_ok(not bool(d2.get("success", false)), "second dig attempt is safely refused")
-	_ok(Barn.count("seed_" + crop_id, "inventory") == 1, "seed count unchanged after refused dig")
 
 	# Next day arrives
 	var tomorrow := GameClock.now_unix() + 86400
@@ -2193,6 +2234,25 @@ func _the_market_day_announcement_and_price_doubling_work() -> void:
 	_fresh_save()
 	var MarketDay := preload("res://scripts/garden/farm_market_day_manager.gd")
 	var Market := preload("res://scripts/garden/farm_market_manager.gd")
+
+	# 0. One calendar. The till (GameData.market_price) and the board
+	# (MarketDay) once read different clocks -- local weekday, UTC week -- and
+	# a Saturday evening west of Greenwich doubled next week's produce. Every
+	# reader now goes through GameData.market_calendar(); ask both at the same
+	# moments, including a Saturday's last hour and the Sunday after it.
+	var saturday_late := 1700351400  # 2023-11-18 23:10 UTC, Saturday
+	for t in [saturday_late, saturday_late + 3600, saturday_late - 86400 * 1, NOON]:
+		var wd := int(GameClock.datetime_at(t).get("weekday", -1))
+		_ok(MarketDay.current_weekday(t) == wd,
+			"the board's weekday is the calendar's weekday at %d" % t)
+		for crop_id in ["carrot", "egg", "fish", "wheat"]:
+			_ok(MarketDay.unit_price(crop_id, t) == GameData.market_price(crop_id, t),
+				"board and till agree on %s at %d" % [crop_id, t])
+			_ok(MarketDay.is_doubled(crop_id, t) == GameData.market_doubled(crop_id, t),
+				"board and till agree on whether %s is dear at %d" % [crop_id, t])
+	_ok(MarketDay.week_number(saturday_late) == MarketDay.week_number(saturday_late - 86400 * 6)
+		and MarketDay.week_number(saturday_late) != MarketDay.week_number(saturday_late + 3600),
+		"a week runs Sunday to Saturday on the calendar, not on UTC day counts")
 
 	# 1. Configuration & defaults
 	_ok(MarketDay.announce_weekday() == 5, "announce weekday is Friday (5)")
@@ -2271,21 +2331,22 @@ func _the_bear_comes_back_and_gift_basket_work() -> void:
 	SaveManager.save_game()
 	_ok(bool(SaveManager.data["farm"].get("bear_return_visit_pending", false)), "pending bear visit saved")
 
-	# 3. Reciprocal visit resolution
-	var pending: bool = bool(farm.get("bear_return_visit_pending", false))
-	_ok(pending, "pending flag detected")
-	farm["bear_return_visit_pending"] = false
-	Farm.remember_visit(farm, {"who": "bear", "watered": 1, "star": 1, "at": GameClock.now_unix()})
-	farm["visit_log_unread"] = true
-	SaveManager.save_game()
-
-	_ok(not bool(farm.get("bear_return_visit_pending", false)), "pending flag cleared after visit")
-	_ok(bool(farm.get("visit_log_unread", false)), "visit board marked unread after bear visit")
-	var log: Array = farm.get("visit_log", [])
-	_ok(not log.is_empty(), "visit log has entries")
-	var last_entry: Dictionary = log[0]
-	_ok(str(last_entry.get("who", "")) == "bear" and int(last_entry.get("watered", 0)) == 1,
-		"bear visit recorded as watering 1 bed")
+	# 3. Which bed he waters: the first thirsty one, and none means no visit.
+	# (The walk itself and the board's line are watched in the touch probe.)
+	var WorldController := preload("res://scripts/garden/farm_world_controller.gd")
+	var plots: Array = farm["plots"]
+	for index in range(plots.size()):
+		plots[index] = Farm.fresh_plot(index)
+		plots[index]["state"] = Farm.TILLED
+	_ok(WorldController.bear_bed_to_water(plots) == -1,
+		"with no thirsty bed the bear has nothing to water and does not come")
+	plots[2]["state"] = Farm.GROWING
+	plots[2]["crop_id"] = "carrot"
+	plots[2]["care_event"] = Growth.CARE_THIRSTY
+	plots[4]["state"] = Farm.GROWING
+	plots[4]["crop_id"] = "corn"
+	plots[4]["care_event"] = Growth.CARE_THIRSTY
+	_ok(WorldController.bear_bed_to_water(plots) == 2, "he waters the first thirsty bed")
 
 	# 4. Gift Basket packing & sending
 	Barn.put("carrot", 5)
@@ -2311,7 +2372,6 @@ func _the_bear_comes_back_and_gift_basket_work() -> void:
 	var prev_friendship := int(friends.get("bear", 0))
 	friends["bear"] = prev_friendship + 1
 	farm["npc_friendship"] = friends
-	Coins.earn(20)
 	Farm.remember_visit(farm, {
 		"who": "bear",
 		"kind": "thanks",
@@ -2323,7 +2383,8 @@ func _the_bear_comes_back_and_gift_basket_work() -> void:
 	SaveManager.save_game()
 
 	_ok(int(farm.get("npc_friendship", {}).get("bear", 0)) == prev_friendship + 1, "bear friendship increased")
-	_ok(Coins.balance() == initial_coins + 20, "earned 20 friendship star coins")
+	_ok(Coins.balance() == initial_coins,
+		"a gift earns friendship, not coins: a free carrot must not outsell the market")
 	var thanks_entry: Dictionary = farm.get("visit_log", [])[0]
 	_ok(str(thanks_entry.get("who", "")) == "bear" and str(thanks_entry.get("kind", "")) == "thanks",
 		"thanks recorded in visit log")

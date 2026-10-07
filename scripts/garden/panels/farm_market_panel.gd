@@ -126,7 +126,7 @@ func build(view: Vector2) -> void:
 		unit.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(unit)
 		if is_dear:
-			var tag_x2 := UiKit.title("x2", 12, Color(0.85, 0.45, 0.10))
+			var tag_x2 := UiKit.title("x%d" % MarketDay.multiplier(), 12, Color(0.85, 0.45, 0.10))
 			tag_x2.name = "DoubleTag_%s" % crop_id
 			tag_x2.position = Vector2(20.0, -28.0)
 			tag_x2.size = Vector2(24.0, 16.0)

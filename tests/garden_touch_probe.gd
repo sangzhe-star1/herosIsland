@@ -124,6 +124,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_mill_turns_wheat_into_flour()
 	await _a_drag_from_the_dog_is_a_throw()
 	await _the_cloud_waters_the_bed_it_is_dropped_on()
+	await _the_bear_comes_back_to_a_thirsty_bed()
 	await _friends_have_purposes_and_say_thanks(view)
 	await _harvest_levels_can_be_chosen_and_replayed(view)
 	await _inventory_keeps_its_rendered_food_and_readable_slots(view)
@@ -2334,6 +2335,61 @@ func _a_drag_from_the_dog_is_a_throw() -> void:
 ## A thirsty bed brings a cloud; the cloud dropped on that bed rains, the
 ## bed drinks by the watering can's own rule; dropped elsewhere it drifts
 ## back; with nothing thirsty there is no cloud.
+## The bear's return visit, end to end on the real world: with no thirsty bed
+## he does not come and the flag stays up; with one, he waters it and the
+## board gets its line only once the water has landed. Low motion makes his
+## walk instant, so the order of events is the thing under test, not timing.
+func _the_bear_comes_back_to_a_thirsty_bed() -> void:
+	var world: Node = _garden.get("_world")
+	var farm: Dictionary = SaveManager.data["farm"]
+	SaveManager.data["settings"]["reduce_motion"] = true
+	var plots: Array = farm["plots"]
+	for index in range(plots.size()):
+		plots[index] = Farm.fresh_plot(index)
+		plots[index]["state"] = Farm.TILLED
+	farm["plots"] = plots
+	farm["visit_log"] = []
+	farm["visit_log_unread"] = false
+	farm["bear_return_visit_pending"] = true
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(bool(SaveManager.data["farm"].get("bear_return_visit_pending", false)),
+		"no thirsty bed: the bear waits, the visit stays pending")
+	_ok((SaveManager.data["farm"].get("visit_log", []) as Array).is_empty(),
+		"...and the board says nothing about a watering that did not happen")
+	_ok(world.get_node_or_null("BearVisitorActor") == null, "...and he is not on the farm")
+
+	farm = SaveManager.data["farm"]
+	plots = farm["plots"]
+	plots[1]["state"] = Farm.GROWING
+	plots[1]["crop_id"] = "carrot"
+	plots[1]["growth_stage"] = 1
+	plots[1]["water_level"] = 0.1
+	plots[1]["care_event"] = Growth.CARE_THIRSTY
+	plots[1]["plant_cycle_id"] = 8200
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	farm = SaveManager.data["farm"]
+	_ok(not bool(farm.get("bear_return_visit_pending", false)),
+		"a thirsty bed brings the bear and spends the visit")
+	_ok(str(_plots()[1].get("care_event", "")) != Growth.CARE_THIRSTY
+		and float(_plots()[1].get("water_level", 0.0)) > 0.9,
+		"the bear waters the thirsty bed")
+	var log: Array = farm.get("visit_log", [])
+	_ok(not log.is_empty() and str((log[0] as Dictionary).get("who", "")) == "bear"
+		and int((log[0] as Dictionary).get("watered", 0)) == 1,
+		"the board's line is written when the water lands")
+	_ok(bool(farm.get("visit_log_unread", false)), "...and the board lights up")
+	SaveManager.data["settings"]["reduce_motion"] = false
+	world.call("go_home")
+	for index in range(plots.size()):
+		plots[index] = Farm.fresh_plot(index)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+
 func _the_cloud_waters_the_bed_it_is_dropped_on() -> void:
 	var world: Node = _garden.get("_world")
 	var camera: RefCounted = world.get("camera")

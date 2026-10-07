@@ -47,6 +47,7 @@ const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
 const Coop := preload("res://scripts/garden/farm_coop_manager.gd")
 const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
 const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
+const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
@@ -1263,7 +1264,7 @@ func _on_fish_caught(info: Dictionary) -> void:
 func _on_dog_found_seed(crop_id: String) -> void:
 	SaveManager.save_game()
 	_queue_rebuild()
-	var spot_pos := Vector2(510.0, 980.0)
+	var spot_pos: Vector2 = DogManager.DIG_SPOT_POSITION
 	var at: Vector2 = _world.camera.world_to_screen(spot_pos) if _world != null and is_instance_valid(_world) else Vector2(640, 360)
 	var receipt := {"crop_id": crop_id, "amount": 1, "stored": 1, "spilled": 0}
 	_spawn_harvest_flight(-1, receipt, 1, _barn_button_at,

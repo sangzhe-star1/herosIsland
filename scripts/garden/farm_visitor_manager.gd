@@ -34,8 +34,7 @@ static func today_date_key() -> String:
 
 
 static func has_fed_today(farm: Dictionary) -> bool:
-	var fed_visitors: Dictionary = farm.get("fed_visitors", {})
-	return bool(fed_visitors.get(today_date_key(), false))
+	return str(farm.get("fed_visitor_date", "")) == today_date_key()
 
 
 static func can_feed_visitor(farm: Dictionary) -> bool:
@@ -59,31 +58,17 @@ static func feed_visitor(farm: Dictionary) -> Dictionary:
 	if not Recipes.give_to_friend(who, dish_id):
 		return {}
 
-	# Record fed for today
-	var fed_visitors: Dictionary = farm.get("fed_visitors", {})
-	fed_visitors[today_date_key()] = true
-	farm["fed_visitors"] = fed_visitors
+	# Record fed for today. One date string, not a dictionary that grows by a
+	# key a day: it has a default in farm_save.gd, so it survives a restart.
+	farm["fed_visitor_date"] = today_date_key()
 
 	# Award coins
 	Coins.earn(reward_coins)
 
-	# Check visitor milestones
-	var milestones: Array = GameData.farm_visitor_milestones.get(who, [])
-	var friends: Dictionary = farm.get("npc_friendship", {})
-	var visit_count := int(friends.get(who, 0))
-	var ledger: Dictionary = SaveManager.data.get("farm_visitors", {})
-	var given_milestones: Array = ledger.get(who, [])
-	for stone in milestones:
-		var sid := str(stone.get("id", ""))
-		if sid != "" and not sid in given_milestones and visit_count >= int(stone.get("at_visits", 999)):
-			given_milestones.append(sid)
-			var gift: Dictionary = stone.get("gift", {})
-			if int(gift.get("coins", 0)) > 0:
-				Coins.earn(int(gift["coins"]))
-			if int(gift.get("plank", 0)) > 0:
-				Barn.put("plank", int(gift["plank"]), "inventory")
-	ledger[who] = given_milestones
-	SaveManager.data["farm_visitors"] = ledger
+	# The farm_visitors.json milestones (third visit, sixth visit) belong to
+	# NpcFarm._grant_milestone, which keeps that ledger as {visits, claimed}
+	# per friend. Granting them here too paid them twice and wrote an Array
+	# over that Dictionary, which threw on the bear's day.
 
 	SaveManager.save_game()
 	return {

@@ -902,7 +902,8 @@
     "garden.challenge_page": "Page {page} / {pages}",
     "garden.collection_empty": "Harvested food will be kept here.",
     "garden.waiting_harvest_title": "Waiting harvest",
-    "garden.waiting_harvest_empty": "Moves into storage when there is room."
+    "garden.waiting_harvest_empty": "Moves into storage when there is room.",
+    "garden.gift_basket_count": "Basket: %d/%d"
   },
   "zh": {
     "adventure.again": "再来一次，你可以的！",
@@ -1807,6 +1808,7 @@
     "garden.challenge_page": "第 {page} / {pages} 页",
     "garden.collection_empty": "收获的作物会放在这里",
     "garden.waiting_harvest_title": "暂存收成",
-    "garden.waiting_harvest_empty": "有空位时会自动放进仓库"
+    "garden.waiting_harvest_empty": "有空位时会自动放进仓库",
+    "garden.gift_basket_count": "礼篮: %d/%d"
   }
 }

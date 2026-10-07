@@ -31,31 +31,21 @@ static func rotation() -> Array:
 	])
 
 
-## Returns the stable week number from unix seconds.
-## Week starts on Sunday (weekday 0 in Godot Time).
+## The week index, Sunday-start, of the date the child sees. One calendar for
+## the board, the banner and the till: GameData.market_calendar().
 static func week_number(unix_time: int = -1) -> int:
-	var t := unix_time if unix_time >= 0 else GameClock.now_unix()
-	var days := int(t / 86400)
-	var weekday := (days + 4) % 7
-	var sunday_days := days - weekday
-	return int(sunday_days / 7)
+	return int(GameData.market_calendar(unix_time).get("week", 0))
 
 
-## Returns the dear produce key for the given unix timestamp's week.
+## The dear produce of that week, from the same calendar the price uses.
 static func dear_produce_for_week(unix_time: int = -1) -> String:
-	var rot := rotation()
-	if rot.is_empty():
-		return "carrot"
-	var w := week_number(unix_time)
-	var idx := posmod(w, rot.size())
-	return str(rot[idx])
+	var dear := GameData.market_dear_produce(unix_time)
+	return dear if dear != "" else "carrot"
 
 
-## Current weekday according to GameClock (0=Sun, 1=Mon, ..., 6=Sat).
+## Weekday of the date the child sees (0=Sun ... 6=Sat).
 static func current_weekday(unix_time: int = -1) -> int:
-	var t := unix_time if unix_time >= 0 else GameClock.now_unix()
-	var days := int(t / 86400)
-	return (days + 4) % 7
+	return int(GameData.market_calendar(unix_time).get("weekday", 0))
 
 
 ## True if today is Friday (announcement day).
@@ -73,17 +63,15 @@ static func current_dear_produce(unix_time: int = -1) -> String:
 	return dear_produce_for_week(unix_time)
 
 
-## Effective unit price for the crop at this moment in time.
+## Effective unit price for the crop at this moment: the till's own number,
+## so the panel's tag and the sale can never disagree.
 static func unit_price(crop_id: String, unix_time: int = -1) -> int:
-	var base := maxi(0, int(GameData.farm_market_prices.get("prices", {}).get(crop_id, 0)))
-	if is_market_day(unix_time) and crop_id == current_dear_produce(unix_time):
-		return base * multiplier()
-	return base
+	return GameData.market_price(crop_id, unix_time)
 
 
-## Whether this crop is currently doubled in price right now.
+## Whether this crop is doubled right now, by the same rule the price uses.
 static func is_doubled(crop_id: String, unix_time: int = -1) -> bool:
-	return is_market_day(unix_time) and crop_id == current_dear_produce(unix_time)
+	return GameData.market_doubled(crop_id, unix_time)
 
 
 ## Localized name of the crop or produce.

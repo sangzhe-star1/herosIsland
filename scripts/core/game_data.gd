@@ -266,23 +266,44 @@ func market_base_price(crop_id: String) -> int:
 	return maxi(0, int(farm_market_prices.get("prices", {}).get(crop_id, 0)))
 
 
+## The market's calendar: the weekday and the week index of the date the
+## child sees, from the one clock the board reads (GameClock, so a test can
+## set it). Pass a unix time to ask about another moment. Weeks start on
+## Sunday, Godot's weekday 0. The first cut read the weekday from the local
+## date and the week from UTC day arithmetic: for a child west of Greenwich
+## a Saturday evening doubled NEXT week's produce while the board still named
+## this week's. One calendar, every reader.
+func market_calendar(unix_time: int = -1) -> Dictionary:
+	var dt: Dictionary = GameClock.now_datetime() if unix_time < 0 \
+		else GameClock.datetime_at(unix_time)
+	var weekday := int(dt.get("weekday", 0))
+	var day_index := GameClock.day_index_of(dt)
+	return {"weekday": weekday, "week": int(floor(float(day_index - weekday) / 7.0))}
+
+
+## This week's dear produce, by the week index into the rotation.
+func market_dear_produce(unix_time: int = -1) -> String:
+	var rot: Array = farm_market_day.get("rotation", [])
+	if rot.is_empty():
+		return ""
+	var week := int(market_calendar(unix_time).get("week", 0))
+	return str(rot[posmod(week, rot.size())])
+
+
+## True on Market Day (Saturday) for the week's announced dear produce.
+func market_doubled(crop_id: String, unix_time: int = -1) -> bool:
+	var m_day: int = int(farm_market_day.get("market_weekday", 6))
+	return int(market_calendar(unix_time).get("weekday", -1)) == m_day \
+		and crop_id != "" and crop_id == market_dear_produce(unix_time)
+
+
 ## What the market pays for one of these. Zero for a crop it has never heard
 ## of -- a retired crop sells for nothing rather than crashing the till.
 ## Doubles on Market Day (Saturday) for the week's announced dear produce.
-func market_price(crop_id: String) -> int:
+func market_price(crop_id: String, unix_time: int = -1) -> int:
 	var base := market_base_price(crop_id)
-	var m_day: int = int(farm_market_day.get("market_weekday", 6))
-	var dt := GameClock.now_datetime()
-	if int(dt.get("weekday", 0)) == m_day:
-		var rot: Array = farm_market_day.get("rotation", [])
-		if not rot.is_empty():
-			var t := GameClock.now_unix()
-			var days := int(t / 86400)
-			var weekday := (days + 4) % 7
-			var w := int((days - weekday) / 7)
-			var dear: String = str(rot[posmod(w, rot.size())])
-			if crop_id == dear:
-				return base * int(farm_market_day.get("multiplier", 2))
+	if market_doubled(crop_id, unix_time):
+		return base * int(farm_market_day.get("multiplier", 2))
 	return base
 
 

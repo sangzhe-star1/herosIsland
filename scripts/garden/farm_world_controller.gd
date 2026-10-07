@@ -1488,22 +1488,15 @@ func _check_bear_return_visit(plots: Array) -> void:
 	if not bool(farm.get("bear_return_visit_pending", false)):
 		return
 
-	var target_idx := -1
-	for i in range(plots.size()):
-		var p: Dictionary = plots[i]
-		if str(p.get("care_event", "")) == Growth.CARE_THIRSTY:
-			target_idx = i
-			break
-	if target_idx < 0 and not plots.is_empty():
-		target_idx = 0
-
-	farm["bear_return_visit_pending"] = false
-	Farm.remember_visit(farm, {"who": "bear", "watered": 1, "star": 1, "at": GameClock.now_unix()})
-	farm["visit_log_unread"] = true
-	SaveManager.save_game()
-
+	# No thirsty bed, no visit yet: the bear waits for a day he can help on,
+	# rather than splashing a bed that needs nothing and writing "watered 1"
+	# on the board. The flag stays up until then.
+	var target_idx := bear_bed_to_water(plots)
 	if target_idx < 0:
 		return
+
+	farm["bear_return_visit_pending"] = false
+	SaveManager.save_game()
 
 	var door := Layout.facility("bear_door")
 	var door_pos := Layout.facility_at(door)
@@ -1517,7 +1510,24 @@ func _check_bear_return_visit(plots: Array) -> void:
 
 	bear_actor.walk_to_bed_and_water(bed_pos,
 		func():
-			cloud_rained.emit(target_idx),
+			cloud_rained.emit(target_idx)
+			# The board's line is written when the water lands, not when he
+			# sets out: the log says what happened, in the order it happened.
+			var now_farm: Dictionary = SaveManager.data.get("farm", {})
+			Farm.remember_visit(now_farm,
+				{"who": "bear", "watered": 1, "star": 1, "at": GameClock.now_unix()})
+			now_farm["visit_log_unread"] = true
+			SaveManager.save_game(),
 		func():
 			bear_visited.emit(target_idx)
 	)
+
+
+## The bed the returning bear waters: the first thirsty one, or -1 when none
+## is, in which case he does not come today. Pure, so the rules probe can ask.
+static func bear_bed_to_water(plots: Array) -> int:
+	for i in range(plots.size()):
+		var p: Dictionary = plots[i]
+		if str(p.get("care_event", "")) == Growth.CARE_THIRSTY:
+			return i
+	return -1

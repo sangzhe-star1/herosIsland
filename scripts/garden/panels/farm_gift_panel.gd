@@ -135,7 +135,7 @@ func build(view: Vector2) -> void:
 	for count in basket.values():
 		total_items += int(count)
 
-	var basket_count_lbl := UiKit.title("礼篮: %d/%d" % [total_items, BASKET_LIMIT], 18, Color(0.72, 0.44, 0.12))
+	var basket_count_lbl := UiKit.title(I18n.t("garden.gift_basket_count") % [total_items, BASKET_LIMIT], 18, Color(0.72, 0.44, 0.12))
 	basket_count_lbl.name = "BasketCountLabel"
 	basket_count_lbl.position = basket_box.position + Vector2(80.0, 30.0)
 	basket_count_lbl.size = Vector2(110.0, 24.0)
@@ -193,8 +193,8 @@ func _on_send_pressed() -> void:
 	friends["bear"] = int(friends.get("bear", 0)) + 1
 	farm["npc_friendship"] = friends
 
-	# Award friendship star coins
-	Coins.earn(20)
+	# The gift is the gift: friendship and a thank-you on the board. Coins
+	# here made a free carrot worth ten carrots at the market, all day long.
 
 	# Remember visit with thanks
 	Farm.remember_visit(farm, {
