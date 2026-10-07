@@ -25,6 +25,7 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
+const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 
 var _pup: Node2D
 ## The red scarf, worn from the first friendship star onward. DERIVED, not
@@ -41,6 +42,9 @@ var _walking := false
 ## True for the half second his cheer lasts. Not a MOOD, not a bond meter:
 ## just the door that stops a second press restarting the same wag.
 var _petting := false
+var _performing_trick := false
+var _digging := false
+var _on_dig_completed: Callable
 
 
 func _ready() -> void:
@@ -75,7 +79,7 @@ var _return_to := Vector2.ZERO
 
 
 func can_fetch() -> bool:
-	return not _fetching and not _bringing and not _petting
+	return not _fetching and not _bringing and not _petting and not _digging and not _performing_trick
 
 
 ## A stick landed there. Off he goes; when he has it he comes back to where
@@ -149,7 +153,7 @@ func _dress() -> void:
 ## screen -- a radius in world units would shrink to nothing at the overview
 ## zoom and grow to a bed-sized blob up close.
 func pet_at(at: Vector2, camera) -> bool:
-	if _pup == null or not is_instance_valid(_pup) or _petting:
+	if _pup == null or not is_instance_valid(_pup) or _petting or _digging or _performing_trick:
 		return false
 	var height := maxf(48.0, float(GameData.farm_dog.get("height", 96)))
 	var core: Vector2 = camera.world_to_screen(
@@ -162,13 +166,20 @@ func pet_at(at: Vector2, camera) -> bool:
 ## Petting is a greeting, not a duty; mid-reaction presses land on a dog who
 ## is already happy, and when it ends he goes back to whatever he was doing.
 func pet() -> void:
-	if _petting or not is_inside_tree():
+	if _petting or not is_inside_tree() or _digging or _performing_trick:
 		return
 	_petting = true
 	var config: Dictionary = GameData.farm_dog
 	var seconds := maxf(0.4, float(config.get("pet_seconds", 0.9)))
 	AudioManager.play_sfx("res://assets/audio/pop.ogg")
-	if _pup != null and is_instance_valid(_pup):
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	var tricks: Array = DogManager.tricks_unlocked(farm)
+	var active_trick := ""
+	if not tricks.is_empty():
+		active_trick = str(tricks[randi() % tricks.size()])
+		if _pup != null and is_instance_valid(_pup) and _pup.has_method("set_trick"):
+			_pup.call("set_trick", active_trick)
+	if active_trick == "" and _pup != null and is_instance_valid(_pup):
 		_pup.set_pose(HeroArt.Pose.CHEER)
 	if Juice.motion_enabled():
 		var height := maxf(48.0, float(config.get("height", 96)))
@@ -187,10 +198,52 @@ func pet() -> void:
 			t.tween_callback(heart.queue_free)
 	await get_tree().create_timer(seconds).timeout
 	_petting = false
-	if not is_inside_tree() or _walking:
+	if not is_inside_tree() or _walking or _digging:
 		return
 	if _pup != null and is_instance_valid(_pup):
+		if _pup.has_method("set_trick"):
+			_pup.call("set_trick", "")
 		_pup.set_pose(HeroArt.Pose.BEAM)
+
+
+func do_trick(trick_id: String, duration: float = 1.4) -> void:
+	if _performing_trick or not is_inside_tree():
+		return
+	_performing_trick = true
+	AudioManager.play_sfx("res://assets/audio/pop.ogg")
+	if _pup != null and is_instance_valid(_pup):
+		if _pup.has_method("set_trick"):
+			_pup.call("set_trick", trick_id)
+		else:
+			_pup.set_pose(HeroArt.Pose.CHEER)
+	if Juice.motion_enabled():
+		var height := maxf(48.0, float(GameData.farm_dog.get("height", 96)))
+		var star := UiKit.picture("sparkle", 32.0)
+		if star != null:
+			star.position = Vector2(0.0, -height * 0.95)
+			star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(star)
+			var t := star.create_tween()
+			t.tween_property(star, "position", star.position + Vector2(0.0, -36.0), duration)
+			t.parallel().tween_property(star, "modulate:a", 0.0, duration)
+			t.tween_callback(star.queue_free)
+	await get_tree().create_timer(duration).timeout
+	_performing_trick = false
+	if not is_inside_tree() or _walking or _digging:
+		return
+	if _pup != null and is_instance_valid(_pup):
+		if _pup.has_method("set_trick"):
+			_pup.call("set_trick", "")
+		_pup.set_pose(HeroArt.Pose.BEAM)
+
+
+func dig_to(spot_pos: Vector2, on_completed: Callable) -> void:
+	if _fetching or _bringing or _digging or _performing_trick:
+		return
+	_digging = true
+	_return_to = _target
+	_target = spot_pos
+	_on_dig_completed = on_completed
 
 
 func _process(delta: float) -> void:
@@ -219,7 +272,30 @@ func _process(delta: float) -> void:
 	elif _bringing:
 		_walking = false
 		_bringing = false
+		var farm: Dictionary = SaveManager.data.get("farm", {})
+		var fetch_res := DogManager.record_fetch(farm)
+		SaveManager.save_game()
+		var latest_trick: String = str(fetch_res.get("latest_trick", ""))
+		if latest_trick != "":
+			do_trick(latest_trick)
+		else:
+			pet()
+	elif _digging:
+		_walking = false
+		_digging = false
+		if _pup != null and is_instance_valid(_pup) and _pup.has_method("set_trick"):
+			_pup.call("set_trick", "dig")
+		AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+		await get_tree().create_timer(1.1).timeout
+		if _on_dig_completed.is_valid():
+			_on_dig_completed.call()
+		if _pup != null and is_instance_valid(_pup):
+			if _pup.has_method("set_trick"):
+				_pup.call("set_trick", "")
+			_pup.set_pose(HeroArt.Pose.CHEER)
+		AudioManager.play_sfx("res://assets/audio/found.ogg")
 		pet()
+		_target = _return_to
 	elif _walking:
 		_walking = false
 		_pup.set_pose(HeroArt.Pose.BEAM)

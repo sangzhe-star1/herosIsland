@@ -63,6 +63,7 @@ signal gesture_moved(index: int, offset: Vector2)
 signal gesture_finished(index: int, track: PackedVector2Array, centre: Vector2,
 	net: Vector2)
 signal fish_caught(info: Dictionary)
+signal dog_found_seed(crop_id: String)
 
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
@@ -74,6 +75,7 @@ const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Dog := preload("res://scripts/garden/farm_dog_controller.gd")
+const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const VisitorActor := preload("res://scripts/garden/farm_visitor_actor.gd")
 const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
 const PondManager := preload("res://scripts/garden/farm_pond_manager.gd")
@@ -141,6 +143,7 @@ var _fishing_active := false
 var _fishing_elapsed := 0.0
 var _fishing_idle_timer := 0.0
 var _pond_ring: Node2D
+var _dig_spot: Node2D
 ## What the town looked like when it was last drawn: the bear door's
 ## presence, the farm level (which decides how the orchard corner is drawn),
 ## and how many beds stand. refresh() compares this against the save so a
@@ -230,6 +233,10 @@ func build(view: Vector2, top_bar: float, shelf: float, plots: Array) -> void:
 	_fishing_idle_timer = 0.0
 	_ducklings.clear()
 
+	_dig_spot = preload("res://scripts/garden/farm_dog_dig_spot.gd").new()
+	_dig_spot.name = "FarmDogDigSpot"
+	_ground.add_child(_dig_spot)
+
 	# This layer has no Controls that can catch a press and no collision shapes.
 	# It follows the farm like a building, but lies above it so a delivery flag
 	# remains visible when a rooftop redraw happens underneath.
@@ -274,6 +281,9 @@ func refresh(plots: Array) -> void:
 	if _tint_layer != null and is_instance_valid(_tint_layer):
 		_tint_layer.color = DayCycle.current_tint_color()
 	_refresh_ducklings()
+	if _dig_spot != null and is_instance_valid(_dig_spot):
+		_dig_spot.dug_today = not DogManager.can_dig_today(SaveManager.data.get("farm", {}))
+		_dig_spot.queue_redraw()
 	# The town redraws when -- and only when -- something about it changed:
 	# the bear's door appearing after the first paid harvest, the orchard
 	# corner building up at a new farm level, stones leaving cleared land.
@@ -1257,6 +1267,9 @@ func press_at(at: Vector2) -> void:
 			else "res://assets/audio/rustle.ogg")
 		return
 	var world_pt := camera.screen_to_world(at)
+	if DogManager.is_near_dig_spot(world_pt):
+		_tap_dig_spot()
+		return
 	if PondManager.is_near_pond(world_pt):
 		_tap_pond(world_pt)
 		return
@@ -1440,3 +1453,29 @@ func _perform_catch(farm: Dictionary) -> void:
 		_refresh_ducklings()
 		FarmWorldArt.poke_scenery_kind(_ground, "duck")
 	fish_caught.emit(res)
+
+
+func _tap_dig_spot() -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	if not DogManager.can_dig_today(farm):
+		AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+		if _dog != null and is_instance_valid(_dog):
+			_dog.pet()
+		return
+	if _dog != null and is_instance_valid(_dog):
+		_dog.dig_to(DogManager.DIG_SPOT_POSITION, Callable(self, "_on_dog_dig_done"))
+	else:
+		_on_dog_dig_done()
+
+
+func _on_dog_dig_done() -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	var res := DogManager.perform_dig(farm)
+	SaveManager.save_game()
+	if _dig_spot != null and is_instance_valid(_dig_spot):
+		_dig_spot.dug_today = true
+		_dig_spot.queue_redraw()
+	var crop_id := str(res.get("crop_id", "carrot"))
+	AudioManager.play_sfx("res://assets/audio/found.ogg")
+	AudioManager.say("praise_1")
+	dog_found_seed.emit(crop_id)

@@ -446,6 +446,7 @@ func _rebuild() -> void:
 		_world.grass_pressed.connect(_poke_decoration)
 		_world.cloud_rained.connect(_on_cloud_rained)
 		_world.fish_caught.connect(_on_fish_caught)
+		_world.dog_found_seed.connect(_on_dog_found_seed)
 		_world.gesture_bed_check = _bed_wants_gesture
 		_world.gesture_moved.connect(_on_gesture_moved)
 		_world.gesture_finished.connect(_on_gesture_finished)
@@ -1257,6 +1258,16 @@ func _on_fish_caught(info: Dictionary) -> void:
 	_queue_rebuild()
 	if bool(info.get("unlocked_ducklings", false)):
 		AudioManager.say("praise_3")
+
+
+func _on_dog_found_seed(crop_id: String) -> void:
+	SaveManager.save_game()
+	_queue_rebuild()
+	var spot_pos := Vector2(510.0, 980.0)
+	var at: Vector2 = _world.camera.world_to_screen(spot_pos) if _world != null and is_instance_valid(_world) else Vector2(640, 360)
+	var receipt := {"crop_id": crop_id, "amount": 1, "stored": 1, "spilled": 0}
+	_spawn_harvest_flight(-1, receipt, 1, _barn_button_at,
+		"seed", "HarvestFlight", at + Vector2(0, -20))
 
 
 func _show_coop_ring(at: Vector2, fraction: float) -> void:

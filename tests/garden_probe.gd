@@ -106,6 +106,7 @@ func _ready() -> void:
 	_the_visitors_request_and_receive_dishes()
 	_the_day_and_night_cycle_and_dew_work()
 	_the_pond_fishing_and_ducklings_work()
+	_the_dog_grows_tricks_and_daily_dig_work()
 	_two_tablets_agree_about_the_bear()
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
@@ -2117,6 +2118,73 @@ func _the_pond_fishing_and_ducklings_work() -> void:
 	_ok(Recipes.dish_count("fish_soup") == 1, "fish soup ready in dishes")
 	_ok(Barn.count("fish") == 4, "1 fish consumed for soup (4 left)")
 	_ok(Barn.count("carrot") == 0, "1 carrot consumed for soup")
+
+
+## Candidate 5: Dog growth, fetch count trick unlocks, and daily marked dig spot.
+func _the_dog_grows_tricks_and_daily_dig_work() -> void:
+	_fresh_save()
+	var DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
+	var farm: Dictionary = SaveManager.data["farm"]
+
+	# 1. Initial state
+	_ok(DogManager.fetch_count(farm) == 0, "fresh save has 0 dog fetches")
+	_ok(DogManager.tricks_unlocked(farm).is_empty(), "fresh save has no tricks unlocked")
+	_ok(not DogManager.has_trick(farm, "sit"), "dog cannot sit yet")
+	_ok(DogManager.can_dig_today(farm), "fresh save can dig today")
+
+	# 2. Fetch progression and trick unlocks
+	# 1st and 2nd fetch: no new trick yet
+	var f1 := DogManager.record_fetch(farm)
+	_ok(int(f1.get("total", 0)) == 1, "fetch tally is 1")
+	_ok((f1.get("new_tricks", []) as Array).is_empty(), "no trick unlocked on 1st fetch")
+	DogManager.record_fetch(farm)
+
+	# 3rd fetch: unlocks sit
+	var f3 := DogManager.record_fetch(farm)
+	_ok(int(f3.get("total", 0)) == 3, "fetch tally reaches 3")
+	_ok(DogManager.has_trick(farm, "sit"), "dog unlocked sit trick at 3 fetches")
+	_ok(str(f3.get("latest_trick", "")) == "sit", "latest trick is sit")
+
+	# 4th and 5th fetch
+	DogManager.record_fetch(farm)
+	DogManager.record_fetch(farm)
+
+	# 6th fetch: unlocks roll
+	var f6 := DogManager.record_fetch(farm)
+	_ok(DogManager.has_trick(farm, "roll"), "dog unlocked roll trick at 6 fetches")
+
+	# Fetches up to 10: unlocks carry_basket
+	for i in range(4):
+		DogManager.record_fetch(farm)
+	_ok(DogManager.fetch_count(farm) == 10, "fetch tally reaches 10")
+	_ok(DogManager.has_trick(farm, "carry_basket"), "dog unlocked carry_basket trick at 10 fetches")
+	_ok(DogManager.tricks_unlocked(farm).size() == 3, "all three tricks unlocked")
+
+	# 3. Daily marked dig spot
+	_ok(DogManager.DIG_SPOT_POSITION == Vector2(510, 980), "dig spot has fixed clear position")
+	_ok(DogManager.is_near_dig_spot(Vector2(510, 980)), "dig spot center is within touch range")
+	_ok(not DogManager.is_near_dig_spot(Vector2(100, 100)), "far point is outside dig spot range")
+
+	# First dig today
+	var d1 := DogManager.perform_dig(farm)
+	_ok(bool(d1.get("success", false)), "first daily dig succeeds")
+	var crop_id := str(d1.get("crop_id", ""))
+	_ok(not crop_id.is_empty(), "dog found a seed: %s" % crop_id)
+	_ok(Barn.count("seed_" + crop_id, "inventory") == 1, "found seed placed into pouch/inventory")
+	_ok(crop_id in farm.get("unlocked_crops", []), "found seed is unlocked for planting")
+	_ok(str(farm.get("last_dog_dig_date", "")) == GameClock.now_date(), "last_dog_dig_date recorded")
+
+	# Second dig on same day is refused
+	_ok(not DogManager.can_dig_today(farm), "cannot dig a second time today")
+	var d2 := DogManager.perform_dig(farm)
+	_ok(not bool(d2.get("success", false)), "second dig attempt is safely refused")
+	_ok(Barn.count("seed_" + crop_id, "inventory") == 1, "seed count unchanged after refused dig")
+
+	# Next day arrives
+	var tomorrow := GameClock.now_unix() + 86400
+	GameClock.set_test_now(tomorrow, 0)
+	_ok(DogManager.can_dig_today(farm), "new day allows digging again")
+	GameClock.clear_test_now()
 
 
 ## --- 阶段 6: the crop's own move -------------------------------------------

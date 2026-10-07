@@ -225,6 +225,10 @@ static func default_farm() -> Dictionary:
 		# Pond fishing: total fish caught and last fish timestamp.
 		"fish_caught_total": 0,
 		"last_fish_at": 0,
+		# Dog growth: fetch count, unlocked tricks list, and daily dig date.
+		"dog_fetches": 0,
+		"dog_tricks": [],
+		"last_dog_dig_date": "",
 	}
 
 

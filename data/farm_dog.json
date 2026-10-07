@@ -4,5 +4,31 @@
   "height": 96,
   "sit_gap": 130,
   "pet_hearts": 3,
-  "pet_seconds": 0.9
+  "pet_seconds": 0.9,
+  "fetch_tricks": [
+    {
+      "id": "sit",
+      "fetches": 3,
+      "name_key": "dog.trick_sit"
+    },
+    {
+      "id": "roll",
+      "fetches": 6,
+      "name_key": "dog.trick_roll"
+    },
+    {
+      "id": "carry_basket",
+      "fetches": 10,
+      "name_key": "dog.trick_carry_basket"
+    }
+  ],
+  "daily_dig_seeds": [
+    "carrot",
+    "corn",
+    "strawberry",
+    "tomato",
+    "potato",
+    "lettuce",
+    "peas"
+  ]
 }
