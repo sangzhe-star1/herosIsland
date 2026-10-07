@@ -848,6 +848,16 @@ func _empty_ground() -> Vector2:
 ## One basket: the gesture is the whole move, and the crop puts itself away.
 func _one_basket_needs_one_move() -> void:
 	await _open("harvest_01")
+	# The meadow is a 3D diorama on a GPU and the painted backdrop on a CPU
+	# rasterizer (this probe under xvfb stalled 300 s on the diorama). Either
+	# way there is a meadow, and it is the one this renderer can afford.
+	var painted: bool = _level.find_child("HarvestMeadowBackdrop", true, false) != null
+	var diorama: bool = _level.find_child("HarvestMeadow3DBackdrop", true, false) != null
+	var software: bool = bool(_level.call("software_renderer"))
+	_ok(painted != diorama, "the field has exactly one meadow behind it")
+	_ok(painted == software,
+		"the meadow is painted on a software renderer and a diorama on a GPU (software=%s)"
+		% str(software))
 	_ok(_baskets().size() == 1, "拔胡萝卜 has one basket, so there is nothing to decide")
 	var carrot := _find(Gesture.DRAG, "carrot")
 	_ok(carrot != null, "there is a carrot to pull")

@@ -33,6 +33,17 @@
   两飞时第一张被第二张盖掉。现在屏幕保留最近八张（`harvest_flights`），
   探针按节点名读收据，精灵在就对一遍，不在就以收据为准。
 
+- **HarvestTouchProbe 在整套里 300 秒超时，而且第一屏之后一行没动。** 7 日
+  的提交把丰收关的背景换成了真 3D 立体景（`harvest_meadow.glb`，1280×720
+  的 SubViewport、带阴影、每帧重绘）。QA 跑步器用的是软件 GL（llvmpipe），
+  一帧要几秒，探针卡在第一关；Godot 占着 345% CPU，不是死锁，是画不过来。
+  探针文件本身一行没改。现在 `software_renderer()` 认出 CPU 光栅器
+  （llvmpipe/softpipe/swiftshader/lavapipe）时走回原来那张画好的草地
+  （`_add_harvest_backdrop_2d`，这段代码本来还在文件里，只是被挂在一个
+  `return` 后面永远到不了），作物和篓子的 3D 挂件本来就都检查
+  `_harvest_3d_world == null`，所以 2.5D 路径完整。真 GPU 上一个字节都不变。
+  探针开场多问两句：田后面恰有一片草地；软件渲染器上是画的，GPU 上是立体的。
+
 PLAN.md 记下了这两次本地提交带来的变化、运行时 3D 重开（第 4 条开放决策，
 是你的决定）、以及第 8 阶段「农场里更多可做的事」的候选表，便宜且能复用的
 排前面。

@@ -212,73 +212,75 @@ func _build_harvest_stage(config: Dictionary) -> Stage:
 ## and shadows, while keeping 2D interaction nodes in _field above it.
 func _add_harvest_backdrop() -> void:
 	var glb_path := "res://assets/scenes_3d/harvest_meadow.glb"
-	if ResourceLoader.exists(glb_path):
-		var vp_container := SubViewportContainer.new()
-		vp_container.name = "HarvestMeadow3DBackdrop"
-		vp_container.stretch = true
-		vp_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		vp_container.z_index = -20
-
-		var vp := SubViewport.new()
-		vp.name = "SubViewport"
-		vp.own_world_3d = true
-		vp.transparent_bg = false
-		vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-		vp.size = Vector2i(1280, 720)
-		vp_container.add_child(vp)
-
-		var world_root := Node3D.new()
-		world_root.name = "World3D"
-		vp.add_child(world_root)
-
-		var glb_scene: PackedScene = load(glb_path)
-		if glb_scene != null:
-			var glb_inst: Node = glb_scene.instantiate()
-			world_root.add_child(glb_inst)
-
-		var env := Environment.new()
-		env.background_mode = Environment.BG_SKY
-		var sky := Sky.new()
-		var sky_mat := ProceduralSkyMaterial.new()
-		sky_mat.sky_top_color = Color(0.28, 0.55, 0.88)
-		sky_mat.sky_horizon_color = Color(0.78, 0.88, 0.96)
-		sky_mat.ground_bottom_color = Color(0.26, 0.38, 0.22)
-		sky_mat.ground_horizon_color = Color(0.68, 0.74, 0.65)
-		sky.sky_material = sky_mat
-		env.sky = sky
-		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-		env.ambient_light_energy = 0.34
-		env.tonemap_mode = Environment.TONE_MAPPER_ACES
-		env.glow_enabled = false
-
-		var env_node := WorldEnvironment.new()
-		env_node.environment = env
-		world_root.add_child(env_node)
-
-		var sun := DirectionalLight3D.new()
-		sun.rotation_degrees = Vector3(-35.0, -28.0, 0.0)
-		sun.light_color = Color(1.0, 0.96, 0.90)
-		sun.light_energy = 0.76
-		sun.shadow_enabled = true
-		sun.shadow_blur = 1.8
-		sun.shadow_bias = 0.03
-		world_root.add_child(sun)
-
-		var cam := Camera3D.new()
-		cam.position = Vector3(0.0, 5.2, 11.2)
-		cam.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
-		cam.fov = 38.0
-		cam.current = true
-		world_root.add_child(cam)
-
-		_harvest_3d_vp = vp
-		_harvest_3d_world = world_root
-		_harvest_3d_cam = cam
-
-		_field.add_child(vp_container)
-		_field.move_child(vp_container, 0)
+	if not ResourceLoader.exists(glb_path) or software_renderer():
+		_add_harvest_backdrop_2d()
 		return
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "HarvestMeadow3DBackdrop"
+	vp_container.stretch = true
+	vp_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vp_container.z_index = -20
+
+	var vp := SubViewport.new()
+	vp.name = "SubViewport"
+	vp.own_world_3d = true
+	vp.transparent_bg = false
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.size = Vector2i(1280, 720)
+	vp_container.add_child(vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "World3D"
+	vp.add_child(world_root)
+
+	var glb_scene: PackedScene = load(glb_path)
+	if glb_scene != null:
+		var glb_inst: Node = glb_scene.instantiate()
+		world_root.add_child(glb_inst)
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.28, 0.55, 0.88)
+	sky_mat.sky_horizon_color = Color(0.78, 0.88, 0.96)
+	sky_mat.ground_bottom_color = Color(0.26, 0.38, 0.22)
+	sky_mat.ground_horizon_color = Color(0.68, 0.74, 0.65)
+	sky.sky_material = sky_mat
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.34
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.glow_enabled = false
+
+	var env_node := WorldEnvironment.new()
+	env_node.environment = env
+	world_root.add_child(env_node)
+
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-35.0, -28.0, 0.0)
+	sun.light_color = Color(1.0, 0.96, 0.90)
+	sun.light_energy = 0.76
+	sun.shadow_enabled = true
+	sun.shadow_blur = 1.8
+	sun.shadow_bias = 0.03
+	world_root.add_child(sun)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(0.0, 5.2, 11.2)
+	cam.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
+	cam.fov = 38.0
+	cam.current = true
+	world_root.add_child(cam)
+
+	_harvest_3d_vp = vp
+	_harvest_3d_world = world_root
+	_harvest_3d_cam = cam
+
+	_field.add_child(vp_container)
+	_field.move_child(vp_container, 0)
+
 
 func _screen_to_ground_3d(screen_pos: Vector2, ground_y: float = 0.12) -> Vector3:
 	if _harvest_3d_cam == null:
@@ -290,6 +292,24 @@ func _screen_to_ground_3d(screen_pos: Vector2, ground_y: float = 0.12) -> Vector
 	var t := (ground_y - ray_origin.y) / ray_normal.y
 	return ray_origin + ray_normal * t
 
+
+## A CPU rasterizer (llvmpipe under xvfb, SwiftShader, the QA runner's
+## software GL) draws the 1280x720 shadowed diorama at a frame every few
+## seconds; HarvestTouchProbe stalled on its first screen for 300 s. On such a
+## renderer the meadow is the painted backdrop and the crops stay their 2.5D
+## selves: every 3D attachment in this file already checks
+## `_harvest_3d_world == null`. Real GPUs never take this branch.
+static func software_renderer() -> bool:
+	var adapter := RenderingServer.get_video_adapter_name().to_lower()
+	for mark in ["llvmpipe", "softpipe", "swiftshader", "lavapipe"]:
+		if adapter.contains(mark):
+			return true
+	return false
+
+
+## The painted meadow: the backdrop every harvest level had before the 3D
+## diorama, and still the one for a missing GLB or a software renderer.
+func _add_harvest_backdrop_2d() -> void:
 	var backdrop := TextureRect.new()
 	backdrop.name = "HarvestMeadowBackdrop"
 	backdrop.texture = HARVEST_BACKDROP
