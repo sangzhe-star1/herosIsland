@@ -96,10 +96,20 @@ rain cloud he drags over a thirsty bed. What to watch with him: whether
 two minutes is a wait or a tease, whether he finds the cloud without being
 told, and whether he throws the stick more than he waters.
 
+Two local commits (4 and 7 October) added on top of that: a rabbit friend
+from the same studio, six one-off friend quests with a reason and a thank
+you, story orders ahead of the rotating ones, harvest levels 11 to 16 with
+a level picker, a compact HUD and warehouse, trowel and watering-can toys,
+and the mouse/touch mirror-event fix. The 7 October commit also put real
+3D scenes behind nine minigames, the home diorama and the bear's meadow,
+added 48 rendered icons, 120 shop items and three new battle moves, and
+reports the full suite green (38 probes, 496 smoke checks).
+
 ## Phase 8 — More to do on the farm — **candidates, 7 October**
 
-Where the farm stands after Phase 7: fourteen crops, sixteen orders,
-fourteen recipes, a kitchen at level 5, a market, a seed shop, an orchard,
+Where the farm stands after Phase 7 and the two local commits: fourteen
+crops, twenty-two orders (six of them friend quests), fourteen recipes,
+sixteen harvest levels, a rabbit, a kitchen at level 5, a market, a seed shop, an orchard,
 expansions, the bear's farm, the visit board, the dog, three daily tasks,
 and the three new loops (coop, mill, cloud). The level table stops at 5
 and the kitchen already sits there, so every new facility below needs the
@@ -113,7 +123,7 @@ is involved, and the two screenshots.
 |---|---|---|---|
 | 0 | **Split `garden_screen.gd`** (open decision 3) before any new panel. 4,930 lines today. | — | panels as a base class, one stub seam |
 | 1 | **Pens as data.** Fold the coop's rules into a generic pen spec (feed, seconds, output), the way the mill already uses `farm_maker_manager.gd`. Then a **cow shed** (wheat → milk) and a **beehive** (flowers in the decor beds → honey) are two JSON lines and two toys. | maker/coop rules, pipeline, dressing | `farm_pen_manager.gd`, 2 models, 2 produce, recipes (cheese toast, honey cake) |
-| 2 | **Visitors who want a dish.** Recipes have no consumer but the bear. The puppy and the robot the orders already name walk in through the gate, stand at the visit board, and show one dish icon. Giving it earns coins and a sticker. Visitors come on a schedule shown on the board, never by chance. | `farm_visitors.json`, visit board, kitchen dishes, gate | 2 character toys, visitor walk, want bubble |
+| 2 | **Visitors who want a dish.** Recipes have no consumer but the bear. The rabbit is already on the farm and the puppy already has visit milestones in `farm_visitors.json`; let them (and the robot) walk in through the gate, stand at the visit board and show one dish icon. Giving it earns coins and a sticker. Visitors come on a schedule shown on the board, never by chance. | rabbit toy, `farm_visitors.json`, visit board, kitchen dishes, gate | puppy and robot toys, visitor walk, want bubble |
 | 3 | **Day and night.** The clock exists. Evening tint, fireflies over the pond, lanterns on the buildings; crops do not grow slower, this is scenery, not pressure. Morning dew waters every bed once. | GameClock, dressing life | tint layer, 2 life kinds |
 | 4 | **The pond.** Fish ripple on a timer; tap when the ring closes. Fish is produce for the market and a soup; the duck gets ducklings that follow her after five fish. No luck involved: the ring always closes the same way. | pond prop, scenery life, produce path | fishing ring, fish toy, ducklings |
 | 5 | **The dog grows.** Fetch count unlocks tricks (sit, roll, carry the basket). He digs at one marked spot a day and finds a seed, never coins and never a surprise box. Dog state stays off the save except the trick list. | `farm_dog.json`, fetch | dig spot, 2 poses |
@@ -164,6 +174,12 @@ These are yours to make. Nothing below has been changed without asking.
    second pass by eye (the bear's door is the weakest). The farm's extra
    life (windmill, pond, hens, butterflies) is data in
    `data/farm_world_dressing.json`: adding a toy is a recipe and a line.
+   **Decided 7 October 2026, by the local commit "3D全场景交互升级":
+   runtime 3D is open again.** Nine minigames, the home diorama and the
+   bear's meadow now run real 3D scenes (`Node3D`, `Camera3D`,
+   `SubViewport`) with 32 GLB models under `assets/props_3d/`. The farm
+   itself stays 2.5D. What still wants a decision: whether the farm's world
+   layer follows, or whether the two styles meet only at the bear's door.
 5. **The asset pipeline is one studio and nineteen recipes, and it has been
    run.** `assets/harvest_3d/source/pipeline/` opens the frozen render profile
    every shipped sprite came from, frames its camera on the (256, 467) pivot,

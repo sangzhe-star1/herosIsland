@@ -27,7 +27,10 @@ func fire(arena) -> void:
 		if wait <= 0.0:
 			_lob(arena)
 			continue
-		arena.arena_after(wait).timeout.connect(func():
+		# 同一个理由：计时器要和竞技场一起走，所以用它的 Tween 而不是 SceneTreeTimer。
+		var later: Tween = arena.arena_tween()
+		later.tween_interval(wait)
+		later.tween_callback(func():
 			if arena.arena_alive():
 				_lob(arena))
 

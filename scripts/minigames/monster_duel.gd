@@ -2303,9 +2303,9 @@ func _debug_level_data() -> Dictionary:
 			"ult_needed": 3,
 			"goo_interval": 5.0,
 			"instruction_key": "duel.instruction",
-			"monster": {
-				"id": "sand_fist",
-				"scale": 1.0,
-			},
+			# No monster id here: the template must not know any monster's
+			# name (BattleFeelProbe scans this file), so the F6 run gets the
+			# default creature at scale 1.0.
+			"monster": {"scale": 1.0},
 		},
 	}

@@ -57,12 +57,15 @@ func _one(arena, index: int) -> void:
 	AudioManager.play_sfx("res://assets/audio/pop.ogg")
 
 	# 蹲一拍再扑：拍的窗口错开，先近后远，选择真实存在。
-	var pounce: SceneTreeTimer = arena.arena_after(CROUCH + STAGGER * float(index))
-	pounce.timeout.connect(func():
+	# 蹲的那一拍也挂在小怪自己身上（见 goo.gd）：一个 SceneTreeTimer 比竞技场
+	# 活得久，关卡 1.6 秒内被收走时，它还会带着两个已释放的捕获醒来。
+	var t: Tween = arena.arena_tween().bind_node(minion)
+	t.tween_interval(CROUCH + STAGGER * float(index))
+	t.tween_callback(func():
 		if not is_instance_valid(minion) or not arena.arena_alive():
 			return
-		var t: Tween = arena.arena_tween().bind_node(minion)  # dies with the minion; see goo.gd
-		t.tween_property(minion, "position",
+		var pounce: Tween = arena.arena_tween().bind_node(minion)
+		pounce.tween_property(minion, "position",
 			hero + Vector2(-20, -140) - size / 2.0, 0.55)\
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		t.tween_callback(func(): arena.arena_arrives(minion)))
+		pounce.tween_callback(func(): arena.arena_arrives(minion)))
