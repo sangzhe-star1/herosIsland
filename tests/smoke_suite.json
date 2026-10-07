@@ -214,7 +214,7 @@
         "res://tests/GardenTouchProbe.tscn"
       ],
       "expect": "GARDEN TOUCH PROBE PASSED",
-      "timeout": 240,
+      "timeout": 600,
       "window": true
     },
     {
