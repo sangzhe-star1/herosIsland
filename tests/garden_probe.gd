@@ -1940,6 +1940,7 @@ func _the_pens_and_new_recipes_work() -> void:
 	# default farm knows; the first cut forgot the cow shed, the beehive and
 	# the visitor's day, so two wheat went into a shed that was hungry again
 	# at the next launch, and the visitor could be fed (and paid) twice.
+	Barn.put("wheat", 2)
 	_ok(Pen.feed(farm, Pen.COW_SHED, now), "feed the cow shed again before the restart")
 	farm["fed_visitor_date"] = GameClock.now_date()
 	var reloaded := Farm.normalise_farm(farm.duplicate(true))
