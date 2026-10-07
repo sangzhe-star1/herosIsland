@@ -96,6 +96,40 @@ rain cloud he drags over a thirsty bed. What to watch with him: whether
 two minutes is a wait or a tease, whether he finds the cloud without being
 told, and whether he throws the stick more than he waters.
 
+## Phase 8 — More to do on the farm — **candidates, 7 October**
+
+Where the farm stands after Phase 7: fourteen crops, sixteen orders,
+fourteen recipes, a kitchen at level 5, a market, a seed shop, an orchard,
+expansions, the bear's farm, the visit board, the dog, three daily tasks,
+and the three new loops (coop, mill, cloud). The level table stops at 5
+and the kitchen already sits there, so every new facility below needs the
+table to grow with it (6, 7, 8), or levelling stops meaning anything.
+
+Order of work, cheapest and most reusable first. Each row is one evening
+unless noted; every one gets a probe section, a tools_check rule where data
+is involved, and the two screenshots.
+
+| # | Loop | Reuses | New |
+|---|---|---|---|
+| 0 | **Split `garden_screen.gd`** (open decision 3) before any new panel. 4,930 lines today. | — | panels as a base class, one stub seam |
+| 1 | **Pens as data.** Fold the coop's rules into a generic pen spec (feed, seconds, output), the way the mill already uses `farm_maker_manager.gd`. Then a **cow shed** (wheat → milk) and a **beehive** (flowers in the decor beds → honey) are two JSON lines and two toys. | maker/coop rules, pipeline, dressing | `farm_pen_manager.gd`, 2 models, 2 produce, recipes (cheese toast, honey cake) |
+| 2 | **Visitors who want a dish.** Recipes have no consumer but the bear. The puppy and the robot the orders already name walk in through the gate, stand at the visit board, and show one dish icon. Giving it earns coins and a sticker. Visitors come on a schedule shown on the board, never by chance. | `farm_visitors.json`, visit board, kitchen dishes, gate | 2 character toys, visitor walk, want bubble |
+| 3 | **Day and night.** The clock exists. Evening tint, fireflies over the pond, lanterns on the buildings; crops do not grow slower, this is scenery, not pressure. Morning dew waters every bed once. | GameClock, dressing life | tint layer, 2 life kinds |
+| 4 | **The pond.** Fish ripple on a timer; tap when the ring closes. Fish is produce for the market and a soup; the duck gets ducklings that follow her after five fish. No luck involved: the ring always closes the same way. | pond prop, scenery life, produce path | fishing ring, fish toy, ducklings |
+| 5 | **The dog grows.** Fetch count unlocks tricks (sit, roll, carry the basket). He digs at one marked spot a day and finds a seed, never coins and never a surprise box. Dog state stays off the save except the trick list. | `farm_dog.json`, fetch | dig spot, 2 poses |
+| 6 | **Market day.** Once a week the board announces tomorrow's dear produce; prices for that one item double for the day. Announced ahead, so it teaches planning, not gambling. | market prices, visit board, GameClock | one board card, price rule |
+| 7 | **The bear comes back.** After the child helps on the bear's farm, the bear visits and waters a thirsty bed; a gift basket can be sent through the door. | bear farm, visitors, cloud's care path | bear walk, gift panel |
+
+Rules that hold for all of it: star coins only, nothing bought with real
+money, no random rewards, icons before words, every wait shown as a ring,
+and every new data file loaded through `GameData` so tools_check sees it.
+
+What to learn from the first play-test before building any of it: whether
+the coop's two minutes and the mill's ninety seconds are a wait or a tease,
+whether he finds the cloud unaided, and whether he throws the stick more
+than he farms. If the timers feel long, rows 1 and 4 should run shorter
+than the coop, not longer.
+
 ## Open decisions
 
 These are yours to make. Nothing below has been changed without asking.
