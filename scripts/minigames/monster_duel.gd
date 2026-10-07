@@ -38,9 +38,9 @@ const Moves := preload("res://scripts/battle/move_book.gd")
 ## child is actually holding. On a 4:3 tablet that screen is 1280x960 and the
 ## ground line has moved down with it, so a hero left at a hard 620 stands in
 ## mid-air with a hundred and fifty pixels of daylight under his boots.
-const GROUND_Y := 620.0
-const HERO_POS := Vector2(250, 620)
-const MONSTER_POS := Vector2(690, GROUND_Y)   # clear of the skill pad, bottom right
+const GROUND_Y := 520.0
+const HERO_POS := Vector2(270, 520)
+const MONSTER_POS := Vector2(976, 520)
 ## How many unblocked hits the hero can take before the light bar empties.
 const LIGHT_PIPS := 3
 
@@ -58,10 +58,10 @@ const LIGHT_PIPS := 3
 ## ceiling. At 300 the top three all clamped to the same pixel height, which
 ## quietly threw away the one thing the numbers were for: the final monster
 ## has to be the biggest thing he has ever seen.
-const MONSTER_STAND := 290.0
+const MONSTER_STAND := 245.0
 ## The tallest a boss may be drawn, horns and all. The health bar sits at
-## y=84 and the ground at y=620, so anything past this is standing in the HUD.
-const MONSTER_CEILING := 440.0
+## y=84 and the ground at y=520, so anything past 375 is standing in the HUD (y < 140).
+const MONSTER_CEILING := 375.0
 
 
 func _fit_monster(tall: float, want: float) -> float:
@@ -324,7 +324,7 @@ func _build_scene(config: Dictionary) -> void:
 	_play_area.theme = UiKit.theme()
 	layer.add_child(_play_area)
 
-	build_world(_play_area, 0.0)
+	_build_3d_arena()
 
 	# 搓招层，铺在最底下。所有按钮都在它之后 add_child，所以按钮照常吃自己的
 	# 点击 —— 手势只接管"空地上划的那一笔"。
@@ -346,6 +346,10 @@ func _build_scene(config: Dictionary) -> void:
 	_hero_pos = Fit.at(_play_area, HERO_POS)
 	_monster_pos = Fit.at(_play_area, MONSTER_POS)
 
+	# Deep ambient contact shadow on the stone dais to eliminate cutout floating
+	var monster_shadow := Shapes.ground_shadow(_play_area, _monster_pos, 280.0, 0.42)
+	monster_shadow.name = "MonsterDaisShadow"
+
 	_monster = preload("res://scripts/battle/monster.gd").new()
 	_monster.position = _monster_pos
 	_play_area.add_child(_monster)
@@ -363,6 +367,9 @@ func _build_scene(config: Dictionary) -> void:
 	_monster.scale = Vector2.ONE * _fit_monster(
 		float(entry.get("height", 300.0)),
 		float(config.get("monster", {}).get("scale", 1.15)))
+
+	var hero_shadow := Shapes.ground_shadow(_play_area, _hero_pos, 160.0, 0.40)
+	hero_shadow.name = "HeroDaisShadow"
 
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
@@ -469,9 +476,11 @@ func _monster_head(size: float) -> Control:
 	#
 	# It has to reach past the corner (0.707 x size) to cover it, which is the
 	# whole reason the outer radius looks too big.
+	# 3D Gold medallion rim around boss portrait
 	var ring := Node2D.new()
 	frame.add_child(ring)
 	var mid := Vector2(size * 0.5, size * 0.5)
+	Shapes.fill(ring, Shapes.circle_points(mid, size * 0.50, 30), Color(0.96, 0.78, 0.28, 0.35), 0.0)
 	var band := PackedVector2Array()
 	var outer := Shapes.circle_points(mid, size * 0.80, 28)
 	var inner := Shapes.circle_points(mid, size * 0.44, 28)
@@ -484,6 +493,277 @@ func _monster_head(size: float) -> Control:
 	return frame
 
 
+var _arena_3d_cam: Camera3D
+var _arena_3d_vp: SubViewport
+var _arena_3d_world: Node3D
+var _hero_3d_actor: Node3D
+var _boss_3d_actor: Node3D
+
+func _build_3d_arena() -> void:
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "Arena3DContainer"
+	vp_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vp_container.stretch = true
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_area.add_child(vp_container)
+
+	_arena_3d_vp = SubViewport.new()
+	_arena_3d_vp.name = "Arena3DViewport"
+	_arena_3d_vp.own_world_3d = true
+	_arena_3d_vp.transparent_bg = false
+	_arena_3d_vp.handle_input_locally = false
+	_arena_3d_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp_container.add_child(_arena_3d_vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "ArenaWorld"
+	_arena_3d_vp.add_child(world_root)
+	_arena_3d_world = world_root
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.28, 0.54, 0.86)
+	sky_mat.sky_horizon_color = Color(0.78, 0.86, 0.94)
+	sky_mat.ground_bottom_color = Color(0.38, 0.35, 0.30)
+	sky_mat.ground_horizon_color = Color(0.72, 0.68, 0.62)
+	sky.sky_material = sky_mat
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.30
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	var world_env := WorldEnvironment.new()
+	world_env.environment = env
+	world_root.add_child(world_env)
+
+	var sun := DirectionalLight3D.new()
+	sun.name = "SunLight"
+	sun.light_color = Color(1.0, 0.95, 0.88)
+	sun.light_energy = 0.72
+	sun.shadow_enabled = true
+	sun.shadow_blur = 1.8
+	sun.rotation_degrees = Vector3(-36.0, 32.0, 0.0)
+	world_root.add_child(sun)
+
+	var fill := DirectionalLight3D.new()
+	fill.name = "FillLight"
+	fill.light_color = Color(0.55, 0.70, 0.90)
+	fill.light_energy = 0.22
+	fill.rotation_degrees = Vector3(25.0, -145.0, 0.0)
+	world_root.add_child(fill)
+
+	_arena_3d_cam = Camera3D.new()
+	_arena_3d_cam.name = "ArenaCamera"
+	_arena_3d_cam.position = Vector3(0.0, 3.8, 9.6)
+	_arena_3d_cam.rotation_degrees = Vector3(-14.0, 0.0, 0.0)
+	_arena_3d_cam.fov = 44.0
+	world_root.add_child(_arena_3d_cam)
+
+	var glb_path := "res://assets/scenes_3d/duel_arena.glb"
+	if ResourceLoader.exists(glb_path):
+		var arena_packed: PackedScene = load(glb_path)
+		var arena_inst := arena_packed.instantiate()
+		arena_inst.name = "DuelArenaMesh"
+		world_root.add_child(arena_inst)
+
+	# Keep dais uncluttered for illustrated hero & boss sprites,
+	# while retaining 3D combat energy beams, crystal shields, and arena lighting.
+	# _spawn_3d_combatants()
+
+
+func _spawn_3d_combatants() -> void:
+	if _arena_3d_world == null:
+		return
+
+	var hero_node := Node3D.new()
+	hero_node.name = "Hero3DActor"
+	hero_node.position = Vector3(-4.55, 0.72, 0.6)
+	hero_node.rotation_degrees.y = 80.0
+
+	var h_body := MeshInstance3D.new()
+	var h_bm := CapsuleMesh.new()
+	h_bm.radius = 0.38
+	h_bm.height = 1.35
+	h_body.mesh = h_bm
+	h_body.position = Vector3(0.0, 0.85, 0.0)
+	var h_bmat := StandardMaterial3D.new()
+	h_bmat.albedo_color = Color(0.28, 0.58, 0.95)
+	h_bmat.roughness = 0.35
+	h_bmat.metallic = 0.5
+	h_body.set_surface_override_material(0, h_bmat)
+	hero_node.add_child(h_body)
+
+	var h_head := MeshInstance3D.new()
+	var h_hm := SphereMesh.new()
+	h_hm.radius = 0.42
+	h_hm.height = 0.84
+	h_head.mesh = h_hm
+	h_head.position = Vector3(0.0, 1.70, 0.0)
+	var h_hmat := StandardMaterial3D.new()
+	h_hmat.albedo_color = Color(0.98, 0.88, 0.38)
+	h_hmat.roughness = 0.3
+	h_hmat.metallic = 0.6
+	h_head.set_surface_override_material(0, h_hmat)
+	hero_node.add_child(h_head)
+
+	var h_cape := MeshInstance3D.new()
+	var h_cm := BoxMesh.new()
+	h_cm.size = Vector3(0.65, 1.05, 0.1)
+	h_cape.mesh = h_cm
+	h_cape.position = Vector3(-0.1, 1.0, -0.32)
+	h_cape.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
+	var h_cmat := StandardMaterial3D.new()
+	h_cmat.albedo_color = Color(0.92, 0.30, 0.28)
+	h_cape.set_surface_override_material(0, h_cmat)
+	hero_node.add_child(h_cape)
+
+	var h_core := MeshInstance3D.new()
+	var h_crm := SphereMesh.new()
+	h_crm.radius = 0.15
+	h_crm.height = 0.30
+	h_core.mesh = h_crm
+	h_core.position = Vector3(0.0, 1.0, 0.36)
+	var h_crmat := StandardMaterial3D.new()
+	h_crmat.albedo_color = Color(0.4, 0.9, 1.0)
+	h_crmat.emission_enabled = true
+	h_crmat.emission = Color(0.4, 0.9, 1.0)
+	h_crmat.emission_energy_multiplier = 3.5
+	h_core.set_surface_override_material(0, h_crmat)
+	hero_node.add_child(h_core)
+
+	_arena_3d_world.add_child(hero_node)
+	_hero_3d_actor = hero_node
+
+	var boss_node := Node3D.new()
+	boss_node.name = "Boss3DActor"
+	boss_node.position = Vector3(4.15, 0.72, 0.6)
+	boss_node.rotation_degrees.y = -80.0
+
+	var b_scale := 1.45
+	var b_body := MeshInstance3D.new()
+	var b_bm := CapsuleMesh.new()
+	b_bm.radius = 0.55 * b_scale
+	b_bm.height = 1.65 * b_scale
+	b_body.mesh = b_bm
+	b_body.position = Vector3(0.0, 1.15 * b_scale, 0.0)
+	var b_bmat := StandardMaterial3D.new()
+	b_bmat.albedo_color = Color(0.35, 0.22, 0.32)
+	b_bmat.roughness = 0.65
+	b_body.set_surface_override_material(0, b_bmat)
+	boss_node.add_child(b_body)
+
+	for hx in [-0.45 * b_scale, 0.45 * b_scale]:
+		var horn := MeshInstance3D.new()
+		var hm := CylinderMesh.new()
+		hm.top_radius = 0.02
+		hm.bottom_radius = 0.15 * b_scale
+		hm.height = 0.65 * b_scale
+		horn.mesh = hm
+		horn.position = Vector3(hx, 2.3 * b_scale, 0.1)
+		horn.rotation_degrees = Vector3(15.0, 0.0, -25.0 if hx < 0 else 25.0)
+		var hrmat := StandardMaterial3D.new()
+		hrmat.albedo_color = Color(0.92, 0.45, 0.25)
+		hrmat.roughness = 0.4
+		horn.set_surface_override_material(0, hrmat)
+		boss_node.add_child(horn)
+
+	for ex in [-0.22 * b_scale, 0.22 * b_scale]:
+		var eye := MeshInstance3D.new()
+		var em := SphereMesh.new()
+		em.radius = 0.10 * b_scale
+		em.height = 0.20 * b_scale
+		eye.mesh = em
+		eye.position = Vector3(ex, 1.85 * b_scale, 0.52 * b_scale)
+		var emat := StandardMaterial3D.new()
+		emat.albedo_color = Color(1.0, 0.28, 0.18)
+		emat.emission_enabled = true
+		emat.emission = Color(1.0, 0.28, 0.18)
+		emat.emission_energy_multiplier = 4.0
+		eye.set_surface_override_material(0, emat)
+		boss_node.add_child(eye)
+
+	_arena_3d_world.add_child(boss_node)
+	_boss_3d_actor = boss_node
+
+
+func _fire_3d_beam(fat: float = 1.0) -> void:
+	if _arena_3d_world == null:
+		return
+	var beam_root := Node3D.new()
+	var from_p := Vector3(-4.55, 1.45, 0.6)
+	var to_p := Vector3(4.15, 1.65, 0.6)
+	var diff := to_p - from_p
+	var dist := diff.length()
+	beam_root.position = (from_p + to_p) * 0.5
+
+	var cyl := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.16 * fat
+	cm.bottom_radius = 0.16 * fat
+	cm.height = dist
+	cyl.mesh = cm
+	cyl.rotation_degrees.z = 90.0
+
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.95, 0.65)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.88, 0.35)
+	mat.emission_energy_multiplier = 4.5
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color.a = 0.95
+	cyl.set_surface_override_material(0, mat)
+	beam_root.add_child(cyl)
+	_arena_3d_world.add_child(beam_root)
+
+	var flash := OmniLight3D.new()
+	flash.position = to_p
+	flash.light_color = Color(1.0, 0.85, 0.45)
+	flash.light_energy = 4.5 * fat
+	flash.omni_range = 6.0
+	_arena_3d_world.add_child(flash)
+
+	if _boss_3d_actor != null and is_instance_valid(_boss_3d_actor):
+		var btw := _boss_3d_actor.create_tween()
+		btw.tween_property(_boss_3d_actor, "position:x", 4.15 + 0.35, 0.08)
+		btw.tween_property(_boss_3d_actor, "position:x", 4.15, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	var tw := beam_root.create_tween()
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.22 if Juice.motion_enabled() else 0.06)
+	tw.tween_callback(beam_root.queue_free)
+
+	var ftw := flash.create_tween()
+	ftw.tween_property(flash, "light_energy", 0.0, 0.24)
+	ftw.tween_callback(flash.queue_free)
+
+
+func _raise_3d_shield(duration: float) -> void:
+	if _arena_3d_world == null:
+		return
+	var shield := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 1.15
+	sm.height = 2.30
+	sm.is_hemisphere = true
+	shield.mesh = sm
+	shield.position = Vector3(-4.55, 0.72, 0.6)
+
+	var mat := StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(0.35, 0.85, 1.0, 0.55)
+	mat.emission_enabled = true
+	mat.emission = Color(0.35, 0.85, 1.0)
+	mat.emission_energy_multiplier = 2.2
+	shield.set_surface_override_material(0, mat)
+	_arena_3d_world.add_child(shield)
+
+	var tw := shield.create_tween()
+	tw.tween_property(shield, "scale", Vector3(1.12, 1.12, 1.12), 0.15)
+	tw.tween_interval(duration)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.25)
+	tw.tween_callback(shield.queue_free)
+
+
 func _build_meter() -> void:
 	var holder := Control.new()
 	# Centred, and one GAP below the instruction instead of two pixels into it.
@@ -493,26 +773,33 @@ func _build_meter() -> void:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(holder)
 
-	# Whose health this is. Without the face it is just a bar, and the child
-	# has two of them on screen.
-	#
-	# THIS monster's face, not a generic one: the whole point of giving every
-	# boss its own drawing is undone if the bar above it still shows the same
-	# purple stand-in on all six islands. Same album entry as the creature and
-	# the album card, so all three can never drift apart.
-	_hp_face = _monster_head(52.0)
+	_hp_face = _monster_head(54.0)
 	if _hp_face == null:
-		_hp_face = UiKit.picture("monster", 52.0)
+		_hp_face = UiKit.picture("monster", 54.0)
 	if _hp_face != null:
-		_hp_face.position = Vector2(-58, -10)
+		_hp_face.position = Vector2(-60, -11)
 		_hp_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		holder.add_child(_hp_face)
 
-	var track := Node2D.new()
-	holder.add_child(track)
-	Shapes.fill(track, Shapes.rounded_rect(Vector2(-4, -4),
-		Vector2(HP_W + 8.0, HP_H + 8.0), (HP_H + 8.0) * 0.5),
-		Color(0.06, 0.09, 0.18, 0.85), 0.0)
+	# 3D Ornate Boss HP Frame
+	var bg_frame := Node2D.new()
+	holder.add_child(bg_frame)
+	# Drop shadow
+	Shapes.fill(bg_frame, Shapes.rounded_rect(Vector2(-6, -2),
+		Vector2(HP_W + 12.0, HP_H + 12.0), (HP_H + 12.0) * 0.5),
+		Color(0.0, 0.04, 0.12, 0.40), 0.0)
+	# Outer 3D Bronze/Gold Rim
+	Shapes.fill(bg_frame, Shapes.rounded_rect(Vector2(-6, -6),
+		Vector2(HP_W + 12.0, HP_H + 12.0), (HP_H + 12.0) * 0.5),
+		Color(0.82, 0.66, 0.28), 0.0)
+	# Top golden highlight edge
+	Shapes.fill(bg_frame, Shapes.rounded_rect(Vector2(-4, -5),
+		Vector2(HP_W + 8.0, 4.0), 2.0),
+		Color(1.0, 0.88, 0.45, 0.8), 0.0)
+	# Recessed dark well
+	Shapes.fill(bg_frame, Shapes.rounded_rect(Vector2(-2, -2),
+		Vector2(HP_W + 4.0, HP_H + 4.0), (HP_H + 4.0) * 0.5),
+		Color(0.08, 0.10, 0.18, 0.95), 0.0)
 
 	_hp_fill = Control.new()
 	_hp_fill.position = Vector2.ZERO
@@ -522,11 +809,17 @@ func _build_meter() -> void:
 	holder.add_child(_hp_fill)
 	var paint := Node2D.new()
 	_hp_fill.add_child(paint)
-	Shapes.lit(paint, Shapes.rounded_rect(Vector2.ZERO, Vector2(HP_W, HP_H),
-		HP_H * 0.5), Color(0.96, 0.55, 0.42), 1.0)
-	Shapes.fill(paint, Shapes.rounded_rect(Vector2(10, 6),
-		Vector2(HP_W - 20.0, HP_H * 0.30), HP_H * 0.15),
-		Color(1.0, 0.86, 0.72, 0.55), 0.0)
+	# 3D Ruby/Amber health bar
+	Shapes.fill(paint, Shapes.rounded_rect(Vector2.ZERO, Vector2(HP_W, HP_H),
+		HP_H * 0.5), Color(0.96, 0.42, 0.32), 0.0)
+	# Top specular gloss streak
+	Shapes.fill(paint, Shapes.rounded_rect(Vector2(12, 3),
+		Vector2(HP_W - 24.0, HP_H * 0.36), HP_H * 0.18),
+		Color(1.0, 0.90, 0.80, 0.65), 0.0)
+	# Bottom rich shade
+	Shapes.fill(paint, Shapes.rounded_rect(Vector2(12, HP_H * 0.62),
+		Vector2(HP_W - 24.0, HP_H * 0.28), HP_H * 0.14),
+		Color(0.72, 0.18, 0.15, 0.55), 0.0)
 
 
 ## Called after every landed hit. `clip_contents` on the fill means shrinking
@@ -582,10 +875,16 @@ func _build_skill_wheel() -> void:
 		Vector2(DESIGN_W - MARGIN - pad_size.x, DESIGN_H - MARGIN - pad_size.y))
 	pad.size = pad_size
 	var pad_style := StyleBoxFlat.new()
-	pad_style.bg_color = Color(0.06, 0.09, 0.20, 0.42)
-	# A capsule: the radius IS half the height, so it cannot drift out of the
-	# family the way four separately-written corner numbers can.
+	pad_style.bg_color = Color(0.06, 0.10, 0.22, 0.65)
 	pad_style.set_corner_radius_all(int(pad_size.y * 0.5))
+	pad_style.border_width_top = 2
+	pad_style.border_width_left = 1
+	pad_style.border_width_right = 1
+	pad_style.border_width_bottom = 1
+	pad_style.border_color = Color(0.42, 0.58, 0.82, 0.45)
+	pad_style.shadow_color = Color(0.0, 0.03, 0.10, 0.50)
+	pad_style.shadow_size = 14
+	pad_style.shadow_offset = Vector2(0, 6)
 	pad.add_theme_stylebox_override("panel", pad_style)
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(pad)
@@ -626,17 +925,29 @@ func _skill_button(key: String, at: Vector2, size: float,
 	button.position = at
 	button.pivot_offset = button.size / 2.0
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.09, 0.15, 0.30, 0.94)
+	style.bg_color = Color(0.12, 0.18, 0.35, 0.96)
 	style.set_corner_radius_all(int(size / 2.0))
-	style.shadow_color = Color(0.0, 0.04, 0.12, 0.45)
-	style.shadow_size = 10
+	style.border_width_top = 4
+	style.border_width_left = 3
+	style.border_width_right = 3
+	style.border_width_bottom = 6
+	style.border_color = Color(0.32, 0.46, 0.74, 0.85)
+	style.shadow_color = Color(0.0, 0.04, 0.14, 0.55)
+	style.shadow_size = 12
 	style.shadow_offset = Vector2(0, 6)
 	button.add_theme_stylebox_override("panel", style)
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 
-	var icon: Control = UiKit.picture(icon_name, size * 0.58)
+	# Top gloss reflection highlight
+	var gloss := Node2D.new()
+	button.add_child(gloss)
+	Shapes.fill(gloss, Shapes.rounded_rect(Vector2(size * 0.18, size * 0.08),
+		Vector2(size * 0.64, size * 0.28), size * 0.14),
+		Color(1.0, 1.0, 1.0, 0.22), 0.0)
+
+	var icon: Control = UiKit.picture(icon_name, size * 0.62)
 	if icon != null:
-		icon.position = Vector2(size * 0.21, size * 0.21)
+		icon.position = Vector2(size * 0.19, size * 0.19)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(icon)
 
@@ -654,7 +965,7 @@ func _skill_button(key: String, at: Vector2, size: float,
 	# property change instead of rebuilding three stylebox objects every frame.
 	var ring := Line2D.new()
 	ring.points = Shapes.circle_points(Vector2(size * 0.5, size * 0.5),
-		size * 0.5 - 3.0, 30)
+		size * 0.5 - 2.0, 32)
 	ring.closed = true
 	ring.width = 6.0
 	ring.default_color = ACCENT
@@ -1035,29 +1346,38 @@ func _build_move_card() -> void:
 	var moves: Array = Moves.ids()
 	if moves.is_empty():
 		return
-	var row_h := 78.0
+	var row_h := 88.0
 	var card := Control.new()
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.position = Vector2(MARGIN, MARGIN + 96.0 + GAP * 3.0)
-	card.size = Vector2(96, row_h * float(moves.size()) + GAP)
+	card.position = Vector2(MARGIN, MARGIN + 72.0 + GAP)
+	card.size = Vector2(82, row_h * float(moves.size()) + 16.0)
 	_play_area.add_child(card)
 	_move_card = card
 
-	var plate := Node2D.new()
+	var plate := Panel.new()
+	plate.size = card.size
+	var p_style := StyleBoxFlat.new()
+	p_style.bg_color = Color(0.08, 0.12, 0.22, 0.60)
+	p_style.set_corner_radius_all(22)
+	p_style.border_width_top = 1
+	p_style.border_width_left = 1
+	p_style.border_width_right = 1
+	p_style.border_width_bottom = 1
+	p_style.border_color = Color(0.40, 0.55, 0.78, 0.40)
+	plate.add_theme_stylebox_override("panel", p_style)
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(plate)
-	Shapes.fill(plate, Shapes.rounded_rect(Vector2.ZERO, card.size, 24.0),
-		Color(0.06, 0.09, 0.20, 0.34), 0.0)
 
 	for i in range(moves.size()):
 		var move = Moves.get_move(str(moves[i]))
 		if move == null:
 			continue
-		var mid := Vector2(card.size.x * 0.5, GAP * 0.5 + row_h * (float(i) + 0.5))
-		_draw_card_stroke(card, mid, move.card_stroke())
-		var icon: Control = UiKit.picture(str(move.card_icon()), 26.0)
+		var mid := Vector2(card.size.x * 0.5, 8.0 + row_h * (float(i) + 0.5))
+		_draw_card_stroke(card, mid + Vector2(0, -12.0), move.card_stroke())
+		var icon: Control = UiKit.picture(str(move.card_icon()), 24.0)
 		if icon != null:
 			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			icon.position = mid + Vector2(-13.0, 16.0)
+			icon.position = mid + Vector2(-12.0, 14.0)
 			card.add_child(icon)
 
 
@@ -1293,6 +1613,8 @@ func activate_shield() -> bool:
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
 
 	_raise_bubble()
+	if _hero != null and is_instance_valid(_hero) and _hero.has_method("block"):
+		_hero.block(_shield_duration)
 	return true
 
 
@@ -1320,6 +1642,7 @@ func _raise_bubble() -> void:
 		var t := _shield_bubble.create_tween().set_loops()
 		t.tween_property(_shield_bubble, "modulate:a", 0.4, 0.5)
 		t.tween_property(_shield_bubble, "modulate:a", 0.65, 0.5)
+	_raise_3d_shield(_shield_duration)
 
 
 func shield_active() -> bool:
@@ -1459,6 +1782,10 @@ func _land_hit(amount: int, charges: bool = true, charged: bool = false) -> void
 	if wide_open() and charges:
 		amount *= OPENING_BONUS
 	_monster.call("flinch")
+	Juice.impact_sparks(_play_area, arena_monster_at(), Color(1.0, 0.88, 0.35), 10)
+	if charged:
+		Juice.hit_stop(get_tree(), 0.06)
+		Juice.screen_shake(_play_area, 10.0, 0.18)
 	if charges:
 		_ult_charge = mini(_ult_charge + meter, _ult_needed)
 		if ult_ready():
@@ -1513,7 +1840,10 @@ func _open_up(why: String) -> void:
 	# 那几只，血最厚却打得最快。
 	_open_until = _clock + OPENING * float(OPENING_SCALE.get(why, 1.0))
 	AudioManager.play_sfx("res://assets/audio/power_on.ogg")
-	_monster.call("flinch")
+	if _monster.has_method("dizzy_stun"):
+		_monster.call("dizzy_stun", 1.8)
+	else:
+		_monster.call("flinch")
 	Juice.shockwave(_play_area, _monster.position + Vector2(0, -60.0), 150.0,
 		Color(1.0, 0.92, 0.6))
 	_show_weak_spot()
@@ -1893,6 +2223,7 @@ func _draw_beam(from: Vector2, to: Vector2, fat: float = 1.0) -> void:
 		var t := create_tween()
 		t.tween_property(beam, "modulate:a", 0.0, 0.22 if Juice.motion_enabled() else 0.05)
 		t.tween_callback(beam.queue_free)
+	_fire_3d_beam(fat)
 
 
 func _impact(at: Vector2) -> void:
@@ -1956,3 +2287,25 @@ func complete_level() -> void:
 
 func on_correct() -> void:
 	_update_meter()
+
+
+func _debug_level_data() -> Dictionary:
+	return {
+		"id": "monster_arena_04",
+		"world": "monster_valley",
+		"game_type": "monster_duel",
+		"difficulty": 1,
+		"target": {"correct": 8},
+		"reward": {"stars": 3, "coins": 30, "badge": ""},
+		"config": {
+			"beam_cooldown": 1.2,
+			"shield_cooldown": 4.5,
+			"ult_needed": 3,
+			"goo_interval": 5.0,
+			"instruction_key": "duel.instruction",
+			"monster": {
+				"id": "sand_fist",
+				"scale": 1.0,
+			},
+		},
+	}

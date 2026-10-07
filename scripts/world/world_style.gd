@@ -100,10 +100,10 @@ static func for_world(world_id: String) -> WorldStyle:
 			s.light_glow = 0.30
 			s.horizon_kind = "hills"
 			s.band_colors = [
-				Color(0.66, 0.83, 0.78), Color(0.53, 0.76, 0.60), Color(0.40, 0.67, 0.46),
+				Color(0.48, 0.65, 0.52), Color(0.38, 0.55, 0.42), Color(0.28, 0.45, 0.32),
 			]
-			s.ground_top = Color(0.56, 0.80, 0.46)
-			s.ground_bottom = Color(0.38, 0.65, 0.35)
+			s.ground_top = Color(0.28, 0.42, 0.22)
+			s.ground_bottom = Color(0.20, 0.32, 0.16)
 			s.props = ["cottage", "tree", "bush", "flower", "fence"]
 			s.clouds = 0.7
 			s.mote_kind = "pollen"
@@ -113,8 +113,8 @@ static func for_world(world_id: String) -> WorldStyle:
 		# crossing a road should not have a sunset competing with the traffic
 		# light -- here the scenery deliberately gets out of the way.
 		"safety":
-			s.sky_top = Color(0.44, 0.72, 0.93)
-			s.sky_bottom = Color(0.85, 0.94, 0.99)
+			s.sky_top = Color(0.38, 0.62, 0.82)
+			s.sky_bottom = Color(0.75, 0.86, 0.94)
 			s.haze = Color(1.0, 1.0, 0.94, 0.42)
 			s.light_at = Vector2(0.50, 0.10)
 			s.light_radius = 52.0
@@ -123,10 +123,10 @@ static func for_world(world_id: String) -> WorldStyle:
 			s.horizon_kind = "rooftops"
 			s.band_scale = 1.3
 			s.band_colors = [
-				Color(0.72, 0.82, 0.88), Color(0.62, 0.74, 0.82), Color(0.52, 0.66, 0.75),
+				Color(0.52, 0.62, 0.68), Color(0.42, 0.54, 0.62), Color(0.32, 0.46, 0.55),
 			]
-			s.ground_top = Color(0.60, 0.80, 0.52)
-			s.ground_bottom = Color(0.44, 0.68, 0.40)
+			s.ground_top = Color(0.28, 0.40, 0.24)
+			s.ground_bottom = Color(0.20, 0.30, 0.18)
 			s.ground_kind = "road"
 			s.props = ["shop", "lamp", "tree", "bush"]
 			s.clouds = 0.45
@@ -222,8 +222,8 @@ static func for_world(world_id: String) -> WorldStyle:
 			s.band_colors = [
 				Color(0.74, 0.82, 0.92), Color(0.62, 0.73, 0.87), Color(0.50, 0.64, 0.80),
 			]
-			s.ground_top = Color(0.52, 0.76, 0.46)
-			s.ground_bottom = Color(0.34, 0.58, 0.34)
+			s.ground_top = Color(0.28, 0.45, 0.24)
+			s.ground_bottom = Color(0.22, 0.35, 0.18)
 			s.props = ["pine", "rock", "tree"]
 			s.prop_density = 1.2
 			s.clouds = 0.6
@@ -236,8 +236,8 @@ static func for_world(world_id: String) -> WorldStyle:
 		# the buttons do, and a dramatic horizon would only compete with the
 		# thing they are actually meant to be looking at.
 		"sunny_park":
-			s.sky_top = Color(0.40, 0.70, 0.95)
-			s.sky_bottom = Color(0.88, 0.96, 1.0)
+			s.sky_top = Color(0.38, 0.62, 0.82)
+			s.sky_bottom = Color(0.74, 0.86, 0.94)
 			s.haze = Color(1.0, 0.98, 0.88, 0.46)
 			s.light_at = Vector2(0.24, 0.15)
 			s.light_radius = 60.0
@@ -246,10 +246,10 @@ static func for_world(world_id: String) -> WorldStyle:
 			s.horizon_kind = "hills"
 			s.band_scale = 0.85
 			s.band_colors = [
-				Color(0.66, 0.86, 0.68), Color(0.54, 0.79, 0.56), Color(0.42, 0.70, 0.48),
+				Color(0.46, 0.64, 0.48), Color(0.36, 0.54, 0.38), Color(0.26, 0.44, 0.28),
 			]
-			s.ground_top = Color(0.58, 0.82, 0.48)
-			s.ground_bottom = Color(0.40, 0.66, 0.36)
+			s.ground_top = Color(0.28, 0.44, 0.22)
+			s.ground_bottom = Color(0.22, 0.35, 0.18)
 			s.props = ["tree", "bush", "flower", "fence"]
 			s.prop_density = 1.15
 			s.clouds = 0.65

@@ -250,6 +250,8 @@ func _draw_ground(plot: Dictionary) -> void:
 		var legacy_surface := Vector2(256.0, Art.GROUND_ORIGIN_PIXEL_Y + 8.0
 			* Art.SOURCE_CANVAS_SIZE / (BED_PATCH_SIZE * Art.SPRITE_CANVAS_MULTIPLIER))
 		var surface := Art.prop_anchor_pixel("soil_grass_patch", "planting_surface", legacy_surface)
+		# Deep soft contact shadow firmly anchoring the bed into the 3D meadow
+		Shapes.ground_shadow(_ground, PLANT_ROOT + Vector2(0, 14.0), BED_PATCH_SIZE * 0.96, 0.35)
 		var bed := Art.anchored_sprite(patch, BED_PATCH_SIZE, surface, PLANT_ROOT, "BedPatch")
 		bed.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if thirsty:

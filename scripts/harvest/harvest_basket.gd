@@ -160,6 +160,15 @@ func accept() -> void:
 	t.tween_property(self, "scale", Vector2.ONE, 0.16)\
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
+	if has_meta("basket_3d"):
+		var b3d: Node3D = get_meta("basket_3d", null) as Node3D
+		if b3d != null and is_instance_valid(b3d):
+			var base_s: Vector3 = b3d.get_meta("base_scale", b3d.scale)
+			var bt := b3d.create_tween()
+			bt.tween_property(b3d, "scale", Vector3(base_s.x * 1.18, base_s.y * 0.82, base_s.z * 1.18), 0.09)
+			bt.tween_property(b3d, "scale", base_s, 0.16)\
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
 
 ## Still does not mean silent. A fixed check on the actual basket answers
 ## "where did it go?" when the crop itself is intentionally not animated

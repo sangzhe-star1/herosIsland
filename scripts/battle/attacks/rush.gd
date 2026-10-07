@@ -21,7 +21,11 @@ func fire(arena) -> void:
 	var t: Tween = arena.arena_tween()
 	t.tween_property(monster, "position", strike, 0.42)\
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	t.tween_callback(func(): arena.arena_contact_hero())
+	t.tween_callback(func():
+		arena.arena_contact_hero()
+		if monster.has_method("claw_swipe"):
+			monster.call("claw_swipe", 0.35)
+	)
 	t.tween_interval(0.18)
 	t.tween_property(monster, "position", home, 0.5)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

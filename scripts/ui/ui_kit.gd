@@ -349,6 +349,17 @@ static func picture(reference: String, size: float) -> Control:
 		# with the same base name, so a half-finished art pass still runs.
 		return IconLibrary.build(reference.get_file().get_basename(), size)
 
+	var path_3d := "res://assets/icons/3d/" + reference + ".png"
+	if ResourceLoader.exists(path_3d):
+		var tex := TextureRect.new()
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex.texture = load(path_3d)
+		tex.custom_minimum_size = Vector2(size, size)
+		tex.size = Vector2(size, size)
+		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return tex
+
 	# A bare name is DRAWN. It used to check assets/icons/<name>.png first and
 	# use that if present, which quietly meant the whole game rendered a set of
 	# imported navy badge discs instead of its own icons -- five different

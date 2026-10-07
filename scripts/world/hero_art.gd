@@ -22,7 +22,28 @@ extends Node2D
 ## angle OUTWARD (CHEER, JUMP), because straight up puts the fists on the
 ## face.
 
-enum Pose { IDLE, CHEER, BEAM, WALK, HURT, JUMP, TUCK }
+enum Pose {
+	IDLE,
+	CHEER,
+	BEAM,
+	WALK,
+	HURT,
+	JUMP,
+	TUCK,
+	PUNCH,
+	KICK,
+	DASH,
+	SLAM,
+	BLOCK,
+	PEACE,
+	STRETCH,
+	LOOK_AROUND,
+	FLEX,
+	WAVE,
+	SALUTE,
+	DIG,
+	TIRED
+}
 
 ## Nominal height from boot sole to helmet crown, in local units. Every level
 ## scales the hero by asking for a height in pixels rather than guessing a
@@ -117,6 +138,9 @@ func rebuild() -> void:
 	_root = Node2D.new()
 	_root.position = Vector2(0, -SPIN_CENTRE_Y)
 	_spin.add_child(_root)
+
+	# 3D contact ground shadow: firmly anchors the hero onto the 3D ground plane
+	Shapes.ground_shadow(_root, Vector2(0, 0), _u(64.0), 0.32)
 
 	# The back of the wardrobe first: a cape or wings live BEHIND the body.
 	_build_back_piece(_root)
@@ -920,6 +944,125 @@ func _angles_for(pose: Pose) -> Dictionary:
 				"leg_front": deg_to_rad(40.0), "shin_front": deg_to_rad(-64.0),
 				"head": deg_to_rad(12.0), "torso": deg_to_rad(6.0), "lift": 10.0,
 			}
+		Pose.PUNCH:
+			# Punch: powerful forward thrust with front arm, back arm braced,
+			# forward lunge stance.
+			return {
+				"arm_back": deg_to_rad(45.0), "fore_back": deg_to_rad(-70.0),
+				"arm_front": deg_to_rad(-85.0), "fore_front": deg_to_rad(10.0),
+				"leg_back": deg_to_rad(-32.0), "shin_back": deg_to_rad(15.0),
+				"leg_front": deg_to_rad(28.0), "shin_front": deg_to_rad(-35.0),
+				"head": deg_to_rad(-4.0), "torso": deg_to_rad(12.0), "lift": 4.0,
+			}
+		Pose.KICK:
+			# Flying side kick: front leg high horizontal kick, torso leaned back for balance.
+			return {
+				"arm_back": deg_to_rad(-80.0), "fore_back": deg_to_rad(30.0),
+				"arm_front": deg_to_rad(75.0), "fore_front": deg_to_rad(-20.0),
+				"leg_back": deg_to_rad(-24.0), "shin_back": deg_to_rad(42.0),
+				"leg_front": deg_to_rad(78.0), "shin_front": deg_to_rad(-12.0),
+				"head": deg_to_rad(8.0), "torso": deg_to_rad(-16.0), "lift": -12.0,
+			}
+		Pose.DASH:
+			# Low aerodynamic sprint dash: body leaned hard forward, arms swept back.
+			return {
+				"arm_back": deg_to_rad(65.0), "fore_back": deg_to_rad(12.0),
+				"arm_front": deg_to_rad(75.0), "fore_front": deg_to_rad(18.0),
+				"leg_back": deg_to_rad(38.0), "shin_back": deg_to_rad(-18.0),
+				"leg_front": deg_to_rad(-48.0), "shin_front": deg_to_rad(32.0),
+				"head": deg_to_rad(-14.0), "torso": deg_to_rad(30.0), "lift": 16.0,
+			}
+		Pose.SLAM:
+			# Superhero three-point ground landing: single fist slammed into ground,
+			# deep kneeling crouch.
+			return {
+				"arm_back": deg_to_rad(85.0), "fore_back": deg_to_rad(15.0),
+				"arm_front": deg_to_rad(-35.0), "fore_front": deg_to_rad(80.0),
+				"leg_back": deg_to_rad(-52.0), "shin_back": deg_to_rad(78.0),
+				"leg_front": deg_to_rad(48.0), "shin_front": deg_to_rad(-85.0),
+				"head": deg_to_rad(15.0), "torso": deg_to_rad(24.0), "lift": 24.0,
+			}
+		Pose.BLOCK:
+			# Cross-arm defensive guard with energy shield brace.
+			return {
+				"arm_back": deg_to_rad(78.0), "fore_back": deg_to_rad(-88.0),
+				"arm_front": deg_to_rad(-78.0), "fore_front": deg_to_rad(88.0),
+				"leg_back": deg_to_rad(-16.0), "shin_back": deg_to_rad(22.0),
+				"leg_front": deg_to_rad(16.0), "shin_front": deg_to_rad(-22.0),
+				"head": 0.0, "torso": deg_to_rad(-4.0), "lift": 8.0,
+			}
+		Pose.PEACE:
+			# Victory peace sign: one hand held high with V-sign, head tilted cheerfully.
+			return {
+				"arm_back": deg_to_rad(36.0), "fore_back": deg_to_rad(-62.0),
+				"arm_front": deg_to_rad(-132.0), "fore_front": deg_to_rad(-24.0),
+				"leg_back": deg_to_rad(36.0), "shin_back": deg_to_rad(64.0),
+				"leg_front": deg_to_rad(-6.0), "shin_front": 0.0,
+				"head": deg_to_rad(14.0), "torso": deg_to_rad(2.0), "lift": -4.0,
+			}
+		Pose.STRETCH:
+			# Stretch arms wide overhead to loosen up.
+			return {
+				"arm_back": deg_to_rad(150.0), "fore_back": deg_to_rad(10.0),
+				"arm_front": deg_to_rad(-150.0), "fore_front": deg_to_rad(-10.0),
+				"leg_back": deg_to_rad(-6.0), "shin_back": deg_to_rad(3.0),
+				"leg_front": deg_to_rad(6.0), "shin_front": deg_to_rad(-3.0),
+				"head": deg_to_rad(-12.0), "torso": deg_to_rad(-10.0), "lift": -8.0,
+			}
+		Pose.LOOK_AROUND:
+			# Scouting hand over brow looking around.
+			return {
+				"arm_back": deg_to_rad(12.0), "fore_back": deg_to_rad(6.0),
+				"arm_front": deg_to_rad(-112.0), "fore_front": deg_to_rad(92.0),
+				"leg_back": deg_to_rad(-8.0), "shin_back": deg_to_rad(4.0),
+				"leg_front": deg_to_rad(8.0), "shin_front": deg_to_rad(-4.0),
+				"head": deg_to_rad(-18.0), "torso": deg_to_rad(-6.0), "lift": 0.0,
+			}
+		Pose.FLEX:
+			# Superhero double bicep power flex pose
+			return {
+				"arm_back": deg_to_rad(-105.0), "fore_back": deg_to_rad(-85.0),
+				"arm_front": deg_to_rad(105.0), "fore_front": deg_to_rad(85.0),
+				"leg_back": deg_to_rad(-16.0), "shin_back": deg_to_rad(12.0),
+				"leg_front": deg_to_rad(16.0), "shin_front": deg_to_rad(-12.0),
+				"head": deg_to_rad(4.0), "torso": deg_to_rad(-8.0), "lift": -4.0,
+			}
+		Pose.WAVE:
+			# Cheerful friendly wave
+			return {
+				"arm_back": deg_to_rad(16.0), "fore_back": deg_to_rad(10.0),
+				"arm_front": deg_to_rad(-128.0), "fore_front": deg_to_rad(40.0),
+				"leg_back": deg_to_rad(-6.0), "shin_back": deg_to_rad(3.0),
+				"leg_front": deg_to_rad(6.0), "shin_front": deg_to_rad(-3.0),
+				"head": deg_to_rad(10.0), "torso": deg_to_rad(4.0), "lift": 0.0,
+			}
+		Pose.SALUTE:
+			# Crisp superhero salute
+			return {
+				"arm_back": deg_to_rad(12.0), "fore_back": deg_to_rad(4.0),
+				"arm_front": deg_to_rad(-115.0), "fore_front": deg_to_rad(88.0),
+				"leg_back": deg_to_rad(-2.0), "shin_back": 0.0,
+				"leg_front": deg_to_rad(2.0), "shin_front": 0.0,
+				"head": deg_to_rad(6.0), "torso": 0.0, "lift": 0.0,
+			}
+		Pose.DIG:
+			# Energetic double-handed dig / shovel motion
+			return {
+				"arm_back": deg_to_rad(-35.0), "fore_back": deg_to_rad(55.0),
+				"arm_front": deg_to_rad(-55.0), "fore_front": deg_to_rad(75.0),
+				"leg_back": deg_to_rad(-28.0), "shin_back": deg_to_rad(35.0),
+				"leg_front": deg_to_rad(22.0), "shin_front": deg_to_rad(-30.0),
+				"head": deg_to_rad(18.0), "torso": deg_to_rad(28.0), "lift": 14.0,
+			}
+		Pose.TIRED:
+			# Hands on knees catching breath
+			return {
+				"arm_back": deg_to_rad(-25.0), "fore_back": deg_to_rad(35.0),
+				"arm_front": deg_to_rad(-32.0), "fore_front": deg_to_rad(45.0),
+				"leg_back": deg_to_rad(-18.0), "shin_back": deg_to_rad(24.0),
+				"leg_front": deg_to_rad(18.0), "shin_front": deg_to_rad(-24.0),
+				"head": deg_to_rad(22.0), "torso": deg_to_rad(32.0), "lift": 16.0,
+			}
 		Pose.WALK, Pose.IDLE, _:
 			# At ease, not at attention: arms slightly out with a soft elbow,
 			# one leg a touch forward. Clamped-to-the-sides arms were most of
@@ -1041,3 +1184,116 @@ func pulse_core(times: int = 1) -> void:
 func set_height(pixels: float) -> void:
 	var s: float = pixels / NOMINAL_HEIGHT
 	scale = Vector2(s, s)
+
+
+## Execute a punch animation with forward lunge and snap back
+func punch(duration: float = 0.28) -> void:
+	set_pose(Pose.PUNCH)
+	if _root != null and Juice.motion_enabled():
+		var pt := create_tween()
+		pt.tween_property(_root, "position:x", 18.0, duration * 0.35)\
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		pt.tween_property(_root, "position:x", 0.0, duration * 0.65)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		if _pose == Pose.PUNCH:
+			set_pose(Pose.IDLE)
+	)
+
+
+## Execute a flying kick animation
+func kick(duration: float = 0.32) -> void:
+	set_pose(Pose.KICK)
+	if _root != null and Juice.motion_enabled():
+		var kt := create_tween()
+		kt.tween_property(_root, "position:x", 24.0, duration * 0.4)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		kt.tween_property(_root, "position:x", 0.0, duration * 0.6)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		if _pose == Pose.KICK:
+			set_pose(Pose.IDLE)
+	)
+
+
+## Execute a defensive block stance
+func block_stance(hold_duration: float = 0.40) -> void:
+	set_pose(Pose.BLOCK)
+	var timer := create_tween()
+	timer.tween_interval(hold_duration)
+	timer.tween_callback(func():
+		if _pose == Pose.BLOCK:
+			set_pose(Pose.IDLE)
+	)
+
+
+## Execute a superhero bicep flex pose
+func flex(duration: float = 0.55) -> void:
+	set_pose(Pose.FLEX)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		if _pose == Pose.FLEX:
+			set_pose(Pose.IDLE)
+	)
+
+
+## Execute a friendly wave gesture with arm oscillation
+func wave_hand(duration: float = 0.65) -> void:
+	set_pose(Pose.WAVE)
+	if _arm_front != null and is_instance_valid(_arm_front) and Juice.motion_enabled():
+		var wt := create_tween()
+		for i in range(2):
+			wt.tween_property(_arm_front, "rotation", deg_to_rad(-145.0), duration * 0.25)\
+				.set_trans(Tween.TRANS_SINE)
+			wt.tween_property(_arm_front, "rotation", deg_to_rad(-110.0), duration * 0.25)\
+				.set_trans(Tween.TRANS_SINE)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		if _pose == Pose.WAVE:
+			set_pose(Pose.IDLE)
+	)
+
+
+## Execute a digging motion
+func dig(duration: float = 0.45) -> void:
+	set_pose(Pose.DIG)
+	if _root != null and Juice.motion_enabled():
+		var dt := create_tween()
+		dt.tween_property(_root, "position:y", 12.0, duration * 0.4)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		dt.tween_property(_root, "position:y", 0.0, duration * 0.6)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		if _pose == Pose.DIG:
+			set_pose(Pose.IDLE)
+	)
+
+
+## Execute a respectful salute
+func salute(duration: float = 0.50) -> void:
+	set_pose(Pose.SALUTE)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		if _pose == Pose.SALUTE:
+			set_pose(Pose.IDLE)
+	)
+
+
+## Catch breath pose after sprint or boss battle
+func catch_breath(duration: float = 0.80) -> void:
+	set_pose(Pose.TIRED)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		if _pose == Pose.TIRED:
+			set_pose(Pose.IDLE)
+	)

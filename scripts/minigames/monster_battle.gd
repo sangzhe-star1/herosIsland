@@ -203,14 +203,18 @@ func _spawn_spark() -> void:
 	node.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	var face: Control = null
-	if ResourceLoader.exists(SPARK_ART if not dud else SMOKE_ART):
+	var art_path := "res://assets/icons/3d/spark.png" if not dud else SMOKE_ART
+	if not ResourceLoader.exists(art_path):
+		art_path = SPARK_ART if not dud else SMOKE_ART
+	if ResourceLoader.exists(art_path):
 		var tex := TextureRect.new()
-		tex.texture = load(SPARK_ART if not dud else SMOKE_ART)
+		tex.texture = load(art_path)
 		tex.set_anchors_preset(Control.PRESET_FULL_RECT)
 		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tex.modulate = Color(1.0, 0.86, 0.42) if not dud else Color(0.62, 0.63, 0.68)
+		if dud:
+			tex.modulate = Color(0.62, 0.63, 0.68)
 		node.add_child(tex)
 		face = tex
 	else:
@@ -260,7 +264,9 @@ func _zap(node: Panel) -> void:
 	_fire_beam(_hero.core_position(), target)
 	_hit_burst(target)
 	_monster.flinch()
+	Juice.impact_sparks(_play_area, target, Color(1.0, 0.88, 0.35), 8)
 	Juice.burst(_play_area, target, 14)
+	Juice.hit_stop(get_tree(), 0.04)
 	_hero_recoil()
 
 	var t := create_tween().set_parallel(true)
@@ -418,3 +424,20 @@ func complete_level() -> void:
 		# whole exit rather than being yanked to the result screen mid-hop.
 		await get_tree().create_timer(1.0).timeout
 	await super.complete_level()
+
+
+func _debug_level_data() -> Dictionary:
+	return {
+		"id": "monster_arena_03",
+		"world": "monster_arena",
+		"game_type": "monster_battle",
+		"difficulty": 1,
+		"target": {"correct": 12},
+		"reward": {"stars": 3, "coins": 20, "badge": ""},
+		"config": {
+			"spark_interval": 1.4,
+			"spark_life": 6.0,
+			"dud_ratio": 0.2,
+			"goo_interval": 4.5,
+		},
+	}

@@ -156,6 +156,100 @@ func _construct() -> void:
 	_fringe = _layer("Fringe")
 	_build_fringe()
 
+	_build_3d_stage()
+
+
+static func get_3d_model_for_world(world_id: String) -> String:
+	match world_id:
+		"sunny_park", "piglet_town", "island":
+			return "res://assets/scenes_3d/park_observatory.glb"
+		"night_city", "safety", "hero_city":
+			return "res://assets/scenes_3d/traffic_street.glb"
+		"monster_valley", "monster_arena":
+			return "res://assets/scenes_3d/duel_arena.glb"
+		"sky_base":
+			return "res://assets/scenes_3d/build_workshop.glb"
+		"dark_castle":
+			return "res://assets/scenes_3d/defense_fortress.glb"
+		"adventure_valley", "rescue_forest":
+			return "res://assets/scenes_3d/platformer_course.glb"
+		_:
+			return "res://assets/scenes_3d/park_observatory.glb"
+
+
+func _build_3d_stage() -> bool:
+	if style == null:
+		return false
+	var glb_path := get_3d_model_for_world(style.id)
+	if not ResourceLoader.exists(glb_path):
+		return false
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "Stage3DContainer"
+	vp_container.stretch = true
+	vp_container.custom_minimum_size = Vector2(view_w, view_h)
+	vp_container.size = Vector2(view_w, view_h)
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vp_container.z_index = -60
+
+	var vp := SubViewport.new()
+	vp.name = "SubViewport"
+	vp.own_world_3d = true
+	vp.transparent_bg = false
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.size = Vector2i(int(view_w), int(view_h))
+	vp_container.add_child(vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "World3D"
+	vp.add_child(world_root)
+
+	var glb_scene: PackedScene = load(glb_path)
+	if glb_scene != null:
+		var glb_inst: Node = glb_scene.instantiate()
+		world_root.add_child(glb_inst)
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = style.sky_top.lerp(style.sky_bottom, 0.5)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = style.light_color.lightened(0.1)
+	env.ambient_light_energy = 0.55
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.glow_enabled = true
+	env.glow_intensity = 0.15
+
+	var env_node := WorldEnvironment.new()
+	env_node.environment = env
+	world_root.add_child(env_node)
+
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-38.0, -28.0, 0.0)
+	sun.light_color = style.light_color
+	sun.light_energy = 1.05
+	sun.shadow_enabled = true
+	sun.shadow_bias = 0.03
+	world_root.add_child(sun)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(0.0, 5.5, 11.2)
+	cam.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
+	cam.fov = 38.0
+	cam.current = true
+	world_root.add_child(cam)
+
+	add_child(vp_container)
+	move_child(vp_container, 0)
+
+	_sky.visible = false
+	_far.visible = false
+	_mid.visible = false
+	_near.visible = false
+	_ground.visible = false
+	_props.visible = false
+	_air.visible = false
+	_fringe.visible = false
+	return true
+
 
 func _layer(layer_name: String) -> Node2D:
 	var node := Node2D.new()
@@ -612,111 +706,249 @@ func _wash(c: Color, amount: float) -> Color:
 
 
 func _prop_tree(parent: Node2D, conifer: bool, wash: float) -> void:
-	var h: float = _rng.randf_range(120.0, 190.0)
-	var trunk := _wash(Color(0.44, 0.31, 0.22), wash)
-	Shapes.fill(parent, Shapes.taper(Vector2(0, 0), Vector2(_rng.randf_range(-8, 8), -h * 0.55),
-		h * 0.13, h * 0.08), trunk, 1.0)
-	# The crown is a separate node so it can sway from the trunk top.
+	var h: float = _rng.randf_range(130.0, 195.0)
+	var trunk_col := _wash(Color(0.48, 0.34, 0.24), wash)
+	var tw: float = h * 0.16
+	# Sturdy voxel trunk with bark block shading
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-tw * 0.5, -h * 0.55), Vector2(tw, h * 0.55), 4.0),
+		trunk_col, 1.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-tw * 0.35, -h * 0.55), Vector2(tw * 0.3, h * 0.55), 2.0),
+		trunk_col.lightened(0.12), 1.0)
+	# Root flare base
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-tw * 0.75, -8.0), Vector2(tw * 1.5, 8.0), 3.0),
+		trunk_col.darkened(0.15), 1.0)
+
 	var crown := Node2D.new()
-	crown.position = Vector2(0, -h * 0.5)
+	crown.position = Vector2(0, -h * 0.52)
 	parent.add_child(crown)
-	var leaf: Color = _wash(Color(0.28, 0.56, 0.32) if not conifer
-		else Color(0.20, 0.44, 0.34), wash)
+	var leaf_base: Color = _wash(Color(0.26, 0.60, 0.30) if not conifer else Color(0.20, 0.46, 0.32), wash)
+
 	if conifer:
-		for i in range(3):
-			var t: float = float(i) / 2.0
-			var w: float = h * lerpf(0.46, 0.20, t)
-			var y: float = -t * h * 0.34
-			Shapes.lit(crown, PackedVector2Array([
-				Vector2(-w, y), Vector2(0, y - h * 0.34), Vector2(w, y),
-			]), leaf.lightened(t * 0.10), 1.0)
+		# Minecraft-style stepped spruce/pine voxel blocks
+		for i in range(4):
+			var t: float = float(i) / 3.0
+			var bw: float = h * lerpf(0.52, 0.22, t)
+			var bh: float = h * 0.22
+			var by: float = -t * h * 0.42
+			var col: Color = leaf_base.lightened(t * 0.08)
+			# Main foliage block
+			Shapes.fill(crown, Shapes.rounded_rect(Vector2(-bw * 0.5, by - bh), Vector2(bw, bh), 6.0),
+				col, 1.0)
+			# Top highlight block face (sunlit)
+			Shapes.fill(crown, Shapes.rounded_rect(Vector2(-bw * 0.48, by - bh), Vector2(bw * 0.96, bh * 0.28), 4.0),
+				col.lightened(0.20), 0.0)
+			# Bottom shadow face
+			Shapes.fill(crown, Shapes.rounded_rect(Vector2(-bw * 0.48, by - bh * 0.25), Vector2(bw * 0.96, bh * 0.25), 4.0),
+				col.darkened(0.18), 0.0)
 	else:
-		for i in range(3):
-			var at := Vector2(_rng.randf_range(-h * 0.18, h * 0.18), _rng.randf_range(-h * 0.24, 0.0))
-			Shapes.lit(crown, Shapes.blob(at, Vector2(h * 0.34, h * 0.30), _rng, 0.14, 4, 22),
-				leaf.lightened(_rng.randf_range(0.0, 0.10)), 1.0)
+		# Minecraft-style cubic / voxel cluster oak tree
+		var clusters := [
+			Vector2(0, -h * 0.22), Vector2(-h * 0.18, -h * 0.12),
+			Vector2(h * 0.18, -h * 0.14), Vector2(0, -h * 0.38)
+		]
+		for i in range(clusters.size()):
+			var pos: Vector2 = clusters[i]
+			var bw: float = h * (0.38 if i == 3 else 0.46)
+			var bh: float = bw * 0.88
+			var col: Color = leaf_base.lightened(_rng.randf_range(-0.04, 0.08))
+			# Voxel foliage block
+			Shapes.fill(crown, Shapes.rounded_rect(pos - Vector2(bw * 0.5, bh * 0.5), Vector2(bw, bh), 7.0),
+				col, 1.0)
+			# Sunlit top face
+			Shapes.fill(crown, Shapes.rounded_rect(pos - Vector2(bw * 0.46, bh * 0.5), Vector2(bw * 0.92, bh * 0.3), 5.0),
+				col.lightened(0.18), 0.0)
+			# Side / bottom shadow
+			Shapes.fill(crown, Shapes.rounded_rect(pos + Vector2(-bw * 0.46, bh * 0.2), Vector2(bw * 0.92, bh * 0.3), 5.0),
+				col.darkened(0.18), 0.0)
+		# Red apple / berry block accents
+		for j in range(3):
+			var ax: float = _rng.randf_range(-h * 0.22, h * 0.22)
+			var ay: float = _rng.randf_range(-h * 0.32, -h * 0.05)
+			Shapes.fill(crown, Shapes.rounded_rect(Vector2(ax - 5.0, ay - 5.0), Vector2(10.0, 10.0), 3.0),
+				_wash(Color(0.92, 0.28, 0.32), wash), 0.0)
+
 	_swayers.append({
-		"node": crown, "amount": _rng.randf_range(0.012, 0.030),
-		"rate": _rng.randf_range(0.5, 0.9), "phase": _rng.randf() * TAU,
+		"node": crown, "amount": _rng.randf_range(0.010, 0.024),
+		"rate": _rng.randf_range(0.5, 0.85), "phase": _rng.randf() * TAU,
 	})
 
 
 func _prop_bush(parent: Node2D, wash: float) -> void:
-	var r: float = _rng.randf_range(30.0, 52.0)
-	var leaf: Color = _wash(Color(0.32, 0.58, 0.34), wash)
-	for i in range(3):
-		var at := Vector2(_rng.randf_range(-r * 0.7, r * 0.7), _rng.randf_range(-r * 0.3, 0.0))
-		Shapes.lit(parent, Shapes.blob(at, Vector2(r * 0.8, r * 0.62), _rng, 0.18, 3, 18),
-			leaf.lightened(_rng.randf_range(0.0, 0.12)), 1.0)
+	var r: float = _rng.randf_range(32.0, 50.0)
+	var leaf: Color = _wash(Color(0.30, 0.62, 0.34), wash)
+	# Stepped voxel bush block
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-r * 0.8, -r * 0.7), Vector2(r * 1.6, r * 0.7), 6.0),
+		leaf, 1.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-r * 0.5, -r * 0.9), Vector2(r * 1.0, r * 0.4), 5.0),
+		leaf.lightened(0.15), 0.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-r * 0.75, -r * 0.25), Vector2(r * 1.5, r * 0.25), 4.0),
+		leaf.darkened(0.18), 0.0)
 
 
 func _prop_flower(parent: Node2D, wash: float) -> void:
 	var h: float = _rng.randf_range(26.0, 44.0)
-	Shapes.fill(parent, Shapes.taper(Vector2(0, 0), Vector2(_rng.randf_range(-5, 5), -h), 4.0, 3.0),
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-2.0, -h), Vector2(4.0, h), 2.0),
 		_wash(Color(0.36, 0.58, 0.32), wash), 0.8)
 	var petal: Color = _wash([Color(0.98, 0.56, 0.68), Color(1.0, 0.82, 0.34),
 		Color(0.72, 0.62, 0.94)][_rng.randi() % 3], wash)
-	for k in range(5):
-		var a: float = TAU * float(k) / 5.0
-		Shapes.fill(parent, Shapes.oval_points(Vector2(0, -h) + Vector2(cos(a), sin(a)) * h * 0.16,
-			Vector2(h * 0.13, h * 0.13), 10), petal, 0.8)
-	Shapes.fill(parent, Shapes.circle_points(Vector2(0, -h), h * 0.10, 10),
-		_wash(Color(1.0, 0.92, 0.56), wash), 0.8)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-9.0, -h - 9.0), Vector2(18.0, 18.0), 5.0), petal, 0.9)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-4.0, -h - 4.0), Vector2(8.0, 8.0), 3.0),
+		_wash(Color(1.0, 0.94, 0.56), wash), 0.0)
 
 
 func _prop_house(parent: Node2D, shop: bool, wash: float) -> void:
-	var w: float = _rng.randf_range(110.0, 160.0)
-	var h: float = w * _rng.randf_range(0.62, 0.85)
-	var wall: Color = _wash([Color(0.98, 0.94, 0.86), Color(0.96, 0.88, 0.78),
-		Color(0.92, 0.92, 0.86)][_rng.randi() % 3], wash)
-	var roof: Color = _wash([Color(0.84, 0.42, 0.36), Color(0.46, 0.56, 0.72),
-		Color(0.90, 0.62, 0.30)][_rng.randi() % 3], wash)
-	Shapes.lit(parent, Shapes.rounded_rect(Vector2(-w * 0.5, -h), Vector2(w, h), 8.0), wall, 1.0)
-	Shapes.lit(parent, PackedVector2Array([
-		Vector2(-w * 0.62, -h), Vector2(0, -h - w * 0.38), Vector2(w * 0.62, -h),
-	]), roof, 1.0)
-	# A lit window, warm in every world -- the one thing that says somebody
-	# lives here.
-	var lit_window: Color = Color(1.0, 0.86, 0.52) if style.star_density > 0.0 \
-		else _wash(Color(0.62, 0.82, 0.92), wash)
-	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-w * 0.28, -h * 0.78),
-		Vector2(w * 0.24, h * 0.28), 5.0), lit_window, 1.0)
-	Shapes.fill(parent, Shapes.rounded_rect(Vector2(w * 0.06, -h * 0.52),
-		Vector2(w * 0.22, h * 0.52), 6.0), _wash(Color(0.52, 0.38, 0.28), wash), 1.0)
+	var w: float = _rng.randf_range(130.0, 175.0)
+	var h: float = w * _rng.randf_range(0.68, 0.86)
+	var wood_wall: Color = _wash([Color(0.88, 0.74, 0.56), Color(0.82, 0.68, 0.52),
+		Color(0.92, 0.80, 0.64)][_rng.randi() % 3], wash)
+	var log_pillar: Color = wood_wall.darkened(0.22)
+	var cobble_base: Color = _wash(Color(0.56, 0.55, 0.54), wash)
+	var roof_col: Color = _wash([Color(0.82, 0.38, 0.32), Color(0.42, 0.54, 0.72),
+		Color(0.85, 0.55, 0.28)][_rng.randi() % 3], wash)
+
+	# 1. Cobblestone base block layer (Minecraft stone foundation)
+	var base_h: float = h * 0.24
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-w * 0.52, -base_h), Vector2(w * 1.04, base_h), 5.0),
+		cobble_base, 1.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-w * 0.50, -base_h), Vector2(w * 1.00, 4.0), 2.0),
+		cobble_base.lightened(0.20), 0.0)
+	# Mortar block seams
+	for mi in range(4):
+		var mx: float = -w * 0.38 + float(mi) * (w * 0.26)
+		Shapes.fill(parent, Shapes.rounded_rect(Vector2(mx, -base_h + 3.0), Vector2(2.5, base_h - 4.0), 1.0),
+			cobble_base.darkened(0.22), 0.0)
+
+	# 2. Main timber walls & plank layers
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-w * 0.5, -h), Vector2(w, h - base_h), 6.0),
+		wood_wall, 1.0)
+	# Horizontal plank joint grooves
+	for pi in range(3):
+		var py: float = -h + float(pi + 1) * ((h - base_h) * 0.25)
+		Shapes.fill(parent, Shapes.rounded_rect(Vector2(-w * 0.48, py), Vector2(w * 0.96, 2.5), 1.0),
+			wood_wall.darkened(0.16), 0.0)
+
+	# 3. Corner log pillars (left & right)
+	var pw: float = w * 0.13
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-w * 0.52, -h), Vector2(pw, h), 4.0),
+		log_pillar, 1.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(w * 0.52 - pw, -h), Vector2(pw, h), 4.0),
+		log_pillar, 1.0)
+
+	# 4. Chimney on roof
+	var chim_x: float = w * 0.26
+	var chim_w: float = w * 0.14
+	var chim_h: float = h * 0.42
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(chim_x, -h - chim_h * 0.8), Vector2(chim_w, chim_h), 3.0),
+		cobble_base.darkened(0.12), 1.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(chim_x - 3.0, -h - chim_h * 0.8), Vector2(chim_w + 6.0, 5.0), 2.0),
+		cobble_base.lightened(0.15), 0.0)
+
+	# 5. Stepped 3D pitched roof with overhang eaves
+	var eave_w: float = w * 0.64
+	var roof_h: float = w * 0.42
+	# Roof back shadow fascia
+	Shapes.fill(parent, PackedVector2Array([
+		Vector2(-eave_w - 4.0, -h + 4.0), Vector2(0, -h - roof_h - 4.0), Vector2(eave_w + 4.0, -h + 4.0),
+	]), roof_col.darkened(0.25), 1.0)
+	# Main roof surface
+	Shapes.fill(parent, PackedVector2Array([
+		Vector2(-eave_w, -h), Vector2(0, -h - roof_h), Vector2(eave_w, -h),
+	]), roof_col, 1.0)
+	# Stepped shingle plank rows
+	for si in range(3):
+		var st: float = float(si + 1) / 3.0
+		var sy: float = -h - roof_h * (1.0 - st)
+		var sw: float = eave_w * st
+		Shapes.fill(parent, Shapes.rounded_rect(Vector2(-sw, sy), Vector2(sw * 2.0, 5.0), 2.0),
+			roof_col.lightened(0.18), 0.0)
+
+	# 6. Lit 4-pane cottage window with warm amber glow
+	var win_w: float = w * 0.26
+	var win_h: float = h * 0.32
+	var win_x: float = -w * 0.26
+	var win_y: float = -h * 0.72
+	# Wooden window frame
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(win_x - 3.0, win_y - 3.0), Vector2(win_w + 6.0, win_h + 6.0), 4.0),
+		log_pillar, 1.0)
+	# Glowing amber glass
+	var glass_col: Color = Color(1.0, 0.88, 0.55) if style.star_density > 0.0 or style.id == "hero_city" \
+		else _wash(Color(0.70, 0.88, 0.96), wash)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(win_x, win_y), Vector2(win_w, win_h), 3.0),
+		glass_col, 0.0)
+	# Window cross mullions (4 panes)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(win_x + win_w * 0.5 - 1.5, win_y), Vector2(3.0, win_h), 1.0),
+		log_pillar, 0.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(win_x, win_y + win_h * 0.5 - 1.5), Vector2(win_w, 3.0), 1.0),
+		log_pillar, 0.0)
+	# Window planter box underneath
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(win_x - 4.0, win_y + win_h + 2.0), Vector2(win_w + 8.0, 7.0), 3.0),
+		cobble_base.darkened(0.15), 0.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(win_x - 2.0, win_y + win_h), Vector2(win_w + 4.0, 4.0), 2.0),
+		Color(0.35, 0.72, 0.38), 0.0)
+
+	# 7. Wooden Plank Door
+	var door_w: float = w * 0.24
+	var door_h: float = h * 0.54
+	var door_x: float = w * 0.08
+	var door_y: float = -door_h
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(door_x - 2.0, door_y - 2.0), Vector2(door_w + 4.0, door_h + 2.0), 5.0),
+		log_pillar, 1.0)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(door_x, door_y), Vector2(door_w, door_h), 4.0),
+		wood_wall.darkened(0.28), 1.0)
+	# Door knob
+	Shapes.fill(parent, Shapes.circle_points(Vector2(door_x + door_w * 0.8, door_y + door_h * 0.52), 3.5, 8),
+		Color(0.98, 0.82, 0.28), 0.0)
+
 	if shop:
-		# An awning, striped, which is enough to make a house read as a shop.
-		for i in range(5):
-			var sw: float = w * 0.16
-			Shapes.fill(parent, PackedVector2Array([
-				Vector2(-w * 0.42 + float(i) * sw, -h * 0.55),
-				Vector2(-w * 0.42 + float(i + 1) * sw, -h * 0.55),
-				Vector2(-w * 0.46 + float(i + 1) * sw, -h * 0.34),
-				Vector2(-w * 0.46 + float(i) * sw, -h * 0.34),
-			]), _wash(Color(0.92, 0.42, 0.38) if i % 2 == 0 else Color(0.98, 0.96, 0.92), wash), 0.6)
+		# 3D Striped Voxel Awning
+		var awn_w: float = w * 0.84
+		var awn_h: float = h * 0.25
+		for i in range(6):
+			var seg_w: float = awn_w / 6.0
+			var seg_x: float = -awn_w * 0.5 + float(i) * seg_w
+			var scol: Color = _wash(Color(0.90, 0.34, 0.32) if i % 2 == 0 else Color(0.98, 0.96, 0.92), wash)
+			Shapes.fill(parent, Shapes.rounded_rect(Vector2(seg_x, -h * 0.52), Vector2(seg_w, awn_h), 3.0),
+				scol, 0.85)
 
 
 func _prop_fence(parent: Node2D, wash: float) -> void:
-	var wood: Color = _wash(Color(0.86, 0.78, 0.62), wash)
+	var wood: Color = _wash(Color(0.84, 0.72, 0.52), wash)
 	var span: float = 150.0
 	for i in range(5):
 		var x: float = -span * 0.5 + span * float(i) / 4.0
-		Shapes.fill(parent, Shapes.rounded_rect(Vector2(x - 5, -52), Vector2(10, 52), 4.0), wood, 1.0)
-	for y in [-40.0, -20.0]:
-		Shapes.fill(parent, Shapes.rounded_rect(Vector2(-span * 0.5, y), Vector2(span, 8), 3.0),
-			wood.darkened(0.06), 1.0)
+		# Chunky square fence post
+		Shapes.fill(parent, Shapes.rounded_rect(Vector2(x - 6, -56), Vector2(12, 56), 3.0), wood, 1.0)
+		Shapes.fill(parent, Shapes.rounded_rect(Vector2(x - 5, -56), Vector2(10, 5), 2.0), wood.lightened(0.18), 0.0)
+	for y in [-44.0, -22.0]:
+		Shapes.fill(parent, Shapes.rounded_rect(Vector2(-span * 0.5, y), Vector2(span, 10), 3.0),
+			wood.darkened(0.10), 1.0)
 
 
 func _prop_lamp(parent: Node2D, wash: float) -> void:
-	var h: float = _rng.randf_range(140.0, 190.0)
-	var metal: Color = _wash(Color(0.30, 0.32, 0.40), wash)
-	Shapes.fill(parent, Shapes.taper(Vector2(0, 0), Vector2(0, -h), 11.0, 7.0), metal, 1.0)
-	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-14, -h - 26), Vector2(28, 30), 12.0), metal, 1.0)
-	# Lit only when the world needs light. A streetlamp on at noon is the kind
-	# of detail that quietly tells a child the picture is fake.
-	if style.star_density > 0.0 or style.id == "hero_city":
-		Shapes.glow(parent, Vector2(0, -h - 12), 96.0, Color(1.0, 0.86, 0.52), 5, 0.30)
-		Shapes.fill(parent, Shapes.circle_points(Vector2(0, -h - 12), 11.0, 14),
-			Color(1.0, 0.94, 0.72), 0.0)
+	var h: float = _rng.randf_range(145.0, 195.0)
+	var metal: Color = _wash(Color(0.24, 0.26, 0.32), wash)
+	# Square pedestal base
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-12, -14), Vector2(24, 14), 4.0), metal.darkened(0.1), 1.0)
+	# Post
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-5, -h), Vector2(10, h), 3.0), metal, 1.0)
+	# Top bracket arm
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-18, -h - 6), Vector2(36, 8), 3.0), metal, 1.0)
+
+	# 3D Cubic Lantern housing
+	var lan_size := Vector2(26, 32)
+	var lan_pos := Vector2(-13, -h - 38)
+	Shapes.fill(parent, Shapes.rounded_rect(lan_pos, lan_size, 4.0), metal.darkened(0.2), 1.0)
+	# Cap
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-16, -h - 43), Vector2(32, 7), 3.0), metal.lightened(0.1), 1.0)
+
+	# Glowing warm glass pane
+	var is_lit: bool = style.star_density > 0.0 or style.id == "hero_city"
+	var glass_col: Color = Color(1.0, 0.88, 0.52) if is_lit else _wash(Color(0.65, 0.75, 0.82), wash)
+	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-9, -h - 34), Vector2(18, 22), 3.0), glass_col, 0.0)
+
+	if is_lit:
+		Shapes.glow(parent, Vector2(0, -h - 24), 110.0, Color(1.0, 0.88, 0.52), 5, 0.38)
+		Shapes.fill(parent, Shapes.circle_points(Vector2(0, -h - 24), 6.0, 10), Color(1.0, 0.98, 0.82), 0.0)
 
 
 func _prop_rock(parent: Node2D, wash: float) -> void:

@@ -231,11 +231,9 @@ func _footer(pad: Node2D) -> void:
 ## quietly telling a child the opposite of the game's first promise.
 func _price(pad: Node2D, y: float) -> void:
 	var price := int(entry.get("price", 0))
-	var coin: Control = UiKit.picture("star_coin", 30)
-	if coin != null:
-		coin.position = Vector2(BOX.x * 0.5 - 45.0, y)
-		coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(coin)
+	var mid := Vector2(BOX.x * 0.5 - 32.0, y + 15.0)
+	Shapes.lit(pad, Shapes.circle_points(mid, 13.0, 20), Color(1.0, 0.83, 0.30), 0.95)
+	Shapes.fill(pad, Shapes.star_points(mid, 7.5, 0.44, 5), Color(0.95, 0.55, 0.15), 0.0)
 	var label := Label.new()
 	label.text = str(price)
 	label.add_theme_font_size_override("font_size", UiKit.TYPE_BODY)

@@ -52,5 +52,35 @@
     "name_key": "cat.set",
     "icon": "sparkle",
     "order": 9
+  },
+  {
+    "id": "action",
+    "name_key": "shop.cat.action",
+    "icon": "pose",
+    "order": 10
+  },
+  {
+    "id": "ride",
+    "name_key": "shop.cat.ride",
+    "icon": "board",
+    "order": 11
+  },
+  {
+    "id": "fx",
+    "name_key": "shop.cat.fx",
+    "icon": "trail",
+    "order": 12
+  },
+  {
+    "id": "base",
+    "name_key": "shop.cat.base",
+    "icon": "home",
+    "order": 13
+  },
+  {
+    "id": "keepsake",
+    "name_key": "shop.cat.keepsake",
+    "icon": "star",
+    "order": 14
   }
 ]

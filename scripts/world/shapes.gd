@@ -180,34 +180,48 @@ static func fill(parent: Node, points: PackedVector2Array, color: Color,
 		var line := Line2D.new()
 		line.points = points
 		line.closed = true
-		line.width = clampf(size * INK_RATIO, INK_MIN, INK_MAX) * outline
-		line.default_color = INK
+		line.width = clampf(size * 0.018, 1.2, 2.4) * outline
+		line.default_color = color.darkened(0.14)
 		line.joint_mode = Line2D.LINE_JOINT_ROUND
 		line.antialiased = true
 		parent.add_child(line)
 	return poly
 
 
-## Two-tone fill: the base colour plus a lit crescent on the side facing the
-## sun. One extra polygon per shape is what stops a drawn world from looking
-## flat, and it costs nothing because it is the same shape scaled and shifted.
+## Volumetric fill: base colour plus a warm sunlit crest and a soft underside
+## shade. This stops shapes from reading as flat paper cutouts or stickers,
+## giving them subtle 3D toy / clay volume under the island's sunlight.
 static func lit(parent: Node, points: PackedVector2Array, color: Color,
 		outline: float = 1.0) -> Polygon2D:
 	var base: Polygon2D = fill(parent, points, color, outline)
 	var centre: Vector2 = _centroid(points)
 	var size: float = _extent(points)
-	var shift: Vector2 = LIGHT_DIR * size * 0.10
+
+	# 1. Underside form shade (ambient occlusion away from the sun)
+	var shade_shift: Vector2 = -LIGHT_DIR * size * 0.06
+	var shade_pts := PackedVector2Array()
+	for p in points:
+		shade_pts.append(centre + (p - centre) * 0.82 + shade_shift)
+	var shade := Polygon2D.new()
+	shade.polygon = shade_pts
+	shade.color = color.darkened(SHADE * 0.85)
+	shade.antialiased = true
+	parent.add_child(shade)
+
+	# 2. Sunlit top-facing highlight (diffuse light facing the sun)
+	var shift: Vector2 = LIGHT_DIR * size * 0.08
 	var highlight := PackedVector2Array()
 	for p in points:
-		highlight.append(centre + (p - centre) * 0.74 + shift)
+		highlight.append(centre + (p - centre) * 0.72 + shift)
 	var glare := Polygon2D.new()
 	glare.polygon = highlight
-	glare.color = color.lightened(HILIGHT)
+	glare.color = color.lightened(HILIGHT * 1.25)
 	glare.antialiased = true
-	# Behind the outline, in front of the base: parent order is base, outline,
-	# so insert before the outline to keep the ink on top.
 	parent.add_child(glare)
-	if outline > 0.0 and parent.get_child_count() >= 3:
+
+	# Order layers: base -> shade -> glare -> outline
+	if outline > 0.0 and parent.get_child_count() >= 4:
+		parent.move_child(shade, parent.get_child_count() - 3)
 		parent.move_child(glare, parent.get_child_count() - 2)
 	return base
 

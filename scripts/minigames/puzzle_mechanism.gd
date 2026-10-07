@@ -22,7 +22,7 @@ const Fit := preload("res://scripts/shared/screen_fit.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Picker := preload("res://scripts/shared/variant_picker.gd")
 
-const ROW_Y := 400.0
+const ROW_Y := 370.0
 
 var _field: Control
 var _hud: Control
@@ -52,7 +52,11 @@ func setup_level() -> void:
 	# a fourth turn is a puzzle, a seventh is homework.
 	_steps = clampi(harder_i(int(config.get("steps", 4)), 1), 3, 5)
 
-	build_world(self, 0.42)
+	var stage: Stage = build_world(self, 0.42)
+	if ResourceLoader.exists("res://assets/scenes_3d/puzzle_chamber.glb"):
+		if stage != null:
+			stage.visible = false
+		_setup_3d_stage()
 	_field = UiKit.play_area(self, true)
 	_field.gui_input.connect(_on_tap)
 
@@ -71,35 +75,33 @@ func setup_level() -> void:
 # --- the machine ------------------------------------------------------------------
 
 ## The thing being powered, on the right, dark until the puzzle is solved.
+## Now seamlessly grounded on top of the 3D right altar pylon.
 func _build_goal() -> void:
 	_goal = Node2D.new()
-	_goal.position = Fit.at(_field, Vector2(1108, ROW_Y - 40.0))
+	_goal.position = Fit.at(_field, Vector2(1040, 335.0))
 	_field.add_child(_goal)
-	Shapes.ground_shadow(_goal, Vector2(0, 130.0), 150.0, 0.20)
-	Shapes.lit(_goal, Shapes.taper(Vector2(0, 130.0), Vector2(0, -60.0), 46.0, 30.0),
-		Color(0.58, 0.62, 0.74), 1.0)
+
 	var lamp := Node2D.new()
-	lamp.position = Vector2(0, -86.0)
+	lamp.position = Vector2.ZERO
 	_goal.add_child(lamp)
-	Shapes.lit(lamp, Shapes.circle_points(Vector2.ZERO, 34.0, 22),
-		Color(0.42, 0.45, 0.54), 0.9)
+	Shapes.lit(lamp, Shapes.circle_points(Vector2.ZERO, 30.0, 20),
+		Color(0.85, 0.78, 0.50), 0.0)
 	_goal.set_meta("lamp", lamp)
 
-	# The source, on the left: where the light comes FROM, so the row of
-	# pieces reads as a path between two things rather than as a row of toys.
+	# The source, on the left: seamlessly grounded on top of the 3D left altar pylon.
 	var source := Node2D.new()
-	source.position = Fit.at(_field, Vector2(150, ROW_Y - 40.0))
+	source.position = Fit.at(_field, Vector2(240, 335.0))
 	_field.add_child(source)
-	Shapes.glow(source, Vector2.ZERO, 130.0, Color(0.55, 0.88, 1.0), 4, 0.45)
-	Shapes.lit(source, Shapes.circle_points(Vector2.ZERO, 42.0, 24),
-		Color(0.45, 0.86, 1.0), 0.9)
+	Shapes.glow(source, Vector2.ZERO, 110.0, Color(0.45, 0.85, 1.0), 4, 0.50)
+	Shapes.lit(source, Shapes.circle_points(Vector2.ZERO, 32.0, 22),
+		Color(0.40, 0.85, 1.0), 0.0)
 
 
 func _build_pieces() -> void:
-	var span := 760.0
+	var span := 620.0
 	for i in range(_steps):
 		var t: float = 0.5 if _steps == 1 else float(i) / float(_steps - 1)
-		var at := Fit.at(_field, Vector2(lerpf(300.0, 300.0 + span, t), ROW_Y))
+		var at := Fit.at(_field, Vector2(lerpf(330.0, 330.0 + span, t), ROW_Y))
 		var node := Node2D.new()
 		node.position = at
 		_field.add_child(node)
@@ -147,57 +149,99 @@ func _paint(piece: Dictionary) -> void:
 
 	match str(piece["kind"]):
 		"order":
-			Shapes.ground_shadow(node, Vector2(0, 46.0), 120.0, 0.18)
-			Shapes.lit(node, Shapes.circle_points(Vector2.ZERO, 54.0, 26),
-				Color(0.52, 0.56, 0.68) if int(piece["state"]) == 0
-				else Color(0.45, 0.86, 0.60), 1.0)
-			# Dots, never digits: a six-year-old counts long before they read.
+			Shapes.ground_shadow(node, Vector2(0, 32.0), 96.0, 0.22)
+			var rune_colors := ["red", "blue", "yellow", "green"]
+			var color_name: String = rune_colors[int(piece.get("index", 0)) % rune_colors.size()]
+			var rune_path := "res://assets/props_3d/rune_button_%s.png" % color_name
+			var rune_tex: Texture2D = load(rune_path) if ResourceLoader.exists(rune_path) else null
+			if rune_tex != null:
+				var spr := Sprite2D.new()
+				spr.texture = rune_tex
+				spr.scale = Vector2(0.85, 0.85)
+				spr.modulate = Color(1.0, 1.0, 1.0) if int(piece["state"]) == 1 else Color(0.72, 0.74, 0.80)
+				node.add_child(spr)
+				if int(piece["state"]) == 1:
+					Shapes.glow(node, Vector2.ZERO, 110.0, Color(1.0, 0.90, 0.45), 3, 0.45)
+			else:
+				Shapes.lit(node, Shapes.circle_points(Vector2.ZERO, 54.0, 26),
+					Color(0.52, 0.56, 0.68) if int(piece["state"]) == 0
+					else Color(0.45, 0.86, 0.60), 0.0)
+			# Number of dots indicated by bright crystal studs
 			var many: int = int(piece["want"])
 			for d in range(many):
 				var a: float = -PI * 0.5 + TAU * float(d) / float(maxi(many, 1))
 				var spot: Vector2 = Vector2.ZERO if many == 1 \
 					else Vector2(cos(a), sin(a)) * 26.0
-				Shapes.fill(node, Shapes.circle_points(spot, 8.0, 12),
-					Color(0.06, 0.10, 0.22), 0.0)
+				Shapes.fill(node, Shapes.circle_points(spot, 7.0, 12),
+					Color(1.0, 0.95, 0.75) if int(piece["state"]) == 1 else Color(0.18, 0.20, 0.28), 0.0)
+
 		"wires":
-			var colours := [Color(0.92, 0.32, 0.30), Color(0.32, 0.58, 0.95),
-				Color(1.0, 0.80, 0.22), Color(0.38, 0.80, 0.46),
-				Color(0.72, 0.45, 0.92)]
+			Shapes.ground_shadow(node, Vector2(0, 24.0), 96.0, 0.22)
+			var colours := [Color(0.94, 0.36, 0.32), Color(0.35, 0.65, 0.98),
+				Color(1.0, 0.82, 0.26), Color(0.40, 0.82, 0.48),
+				Color(0.76, 0.48, 0.95)]
 			var wire: Color = colours[int(piece["colour"]) % colours.size()]
-			# Two cut ends and, once joined, the cable between them.
+			# Heavy metallic relay terminal blocks on both sides
 			for side in [-1.0, 1.0]:
-				Shapes.fill(node, Shapes.rounded_rect(
-					Vector2(side * 54.0 - 16.0, -14.0), Vector2(32.0, 28.0), 8.0),
-					wire.darkened(0.25), 0.0)
+				var tpos := Vector2(side * 54.0 - 20.0, -22.0)
+				# Iron base block
+				Shapes.fill(node, Shapes.rounded_rect(tpos, Vector2(40.0, 44.0), 6.0),
+					Color(0.28, 0.30, 0.38), 0.0)
+				# Beveled bronze collar
+				Shapes.fill(node, Shapes.rounded_rect(tpos + Vector2(2.0, 2.0), Vector2(36.0, 6.0), 2.0),
+					Color(0.75, 0.62, 0.35), 0.0)
+				# Glowing terminal socket
+				Shapes.fill(node, Shapes.rounded_rect(tpos + Vector2(6.0, 12.0), Vector2(28.0, 24.0), 4.0),
+					wire.darkened(0.20), 0.0)
 			if int(piece["state"]) == 1:
-				Shapes.fill(node, Shapes.rounded_rect(Vector2(-46.0, -9.0),
-					Vector2(92.0, 18.0), 8.0), wire, 0.0)
-				Shapes.glow(node, Vector2.ZERO, 110.0, wire, 3, 0.4)
+				# High-voltage neon energy conduit connected between terminals
+				Shapes.fill(node, Shapes.rounded_rect(Vector2(-48.0, -11.0),
+					Vector2(96.0, 22.0), 6.0), wire, 0.0)
+				Shapes.fill(node, Shapes.rounded_rect(Vector2(-44.0, -4.0),
+					Vector2(88.0, 8.0), 3.0), Color(1.0, 1.0, 1.0, 0.95), 0.0)
+				Shapes.glow(node, Vector2.ZERO, 100.0, wire, 3, 0.5)
+
 		"mirrors":
-			Shapes.ground_shadow(node, Vector2(0, 60.0), 120.0, 0.18)
-			Shapes.fill(node, Shapes.taper(Vector2(0, 60.0), Vector2(0, 10.0),
-				12.0, 8.0), Color(0.46, 0.50, 0.60), 0.0)
+			Shapes.ground_shadow(node, Vector2(0, 32.0), 96.0, 0.22)
+			# Beveled pedestal base
+			Shapes.fill(node, Shapes.rounded_rect(Vector2(-24.0, 48.0), Vector2(48.0, 14.0), 4.0),
+				Color(0.35, 0.38, 0.46), 0.0)
+			Shapes.fill(node, Shapes.taper(Vector2(0, 50.0), Vector2(0, 10.0),
+				14.0, 8.0), Color(0.48, 0.52, 0.62), 0.0)
 			var turn: float = float(int(piece["state"])) * 45.0
 			var glass := Node2D.new()
 			glass.rotation_degrees = turn
 			node.add_child(glass)
-			Shapes.lit(glass, Shapes.rounded_rect(Vector2(-8.0, -56.0),
-				Vector2(16.0, 112.0), 7.0), tint, 1.0)
-			Shapes.fill(glass, Shapes.rounded_rect(Vector2(-3.0, -48.0),
-				Vector2(6.0, 96.0), 3.0), Color(1, 1, 1, 0.55), 0.0)
+			# Brass prism gimbal frame
+			Shapes.lit(glass, Shapes.rounded_rect(Vector2(-10.0, -58.0),
+				Vector2(20.0, 116.0), 8.0), Color(0.75, 0.62, 0.35), 0.0)
+			# Refractive crystal lens
+			Shapes.fill(glass, Shapes.rounded_rect(Vector2(-6.0, -52.0),
+				Vector2(12.0, 104.0), 5.0), tint, 0.0)
+			Shapes.fill(glass, Shapes.rounded_rect(Vector2(-2.0, -44.0),
+				Vector2(4.0, 88.0), 2.0), Color(1.0, 1.0, 1.0, 0.75), 0.0)
+
 		_:
-			# Pipes: an elbow that only carries light when it points along the row.
-			Shapes.ground_shadow(node, Vector2(0, 56.0), 120.0, 0.18)
+			# Pipes: cast iron flange elbow with brass couplings and luminous fluid conduit
+			Shapes.ground_shadow(node, Vector2(0, 28.0), 96.0, 0.22)
 			var barrel := Node2D.new()
 			barrel.rotation_degrees = float(int(piece["state"])) * 90.0
 			node.add_child(barrel)
-			Shapes.lit(barrel, Shapes.rounded_rect(Vector2(-58.0, -20.0),
-				Vector2(116.0, 40.0), 12.0), tint, 1.0)
+			# Iron pipe body
+			Shapes.lit(barrel, Shapes.rounded_rect(Vector2(-60.0, -22.0),
+				Vector2(120.0, 44.0), 10.0), Color(0.32, 0.36, 0.44), 1.0)
+			# Brass flange collars at both ends
+			for fx in [-58.0, 46.0]:
+				Shapes.fill(barrel, Shapes.rounded_rect(Vector2(fx, -25.0),
+					Vector2(12.0, 50.0), 3.0), Color(0.75, 0.62, 0.35), 0.0)
+			# Center energy fluid conduit
 			Shapes.fill(barrel, Shapes.rounded_rect(Vector2(-44.0, -8.0),
-				Vector2(88.0, 16.0), 7.0),
-				Color(0.85, 0.97, 1.0) if solved else Color(0.34, 0.38, 0.48), 0.0)
+				Vector2(88.0, 16.0), 6.0),
+				Color(0.85, 0.97, 1.0) if solved else Color(0.22, 0.26, 0.34), 0.0)
 			if solved:
-				Shapes.glow(barrel, Vector2.ZERO, 130.0, Color(0.55, 0.88, 1.0), 3, 0.4)
+				Shapes.fill(barrel, Shapes.rounded_rect(Vector2(-40.0, -3.0),
+					Vector2(80.0, 6.0), 2.0), Color(1.0, 1.0, 1.0, 0.95), 0.0)
+				Shapes.glow(barrel, Vector2.ZERO, 120.0, Color(0.55, 0.88, 1.0), 3, 0.45)
 
 
 func _piece_ok(piece: Dictionary) -> bool:
@@ -342,9 +386,27 @@ func _build_hud() -> void:
 	# One gear per piece, lit as the path completes, centred on the real
 	# screen width. "2 / 4" was a sentence; four gears with two lit is a picture.
 	var view: Vector2 = _hud.get_viewport_rect().size
+	var row_w: float = UiKit.pip_row_width(_steps)
+	var pip_card := Panel.new()
+	pip_card.position = Vector2(view.x * 0.5 - (row_w + 36.0) * 0.5, 18)
+	pip_card.size = Vector2(row_w + 36.0, 58)
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(0.10, 0.14, 0.22, 0.75)
+	card_style.set_corner_radius_all(20)
+	card_style.border_width_top = 1
+	card_style.border_width_left = 1
+	card_style.border_width_right = 1
+	card_style.border_width_bottom = 1
+	card_style.border_color = Color(0.42, 0.58, 0.82, 0.45)
+	card_style.shadow_color = Color(0, 0, 0, 0.35)
+	card_style.shadow_size = 8
+	pip_card.add_theme_stylebox_override("panel", card_style)
+	pip_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud.add_child(pip_card)
+
 	_pips = UiKit.pip_row("gear", _steps)
-	_pips.position = Vector2(view.x * 0.5 - UiKit.pip_row_width(_steps) * 0.5, 26)
-	_hud.add_child(_pips)
+	_pips.position = Vector2(18, 5)
+	pip_card.add_child(_pips)
 
 
 ## The brief asks for one complete run-through before the child touches it.
@@ -427,3 +489,67 @@ func _finish() -> void:
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	await get_tree().create_timer(0.9).timeout
 	complete_level()
+
+
+func _setup_3d_stage() -> void:
+	var glb_path := "res://assets/scenes_3d/puzzle_chamber.glb"
+	if not ResourceLoader.exists(glb_path):
+		return
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "PuzzleChamber3DContainer"
+	vp_container.stretch = true
+	vp_container.custom_minimum_size = Vector2(1280, 720)
+	vp_container.size = Vector2(1280, 720)
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vp_container.z_index = -50
+
+	var vp := SubViewport.new()
+	vp.name = "SubViewport"
+	vp.own_world_3d = true
+	vp.transparent_bg = false
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.size = Vector2i(1280, 720)
+	vp_container.add_child(vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "World3D"
+	vp.add_child(world_root)
+
+	var glb_scene: PackedScene = load(glb_path)
+	if glb_scene != null:
+		var glb_inst: Node = glb_scene.instantiate()
+		world_root.add_child(glb_inst)
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.14, 0.16, 0.22)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.65, 0.68, 0.78)
+	env.ambient_light_energy = 0.35
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.glow_enabled = true
+	env.glow_intensity = 0.35
+
+	var env_node := WorldEnvironment.new()
+	env_node.environment = env
+	world_root.add_child(env_node)
+
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-42.0, -30.0, 0.0)
+	sun.light_color = Color(1.0, 0.94, 0.85)
+	sun.light_energy = 0.78
+	sun.shadow_enabled = true
+	sun.shadow_blur = 1.8
+	sun.shadow_bias = 0.03
+	world_root.add_child(sun)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(0.0, 4.4, 9.8)
+	cam.rotation_degrees = Vector3(-14.0, 0.0, 0.0)
+	cam.fov = 38.0
+	cam.current = true
+	world_root.add_child(cam)
+
+	add_child(vp_container)
+	move_child(vp_container, 0)
+

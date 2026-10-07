@@ -38,10 +38,19 @@ static func orb(parent: Node, tint: Color = Color(0.42, 0.86, 1.0)) -> Node2D:
 	var node := Node2D.new()
 	parent.add_child(node)
 	var art := _bobber(node, 9.0, 1.5)
-	Shapes.glow(art, Vector2.ZERO, 74.0, tint, 4, 0.42)
-	Shapes.lit(art, Shapes.circle_points(Vector2.ZERO, 26.0, 20), tint, 0.9)
-	Shapes.fill(art, Shapes.oval_points(Vector2(-8.0, -9.0), Vector2(8.0, 6.0), 12),
-		Color(1, 1, 1, 0.65), 0.0)
+	var orb_tex: Texture2D = load("res://assets/props_3d/crystal_orb_blue.png")
+	if orb_tex != null:
+		var spr := Sprite2D.new()
+		spr.texture = orb_tex
+		spr.scale = Vector2(0.52, 0.52)
+		spr.modulate = Color(1.0, 1.0, 1.0, 0.95)
+		art.add_child(spr)
+		Shapes.glow(art, Vector2.ZERO, 64.0, tint, 3, 0.38)
+	else:
+		Shapes.glow(art, Vector2.ZERO, 74.0, tint, 4, 0.42)
+		Shapes.lit(art, Shapes.circle_points(Vector2.ZERO, 26.0, 20), tint, 0.9)
+		Shapes.fill(art, Shapes.oval_points(Vector2(-8.0, -9.0), Vector2(8.0, 6.0), 12),
+			Color(1, 1, 1, 0.65), 0.0)
 	return node
 
 
@@ -182,14 +191,22 @@ static func spring(parent: Node) -> Dictionary:
 static func crate(parent: Node) -> Node2D:
 	var node := Node2D.new()
 	parent.add_child(node)
-	Shapes.ground_shadow(node, Vector2.ZERO, 118.0, 0.20)
-	Shapes.lit(node, Shapes.rounded_rect(Vector2(-46.0, -92.0), Vector2(92.0, 92.0), 8.0),
-		WOOD, 1.0)
-	for line in [Vector2(-46.0, -50.0), Vector2(-46.0, -6.0)]:
-		Shapes.fill(node, Shapes.rounded_rect(line, Vector2(92.0, 8.0), 3.0),
-			WOOD.darkened(0.18), 0.0)
-	Shapes.fill(node, Shapes.taper(Vector2(-40.0, -86.0), Vector2(40.0, -6.0), 7.0, 7.0),
-		WOOD.lightened(0.08), 0.0)
+	Shapes.ground_shadow(node, Vector2.ZERO, 118.0, 0.28)
+	var crate_tex: Texture2D = load("res://assets/props_3d/crate_orange.png")
+	if crate_tex != null:
+		var spr := Sprite2D.new()
+		spr.texture = crate_tex
+		spr.scale = Vector2(0.68, 0.68)
+		spr.position = Vector2(0, -48.0)
+		node.add_child(spr)
+	else:
+		Shapes.lit(node, Shapes.rounded_rect(Vector2(-46.0, -92.0), Vector2(92.0, 92.0), 8.0),
+			WOOD, 1.0)
+		for line in [Vector2(-46.0, -50.0), Vector2(-46.0, -6.0)]:
+			Shapes.fill(node, Shapes.rounded_rect(line, Vector2(92.0, 8.0), 3.0),
+				WOOD.darkened(0.18), 0.0)
+		Shapes.fill(node, Shapes.taper(Vector2(-40.0, -86.0), Vector2(40.0, -6.0), 7.0, 7.0),
+			WOOD.lightened(0.08), 0.0)
 	return node
 
 

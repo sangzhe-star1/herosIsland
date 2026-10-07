@@ -149,10 +149,9 @@ func _layout() -> void:
 	var secondary: int = maxi(_cards.size() - 1, 1)
 	var sec_w: float = (cards_w - GAP * float(secondary - 1)) / float(secondary)
 
-	# The greeting starts where the cards start. Aligning it to the screen edge
-	# instead put it above the hero, which reads as a label for the hero.
+	# The greeting starts where the cards start, sized to fit comfortably like a nameplate
 	_greeting.position = Vector2(cards_x, MARGIN)
-	_greeting.size = Vector2(cards_w * 0.7, HEADER_H)
+	_greeting.size = Vector2(minf(cards_w * 0.50, 360.0), HEADER_H)
 
 	_card_boxes = [Rect2(Vector2(cards_x, body_top), Vector2(cards_w, h1))]
 	for i in range(secondary):
@@ -224,10 +223,28 @@ func _snap(value: float) -> float:
 # --- the greeting -------------------------------------------------------
 
 func _build_greeting() -> void:
-	_greeting = UiKit.title_on_art(I18n.t("home.greeting"), TYPE_GREETING)
-	_greeting.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_greeting = Label.new()
+	_greeting.text = I18n.t("home.greeting")
+	_greeting.add_theme_font_size_override("font_size", int(TYPE_GREETING * 0.78))
+	_greeting.add_theme_color_override("font_color", Palette.INK)
+	_greeting.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_greeting.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_greeting.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var banner := StyleBoxFlat.new()
+	banner.bg_color = Color(1.0, 0.99, 0.95, 0.92)
+	banner.set_corner_radius_all(UiKit.RADIUS_CARD)
+	banner.border_width_left = 2
+	banner.border_width_top = 2
+	banner.border_width_right = 2
+	banner.border_width_bottom = 4
+	banner.border_color = Color(0.88, 0.84, 0.78)
+	banner.shadow_color = Color(0.05, 0.10, 0.20, 0.12)
+	banner.shadow_size = 6
+	banner.shadow_offset = Vector2(0, 3)
+	banner.content_margin_left = 24
+	banner.content_margin_right = 24
+	_greeting.add_theme_stylebox_override("normal", banner)
 	add_child(_greeting)
 
 
@@ -327,12 +344,11 @@ func _card(text_key: String, icon_name: String, color: Color, primary: bool) -> 
 	# card showed through it, and a roof inside a button reads as a rendering
 	# fault rather than as depth.
 	var face: Color = color if primary else Color(1.0, 0.99, 0.96, 0.97)
-	card.add_theme_stylebox_override("normal", _card_style(face, 10))
-	card.add_theme_stylebox_override("hover", _card_style(face.lightened(0.06), 10))
-	# Pressed drops the shadow: the card sinks into the screen. This is the
-	# whole press feedback under reduce-motion, where the tilt is skipped.
-	card.add_theme_stylebox_override("pressed", _card_style(face.darkened(0.05), 2))
-	card.add_theme_stylebox_override("disabled", _card_style(Palette.MUTED, 4))
+	card.add_theme_stylebox_override("normal", _card_style(face, 10, primary))
+	card.add_theme_stylebox_override("hover", _card_style(face.lightened(0.06), 10, primary))
+	# Pressed drops the shadow and border thickness: the card physically sinks.
+	card.add_theme_stylebox_override("pressed", _card_style(face.darkened(0.05), 2, primary))
+	card.add_theme_stylebox_override("disabled", _card_style(Palette.MUTED, 4, primary))
 
 	# Centred by a container rather than by arithmetic. The first version
 	# placed the picture and the word at computed offsets, which is fine until
@@ -362,9 +378,15 @@ func _card(text_key: String, icon_name: String, color: Color, primary: bool) -> 
 	# Colour lives here, behind the picture, and nowhere else on a white card.
 	# On the accent card the chip is a hole punched in the green rather than a
 	# sixth colour, so the screen still has exactly one.
-	var chip_fill: Color = Color(1.0, 1.0, 1.0, 0.26) if primary else color.lightened(0.70)
+	var chip_fill: Color = Color(1.0, 1.0, 1.0, 0.18) if primary else color.lightened(0.72)
 	var chip_style := StyleBoxFlat.new()
 	chip_style.bg_color = chip_fill
+	if not primary:
+		chip_style.border_width_left = 3
+		chip_style.border_width_top = 3
+		chip_style.border_width_right = 3
+		chip_style.border_width_bottom = 3
+		chip_style.border_color = Color(1.0, 1.0, 1.0, 0.65)
 	chip.add_theme_stylebox_override("panel", chip_style)
 	chip.set_meta("style", chip_style)
 
@@ -391,18 +413,6 @@ func _card(text_key: String, icon_name: String, color: Color, primary: bool) -> 
 	card.set_meta("primary", primary)
 
 	# Driven from the button's own press, NOT from gui_input.
-	#
-	# gui_input was the obvious way to get the finger's position, and it does
-	# not work here: with emulate_touch_from_mouse on -- which is how the debug
-	# build runs -- a Button consumes the mouse event itself, so the emulated
-	# touch never reaches the signal, and UiKit.is_press correctly refuses the
-	# mouse duplicate. The result was a card that tilted on a tablet and sat
-	# there like a photograph on the machine this game is developed on. The
-	# home probe now presses a card and asserts it actually moved.
-	#
-	# button_down/button_up have no such gap, and Godot's own de-duplication
-	# means they fire once per finger. The position comes from the mouse, which
-	# follows the finger on a touchscreen through the reverse emulation.
 	card.button_down.connect(func():
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		_card_push(card, card.get_local_mouse_position().x))
@@ -410,11 +420,24 @@ func _card(text_key: String, icon_name: String, color: Color, primary: bool) -> 
 	return card
 
 
-func _card_style(fill: Color, shadow: int) -> StyleBoxFlat:
+func _card_style(fill: Color, shadow: int, primary: bool = false) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill
 	style.set_corner_radius_all(RADIUS)
-	style.shadow_color = Color(0.05, 0.10, 0.20, 0.16)
+	if primary:
+		style.border_width_left = 2
+		style.border_width_top = 2
+		style.border_width_right = 2
+		style.border_width_bottom = 8 if shadow > 2 else 2
+		style.border_color = Palette.edge(fill)
+		style.shadow_color = Color(0.06, 0.16, 0.08, 0.28)
+	else:
+		style.border_width_left = 2
+		style.border_width_top = 2
+		style.border_width_right = 2
+		style.border_width_bottom = 6 if shadow > 2 else 2
+		style.border_color = Color(0.88, 0.85, 0.80)
+		style.shadow_color = Color(0.05, 0.10, 0.20, 0.14)
 	style.shadow_size = shadow
 	style.shadow_offset = Vector2(0, 4 if shadow > 4 else 1)
 	return style
@@ -430,17 +453,10 @@ func _place_card(card: Button, box: Rect2, primary: bool) -> void:
 	card.size = box.size
 	card.pivot_offset = box.size * 0.5
 
-	# Four type sizes on the screen and each at least 1.3x the next: 56 / 42 /
-	# 30 / 20. Two sizes a hair apart read as a mistake rather than a level.
-	#
-	# The chip is bounded by the card's WIDTH as well as its height. On the 4:3
-	# tablet the small cards are tall and narrow, and a chip sized off height
-	# alone grew until its top corner reached the card's own corner -- straight
-	# under the mark that lives there.
 	var chip_d: float = _snap(minf(
-		clampf(box.size.y * (0.60 if primary else 0.42), 88.0, 210.0),
-		box.size.x * 0.50))
-	var font_size: int = int(_snap(clampf(box.size.y * (0.20 if primary else 0.12),
+		clampf(box.size.y * (0.64 if primary else 0.46), 96.0, 210.0),
+		box.size.x * 0.52))
+	var font_size: int = int(_snap(clampf(box.size.y * (0.20 if primary else 0.13),
 		24.0, 56.0)))
 
 	var group: BoxContainer = card.get_node("Body/Box")
@@ -451,13 +467,10 @@ func _place_card(card: Button, box: Rect2, primary: bool) -> void:
 	var chip_style: StyleBoxFlat = chip.get_meta("style")
 	chip_style.set_corner_radius_all(int(chip_d * 0.5))
 
-	# The picture is rebuilt at the new size rather than scaled: a drawn icon
-	# stretched by a transform gets fuzzy edges and a stretched line weight,
-	# and this screen has four of them side by side where that shows.
 	var well: CenterContainer = card.get_node("Body/Box/Chip/Well")
 	for child in well.get_children():
 		child.queue_free()
-	var icon_size: float = _snap(chip_d * 0.62)
+	var icon_size: float = _snap(chip_d * (0.86 if primary else 0.82))
 	var icon: Control = UiKit.picture(str(card.get_meta("icon_name")), icon_size)
 	if icon != null:
 		# A perch between the container and the picture. Two of the four idle
@@ -818,10 +831,16 @@ func _build_treasure_chip() -> void:
 	_treasure = Button.new()
 	_treasure.focus_mode = Control.FOCUS_NONE
 	var style := StyleBoxFlat.new()
-	# Opaque enough that a cloud drifting behind it does not show through as a
-	# grey smear across the child's own numbers.
-	style.bg_color = Color(0.07, 0.13, 0.26, 0.88)
+	style.bg_color = Color(0.10, 0.16, 0.28, 0.90)
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 3
+	style.border_color = Color(1.0, 0.84, 0.32, 0.75)
 	style.set_corner_radius_all(30)
+	style.shadow_color = Color(0.05, 0.10, 0.20, 0.20)
+	style.shadow_size = 6
+	style.shadow_offset = Vector2(0, 3)
 	for state in ["normal", "hover", "pressed"]:
 		_treasure.add_theme_stylebox_override(state, style)
 	_treasure.pressed.connect(func():

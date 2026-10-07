@@ -150,7 +150,9 @@ func setup_level() -> void:
 		_rope_count = mini(_rope_count + rank / 2, 4)
 		_tower_steps = mini(_tower_steps + rank / 2, 5)
 
+	_build_3d_course()
 	_stage = build_world(self)
+	_stage.visible = false
 	_ground_y = _stage.ground_y()
 
 	_world = Node2D.new()
@@ -216,25 +218,67 @@ func _build_terrain(gap_max: float, seg_min: float) -> void:
 func _add_ground(x: float, width: float) -> void:
 	var holder := Node2D.new()
 	_world.add_child(holder)
-	# Body below, bright lip on top -- and both colours come from the WORLD,
-	# so this same template runs a green valley by day and a stone rooftop
-	# trail at dusk without a line of per-level art.
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y),
-		Vector2(width, 190.0), 10.0), _slab_color(), 0.0)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 4.0),
-		Vector2(width, 22.0), 8.0), _stage.style.ground_top, 0.0)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 4.0),
-		Vector2(width, 7.0), 3.0), _stage.style.ground_top.lightened(0.20), 0.0)
 	var rng := Shapes.rng_for("decor%f" % x)
-	if _stage.style.ground_kind != "plaza":
-		# Grass tufts so the lip is not a bare stripe.
-		for i in range(int(width / 90.0)):
+
+	var slab_c: Color = _slab_color()
+	var top_c: Color = _stage.style.ground_top
+	var is_plaza: bool = _stage.style.ground_kind == "plaza"
+
+	# 1. Earth / Bedrock slab foundation
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y),
+		Vector2(width, 190.0), 4.0), slab_c, 1.0)
+
+	# 2. Dirt strata layers and embedded stone/pebble voxel blocks
+	if not is_plaza:
+		# Loam strata bands
+		for sy in [28.0, 68.0, 118.0]:
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y + sy),
+				Vector2(width, 16.0), 2.0), slab_c.darkened(0.12), 0.0)
+		# Embedded cobblestone / pebble voxels in soil
+		var block_count := int(width / 38.0)
+		for bi in range(block_count):
+			var bx: float = x + 12.0 + float(bi) * 38.0 + rng.randf_range(-6.0, 6.0)
+			var by: float = _ground_y + rng.randf_range(28.0, 140.0)
+			var stone_col: Color = slab_c.lightened(0.18) if bi % 2 == 0 else slab_c.darkened(0.20)
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(bx, by), Vector2(14.0, 14.0), 2.0),
+				stone_col, 0.0)
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(bx + 1.0, by + 1.0), Vector2(12.0, 3.0), 1.0),
+				stone_col.lightened(0.15), 0.0)
+
+	# 3. Top Grass / Coping Slab
+	var top_h: float = 22.0
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 4.0),
+		Vector2(width, top_h), 4.0), top_c, 1.0)
+	# Sunlit top face highlight
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 4.0),
+		Vector2(width, 6.0), 2.0), top_c.lightened(0.25), 0.0)
+
+	# 4. Minecraft-style stepped voxel grass fringe dripping onto dirt
+	if not is_plaza:
+		var drip_x := x + 2.0
+		var drip_i := 0
+		while drip_x < x + width - 12.0:
+			var drop_h: float = [8.0, 15.0, 22.0, 12.0, 18.0][drip_i % 5]
+			var drop_w: float = [14.0, 10.0, 16.0, 12.0, 15.0][(drip_i * 2) % 5]
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(drip_x, _ground_y + top_h - 6.0),
+				Vector2(drop_w, drop_h), 2.0), top_c, 1.0)
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(drip_x, _ground_y + top_h - 6.0 + drop_h),
+				Vector2(drop_w, 3.0), 1.0), slab_c.darkened(0.25), 0.0)
+			drip_x += drop_w + rng.randf_range(2.0, 8.0)
+			drip_i += 1
+
+		# Grass tufts
+		for i in range(int(width / 75.0)):
 			var tx: float = x + rng.randf_range(14.0, width - 14.0)
-			Shapes.fill(holder, PackedVector2Array([
-				Vector2(tx - 7.0, _ground_y - 2.0),
-				Vector2(tx + rng.randf_range(-4.0, 4.0), _ground_y - 16.0),
-				Vector2(tx + 7.0, _ground_y - 2.0),
-			]), _stage.style.ground_top.lightened(0.10), 0.0)
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(tx - 3.0, _ground_y - 14.0),
+				Vector2(6.0, 12.0), 2.0), top_c.lightened(0.18), 0.0)
+	else:
+		var px := x + 40.0
+		while px < x + width:
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(px, _ground_y - 4.0), Vector2(3.0, top_h), 1.0),
+				top_c.darkened(0.25), 0.0)
+			px += 48.0
+
 	_decorate_ground(holder, x, width, rng)
 	_platforms.append({"rect": Rect2(x, _ground_y, width, 190.0), "node": null})
 
@@ -242,21 +286,55 @@ func _add_ground(x: float, width: float) -> void:
 func _add_ledge(x: float, y: float, width: float, rng: RandomNumberGenerator) -> void:
 	var holder := Node2D.new()
 	_world.add_child(holder)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y), Vector2(width, 30.0), 12.0),
-		_slab_color(), 0.9)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y - 3.0),
-		Vector2(width, 15.0), 7.0), _stage.style.ground_top.lightened(0.06), 0.0)
-	# Little roots and grass hang under a floating ledge -- the cheap line
-	# that says "torn out of a hillside" instead of "UI element in the sky".
-	if _stage.style.ground_kind != "plaza":
-		for k in range(maxi(int(width / 110.0), 1)):
-			var vx: float = x + rng.randf_range(18.0, width - 18.0)
-			Shapes.fill(holder, Shapes.taper(Vector2(vx, y + 26.0),
-				Vector2(vx + rng.randf_range(-5.0, 5.0), y + 26.0 + rng.randf_range(12.0, 28.0)),
-				5.0, 1.8), _slab_color().lightened(0.08), 0.0)
+	var slab_c: Color = _slab_color()
+	var top_c: Color = _stage.style.ground_top
+	var is_plaza: bool = _stage.style.ground_kind == "plaza"
+
+	# Floating ambient drop shadow
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x + 4.0, y + 32.0),
+		Vector2(width - 8.0, 8.0), 4.0), Color(0.05, 0.05, 0.08, 0.28), 0.0)
+
+	# 1. Earth / Stone core block
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y), Vector2(width, 32.0), 4.0),
+		slab_c, 1.0)
+	# Embedded stone flecks
+	for i in range(int(width / 45.0)):
+		var sx: float = x + 10.0 + float(i) * 42.0 + rng.randf_range(-4.0, 4.0)
+		Shapes.fill(holder, Shapes.rounded_rect(Vector2(sx, y + 14.0), Vector2(10.0, 10.0), 2.0),
+			slab_c.lightened(0.15), 0.0)
+
+	# 2. Top grass slab
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y - 3.0), Vector2(width, 16.0), 3.0),
+		top_c, 1.0)
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y - 3.0), Vector2(width, 4.0), 2.0),
+		top_c.lightened(0.24), 0.0)
+
+	# 3. Stepped voxel grass drips & hanging voxel vines
+	if not is_plaza:
+		var drip_x := x + 3.0
+		var di := 0
+		while drip_x < x + width - 10.0:
+			var dh: float = [6.0, 11.0, 8.0, 14.0][di % 4]
+			var dw: float = [12.0, 9.0, 14.0, 10.0][(di * 3) % 4]
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(drip_x, y + 12.0), Vector2(dw, dh), 2.0),
+				top_c, 1.0)
+			drip_x += dw + rng.randf_range(2.0, 6.0)
+			di += 1
+
+		# Hanging Minecraft-style jungle vines / roots
+		var vine_count := maxi(int(width / 65.0), 1)
+		for k in range(vine_count):
+			var vx: float = x + rng.randf_range(16.0, width - 16.0)
+			var vh: float = rng.randf_range(16.0, 34.0)
+			var vine_col: Color = top_c.darkened(0.15)
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(vx - 2.0, y + 28.0), Vector2(4.0, vh), 1.0),
+				vine_col, 0.0)
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(vx - 5.0, y + 28.0 + vh * 0.4), Vector2(8.0, 6.0), 2.0),
+				vine_col.lightened(0.10), 0.0)
+			Shapes.fill(holder, Shapes.rounded_rect(Vector2(vx - 4.0, y + 28.0 + vh * 0.8), Vector2(7.0, 5.0), 2.0),
+				vine_col, 0.0)
+
 	var entry := {"rect": Rect2(x, y, width, 30.0), "node": null}
-	# In the windier levels some ledges drift up and down, slowly. Vertical
-	# only, two-second period: a moving target, never a moving trap.
 	if _moving_platforms and rng.randf() < 0.4:
 		entry["node"] = holder
 		entry["base_y"] = y
@@ -272,8 +350,6 @@ func _add_ledge(x: float, y: float, width: float, rng: RandomNumberGenerator) ->
 	_platforms.append(entry)
 
 
-## Coins strung along the trail: over ledges and mid-segment, always where
-## walking or one small jump reaches them.
 func _build_coins() -> void:
 	var rng := Shapes.rng_for(str(level_data.get("id", "coins")) + ":coins")
 	var spots: Array = []
@@ -293,50 +369,67 @@ func _build_coins() -> void:
 		spots.remove_at(rng.randi() % spots.size())
 	_coins_total = spots.size()
 	for spot in spots:
-		var coin: Control = UiKit.picture("coin", 54)
+		var coin: Control = UiKit.picture("coin", 58)
 		if coin == null:
 			continue
-		coin.position = spot - Vector2(27, 27)
+		coin.position = spot - Vector2(29, 29)
 		_world.add_child(coin)
+		var glow := Node2D.new()
+		glow.position = spot
+		_world.add_child(glow)
+		Shapes.glow(glow, Vector2.ZERO, 54.0, Color(1.0, 0.88, 0.40), 4, 0.28)
+		glow.z_index = -1
 		if Juice.motion_enabled():
 			var t := coin.create_tween().set_loops()
-			t.tween_property(coin, "position:y", coin.position.y - 9.0, 0.9)\
+			t.tween_property(coin, "position:y", coin.position.y - 11.0, 0.85)\
 				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-			t.tween_property(coin, "position:y", coin.position.y, 0.9)\
+			t.tween_property(coin, "position:y", coin.position.y, 0.85)\
 				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		_coins.append({"node": coin, "x": spot.x, "y": spot.y, "taken": false})
 
 
-## The finish line is a landmark, not an icon: a tall pole, a pennant that
-## waves, a gold cap, and a few stones at the foot. Visible from half a
-## screen away, which is the point of a goal.
 func _build_flag() -> void:
 	var flag := Node2D.new()
 	flag.position = Vector2(_flag_x, _ground_y)
 	_world.add_child(flag)
 	var rng := Shapes.rng_for(str(level_data.get("id", "flag")) + ":flag")
-	Shapes.ground_shadow(flag, Vector2.ZERO, 130.0, 0.22)
-	for offs in [Vector2(-36, -5), Vector2(30, -7), Vector2(8, -3)]:
-		Shapes.lit(flag, Shapes.blob(offs as Vector2, Vector2(rng.randf_range(12.0, 19.0), 9.0),
-			rng, 0.2, 3, 12), Color(0.62, 0.63, 0.70), 0.8)
-	Shapes.glow(flag, Vector2(0, -120.0), 130.0, Color(1.0, 0.92, 0.55), 5, 0.26)
-	Shapes.fill(flag, Shapes.taper(Vector2(0, 0), Vector2(0, -176.0), 9.0, 5.5),
-		Color(0.52, 0.42, 0.30), 0.9)
-	Shapes.lit(flag, Shapes.circle_points(Vector2(0, -180.0), 7.5, 12),
-		Color(1.0, 0.84, 0.30), 0.8)
+	Shapes.ground_shadow(flag, Vector2.ZERO, 130.0, 0.25)
+
+	# Minecraft-style stone plinth base blocks
+	Shapes.fill(flag, Shapes.rounded_rect(Vector2(-32, -18), Vector2(64, 18), 3.0),
+		Color(0.60, 0.62, 0.66), 1.0)
+	Shapes.fill(flag, Shapes.rounded_rect(Vector2(-24, -30), Vector2(48, 14), 2.0),
+		Color(0.70, 0.72, 0.76), 1.0)
+
+	# Oak Fence Flagpole
+	Shapes.fill(flag, Shapes.rounded_rect(Vector2(-6, -180), Vector2(12, 155), 2.0),
+		Color(0.52, 0.38, 0.24), 1.0)
+	Shapes.fill(flag, Shapes.rounded_rect(Vector2(-4, -180), Vector2(4, 155), 1.0),
+		Color(0.68, 0.52, 0.36), 0.0)
+
+	# Golden block cap on top
+	Shapes.fill(flag, Shapes.rounded_rect(Vector2(-10, -198), Vector2(20, 20), 3.0),
+		Color(1.0, 0.82, 0.22), 1.0)
+	Shapes.fill(flag, Shapes.rounded_rect(Vector2(-8, -196), Vector2(16, 5), 1.0),
+		Color(1.0, 0.96, 0.60), 0.0)
+	Shapes.glow(flag, Vector2(0, -188), 70.0, Color(1.0, 0.88, 0.35), 4, 0.35)
+
+	# Waving red wool banner
 	var pennant := Node2D.new()
-	pennant.position = Vector2(2.0, -172.0)
+	pennant.position = Vector2(6.0, -182.0)
 	flag.add_child(pennant)
-	Shapes.lit(pennant, PackedVector2Array([
-		Vector2(2, 0), Vector2(92, 16), Vector2(68, 32), Vector2(92, 48), Vector2(2, 62),
-	]), Color(0.90, 0.34, 0.36), 1.0)
-	Shapes.fill(pennant, Shapes.star_points(Vector2(34, 30), 13.0, 0.45, 5),
-		Color(1.0, 0.92, 0.55), 0.0)
+	Shapes.fill(pennant, Shapes.rounded_rect(Vector2(0, 0), Vector2(80, 52), 4.0),
+		Color(0.92, 0.26, 0.28), 1.0)
+	Shapes.fill(pennant, Shapes.rounded_rect(Vector2(2, 2), Vector2(76, 5), 2.0),
+		Color(1.0, 0.45, 0.45), 0.0)
+	# Gold star emblem
+	Shapes.fill(pennant, Shapes.star_points(Vector2(38, 26), 15.0, 0.45, 5),
+		Color(1.0, 0.92, 0.40), 0.0)
 	if Juice.motion_enabled():
 		var t := pennant.create_tween().set_loops()
-		t.tween_property(pennant, "rotation_degrees", 4.0, 1.1)\
+		t.tween_property(pennant, "rotation_degrees", 5.0, 1.0)\
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		t.tween_property(pennant, "rotation_degrees", -3.0, 1.1)\
+		t.tween_property(pennant, "rotation_degrees", -3.0, 1.0)\
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
@@ -1020,6 +1113,8 @@ func _physics_process(delta: float) -> void:
 		_jumps_left -= 1
 		_velocity.y = JUMP_VELOCITY * 0.88
 		_hero.set_pose(HeroArt.Pose.JUMP)
+		if _hero != null and is_instance_valid(_hero):
+			_hero.spin(1.0, 0.32)
 		Juice.shockwave(_world, _hero.position, 70.0, Color(0.86, 0.96, 1.0))
 		Juice.dust(_world, _hero.position, 4, 0.6)
 		AudioManager.play_sfx("res://assets/audio/notes/note_3.ogg")
@@ -1279,6 +1374,79 @@ func _check_fall() -> void:
 	_say(I18n.t("platformer.fell"))
 
 
+var _course_3d_vp: SubViewport
+var _course_3d_cam: Camera3D
+
+func _build_3d_course() -> void:
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "Course3DContainer"
+	vp_container.custom_minimum_size = Vector2(1280, 720)
+	vp_container.size = Vector2(1280, 720)
+	vp_container.stretch = true
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(vp_container)
+
+	_course_3d_vp = SubViewport.new()
+	_course_3d_vp.name = "Course3DViewport"
+	_course_3d_vp.size = Vector2i(1280, 720)
+	_course_3d_vp.own_world_3d = true
+	_course_3d_vp.transparent_bg = false
+	_course_3d_vp.handle_input_locally = false
+	_course_3d_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp_container.add_child(_course_3d_vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "CourseWorld"
+	_course_3d_vp.add_child(world_root)
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.24, 0.52, 0.86)
+	sky_mat.sky_horizon_color = Color(0.74, 0.85, 0.95)
+	sky_mat.ground_bottom_color = Color(0.70, 0.82, 0.92)
+	sky_mat.ground_horizon_color = Color(0.74, 0.85, 0.95)
+	sky.sky_material = sky_mat
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.38
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	var world_env := WorldEnvironment.new()
+	world_env.environment = env
+	world_root.add_child(world_env)
+
+	var sun := DirectionalLight3D.new()
+	sun.name = "SunLight"
+	sun.light_color = Color(1.0, 0.95, 0.88)
+	sun.light_energy = 0.95
+	sun.shadow_enabled = true
+	sun.shadow_blur = 1.0
+	sun.rotation_degrees = Vector3(-42.0, 35.0, 0.0)
+	world_root.add_child(sun)
+
+	var fill := DirectionalLight3D.new()
+	fill.name = "FillLight"
+	fill.light_color = Color(0.55, 0.70, 0.90)
+	fill.light_energy = 0.25
+	fill.rotation_degrees = Vector3(20.0, -145.0, 0.0)
+	world_root.add_child(fill)
+
+	_course_3d_cam = Camera3D.new()
+	_course_3d_cam.name = "CourseCamera"
+	_course_3d_cam.position = Vector3(0.0, 3.8, 9.5)
+	_course_3d_cam.rotation_degrees = Vector3(-14.0, 0.0, 0.0)
+	_course_3d_cam.fov = 46.0
+	world_root.add_child(_course_3d_cam)
+
+	var glb_path := "res://assets/scenes_3d/platformer_course.glb"
+	if ResourceLoader.exists(glb_path):
+		var crs_packed: PackedScene = load(glb_path)
+		var crs_inst := crs_packed.instantiate()
+		crs_inst.name = "CourseMesh"
+		world_root.add_child(crs_inst)
+
+
 ## The camera: the world slides, the horizon slides slower. This is where the
 ## valley stops being a screen and starts being a place that continues.
 func _scroll_camera() -> void:
@@ -1288,3 +1456,5 @@ func _scroll_camera() -> void:
 	_world.position.x = -scroll
 	if _stage != null and is_instance_valid(_stage):
 		_stage.parallax(scroll)
+	if _course_3d_cam != null and is_instance_valid(_course_3d_cam):
+		_course_3d_cam.position.x = scroll * 0.012

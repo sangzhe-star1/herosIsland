@@ -1366,6 +1366,7 @@
       "shield_duration": 2.2,
       "attacks": [
         "breath",
+        "stomp",
         "goo"
       ]
     },
@@ -1548,7 +1549,7 @@
     },
     "reward": {
       "coins": 22,
-      "badge": ""
+      "badge": "arena_champion"
     },
     "config": {
       "beam_cooldown": 1.98,
@@ -1574,6 +1575,7 @@
         "summon",
         "breath",
         "rush",
+        "stomp",
         "goo"
       ]
     },

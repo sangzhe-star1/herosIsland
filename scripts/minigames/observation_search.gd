@@ -64,7 +64,11 @@ func setup_level() -> void:
 	_icon = str(config.get("icon", "orb"))
 	_wanted = clampi(Hints.extra_things(harder_i(int(config.get("count", 5)), 1)), 3, 8)
 
-	build_world(self, 0.30)      # the scene is the puzzle: quiet it a little
+	var stage: Stage = build_world(self, 0.30)      # the scene is the puzzle: quiet it a little
+	if ResourceLoader.exists("res://assets/scenes_3d/park_observatory.glb"):
+		if stage != null:
+			stage.visible = false
+		_setup_3d_stage()
 	_field = UiKit.play_area(self, true)
 	_field.gui_input.connect(_on_tap)
 
@@ -124,11 +128,21 @@ func _draw_thing(icon_name: String, at: Vector2, target: bool) -> Node2D:
 	var node := Node2D.new()
 	node.position = at
 	_field.add_child(node)
-	var art: Control = UiKit.picture(icon_name, 76)
+
+	# 3D Perspective scaling: objects far back on the hill/gazebo are naturally smaller
+	var depth_factor: float = clampf((at.y - 300.0) / 340.0, 0.0, 1.0)
+	var p_scale: float = lerpf(0.72, 1.08, depth_factor)
+
+	# 3D Ground contact shadow on grass/boardwalk
+	Shapes.ground_shadow(node, Vector2(0, 20.0 * p_scale), 68.0 * p_scale, 0.32)
+
+	var art: Control = UiKit.picture(icon_name, int(76.0 * p_scale))
 	if art != null:
-		art.position = Vector2(-38, -38)
+		var half_size: float = 38.0 * p_scale
+		art.position = Vector2(-half_size, -half_size)
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		node.add_child(art)
+
 	# Everything breathes a little. A scene where only the answers move is a
 	# scene with the answers written on it.
 	if Juice.motion_enabled():
@@ -154,13 +168,31 @@ func _build_hud() -> void:
 	back.position = Vector2(24, 24)
 	_hud.add_child(back)
 
+	var card_w := float(_wanted) * 68.0 + 32.0
+	var tally_card := Panel.new()
+	tally_card.position = Vector2(640 - card_w * 0.5, 20)
+	tally_card.size = Vector2(card_w, 64)
+	var card_style := StyleBoxFlat.new()
+	card_style.bg_color = Color(0.10, 0.14, 0.24, 0.72)
+	card_style.set_corner_radius_all(24)
+	card_style.border_width_top = 1
+	card_style.border_width_left = 1
+	card_style.border_width_right = 1
+	card_style.border_width_bottom = 1
+	card_style.border_color = Color(0.42, 0.58, 0.82, 0.45)
+	card_style.shadow_color = Color(0, 0, 0, 0.35)
+	card_style.shadow_size = 8
+	tally_card.add_theme_stylebox_override("panel", card_style)
+	tally_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud.add_child(tally_card)
+
 	# The task, as a row of empty rings that fill in. No numbers: a child can
 	# see "three left" faster than they can read it.
 	_tally = HBoxContainer.new()
 	_tally.add_theme_constant_override("separation", 14)
-	_tally.position = Vector2(640 - float(_wanted) * 34.0, 26)
+	_tally.position = Vector2(16, 5)
 	_tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud.add_child(_tally)
+	tally_card.add_child(_tally)
 	for i in range(_wanted):
 		var pip := Control.new()
 		pip.custom_minimum_size = Vector2(54, 54)
@@ -336,3 +368,67 @@ func _finish() -> void:
 	AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 	await get_tree().create_timer(1.3).timeout
 	complete_level()
+
+
+func _setup_3d_stage() -> void:
+	var glb_path := "res://assets/scenes_3d/park_observatory.glb"
+	if not ResourceLoader.exists(glb_path):
+		return
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "ParkObservatory3DContainer"
+	vp_container.stretch = true
+	vp_container.custom_minimum_size = Vector2(1280, 720)
+	vp_container.size = Vector2(1280, 720)
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vp_container.z_index = -50
+
+	var vp := SubViewport.new()
+	vp.name = "SubViewport"
+	vp.own_world_3d = true
+	vp.transparent_bg = false
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.size = Vector2i(1280, 720)
+	vp_container.add_child(vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "World3D"
+	vp.add_child(world_root)
+
+	var glb_scene: PackedScene = load(glb_path)
+	if glb_scene != null:
+		var glb_inst: Node = glb_scene.instantiate()
+		world_root.add_child(glb_inst)
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.55, 0.78, 0.94)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.70, 0.78, 0.72)
+	env.ambient_light_energy = 0.38
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.glow_enabled = true
+	env.glow_intensity = 0.18
+
+	var env_node := WorldEnvironment.new()
+	env_node.environment = env
+	world_root.add_child(env_node)
+
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-38.0, -25.0, 0.0)
+	sun.light_color = Color(1.0, 0.97, 0.90)
+	sun.light_energy = 0.85
+	sun.shadow_enabled = true
+	sun.shadow_blur = 1.8
+	sun.shadow_bias = 0.03
+	world_root.add_child(sun)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(0.0, 6.2, 11.8)
+	cam.rotation_degrees = Vector3(-20.0, 0.0, 0.0)
+	cam.fov = 38.0
+	cam.current = true
+	world_root.add_child(cam)
+
+	add_child(vp_container)
+	move_child(vp_container, 0)
+

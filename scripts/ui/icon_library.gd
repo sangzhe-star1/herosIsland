@@ -91,7 +91,7 @@ const NAMES := [
 ## point on the thing a child should touch instead of each screen guessing a
 ## different "hand offset" and slowly drifting apart.
 static func guide_hand_tip(size: float) -> Vector2:
-	return Vector2(size * 0.28, size * 0.19)
+	return Vector2(size * 0.322, size * 0.234)
 
 
 # --- primitive helpers --------------------------------------------------

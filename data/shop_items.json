@@ -2959,5 +2959,244 @@
     "set_id": "",
     "world_theme": "",
     "bundle_id": ""
+  },
+  {
+    "id": "vest_rescue",
+    "name_key": "shop.item.vest_rescue",
+    "category": "body",
+    "slot": "body",
+    "price": 32,
+    "art": "",
+    "icon": "vest",
+    "character_compatibility": [
+      "bolt",
+      "coco",
+      "ember",
+      "grigio",
+      "light_hero",
+      "luna",
+      "pebble",
+      "rainbow",
+      "sprout",
+      "tide",
+      "tiga",
+      "yullian",
+      "zero"
+    ],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "park",
+    "bundle_id": ""
+  },
+  {
+    "id": "act_hero",
+    "name_key": "shop.item.act_hero",
+    "category": "action",
+    "slot": "action",
+    "price": 18,
+    "art": "",
+    "icon": "pose",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "basic",
+    "bundle_id": ""
+  },
+  {
+    "id": "act_spin",
+    "name_key": "shop.item.act_spin",
+    "category": "action",
+    "slot": "action",
+    "price": 16,
+    "art": "",
+    "icon": "spin",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "basic",
+    "bundle_id": ""
+  },
+  {
+    "id": "act_wave",
+    "name_key": "shop.item.act_wave",
+    "category": "action",
+    "slot": "action",
+    "price": 12,
+    "art": "",
+    "icon": "wave",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "basic",
+    "bundle_id": ""
+  },
+  {
+    "id": "ride_board",
+    "name_key": "shop.item.ride_board",
+    "category": "ride",
+    "slot": "ride",
+    "price": 85,
+    "art": "",
+    "icon": "board",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "sky",
+    "bundle_id": ""
+  },
+  {
+    "id": "ride_cloud",
+    "name_key": "shop.item.ride_cloud",
+    "category": "ride",
+    "slot": "ride",
+    "price": 95,
+    "art": "",
+    "icon": "cloud",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "world_done",
+      "world": "sky_base"
+    },
+    "set_id": "",
+    "world_theme": "sky",
+    "bundle_id": ""
+  },
+  {
+    "id": "fx_halo",
+    "name_key": "shop.item.fx_halo",
+    "category": "fx",
+    "slot": "fx",
+    "price": 38,
+    "art": "",
+    "icon": "halo",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "sky",
+    "bundle_id": ""
+  },
+  {
+    "id": "fx_trail",
+    "name_key": "shop.item.fx_trail",
+    "category": "fx",
+    "slot": "fx",
+    "price": 42,
+    "art": "",
+    "icon": "trail",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "basic",
+    "bundle_id": ""
+  },
+  {
+    "id": "deco_lamp",
+    "name_key": "shop.item.deco_lamp",
+    "category": "base",
+    "slot": "base",
+    "price": 32,
+    "art": "",
+    "icon": "lamp",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "space",
+    "bundle_id": "bundle_cozy_room"
+  },
+  {
+    "id": "deco_shelf",
+    "name_key": "shop.item.deco_shelf",
+    "category": "base",
+    "slot": "base",
+    "price": 45,
+    "art": "",
+    "icon": "shelf",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "park",
+    "bundle_id": ""
+  },
+  {
+    "id": "deco_sofa",
+    "name_key": "shop.item.deco_sofa",
+    "category": "base",
+    "slot": "base",
+    "price": 58,
+    "art": "",
+    "icon": "sofa",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "sky",
+    "bundle_id": "bundle_cozy_room"
+  },
+  {
+    "id": "set_park_stickers",
+    "name_key": "shop.item.set_park_stickers",
+    "category": "keepsake",
+    "slot": "keepsake",
+    "price": 18,
+    "art": "",
+    "icon": "sticker_book",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "park",
+    "bundle_id": ""
+  },
+  {
+    "id": "fx_starstep",
+    "name_key": "shop.item.fx_starstep",
+    "category": "fx",
+    "slot": "fx",
+    "price": 35,
+    "art": "",
+    "icon": "star",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "space",
+    "bundle_id": ""
+  },
+  {
+    "id": "pal_orb",
+    "name_key": "shop.item.pal_orb",
+    "category": "pal",
+    "slot": "pal",
+    "price": 65,
+    "art": "res://assets/outfits/pal/pal_light_orb.png",
+    "icon": "orb",
+    "character_compatibility": [],
+    "unlock_condition": {
+      "type": "always"
+    },
+    "set_id": "",
+    "world_theme": "space",
+    "bundle_id": ""
   }
 ]

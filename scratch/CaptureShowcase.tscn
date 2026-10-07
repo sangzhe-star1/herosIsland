@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c6f2a8b9c1d0e"]
+
+[ext_resource type="Script" path="res://scratch/capture_showcase.gd" id="1_showcase"]
+
+[node name="CaptureShowcase" type="Node"]
+script = ExtResource("1_showcase")

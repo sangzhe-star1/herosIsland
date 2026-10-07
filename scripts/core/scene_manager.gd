@@ -46,8 +46,12 @@ func goto_scene(path: String) -> void:
 	_busy = false
 
 
+func switch_to(path: String) -> void:
+	goto_scene(path)
+
+
 func goto_home() -> void:
-	goto_scene("res://scenes/home/Home.tscn")
+	goto_scene("res://scenes/home/HomeDiorama.tscn")
 
 
 func goto_world_map() -> void:

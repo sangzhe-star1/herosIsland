@@ -1,3 +1,4 @@
+class_name PuppyArt
 extends Node2D
 ## Bluey, drawn from the reference this time.
 ##
@@ -194,6 +195,42 @@ func set_pose(pose: int, animate: bool = true) -> void:
 		HeroArt.Pose.TUCK:
 			angles = {"arm_l": -1.1, "arm_r": 1.1, "leg_l": 0.8, "leg_r": -0.8,
 				"head": 0.22, "ears": 0.4, "lift": 12.0}
+		HeroArt.Pose.PUNCH:
+			angles = {"arm_l": 0.8, "arm_r": -1.8, "leg_l": -0.2, "leg_r": 0.15,
+				"head": -0.10, "ears": -0.15, "lift": 2.0}
+		HeroArt.Pose.KICK:
+			angles = {"arm_l": -0.5, "arm_r": 0.5, "leg_l": 0.6, "leg_r": -0.8,
+				"head": 0.08, "ears": 0.10, "lift": -4.0}
+		HeroArt.Pose.DASH:
+			angles = {"arm_l": -1.2, "arm_r": 1.2, "leg_l": 0.8, "leg_r": -0.8,
+				"head": -0.15, "ears": 0.60, "lift": 8.0}
+		HeroArt.Pose.SLAM:
+			angles = {"arm_l": -1.6, "arm_r": 1.6, "leg_l": 0.6, "leg_r": -0.6,
+				"head": 0.18, "ears": 0.25, "lift": 14.0}
+		HeroArt.Pose.BLOCK:
+			angles = {"arm_l": -0.6, "arm_r": 0.6, "leg_l": 0.1, "leg_r": -0.1,
+				"head": 0.0, "ears": -0.35, "lift": 4.0}
+		HeroArt.Pose.PEACE, HeroArt.Pose.WAVE:
+			angles = {"arm_l": 0.3, "arm_r": -2.2, "leg_l": 0.2, "leg_r": -0.1,
+				"head": 0.12, "ears": -0.10, "lift": -2.0}
+		HeroArt.Pose.STRETCH:
+			angles = {"arm_l": -1.4, "arm_r": 1.4, "leg_l": -0.5, "leg_r": 0.5,
+				"head": -0.22, "ears": -0.18, "lift": 12.0}
+		HeroArt.Pose.LOOK_AROUND:
+			angles = {"arm_l": 0.2, "arm_r": -0.2, "leg_l": 0.05, "leg_r": -0.05,
+				"head": 0.24, "ears": 0.30, "lift": 0.0}
+		HeroArt.Pose.DIG:
+			angles = {"arm_l": -1.5, "arm_r": -1.2, "leg_l": 0.3, "leg_r": -0.2,
+				"head": 0.20, "ears": 0.35, "lift": 8.0}
+		HeroArt.Pose.FLEX:
+			angles = {"arm_l": 1.2, "arm_r": -1.2, "leg_l": 0.0, "leg_r": 0.0,
+				"head": -0.14, "ears": -0.25, "lift": -6.0}
+		HeroArt.Pose.SALUTE:
+			angles = {"arm_l": 0.1, "arm_r": -2.0, "leg_l": 0.0, "leg_r": 0.0,
+				"head": 0.08, "ears": -0.2, "lift": 0.0}
+		HeroArt.Pose.TIRED:
+			angles = {"arm_l": -0.3, "arm_r": 0.3, "leg_l": 0.3, "leg_r": -0.3,
+				"head": 0.22, "ears": 0.50, "lift": 6.0}
 		_:
 			angles = {"arm_l": 0.25, "arm_r": -0.25, "leg_l": 0.04, "leg_r": -0.04,
 				"head": 0.0, "ears": 0.0, "lift": 0.0}
@@ -280,6 +317,27 @@ func wave() -> void:
 		t.tween_property(_arm_r, "rotation", -2.7, 0.14).set_trans(Tween.TRANS_SINE)
 	t.tween_property(_arm_r, "rotation", -0.25, 0.2)\
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+
+## Rapid digging in the ground with both front paws
+func dig(duration: float = 0.55) -> void:
+	set_pose(HeroArt.Pose.DIG)
+	Juice.dust(get_parent() if get_parent() != null else self, global_position, 5, 0.6)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		set_pose(HeroArt.Pose.IDLE)
+	)
+
+
+## Classic play-bow pose (front down, rear up)
+func play_bow(duration: float = 0.70) -> void:
+	set_pose(HeroArt.Pose.STRETCH)
+	var timer := create_tween()
+	timer.tween_interval(duration)
+	timer.tween_callback(func():
+		set_pose(HeroArt.Pose.IDLE)
+	)
 
 
 # --- life -------------------------------------------------------------------

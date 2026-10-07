@@ -344,6 +344,14 @@ func refuse(why: String) -> void:
 	if _refuse_tween != null and _refuse_tween.is_valid():
 		_refuse_tween.kill()
 	_refuse_tween = null
+	if has_meta("crop_3d"):
+		var c3d: Node3D = get_meta("crop_3d", null) as Node3D
+		if c3d != null and is_instance_valid(c3d):
+			var tw := c3d.create_tween()
+			tw.tween_property(c3d, "position:y", 0.12, 0.22).set_ease(Tween.EASE_OUT)
+			tw.parallel().tween_property(c3d, "rotation_degrees:z", -10.0, 0.07)
+			tw.chain().tween_property(c3d, "rotation_degrees:z", 10.0, 0.07)
+			tw.chain().tween_property(c3d, "rotation_degrees:z", 0.0, 0.07)
 	if _visual == null or not is_instance_valid(_visual):
 		return
 	# Every rejection starts from the fixed local origin, including rapid
@@ -404,6 +412,15 @@ func lift(height: float = 46.0) -> void:
 		if extra != null and is_instance_valid(extra):
 			extra.queue_free()
 
+	# Real 3D physical crop lift
+	if has_meta("crop_3d"):
+		var c3d: Node3D = get_meta("crop_3d", null) as Node3D
+		if c3d != null and is_instance_valid(c3d):
+			var tw := c3d.create_tween()
+			tw.tween_property(c3d, "position:y", c3d.position.y + 0.95, 0.24)\
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.parallel().tween_property(c3d, "rotation_degrees:z", 14.0, 0.24)
+
 	# A thin landing oval and light behind it.  The old opaque cream saucer was
 	# readable, but looked like a second giant UI badge under the crop.  This
 	# keeps the held state unmistakable while making the crop feel lifted from
@@ -455,6 +472,19 @@ func fly_to(where: Vector2) -> void:
 	for extra in [_halo, _affordance, _cover]:
 		if extra != null and is_instance_valid(extra):
 			extra.queue_free()
+
+	if has_meta("crop_3d"):
+		var c3d: Node3D = get_meta("crop_3d", null) as Node3D
+		if c3d != null and is_instance_valid(c3d):
+			var target_3d: Vector3 = c3d.get_meta("basket_pos_3d", Vector3(3.8, 0.6, 1.8))
+			var mid_pos := (c3d.position + target_3d) * 0.5 + Vector3(0.0, 2.2, 0.0)
+			var tw := c3d.create_tween()
+			tw.tween_property(c3d, "position", mid_pos, 0.18).set_ease(Tween.EASE_OUT)
+			tw.chain().tween_property(c3d, "position", target_3d, 0.18).set_ease(Tween.EASE_IN)
+			tw.parallel().tween_property(c3d, "scale", Vector3(0.35, 0.35, 0.35), 0.36)
+			tw.parallel().tween_property(c3d, "rotation_degrees:y", c3d.rotation_degrees.y + 360.0, 0.36)
+			tw.tween_callback(c3d.queue_free)
+
 	# HarvestBasket.accept() supplies the fixed check at the destination in
 	# reduced motion. Do not make a crop fly across the field just to explain a
 	# state the basket can say still and clearly.

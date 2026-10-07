@@ -563,6 +563,138 @@ func puff_up() -> void:
 	t.tween_property(_rig, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_SINE)
 
 
+## Ferocious roar telegraph with body expansion and shockwave ring
+func roar(duration: float = 0.65) -> void:
+	_set_brows(22.0)
+	if _mouth != null and is_instance_valid(_mouth):
+		_mouth.polygon = _mouth_shape(0.36)
+	if not Juice.motion_enabled() or _rig == null or not is_instance_valid(_rig):
+		return
+	var t := create_tween()
+	# Inhale lean back
+	t.tween_property(_rig, "scale", Vector2(0.92, 1.18), duration * 0.35)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(_rig, "position:x", 18.0, duration * 0.35)
+	# Roar forward blast
+	t.tween_property(_rig, "scale", Vector2(1.22, 0.94), duration * 0.35)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(_rig, "position:x", -24.0, duration * 0.35)
+	t.tween_callback(func():
+		Juice.shockwave(get_parent(), global_position + Vector2(-60.0, -_h * 0.45), 110.0, Color(1.0, 0.85, 0.35))
+		Juice.screen_shake(get_parent() if get_parent() is Node2D else self, 10.0, 0.18)
+	)
+	# Settle back to rest
+	t.tween_property(_rig, "scale", Vector2.ONE, duration * 0.30)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.parallel().tween_property(_rig, "position:x", 0.0, duration * 0.30)
+	t.tween_callback(func():
+		_set_brows(0.0)
+		if _mouth != null and is_instance_valid(_mouth):
+			_mouth.polygon = _mouth_shape(0.10)
+	)
+
+
+## Lunge forward claw swipe with claw streak FX
+func claw_swipe(duration: float = 0.45) -> void:
+	_set_brows(16.0)
+	if not Juice.motion_enabled() or _rig == null or not is_instance_valid(_rig):
+		return
+	var t := create_tween()
+	# Pull back
+	t.tween_property(_rig, "position:x", 25.0, duration * 0.3)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	# Strike forward
+	t.tween_property(_rig, "position:x", -45.0, duration * 0.35)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_callback(func():
+		Juice.speed_lines(get_parent(), global_position + Vector2(-40.0, -_h * 0.4), Vector2(-1, 0), Color(1.0, 0.45, 0.25, 0.9), 4)
+		Juice.impact_sparks(get_parent(), global_position + Vector2(-50.0, -_h * 0.4), Color(1.0, 0.5, 0.2), 8)
+	)
+	# Recover
+	t.tween_property(_rig, "position:x", 0.0, duration * 0.35)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_callback(func(): _set_brows(0.0))
+
+
+## Inhale and exhale fire breath burst
+func fire_breath(duration: float = 0.55) -> void:
+	_set_brows(18.0)
+	if not Juice.motion_enabled() or _rig == null or not is_instance_valid(_rig):
+		return
+	var t := create_tween()
+	t.tween_property(_rig, "scale", Vector2(0.9, 1.15), duration * 0.4)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_property(_rig, "scale", Vector2(1.18, 0.92), duration * 0.3)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_callback(func():
+		Juice.burst(get_parent(), global_position + Vector2(-80.0, -_h * 0.45), 16)
+	)
+	t.tween_property(_rig, "scale", Vector2.ONE, duration * 0.3)
+	t.tween_callback(func(): _set_brows(0.0))
+
+
+## Dizzy stun with spinning stars and head sway
+func dizzy_stun(duration: float = 1.5) -> void:
+	_set_brows(-18.0)
+	if _mouth != null and is_instance_valid(_mouth):
+		_mouth.polygon = _mouth_shape(0.22)
+	Juice.dizzy_stars(get_parent(), global_position + Vector2(0.0, -_h * 1.05), duration)
+	if not Juice.motion_enabled() or _rig == null or not is_instance_valid(_rig):
+		return
+	var t := create_tween()
+	var loops := int(duration / 0.24)
+	for i in range(loops):
+		var ang := 7.0 if i % 2 == 0 else -7.0
+		t.tween_property(_rig, "rotation_degrees", ang, 0.12)\
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(_rig, "rotation_degrees", 0.0, 0.16)
+	t.tween_callback(func():
+		_set_brows(0.0)
+		if _mouth != null and is_instance_valid(_mouth):
+			_mouth.polygon = _mouth_shape(0.10)
+	)
+
+
+## Monster lifts up and stomps the ground hard, sending out dust and shockwaves
+func ground_stomp(duration: float = 0.55) -> void:
+	_set_brows(24.0)
+	if not Juice.motion_enabled() or _rig == null or not is_instance_valid(_rig):
+		return
+	var t := create_tween()
+	# Rear up
+	t.tween_property(_rig, "position:y", -35.0, duration * 0.35)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(_rig, "scale", Vector2(0.92, 1.15), duration * 0.35)
+	# Slam down hard
+	t.tween_property(_rig, "position:y", 0.0, duration * 0.25)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.parallel().tween_property(_rig, "scale", Vector2(1.22, 0.85), duration * 0.25)
+	t.tween_callback(func():
+		Juice.dust(get_parent(), global_position, 8, 1.1)
+		Juice.shockwave(get_parent(), global_position + Vector2(0.0, -20.0), 120.0, Color(0.95, 0.75, 0.45))
+		Juice.screen_shake(get_parent() if get_parent() is Node2D else self, 12.0, 0.20)
+		AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
+	)
+	# Recover to normal size
+	t.tween_property(_rig, "scale", Vector2.ONE, duration * 0.40)\
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_callback(func(): _set_brows(0.0))
+
+
+## Defensive guard brace behind armor shell
+func guard_brace(duration: float = 0.60) -> void:
+	_set_brows(20.0)
+	if not Juice.motion_enabled() or _rig == null or not is_instance_valid(_rig):
+		return
+	var t := create_tween()
+	t.tween_property(_rig, "scale", Vector2(1.15, 0.88), duration * 0.25)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_interval(duration * 0.50)
+	t.tween_property(_rig, "scale", Vector2.ONE, duration * 0.25)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_callback(func(): _set_brows(0.0))
+
+
 ## Angle both eyebrows. Positive leans them inward (cross, concentrating),
 ## negative outward (surprised, delighted).
 func _set_brows(degrees: float) -> void:

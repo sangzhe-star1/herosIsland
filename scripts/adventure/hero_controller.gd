@@ -47,6 +47,7 @@ var grounded := false
 var double_jump_unlocked := false
 
 var _hero: SkinnedCharacter
+var _shadow: Node2D
 var _platforms: Array = []          # [{rect: Rect2, node, base_y, spring, cap}]
 var _ropes: Array = []              # [{x, top, bottom}]
 var _enemies_provider: Callable     # () -> Array of Node2D, for auto-aim
@@ -62,12 +63,14 @@ var _stand_on := -1
 var _attack_ready := 0.0
 var _invuln_until := 0.0
 var _clock := 0.0
+var _idle_clock := 0.0
 var _frozen := false
 var _climbing := false
 
 
 func setup(skin: CharacterSkin, ground_y: float, height: float = 168.0) -> void:
 	_ground_y = ground_y
+	_shadow = Shapes.ground_shadow(self, Vector2(0, 0), 96.0, 0.38)
 	_hero = SkinnedCharacter.new()
 	_hero.skin = skin
 	add_child(_hero)
@@ -142,8 +145,13 @@ func can_attack() -> bool:
 	return _clock >= _attack_ready and not _frozen
 
 
+var _combo_step := 0
+var _last_attack_time := 0.0
+
+
 ## Swing. Turns toward the nearest enemy first, so a child who is facing the
 ## wrong way still hits the thing they were obviously aiming at.
+## Now features a dynamic 3-hit combo (Punch -> Kick -> Tornado Finish) and aerial kick!
 func attack() -> bool:
 	if not can_attack():
 		return false
@@ -154,15 +162,35 @@ func attack() -> bool:
 		if facing == 0.0:
 			facing = 1.0
 	_face()
+
+	# Reset combo if too much time elapsed
+	if _clock - _last_attack_time > 0.65:
+		_combo_step = 0
+	_last_attack_time = _clock
+
 	if _hero != null and is_instance_valid(_hero):
-		_hero.set_pose(HeroArt.Pose.BEAM)
-		# Owned by the figure, so leaving the level takes the countdown with
-		# it rather than firing it into a freed hero.
-		var back := _hero.create_tween()
-		back.tween_interval(0.26)
-		back.tween_callback(func():
-			if is_instance_valid(_hero) and not _frozen:
-				_hero.set_pose(HeroArt.Pose.IDLE))
+		if not grounded:
+			# Mid-air flying jump kick!
+			_hero.kick(0.30)
+			Juice.speed_lines(get_parent(), position + Vector2(0, -60), Vector2(facing, 0), Color(1.0, 0.9, 0.5, 0.8), 3)
+		else:
+			match _combo_step:
+				0:
+					# Hit 1: Straight Punch lunge
+					_hero.punch(0.26)
+					position.x += facing * 12.0
+				1:
+					# Hit 2: High Side Kick
+					_hero.kick(0.28)
+					position.x += facing * 18.0
+				2, _:
+					# Hit 3: Tornado Spin Finisher
+					_hero.spin(1.0, 0.38)
+					Juice.speed_lines(get_parent(), position + Vector2(0, -70), Vector2(facing, 0), Color(1.0, 0.8, 0.3, 0.9), 5)
+					Juice.shockwave(get_parent(), position + Vector2(0, -50), 95.0, Color(1.0, 0.85, 0.4))
+					Juice.screen_shake(get_parent(), 8.0, 0.16)
+			_combo_step = (_combo_step + 1) % 3
+
 	attacked.emit(position + Vector2(facing * ATTACK_REACH * 0.5, -80.0), facing)
 	return true
 
@@ -190,6 +218,8 @@ func take_hit(from: Vector2) -> void:
 	if _hero != null and is_instance_valid(_hero):
 		_hero.stumble()
 	_flash()
+	Juice.screen_shake(get_parent(), 10.0, 0.20)
+	Juice.hit_stop(get_tree(), 0.05)
 	hurt_taken.emit(hearts)
 	if hearts <= 0:
 		died.emit()
@@ -231,6 +261,16 @@ func tick(delta: float) -> void:
 		facing = dir
 		_face()
 
+	# AFK idle emotes: standing still gives the chibi character life
+	if absf(dir) > 0.05 or not grounded or _climbing or _frozen:
+		_idle_clock = 0.0
+	else:
+		_idle_clock += delta
+		if _idle_clock >= 4.5:
+			_idle_clock = 0.0
+			var emotes: Array[String] = ["peace", "stretch", "look_around", "flex", "wave"]
+			_hero.emote(emotes[randi() % emotes.size()])
+
 	# Ropes: stand in one and HOLD jump to climb. One button, two meanings,
 	# picked by where the feet are.
 	var rope := _rope_at(position)
@@ -254,6 +294,8 @@ func tick(delta: float) -> void:
 		_jumps_left -= 1
 		Juice.shockwave(get_parent(), position, 74.0, Color(0.86, 0.96, 1.0))
 		Juice.dust(get_parent(), position, 4, 0.6)
+		if _hero != null and is_instance_valid(_hero):
+			_hero.spin(1.0, 0.32)
 
 	var was_y: float = position.y
 	position.x += velocity.x * delta
@@ -262,6 +304,13 @@ func tick(delta: float) -> void:
 	_ride_platform()
 	_land_on_something(was_y)
 	_hero.walk(grounded and absf(dir) > 0.1)
+	if _shadow != null and is_instance_valid(_shadow):
+		if grounded:
+			_shadow.scale = Vector2.ONE
+			_shadow.modulate.a = 1.0
+		else:
+			_shadow.scale = Vector2(0.72, 0.72)
+			_shadow.modulate.a = 0.50
 
 
 func _launch(power: float) -> void:
@@ -325,7 +374,19 @@ func _land_on_something(was_y: float) -> void:
 		velocity.y = 0.0
 		if not grounded:
 			landed.emit(position, hard)
-			_hero.set_pose(HeroArt.Pose.IDLE)
+			if hard and _hero != null and is_instance_valid(_hero):
+				_hero.set_pose(HeroArt.Pose.SLAM)
+				Juice.dust(get_parent(), position, 6, 0.8)
+				Juice.shockwave(get_parent(), position, 80.0, Color(1.0, 0.9, 0.5))
+				Juice.screen_shake(get_parent(), 6.0, 0.14)
+				var rt := create_tween()
+				rt.tween_interval(0.18)
+				rt.tween_callback(func():
+					if grounded and is_instance_valid(_hero) and not _frozen:
+						_hero.set_pose(HeroArt.Pose.IDLE)
+				)
+			elif _hero != null and is_instance_valid(_hero):
+				_hero.set_pose(HeroArt.Pose.IDLE)
 		grounded = true
 		_stand_on = i
 		var node: Variant = entry.get("node")

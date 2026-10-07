@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "bundle_park",
+    "name_key": "shop.bundle.park",
+    "price": 28,
+    "icon": "spark",
+    "contains": [
+      "cap_sun",
+      "visor_sun"
+    ],
+    "unlock_condition": {
+      "type": "always"
+    }
+  },
+  {
+    "id": "bundle_cozy_room",
+    "name_key": "shop.bundle.cozy_room",
+    "price": 68,
+    "icon": "home",
+    "contains": [
+      "deco_lamp",
+      "deco_sofa"
+    ],
+    "unlock_condition": {
+      "type": "always"
+    }
+  }
+]

@@ -22,7 +22,10 @@ func fire(arena) -> void:
 	var monster: Node2D = arena.arena_monster()
 	if monster == null or not is_instance_valid(monster):
 		return
-	monster.call("puff_up")
+	if monster.has_method("roar"):
+		monster.call("roar")
+	else:
+		monster.call("puff_up")
 	AudioManager.play_sfx("res://assets/audio/try_again.ogg")
 	var ring := TextureRect.new()
 	ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

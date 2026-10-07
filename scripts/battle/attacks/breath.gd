@@ -12,6 +12,8 @@ func fire(arena) -> void:
 	var monster: Node2D = arena.arena_monster()
 	if monster == null or not is_instance_valid(monster):
 		return
+	if monster.has_method("fire_breath"):
+		monster.call("fire_breath", 0.55)
 	var from: Vector2 = monster.position \
 		+ Vector2(-70, -180.0 * monster.scale.x)
 	var to: Vector2 = arena.arena_hero_at() + Vector2(40, -110)

@@ -323,3 +323,72 @@ static func no_sign(parent: Node, at: Vector2, size: float = 150.0) -> void:
 		var gone := holder.create_tween()
 		gone.tween_interval(1.1)
 		gone.tween_callback(holder.queue_free)
+
+
+## Hit-stop freeze frame to sell critical impacts and heavy hits
+static func hit_stop(tree: SceneTree, duration: float = 0.06, time_scale: float = 0.05) -> void:
+	if tree == null or not motion_enabled():
+		return
+	Engine.time_scale = time_scale
+	tree.create_timer(duration, true, false, true).timeout.connect(func():
+		Engine.time_scale = 1.0
+	)
+
+
+## Smooth pseudo-random decaying camera/screen trauma shake
+static func screen_shake(target: CanvasItem, amount: float = 12.0, duration: float = 0.22) -> void:
+	if target == null or not is_instance_valid(target) or not motion_enabled():
+		return
+	var origin: Vector2 = target.position
+	var t := target.create_tween()
+	var steps := 5
+	for i in range(steps):
+		var decay := 1.0 - float(i) / float(steps)
+		var offset := Vector2(randf_range(-amount, amount), randf_range(-amount, amount) * 0.6) * decay
+		t.tween_property(target, "position", origin + offset, duration / float(steps))
+	t.tween_property(target, "position", origin, 0.04)
+
+
+## Kinetic sparks spraying outward on a solid impact
+static func impact_sparks(parent: Node, at: Vector2, color: Color = Color(1.0, 0.88, 0.35), count: int = 10) -> void:
+	if parent == null or not is_instance_valid(parent) or not motion_enabled():
+		return
+	for i in range(count):
+		var spark := Polygon2D.new()
+		var a: float = TAU * float(i) / float(count) + randf_range(-0.25, 0.25)
+		var dir := Vector2(cos(a), sin(a))
+		var length := randf_range(16.0, 36.0)
+		spark.polygon = Shapes.taper(Vector2.ZERO, dir * length, 3.5, 0.8)
+		spark.color = color
+		spark.position = at
+		spark.antialiased = true
+		parent.add_child(spark)
+		var t := spark.create_tween().set_parallel(true)
+		t.tween_property(spark, "position", at + dir * randf_range(25.0, 50.0), 0.22)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		t.tween_property(spark, "modulate:a", 0.0, 0.22)
+		t.chain().tween_callback(spark.queue_free)
+
+
+## Dizzy stars orbiting above a stunned head
+static func dizzy_stars(parent: Node, at: Vector2, duration: float = 1.4) -> void:
+	if parent == null or not is_instance_valid(parent) or not motion_enabled():
+		return
+	var ring := Node2D.new()
+	ring.position = at
+	parent.add_child(ring)
+	for i in range(3):
+		var star := Polygon2D.new()
+		star.polygon = Shapes.star_points(Vector2.ZERO, 9.0, 0.45, 5)
+		star.color = Color(1.0, 0.90, 0.35)
+		var ang: float = TAU * float(i) / 3.0
+		star.position = Vector2(cos(ang) * 36.0, sin(ang) * 14.0)
+		star.set_meta("angle", ang)
+		ring.add_child(star)
+	var t := ring.create_tween()
+	t.tween_property(ring, "rotation", TAU * 2.0, duration)\
+		.set_trans(Tween.TRANS_LINEAR)
+	var fade := ring.create_tween()
+	fade.tween_interval(duration - 0.3)
+	fade.tween_property(ring, "modulate:a", 0.0, 0.3)
+	fade.tween_callback(ring.queue_free)

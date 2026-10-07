@@ -146,6 +146,10 @@ func _build_scene(config: Dictionary) -> void:
 
 	var stage: Stage = build_world(_play_area)
 	_ground = stage.ground_y() if stage != null else Stage.ground_line()
+	if ResourceLoader.exists("res://assets/scenes_3d/defense_fortress.glb"):
+		if stage != null:
+			stage.visible = false
+		_setup_3d_stage()
 
 	# One surface that turns any touch into a shot, added before everything
 	# else so every button built later sits on top of it.
@@ -200,6 +204,9 @@ func _build_scene(config: Dictionary) -> void:
 	_badges.add_theme_constant_override("separation", 8)
 	_badges.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_play_area.add_child(_badges)
+
+	var hero_shadow := Shapes.ground_shadow(_play_area, Vector2(HERO_X, _ground + 52.0), 160.0, 0.42)
+	hero_shadow.name = "HeroFortressShadow"
 
 	_hero = SkinnedCharacter.new()
 	_hero.skin = GameData.current_skin()
@@ -852,3 +859,66 @@ func complete_level() -> void:
 		AudioManager.play_sfx("res://assets/audio/level_complete.ogg")
 		await get_tree().create_timer(1.0).timeout
 	await super.complete_level()
+
+
+func _setup_3d_stage() -> void:
+	var glb_path := "res://assets/scenes_3d/defense_fortress.glb"
+	if not ResourceLoader.exists(glb_path):
+		return
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "DefenseFortress3DContainer"
+	vp_container.stretch = true
+	vp_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vp_container.z_index = -50
+
+	var vp := SubViewport.new()
+	vp.name = "SubViewport"
+	vp.own_world_3d = true
+	vp.transparent_bg = false
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp.size = Vector2i(1280, 720)
+	vp_container.add_child(vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "World3D"
+	vp.add_child(world_root)
+
+	var glb_scene: PackedScene = load(glb_path)
+	if glb_scene != null:
+		var glb_inst: Node = glb_scene.instantiate()
+		world_root.add_child(glb_inst)
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.18, 0.20, 0.32)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.65, 0.70, 0.82)
+	env.ambient_light_energy = 0.38
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.glow_enabled = true
+	env.glow_intensity = 0.22
+
+	var env_node := WorldEnvironment.new()
+	env_node.environment = env
+	world_root.add_child(env_node)
+
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-40.0, -25.0, 0.0)
+	sun.light_color = Color(0.92, 0.94, 1.0)
+	sun.light_energy = 0.85
+	sun.shadow_enabled = true
+	sun.shadow_blur = 1.8
+	sun.shadow_bias = 0.03
+	world_root.add_child(sun)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(0.0, 5.5, 11.2)
+	cam.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
+	cam.fov = 40.0
+	cam.current = true
+	world_root.add_child(cam)
+
+	_play_area.add_child(vp_container)
+	_play_area.move_child(vp_container, 0)
+

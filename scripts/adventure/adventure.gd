@@ -147,7 +147,9 @@ func setup_level() -> void:
 	_length = maxf(float(config.get("length", 2600.0)), 1600.0)
 	_sections = (config.get("sections", []) as Array).duplicate(true)
 
+	_build_3d_course()
 	_stage = build_world(self)
+	_stage.visible = false
 	_ground_y = _stage.ground_y()
 	_world = Node2D.new()
 	_world.name = "World"
@@ -304,21 +306,46 @@ func _zone_covering(zones: Array, left: float, right: float) -> Dictionary:
 func _add_ground(x: float, width: float, rng: RandomNumberGenerator) -> void:
 	var holder := Node2D.new()
 	_world.add_child(holder)
-	var body: Color = _stage.style.ground_bottom.darkened(0.22)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y),
-		Vector2(width, 210.0), 10.0), body, 0.0)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 4.0),
-		Vector2(width, 22.0), 8.0), _stage.style.ground_top, 0.0)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 4.0),
-		Vector2(width, 7.0), 3.0), _stage.style.ground_top.lightened(0.20), 0.0)
-	for i in range(int(width / 88.0)):
-		var tx: float = x + rng.randf_range(14.0, width - 14.0)
-		Shapes.fill(holder, PackedVector2Array([
-			Vector2(tx - 7.0, _ground_y - 2.0),
-			Vector2(tx + rng.randf_range(-4.0, 4.0), _ground_y - 17.0),
-			Vector2(tx + 7.0, _ground_y - 2.0),
-		]), _stage.style.ground_top.lightened(0.10), 0.0)
-	_platforms.append({"rect": Rect2(x, _ground_y, width, 210.0), "node": null,
+
+	var total_h := 86.0
+	var has_3d := ResourceLoader.exists("res://assets/scenes_3d/platformer_course.glb")
+
+	if not has_3d:
+		var loam_base := Color(0.40, 0.30, 0.20, 0.85)
+		var grass_main := Color(0.36, 0.54, 0.28)
+		var grass_lit := Color(0.48, 0.70, 0.36)
+
+		# 1. Base Loam Dirt Block Slab
+		Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y),
+			Vector2(width, total_h), 4.0), loam_base, 0.0)
+
+		# 2. Continuous Voxel Grass Top
+		Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 2.0),
+			Vector2(width, 16.0), 3.0), grass_main, 0.0)
+		Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, _ground_y - 3.0),
+			Vector2(width, 4.0), 2.0), grass_lit, 0.0)
+
+		# 3. Scatter natural grass tufts on top
+		for i in range(int(width / 76.0)):
+			var tx: float = x + rng.randf_range(16.0, width - 16.0)
+			Shapes.fill(holder, PackedVector2Array([
+				Vector2(tx - 6.0, _ground_y - 2.0),
+				Vector2(tx + rng.randf_range(-3.0, 3.0), _ground_y - 14.0),
+				Vector2(tx + 6.0, _ground_y - 2.0),
+			]), grass_lit, 0.0)
+	else:
+		# In 3D mode, the 3D platformer course provides the continuous real 3D grass & loam terrain.
+		# Subtle natural grass crest accents mark the running plane seamlessly.
+		var grass_accent := Color(0.42, 0.68, 0.34, 0.60)
+		for i in range(int(width / 110.0)):
+			var tx: float = x + rng.randf_range(16.0, width - 16.0)
+			Shapes.fill(holder, PackedVector2Array([
+				Vector2(tx - 4.0, _ground_y),
+				Vector2(tx + rng.randf_range(-2.0, 2.0), _ground_y - 8.0),
+				Vector2(tx + 4.0, _ground_y),
+			]), grass_accent, 0.0)
+
+	_platforms.append({"rect": Rect2(x, _ground_y, width, total_h), "node": null,
 		"flat": true})
 
 
@@ -334,26 +361,59 @@ func _add_pit(left: float, right: float) -> void:
 	holder.z_index = -1                 # under the platforms, over the scenery
 	_world.add_child(holder)
 	var width: float = right - left
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(left - 6.0, _ground_y - 6.0),
-		Vector2(width + 12.0, 260.0), 6.0), Color(0.10, 0.13, 0.20, 0.92), 0.0)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(left - 6.0, _ground_y - 6.0),
-		Vector2(width + 12.0, 16.0), 5.0), Color(0.06, 0.08, 0.13, 0.95), 0.0)
+
+	# Deep 3D chasm with vertical cliff edges
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(left - 8.0, _ground_y - 4.0),
+		Vector2(width + 16.0, 280.0), 6.0), Color(0.07, 0.09, 0.14, 0.95), 0.0)
+	# Left cliff face shadow
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(left - 6.0, _ground_y), Vector2(10.0, 240.0), 0.0),
+		Color(0.04, 0.05, 0.08, 0.70), 0.0)
+	# Right cliff face shadow
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(right - 4.0, _ground_y), Vector2(10.0, 240.0), 0.0),
+		Color(0.04, 0.05, 0.08, 0.70), 0.0)
+	# Deep abyss lip
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(left - 8.0, _ground_y - 4.0),
+		Vector2(width + 16.0, 18.0), 4.0), Color(0.03, 0.04, 0.07, 0.98), 0.0)
 
 
 func _add_ledge(x: float, y: float, width: float, rng: RandomNumberGenerator) -> void:
 	var holder := Node2D.new()
 	_world.add_child(holder)
-	var body: Color = _stage.style.ground_bottom.darkened(0.22)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y), Vector2(width, 30.0), 12.0),
-		body, 0.9)
-	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y - 3.0),
-		Vector2(width, 15.0), 7.0), _stage.style.ground_top.lightened(0.06), 0.0)
-	for k in range(maxi(int(width / 110.0), 1)):
-		var vx: float = x + rng.randf_range(18.0, width - 18.0)
-		Shapes.fill(holder, Shapes.taper(Vector2(vx, y + 26.0),
-			Vector2(vx + rng.randf_range(-5.0, 5.0), y + 26.0 + rng.randf_range(12.0, 26.0)),
-			5.0, 1.8), body.lightened(0.08), 0.0)
-	_platforms.append({"rect": Rect2(x, y, width, 30.0), "node": null, "flat": false})
+
+	# 1. Cast shadow down onto the ground floor (grounds the floating slab in 3D!)
+	Shapes.ground_shadow(holder, Vector2(x + width * 0.5, _ground_y), width * 0.85, 0.24)
+
+	# 2. Ledge Wooden/Stone Base Slab (Minecraft floating platform slab)
+	var slab_h := 32.0
+	var timber_base := Color(0.50, 0.36, 0.24)
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y), Vector2(width, slab_h), 6.0),
+		timber_base, 0.0)
+	# Timber bevel and grain
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x + 2.0, y + slab_h - 5.0), Vector2(width - 4.0, 3.0), 0.0),
+		timber_base.darkened(0.25), 0.0)
+	# Iron corner brackets on ledge edges
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x + 2.0, y + 6.0), Vector2(8.0, slab_h - 10.0), 2.0),
+		Color(0.35, 0.38, 0.44), 0.0)
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x + width - 10.0, y + 6.0), Vector2(8.0, slab_h - 10.0), 2.0),
+		Color(0.35, 0.38, 0.44), 0.0)
+
+	# 3. Grass top on ledge
+	var grass_main := Color(0.44, 0.70, 0.32)
+	var grass_lit := Color(0.60, 0.84, 0.44)
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y - 3.0), Vector2(width, 14.0), 4.0),
+		grass_main, 0.0)
+	Shapes.fill(holder, Shapes.rounded_rect(Vector2(x, y - 4.0), Vector2(width, 4.0), 2.0),
+		grass_lit, 0.0)
+
+	# Stepped hanging grass fringe on ledge
+	for k in range(maxi(int(width / 44.0), 1)):
+		var fx: float = x + float(k) * 44.0
+		var fw: float = minf(44.0, (x + width) - fx)
+		var fh: float = 8.0 + float((k * 7) % 9)
+		Shapes.fill(holder, Shapes.rounded_rect(Vector2(fx + 2.0, y + 10.0), Vector2(fw - 4.0, fh), 2.0),
+			grass_main, 0.0)
+
+	_platforms.append({"rect": Rect2(x, y, width, slab_h), "node": null, "flat": false})
 
 
 ## The stretch of unbroken flat ground nearest a hint -- for beats that are a
@@ -1495,7 +1555,9 @@ func _swing_hits(area: Dictionary) -> void:
 func _hurt_foe(foe: Dictionary) -> void:
 	foe["hearts"] = int(foe["hearts"]) - 1
 	var node: Node2D = foe["node"]
+	Juice.impact_sparks(_world, node.position + Vector2(0, -60.0), Color(1.0, 0.88, 0.35), 8)
 	Juice.burst(_world, node.position + Vector2(0, -70.0), 14)
+	Juice.hit_stop(get_tree(), 0.05)
 	if int(foe["hearts"]) > 0:
 		Juice.nudge(foe["body"])
 		AudioManager.play_sfx("res://assets/audio/correct.ogg")
@@ -2008,6 +2070,10 @@ const SHIELD_TIME := 2.2
 
 func _raise_shield() -> void:
 	_shield_until = _clock + SHIELD_TIME
+	if _hero != null and is_instance_valid(_hero):
+		var fig := _hero.figure()
+		if fig != null and is_instance_valid(fig) and fig.has_method("block"):
+			fig.block(0.4)
 	var ring := Node2D.new()
 	_hero.add_child(ring)
 	ring.position = Vector2(0, -90.0)
@@ -2287,8 +2353,83 @@ func _finish() -> void:
 	complete_level()
 
 
+var _course_3d_vp: SubViewport
+var _course_3d_cam: Camera3D
+
+func _build_3d_course() -> void:
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "Course3DContainer"
+	vp_container.custom_minimum_size = Vector2(1280, 720)
+	vp_container.size = Vector2(1280, 720)
+	vp_container.stretch = true
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(vp_container)
+
+	_course_3d_vp = SubViewport.new()
+	_course_3d_vp.name = "Course3DViewport"
+	_course_3d_vp.size = Vector2i(1280, 720)
+	_course_3d_vp.own_world_3d = true
+	_course_3d_vp.transparent_bg = false
+	_course_3d_vp.handle_input_locally = false
+	_course_3d_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp_container.add_child(_course_3d_vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "CourseWorld"
+	_course_3d_vp.add_child(world_root)
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.28, 0.55, 0.86)
+	sky_mat.sky_horizon_color = Color(0.78, 0.86, 0.94)
+	sky_mat.ground_bottom_color = Color(0.22, 0.32, 0.18)
+	sky_mat.ground_horizon_color = Color(0.62, 0.68, 0.58)
+	sky.sky_material = sky_mat
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.32
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	var world_env := WorldEnvironment.new()
+	world_env.environment = env
+	world_root.add_child(world_env)
+
+	var sun := DirectionalLight3D.new()
+	sun.name = "SunLight"
+	sun.light_color = Color(1.0, 0.95, 0.88)
+	sun.light_energy = 0.75
+	sun.shadow_enabled = true
+	sun.shadow_blur = 1.8
+	sun.rotation_degrees = Vector3(-42.0, 35.0, 0.0)
+	world_root.add_child(sun)
+
+	var fill := DirectionalLight3D.new()
+	fill.name = "FillLight"
+	fill.light_color = Color(0.55, 0.70, 0.90)
+	fill.light_energy = 0.25
+	fill.rotation_degrees = Vector3(20.0, -145.0, 0.0)
+	world_root.add_child(fill)
+
+	_course_3d_cam = Camera3D.new()
+	_course_3d_cam.name = "CourseCamera"
+	_course_3d_cam.position = Vector3(0.0, 4.6, 9.2)
+	_course_3d_cam.rotation_degrees = Vector3(-17.0, 0.0, 0.0)
+	_course_3d_cam.fov = 44.0
+	world_root.add_child(_course_3d_cam)
+
+	var glb_path := "res://assets/scenes_3d/platformer_course.glb"
+	if ResourceLoader.exists(glb_path):
+		var crs_packed: PackedScene = load(glb_path)
+		var crs_inst := crs_packed.instantiate()
+		crs_inst.name = "CourseMesh"
+		world_root.add_child(crs_inst)
+
+
 func _scroll_camera() -> void:
 	var scroll: float = clampf(_hero.position.x - CAMERA_LEAD, 0.0, _length - 1280.0)
 	_world.position.x = -scroll
 	if _stage != null and is_instance_valid(_stage):
 		_stage.parallax(scroll)
+	if _course_3d_cam != null and is_instance_valid(_course_3d_cam):
+		_course_3d_cam.position.x = scroll * 0.012

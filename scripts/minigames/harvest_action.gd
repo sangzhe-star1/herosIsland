@@ -147,6 +147,10 @@ var _in_hand: Node2D = null
 ## entry into the level teaches once no matter which order is current.
 var _sort_hinted := false
 
+var _harvest_3d_vp: SubViewport
+var _harvest_3d_world: Node3D
+var _harvest_3d_cam: Camera3D
+
 
 ## Picking is the whole level; there is no separate goal to reach.
 func auto_complete_on_target() -> bool:
@@ -204,15 +208,91 @@ func _build_harvest_stage(config: Dictionary) -> Stage:
 
 
 ## A user-approved artwork layer is scoped to this fixed harvest screen only.
-## It is passive, covers the procedural Stage beneath it, and leaves every
-## crop, basket and gesture node in the existing `_field` above it. FarmWorld
-## deliberately does not use it because its camera can pan and zoom.
+## Now rendered with a genuine 3D diorama (harvest_meadow.glb) with soft Nordic lighting
+## and shadows, while keeping 2D interaction nodes in _field above it.
 func _add_harvest_backdrop() -> void:
+	var glb_path := "res://assets/scenes_3d/harvest_meadow.glb"
+	if ResourceLoader.exists(glb_path):
+		var vp_container := SubViewportContainer.new()
+		vp_container.name = "HarvestMeadow3DBackdrop"
+		vp_container.stretch = true
+		vp_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vp_container.z_index = -20
+
+		var vp := SubViewport.new()
+		vp.name = "SubViewport"
+		vp.own_world_3d = true
+		vp.transparent_bg = false
+		vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		vp.size = Vector2i(1280, 720)
+		vp_container.add_child(vp)
+
+		var world_root := Node3D.new()
+		world_root.name = "World3D"
+		vp.add_child(world_root)
+
+		var glb_scene: PackedScene = load(glb_path)
+		if glb_scene != null:
+			var glb_inst: Node = glb_scene.instantiate()
+			world_root.add_child(glb_inst)
+
+		var env := Environment.new()
+		env.background_mode = Environment.BG_SKY
+		var sky := Sky.new()
+		var sky_mat := ProceduralSkyMaterial.new()
+		sky_mat.sky_top_color = Color(0.28, 0.55, 0.88)
+		sky_mat.sky_horizon_color = Color(0.78, 0.88, 0.96)
+		sky_mat.ground_bottom_color = Color(0.26, 0.38, 0.22)
+		sky_mat.ground_horizon_color = Color(0.68, 0.74, 0.65)
+		sky.sky_material = sky_mat
+		env.sky = sky
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+		env.ambient_light_energy = 0.34
+		env.tonemap_mode = Environment.TONE_MAPPER_ACES
+		env.glow_enabled = false
+
+		var env_node := WorldEnvironment.new()
+		env_node.environment = env
+		world_root.add_child(env_node)
+
+		var sun := DirectionalLight3D.new()
+		sun.rotation_degrees = Vector3(-35.0, -28.0, 0.0)
+		sun.light_color = Color(1.0, 0.96, 0.90)
+		sun.light_energy = 0.76
+		sun.shadow_enabled = true
+		sun.shadow_blur = 1.8
+		sun.shadow_bias = 0.03
+		world_root.add_child(sun)
+
+		var cam := Camera3D.new()
+		cam.position = Vector3(0.0, 5.2, 11.2)
+		cam.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
+		cam.fov = 38.0
+		cam.current = true
+		world_root.add_child(cam)
+
+		_harvest_3d_vp = vp
+		_harvest_3d_world = world_root
+		_harvest_3d_cam = cam
+
+		_field.add_child(vp_container)
+		_field.move_child(vp_container, 0)
+		return
+
+func _screen_to_ground_3d(screen_pos: Vector2, ground_y: float = 0.12) -> Vector3:
+	if _harvest_3d_cam == null:
+		return Vector3.ZERO
+	var ray_origin := _harvest_3d_cam.project_ray_origin(screen_pos)
+	var ray_normal := _harvest_3d_cam.project_ray_normal(screen_pos)
+	if absf(ray_normal.y) < 0.0001:
+		return Vector3.ZERO
+	var t := (ground_y - ray_origin.y) / ray_normal.y
+	return ray_origin + ray_normal * t
+
 	var backdrop := TextureRect.new()
 	backdrop.name = "HarvestMeadowBackdrop"
 	backdrop.texture = HARVEST_BACKDROP
-	# The expanded tablet viewport needs its own same-camera field framing.
-	# Keep selection passive, with the established backdrop as a fallback.
 	var tablet_backdrop := "res://assets/backgrounds/harvest_meadow_4x3.png"
 	var viewport_size := get_viewport_rect().size
 	if viewport_size.x / viewport_size.y < 1.55 \
@@ -324,6 +404,7 @@ func _lay_out(config: Dictionary) -> void:
 			node.picked.connect(_on_picked)
 			node.refused.connect(_on_refused)
 			_targets.append(node)
+			_bind_3d_crop(node, crop, step)
 
 	# One order, or several in a row. A level with several is a level with
 	# checkpoints: each one that lands is written to disk before the next
@@ -334,6 +415,49 @@ func _lay_out(config: Dictionary) -> void:
 		_orders = [{"requirements": config.get("order", [])}]
 	_restore_checkpoint()
 	_load_order()
+
+
+func _bind_3d_crop(node: Node2D, crop: Dictionary, _step: String) -> void:
+	if _harvest_3d_world == null or _harvest_3d_cam == null:
+		return
+	var crop_id := str(crop.get("id", "carrot"))
+	var glb_path := "res://assets/harvest_3d/runtime_candidates/crops/%s.glb" % crop_id
+	if not ResourceLoader.exists(glb_path):
+		glb_path = "res://assets/harvest_3d/runtime_candidates/crops/carrot.glb"
+	if not ResourceLoader.exists(glb_path):
+		return
+	var c_scene: PackedScene = load(glb_path)
+	if c_scene == null:
+		return
+	var c_inst: Node3D = c_scene.instantiate() as Node3D
+	if c_inst == null:
+		return
+	_harvest_3d_world.add_child(c_inst)
+	var p3d := _screen_to_ground_3d(node.position, -0.18)
+	c_inst.position = p3d
+
+	var c_scale := 1.25
+	if crop_id == "pumpkin" or crop_id == "watermelon":
+		c_scale = 1.05
+	elif crop_id == "strawberry":
+		c_scale = 1.35
+	elif crop_id == "carrot" or crop_id == "golden_carrot":
+		c_scale = 1.20
+	c_inst.scale = Vector3(c_scale, c_scale, c_scale)
+	c_inst.rotation_degrees.y = randf_range(-25.0, 25.0)
+
+	node.set_meta("crop_3d", c_inst)
+	node.tree_exited.connect(func():
+		if is_instance_valid(c_inst):
+			c_inst.queue_free()
+	)
+
+	# Hide flat 2D sprite so real 3D mesh is seen
+	var art_node := node.get_node_or_null("HarvestTargetVisual/HarvestCrop3DArt")
+	if art_node == null:
+		art_node = node.get_node_or_null("HarvestTargetVisual/HarvestPlantFruit3DArt")
+	if art_node != null:
+		art_node.modulate.a = 0.0
 
 
 ## Pictures shrink in dense rows; touch radii and gesture distances stay in
@@ -1353,6 +1477,26 @@ func _build_baskets(config: Dictionary) -> void:
 		_field.add_child(node)
 		node.build(spec[i], size, reach)
 		_baskets.append(node)
+		if _harvest_3d_world != null:
+			var b_glb := "res://assets/harvest_3d/runtime/basket.glb"
+			if ResourceLoader.exists(b_glb):
+				var b_scene: PackedScene = load(b_glb)
+				if b_scene != null:
+					var b_inst: Node3D = b_scene.instantiate() as Node3D
+					if b_inst != null:
+						_harvest_3d_world.add_child(b_inst)
+						b_inst.position = _screen_to_ground_3d(positions[i], 0.06)
+						var b_scale: float = 1.25 * (size / 130.0)
+						b_inst.scale = Vector3(b_scale, b_scale, b_scale)
+						b_inst.set_meta("base_scale", b_inst.scale)
+						node.set_meta("basket_3d", b_inst)
+						node.tree_exited.connect(func():
+							if is_instance_valid(b_inst):
+								b_inst.queue_free()
+						)
+						var b_art := node.get_node_or_null("HarvestBasket3DArt")
+						if b_art != null:
+							b_art.modulate.a = 0.0
 
 
 ## A vertical stack made the baskets look like a toolbar clipped onto the
@@ -1566,6 +1710,11 @@ func _end(pointer: int, at: Vector2) -> void:
 	# is the whole move. With several, picking and putting away are two touches.
 	if _baskets.size() == 1:
 		_baskets[0].accept()
+		if target.has_meta("crop_3d") and _baskets[0].has_meta("basket_3d"):
+			var c3d: Node3D = target.get_meta("crop_3d")
+			var b3d: Node3D = _baskets[0].get_meta("basket_3d")
+			if is_instance_valid(c3d) and is_instance_valid(b3d):
+				c3d.set_meta("basket_pos_3d", b3d.position)
 		target.fly_to(_baskets[0].global_position)
 		_after_a_pick(target)
 		return
@@ -1612,6 +1761,14 @@ func _take_in_hand(target: Node2D) -> void:
 	# tinguishable from a strawberry still growing on the soil.
 	if target.has_meta("visual_plant"):
 		target.set_meta("visual_held_shift", _clear_held_plant_shift(target))
+	if target.has_meta("crop_3d") and not _baskets.is_empty():
+		var c3d: Node3D = target.get_meta("crop_3d", null) as Node3D
+		if c3d != null and is_instance_valid(c3d):
+			var dest_basket: Node2D = _destination_for(target)
+			if dest_basket == null:
+				dest_basket = _baskets[0]
+			var b_pos_3d := _screen_to_ground_3d(dest_basket.position, 0.45)
+			c3d.set_meta("basket_pos_3d", b_pos_3d)
 	target.lift()
 	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 	# The one basket that can take this crop starts breathing. Highlighting every
@@ -1753,6 +1910,11 @@ func _put_it_away(at: Vector2) -> void:
 	for other in _baskets:
 		other.waiting(false)
 	basket.accept()
+	if target.has_meta("crop_3d") and basket.has_meta("basket_3d"):
+		var c3d: Node3D = target.get_meta("crop_3d")
+		var b3d: Node3D = basket.get_meta("basket_3d")
+		if is_instance_valid(c3d) and is_instance_valid(b3d):
+			c3d.set_meta("basket_pos_3d", b3d.position)
 	target.fly_to(basket.global_position)
 	_after_a_pick(target)
 
@@ -1953,6 +2115,7 @@ func _on_picked(target: Node2D) -> void:
 		(mound as CanvasItem).visible = false
 	AudioManager.play_sfx("res://assets/audio/correct.ogg")
 	Juice.burst(_field, target.global_position, 16)
+	Juice.dust(_field, target.global_position, 8, 1.2)
 
 
 ## Not the right one, or not the right move. Nothing is lost either way.

@@ -22,5 +22,37 @@
       "key": "garden.visit_friend_10",
       "gift": {"plank": 2}
     }
+  ],
+  "puppy": [
+    {
+      "id": "puppy_3",
+      "at_visits": 3,
+      "icon": "star_coin",
+      "key": "garden.visit_puppy_3",
+      "gift": {"coins": 10}
+    },
+    {
+      "id": "puppy_6",
+      "at_visits": 6,
+      "icon": "plank",
+      "key": "garden.visit_puppy_6",
+      "gift": {"plank": 1}
+    }
+  ],
+  "rabbit": [
+    {
+      "id": "rabbit_3",
+      "at_visits": 3,
+      "icon": "plank",
+      "key": "garden.visit_rabbit_3",
+      "gift": {"plank": 1}
+    },
+    {
+      "id": "rabbit_6",
+      "at_visits": 6,
+      "icon": "star_coin",
+      "key": "garden.visit_rabbit_6",
+      "gift": {"coins": 15}
+    }
   ]
 }

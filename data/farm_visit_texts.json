@@ -1,5 +1,5 @@
 {
-  "_comment": "访客记录的措辞模板。字符串本体在 strings.json；tools_check 保证这里引用的每一句都没有负面词。lines 讲小熊来做客；visited_lines 讲孩子去小熊家做客（kind==guest 的条目用它）。",
+  "_comment": "访客记录的措辞模板。字符串本体在 strings.json；tools_check 保证这里引用的每一句都没有负面词。lines 讲小动物来做客；visited_lines 讲孩子去做客（kind==guest 的条目用它）。",
   "bear": {
     "lines": [
       {
@@ -30,6 +30,50 @@
         "icon": "strawberry",
         "key": "garden.visit_shared",
         "count_field": "shared"
+      },
+      {
+        "icon": "star",
+        "key": "garden.visit_got_star"
+      }
+    ]
+  },
+  "puppy": {
+    "lines": [
+      {
+        "icon": "paw",
+        "key": "garden.visit_puppy_came"
+      },
+      {
+        "icon": "star",
+        "key": "garden.visit_star"
+      }
+    ],
+    "visited_lines": [
+      {
+        "icon": "paw",
+        "key": "garden.visit_puppy_came"
+      },
+      {
+        "icon": "star",
+        "key": "garden.visit_got_star"
+      }
+    ]
+  },
+  "rabbit": {
+    "lines": [
+      {
+        "icon": "carrot",
+        "key": "garden.visit_rabbit_came"
+      },
+      {
+        "icon": "star",
+        "key": "garden.visit_star"
+      }
+    ],
+    "visited_lines": [
+      {
+        "icon": "carrot",
+        "key": "garden.visit_rabbit_came"
       },
       {
         "icon": "star",

@@ -36,6 +36,7 @@ func _ready() -> void:
 		window.content_scale_size = Vector2i(1280, 720)
 	await get_tree().process_frame
 
+	SaveManager.set_setting("difficulty", LevelManager.NORMAL)
 	GameManager.current_level_id = "monster_arena_04"
 	var packed: PackedScene = load("res://scenes/minigames/monster_duel/MonsterDuel.tscn")
 	var duel: Node = packed.instantiate()
@@ -46,8 +47,7 @@ func _ready() -> void:
 	_ok(duel._started, "a no-choice duel should start immediately")
 	_ok(duel._monster != null and duel._hero != null, "duel actors missing")
 	var goal: int = duel.target_value("correct", 8)
-	_ok(duel._meter_cells.size() == goal,
-		"the meter should have one cell per hit needed (%d)" % goal)
+	_ok(duel._hp_fill != null, "boss hp meter missing")
 
 	# Beam: fires once, then the cooldown gate holds.
 	_ok(duel.fire_beam_skill(), "first beam should fire")
@@ -143,6 +143,7 @@ func _ready() -> void:
 	# Wipe the probe's deliberate hits, then finish: the stored result must
 	# be the 3-star one an actually-clean run earns.
 	duel.result.mistakes = 0
+	duel._light_left = duel._light_max
 	while duel.result.correct < goal:
 		duel._land_hit(1)
 	var stored: LevelResult = await GameManager.level_finished

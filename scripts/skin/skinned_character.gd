@@ -303,7 +303,15 @@ func is_previewing() -> bool:
 func play_action(action_id: String) -> void:
 	match action_id:
 		"act_wave", "wave":
-			celebrate()
+			wave()
+		"act_flex", "flex":
+			flex()
+		"act_salute", "salute":
+			salute()
+		"act_dig", "dig":
+			dig()
+		"act_tired", "tired":
+			tired()
 		"act_spin", "spin":
 			if _art != null and is_instance_valid(_art):
 				_art.spin(1.0, 0.55)
@@ -315,6 +323,22 @@ func play_action(action_id: String) -> void:
 			victory()
 		"act_star", "star":
 			power_up()
+		"act_punch", "punch":
+			punch()
+		"act_kick", "kick":
+			kick()
+		"act_dash", "dash":
+			dash(160.0)
+		"act_slam", "slam":
+			slam()
+		"act_block", "block":
+			block()
+		"act_peace", "peace":
+			emote("peace")
+		"act_stretch", "stretch":
+			emote("stretch")
+		"act_look", "look":
+			emote("look_around")
 		_:
 			celebrate()
 
@@ -602,6 +626,166 @@ func power_up() -> void:
 	var t := create_tween()
 	t.tween_property(_core, "color", lit, 0.28).set_trans(Tween.TRANS_SINE)
 	t.tween_property(_core, "color", core_color, 0.42).set_trans(Tween.TRANS_SINE)
+
+
+## Straight punch with forward kinetic impulse
+func punch(duration: float = 0.28) -> void:
+	if _moving:
+		return
+	if _art != null and is_instance_valid(_art):
+		_art.punch(duration)
+	else:
+		set_pose(HeroArt.Pose.PUNCH)
+		var t := create_tween()
+		t.tween_interval(duration)
+		t.tween_callback(func(): set_pose(HeroArt.Pose.IDLE))
+
+
+## High kick with balance tilt
+func kick(duration: float = 0.32) -> void:
+	if _moving:
+		return
+	if _art != null and is_instance_valid(_art):
+		_art.kick(duration)
+	else:
+		set_pose(HeroArt.Pose.KICK)
+		var t := create_tween()
+		t.tween_interval(duration)
+		t.tween_callback(func(): set_pose(HeroArt.Pose.IDLE))
+
+
+## Swift ground aerodynamic dash with speed streaks
+func dash(distance: float = 160.0, duration: float = 0.28) -> void:
+	if _moving or not is_inside_tree():
+		return
+	if not Juice.motion_enabled():
+		position.x += distance
+		return
+	_moving = true
+	_capture_rest()
+	set_pose(HeroArt.Pose.DASH)
+	Juice.speed_lines(get_parent(), position + Vector2(0, -50), Vector2(signf(distance), 0), Color(0.9, 0.95, 1.0, 0.8), 5)
+	var t := create_tween()
+	t.tween_property(self, "position:x", position.x + distance, duration)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.tween_callback(func():
+		set_pose(HeroArt.Pose.IDLE)
+		_moving = false
+	)
+
+
+## Superhero ground slam landing with expanding shockwave and dust
+func slam(from_height: float = 120.0, duration: float = 0.35) -> void:
+	if _moving or not is_inside_tree():
+		return
+	_moving = true
+	_capture_rest()
+	var base_y := position.y
+	position.y = base_y - from_height
+	set_pose(HeroArt.Pose.SLAM)
+	var t := create_tween()
+	t.tween_property(self, "position:y", base_y, duration)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	t.tween_callback(func():
+		position.y = base_y
+		Juice.dust(get_parent(), position, 8, 1.2)
+		Juice.shockwave(get_parent(), position, 130.0, Color(1.0, 0.88, 0.45))
+		Juice.screen_shake(get_parent(), 14.0, 0.22)
+		AudioManager.play_sfx("res://assets/audio/whoosh.ogg")
+		var recover := create_tween()
+		recover.tween_interval(0.24)
+		recover.tween_callback(func():
+			set_pose(HeroArt.Pose.IDLE)
+			_moving = false
+		)
+	)
+
+
+## Defensive block guard
+func block(duration: float = 0.40) -> void:
+	if _art != null and is_instance_valid(_art):
+		_art.block_stance(duration)
+	else:
+		set_pose(HeroArt.Pose.BLOCK)
+		var t := create_tween()
+		t.tween_interval(duration)
+		t.tween_callback(func(): set_pose(HeroArt.Pose.IDLE))
+
+
+## Perform fun expressive idle emotes: peace, stretch, look_around
+func emote(kind: String = "peace") -> void:
+	if _moving:
+		return
+	match kind:
+		"peace":
+			set_pose(HeroArt.Pose.PEACE)
+		"stretch":
+			set_pose(HeroArt.Pose.STRETCH)
+		"look_around":
+			set_pose(HeroArt.Pose.LOOK_AROUND)
+		"flex":
+			set_pose(HeroArt.Pose.FLEX)
+		"wave":
+			set_pose(HeroArt.Pose.WAVE)
+		"salute":
+			set_pose(HeroArt.Pose.SALUTE)
+		_:
+			set_pose(HeroArt.Pose.PEACE)
+	var t := create_tween()
+	t.tween_interval(1.2)
+	t.tween_callback(func():
+		set_pose(HeroArt.Pose.IDLE)
+	)
+
+
+## Friendly wave
+func wave(duration: float = 0.65) -> void:
+	if _art != null and is_instance_valid(_art):
+		_art.wave_hand(duration)
+	elif _pup != null and is_instance_valid(_pup):
+		_pup.wave()
+	else:
+		emote("wave")
+
+
+## Superhero bicep flex
+func flex(duration: float = 0.55) -> void:
+	if _art != null and is_instance_valid(_art):
+		_art.flex(duration)
+	else:
+		emote("flex")
+
+
+## Crisp salute
+func salute(duration: float = 0.50) -> void:
+	if _art != null and is_instance_valid(_art):
+		_art.salute(duration)
+	else:
+		emote("salute")
+
+
+## Energetic dig action
+func dig(duration: float = 0.45) -> void:
+	if _art != null and is_instance_valid(_art):
+		_art.dig(duration)
+	elif _pup != null and is_instance_valid(_pup):
+		_pup.dig(duration)
+	else:
+		set_pose(HeroArt.Pose.DIG)
+		var t := create_tween()
+		t.tween_interval(duration)
+		t.tween_callback(func(): set_pose(HeroArt.Pose.IDLE))
+
+
+## Catch breath slump
+func tired(duration: float = 0.80) -> void:
+	if _art != null and is_instance_valid(_art):
+		_art.catch_breath(duration)
+	else:
+		set_pose(HeroArt.Pose.TIRED)
+		var t := create_tween()
+		t.tween_interval(duration)
+		t.tween_callback(func(): set_pose(HeroArt.Pose.IDLE))
 
 
 func _fallback_skin() -> CharacterSkin:

@@ -103,10 +103,27 @@ func _build_bins(definitions: Array) -> void:
 		var color := Color.from_string(str(definition.get("color", "#bbbbbb")), Color.GRAY)
 		var style := StyleBoxFlat.new()
 		style.bg_color = color
-		style.set_corner_radius_all(28)
-		style.border_width_bottom = 8
-		style.border_color = color.darkened(0.25)
+		style.set_corner_radius_all(24)
+		style.border_width_top = 4
+		style.border_width_left = 3
+		style.border_width_right = 3
+		style.border_width_bottom = 10
+		style.border_color = color.lightened(0.22)
+		style.shadow_color = Color(0.0, 0.04, 0.12, 0.35)
+		style.shadow_size = 12
+		style.shadow_offset = Vector2(0, 8)
 		bin.add_theme_stylebox_override("panel", style)
+
+		# Top rim inner cavity well
+		var cavity := Panel.new()
+		cavity.size = Vector2(BIN_SIZE.x - 24.0, 20.0)
+		cavity.position = Vector2(12.0, 10.0)
+		cavity.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var c_style := StyleBoxFlat.new()
+		c_style.bg_color = color.darkened(0.40)
+		c_style.set_corner_radius_all(10)
+		cavity.add_theme_stylebox_override("panel", c_style)
+		bin.add_child(cavity)
 
 		# A bin shows a label only if it has one. Colour-sorting bins are
 		# deliberately wordless: the colour is the whole instruction.
@@ -191,8 +208,14 @@ func _build_item(definition: Dictionary) -> Control:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Palette.SURFACE
 	style.set_corner_radius_all(24)
-	style.border_width_bottom = 6
-	style.border_color = Color(0, 0, 0, 0.12)
+	style.border_width_top = 3
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 8
+	style.border_color = Color(1.0, 1.0, 1.0, 0.45)
+	style.shadow_color = Color(0.04, 0.08, 0.16, 0.28)
+	style.shadow_size = 12
+	style.shadow_offset = Vector2(0, 6)
 	item.add_theme_stylebox_override("panel", style)
 
 	match str(definition.get("render", "shape")):
@@ -400,14 +423,20 @@ func _accept() -> void:
 	var destination: Vector2 = target.global_position + BIN_SIZE / 2.0 - ITEM_SIZE / 2.0 \
 		if target != null else _item.global_position
 
+	AudioManager.play_sfx("res://assets/audio/pop.ogg")
 	AudioManager.say("praise_1")
 	if target != null:
-		Juice.burst(_play_area, target.position + BIN_SIZE / 2.0)
+		Juice.burst(_play_area, target.position + BIN_SIZE / 2.0, 14, Color(1.0, 0.9, 0.4))
+		var btw := target.create_tween()
+		btw.tween_property(target, "scale", Vector2(1.10, 0.90), 0.08)
+		btw.tween_property(target, "scale", Vector2.ONE, 0.16)\
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		Juice.pop(target)
 		_bump_bin_count(_item_answer, target)
 	var t := create_tween().set_parallel(true)
 	t.tween_property(_item, "global_position", destination, 0.25).set_trans(Tween.TRANS_SINE)
-	t.tween_property(_item, "scale", Vector2(0.35, 0.35), 0.25)
+	t.tween_property(_item, "scale", Vector2(0.25, 0.25), 0.25)
+	t.tween_property(_item, "rotation", deg_to_rad(randf_range(-15.0, 15.0)), 0.25)
 	t.tween_property(_item, "modulate:a", 0.0, 0.25)
 	await t.finished
 

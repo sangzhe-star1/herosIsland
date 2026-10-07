@@ -22,6 +22,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	# Prime the game exactly the way the map does, for the dud-heavy level.
+	SaveManager.set_setting("difficulty", LevelManager.NORMAL)
 	GameManager.current_level_id = "monster_arena_03"
 	var packed: PackedScene = load("res://scenes/minigames/monster_battle/MonsterBattle.tscn")
 	var battle: Node = packed.instantiate()

@@ -68,6 +68,225 @@ func auto_complete_on_target() -> bool:
 	return false
 
 
+var _workshop_3d_vp: SubViewport
+var _workshop_3d_world: Node3D
+var _workshop_3d_cam: Camera3D
+
+func _build_3d_workshop() -> void:
+	var vp_container := SubViewportContainer.new()
+	vp_container.name = "Workshop3DContainer"
+	vp_container.custom_minimum_size = Vector2(1280, 720)
+	vp_container.size = Vector2(1280, 720)
+	vp_container.stretch = true
+	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(vp_container)
+
+	_workshop_3d_vp = SubViewport.new()
+	_workshop_3d_vp.name = "Workshop3DViewport"
+	_workshop_3d_vp.size = Vector2i(1280, 720)
+	_workshop_3d_vp.own_world_3d = true
+	_workshop_3d_vp.transparent_bg = false
+	_workshop_3d_vp.handle_input_locally = false
+	_workshop_3d_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	vp_container.add_child(_workshop_3d_vp)
+
+	var world_root := Node3D.new()
+	world_root.name = "WorkshopWorld"
+	_workshop_3d_vp.add_child(world_root)
+	_workshop_3d_world = world_root
+
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.28, 0.52, 0.84)
+	sky_mat.sky_horizon_color = Color(0.76, 0.84, 0.92)
+	sky_mat.ground_bottom_color = Color(0.42, 0.35, 0.28)
+	sky_mat.ground_horizon_color = Color(0.70, 0.64, 0.58)
+	sky.sky_material = sky_mat
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.32
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	var world_env := WorldEnvironment.new()
+	world_env.environment = env
+	world_root.add_child(world_env)
+
+	var sun := DirectionalLight3D.new()
+	sun.name = "SunLight"
+	sun.light_color = Color(1.0, 0.96, 0.90)
+	sun.light_energy = 0.75
+	sun.shadow_enabled = true
+	sun.shadow_blur = 1.8
+	sun.rotation_degrees = Vector3(-40.0, 35.0, 0.0)
+	world_root.add_child(sun)
+
+	var fill := DirectionalLight3D.new()
+	fill.name = "FillLight"
+	fill.light_color = Color(0.55, 0.70, 0.90)
+	fill.light_energy = 0.20
+	fill.rotation_degrees = Vector3(20.0, -145.0, 0.0)
+	world_root.add_child(fill)
+
+	_workshop_3d_cam = Camera3D.new()
+	_workshop_3d_cam.name = "WorkshopCamera"
+	_workshop_3d_cam.position = Vector3(0.0, 3.2, 7.2)
+	_workshop_3d_cam.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
+	_workshop_3d_cam.fov = 46.0
+	world_root.add_child(_workshop_3d_cam)
+
+	var glb_path := "res://assets/scenes_3d/build_workshop.glb"
+	if ResourceLoader.exists(glb_path):
+		var ws_packed: PackedScene = load(glb_path)
+		var ws_inst := ws_packed.instantiate()
+		ws_inst.name = "BuildWorkshopMesh"
+		world_root.add_child(ws_inst)
+
+
+func _screen_to_table_3d(screen_pos: Vector2, table_y: float = 0.38) -> Vector3:
+	if _workshop_3d_cam == null:
+		return Vector3.ZERO
+	var ray_origin := _workshop_3d_cam.project_ray_origin(screen_pos)
+	var ray_normal := _workshop_3d_cam.project_ray_normal(screen_pos)
+	if absf(ray_normal.y) < 0.0001:
+		return Vector3.ZERO
+	var t := (table_y - ray_origin.y) / ray_normal.y
+	return ray_origin + ray_normal * t
+
+
+func _create_3d_part(kind: String, golden: bool) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Part3D_%s" % kind
+
+	match kind:
+		"plank":
+			var mesh_inst := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.68, 0.16, 0.38)
+			mesh_inst.mesh = bm
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(1.0, 0.82, 0.32) if golden else Color(0.72, 0.50, 0.30)
+			mat.roughness = 0.50
+			mesh_inst.set_surface_override_material(0, mat)
+			root.add_child(mesh_inst)
+
+			for nx in [-0.24, 0.24]:
+				for nz in [-0.11, 0.11]:
+					var nail := MeshInstance3D.new()
+					var nm := CylinderMesh.new()
+					nm.top_radius = 0.035
+					nm.bottom_radius = 0.035
+					nm.height = 0.05
+					nail.mesh = nm
+					nail.position = Vector3(nx, 0.09, nz)
+					var nmat := StandardMaterial3D.new()
+					nmat.albedo_color = Color(0.85, 0.70, 0.30)
+					nmat.metallic = 0.8
+					nmat.roughness = 0.3
+					nail.set_surface_override_material(0, nmat)
+					root.add_child(nail)
+
+		"block":
+			var mesh_inst := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.62, 0.25, 0.62)
+			mesh_inst.mesh = bm
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(1.0, 0.82, 0.32) if golden else Color(0.52, 0.58, 0.70)
+			mat.metallic = 0.65
+			mat.roughness = 0.35
+			mesh_inst.set_surface_override_material(0, mat)
+			root.add_child(mesh_inst)
+
+			var core := MeshInstance3D.new()
+			var cm := BoxMesh.new()
+			cm.size = Vector3(0.36, 0.10, 0.36)
+			core.mesh = cm
+			core.position = Vector3(0.0, 0.14, 0.0)
+			var cmat := StandardMaterial3D.new()
+			var core_col := Color(1.0, 0.95, 0.50) if golden else Color(0.35, 0.88, 1.0)
+			cmat.albedo_color = core_col
+			cmat.emission_enabled = true
+			cmat.emission = core_col
+			cmat.emission_energy_multiplier = 3.0
+			core.set_surface_override_material(0, cmat)
+			root.add_child(core)
+
+		"limb":
+			var mesh_inst := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 0.20
+			cm.bottom_radius = 0.20
+			cm.height = 0.55
+			mesh_inst.mesh = cm
+			mesh_inst.rotation_degrees = Vector3(0.0, 0.0, 90.0)
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(1.0, 0.82, 0.32) if golden else Color(0.48, 0.68, 0.90)
+			mat.metallic = 0.75
+			mat.roughness = 0.28
+			mesh_inst.set_surface_override_material(0, mat)
+			root.add_child(mesh_inst)
+
+			var ball := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.24
+			sm.height = 0.48
+			ball.mesh = sm
+			var bmat := StandardMaterial3D.new()
+			bmat.albedo_color = Color(0.85, 0.72, 0.35) if golden else Color(0.25, 0.30, 0.42)
+			bmat.metallic = 0.85
+			bmat.roughness = 0.25
+			ball.set_surface_override_material(0, bmat)
+			root.add_child(ball)
+
+		"hull":
+			var mesh_inst := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.72, 0.18, 0.45)
+			mesh_inst.mesh = bm
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(1.0, 0.85, 0.35) if golden else Color(0.72, 0.78, 0.90)
+			mat.metallic = 0.80
+			mat.roughness = 0.30
+			mesh_inst.set_surface_override_material(0, mat)
+			root.add_child(mesh_inst)
+
+			var seam := MeshInstance3D.new()
+			var smm := BoxMesh.new()
+			smm.size = Vector3(0.58, 0.05, 0.06)
+			seam.mesh = smm
+			seam.position = Vector3(0.0, 0.10, 0.0)
+			var smat := StandardMaterial3D.new()
+			smat.albedo_color = Color(0.3, 0.9, 1.0)
+			smat.emission_enabled = true
+			smat.emission = Color(0.3, 0.9, 1.0)
+			smat.emission_energy_multiplier = 2.8
+			seam.set_surface_override_material(0, smat)
+			root.add_child(seam)
+
+		"junk", _:
+			var mesh_inst := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.65, 0.16, 0.38)
+			mesh_inst.mesh = bm
+			mesh_inst.rotation_degrees = Vector3(0.0, 8.0, 0.0)
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(0.48, 0.44, 0.40)
+			mat.roughness = 0.85
+			mat.metallic = 0.4
+			mesh_inst.set_surface_override_material(0, mat)
+			root.add_child(mesh_inst)
+
+	if golden:
+		var light := OmniLight3D.new()
+		light.light_color = Color(1.0, 0.88, 0.45)
+		light.light_energy = 1.2
+		light.omni_range = 2.2
+		root.add_child(light)
+
+	return root
+
+
 func setup_level() -> void:
 	result.objective_scoring = true
 	var config: Dictionary = level_data.get("config", {})
@@ -76,7 +295,7 @@ func setup_level() -> void:
 	if not BLUEPRINTS.has(_kind):
 		_kind = "bridge"
 
-	build_world(self, 0.35)
+	_build_3d_workshop()
 	_field = Field.new()
 	add_child(_field)
 	_field.dropped.connect(_on_dropped)
@@ -128,13 +347,10 @@ func _build_machine(config: Dictionary) -> void:
 		slot["index"] = i
 		_slot_nodes.append(ghost)
 
-	# The parts, scattered along the bottom, plus decoys that fit nowhere.
-	# The row is measured off the real screen too: on a tablet it belongs on the
-	# grass in front of the machine, not floating in the middle of the field
-	# with a quarter of the screen empty underneath it.
-	var tray_y := Fit.y(_field, 660.0)
+	# The parts, placed comfortably on the workbench tray
+	var tray_y := Fit.y(_field, 580.0)
 	var middle := Fit.x(_field, 640.0)
-	var spread := Fit.x(_field, 1080.0)
+	var spread := Fit.x(_field, 960.0)
 	var count: int = _wanted + 2
 	var order: Array = []
 	for i in range(_wanted):
@@ -147,63 +363,147 @@ func _build_machine(config: Dictionary) -> void:
 		var node := Node2D.new()
 		_field.add_child(node)
 		var golden: bool = str(order[i]) == "part" and i == _picker.whole(0, count - 1)
-		_draw_part(node, str(plan["part"]) if str(order[i]) == "part" else "junk",
-			false, golden)
+		var part_kind := str(plan["part"]) if str(order[i]) == "part" else "junk"
+		_draw_part(node, part_kind, false, golden)
 		var item := _field.add_item(node, Vector2(x, tray_y),
 			"part" if str(order[i]) == "part" else "junk")
 		item["golden"] = golden
 		_parts.append(item)
+		if _workshop_3d_world != null:
+			var p3d := _create_3d_part(part_kind, golden)
+			_workshop_3d_world.add_child(p3d)
+			p3d.position = _screen_to_table_3d(Vector2(x, tray_y), 0.42)
+			node.set_meta("part_3d", p3d)
+			node.tree_exited.connect(func():
+				if is_instance_valid(p3d):
+					p3d.queue_free()
+			)
+			node.modulate.a = 0.0
 
 
 ## One drawing routine for ghosts, real parts and junk, so a slot and the
 ## thing that fills it are unmistakably the same shape.
 func _draw_part(node: Node2D, kind: String, ghost: bool, golden: bool = false) -> void:
-	var tint := Color(0.62, 0.44, 0.28)
+	var box_size := Vector2(128, 44)
 	match kind:
 		"block":
-			tint = Color(0.56, 0.60, 0.72)
+			box_size = Vector2(116, 104)
 		"limb":
-			tint = Color(0.52, 0.68, 0.88)
+			box_size = Vector2(92, 92)
 		"hull":
-			tint = Color(0.72, 0.76, 0.86)
-		"junk":
-			tint = Color(0.48, 0.46, 0.44)
-	if golden:
-		tint = Color(1.0, 0.82, 0.34)
-	var body := PackedVector2Array()
-	match kind:
+			box_size = Vector2(140, 68)
 		"plank", "junk":
-			body = Shapes.rounded_rect(Vector2(-64, -20), Vector2(128, 40), 9.0)
-		"block":
-			body = Shapes.rounded_rect(Vector2(-58, -52), Vector2(116, 104), 14.0)
-		"limb":
-			body = Shapes.rounded_rect(Vector2(-46, -46), Vector2(92, 92), 22.0)
-		_:
-			body = Shapes.rounded_rect(Vector2(-70, -34), Vector2(140, 68), 26.0)
+			box_size = Vector2(128, 44)
+
+	var half := box_size * 0.5
+	var at_rect := -half
+
 	if ghost:
-		# A dashed outline, not a faded copy: a faded copy reads as "already
-		# done" and a child skips it.
-		var line := Line2D.new()
-		line.points = body
-		line.closed = true
-		line.width = 5.0
-		line.default_color = Color(1.0, 0.95, 0.70, 0.75)
-		line.antialiased = true
-		node.add_child(line)
-		Shapes.fill(node, body, Color(0.06, 0.12, 0.24, 0.22), 0.0)
+		# Carved recessed wooden mortise slot on the timber workbench
+		Shapes.fill(node, Shapes.rounded_rect(at_rect - Vector2(2.0, 2.0), box_size + Vector2(4.0, 4.0), 5.0),
+			Color(0.32, 0.24, 0.16, 0.60), 0.0)
+		# Recessed groove floor
+		Shapes.fill(node, Shapes.rounded_rect(at_rect, box_size, 4.0),
+			Color(0.40, 0.30, 0.20, 0.70), 0.0)
+
+		# Soft warm gold guide glow
+		Shapes.glow(node, Vector2.ZERO, box_size.x * 0.55, Color(1.0, 0.88, 0.45), 2, 0.22)
+
+		# Brass corner alignment brackets
+		var blen := 12.0
+		var corners := [
+			[at_rect, Vector2(blen, 0), Vector2(0, blen)],
+			[at_rect + Vector2(box_size.x, 0), Vector2(-blen, 0), Vector2(0, blen)],
+			[at_rect + Vector2(0, box_size.y), Vector2(blen, 0), Vector2(0, -blen)],
+			[at_rect + box_size, Vector2(-blen, 0), Vector2(0, -blen)]
+		]
+		for c in corners:
+			var cl := Line2D.new()
+			cl.points = PackedVector2Array([c[0] + c[1], c[0], c[0] + c[2]])
+			cl.width = 3.5
+			cl.default_color = Color(0.85, 0.72, 0.38, 0.90)
+			cl.antialiased = true
+			node.add_child(cl)
 		return
+
+	# Real Physical Part
+	Shapes.ground_shadow(node, Vector2(0, half.y + 6.0), box_size.x * 1.05, 0.32)
+
 	if golden:
-		Shapes.glow(node, Vector2.ZERO, 130.0, Color(1.0, 0.86, 0.40), 5, 0.42)
-	Shapes.lit(node, body, tint, 1.0)
+		Shapes.glow(node, Vector2.ZERO, 140.0, Color(1.0, 0.86, 0.40), 5, 0.45)
+
+
 	if kind == "junk":
-		# Junk is visibly broken -- cracked and crooked, so "this one is
-		# wrong" is a thing you can see rather than a thing you find out.
-		Shapes.fill(node, Shapes.taper(Vector2(-40, -16), Vector2(30, 18), 5.0, 2.0),
-			Color(0.28, 0.26, 0.25), 0.0)
-		node.rotation_degrees = 8.0
-	else:
-		Shapes.fill(node, Shapes.rounded_rect(Vector2(-40, -8), Vector2(80, 6), 3.0),
-			tint.lightened(0.22), 0.0)
+		node.rotation_degrees = 7.5
+
+	match kind:
+		"plank":
+			var wood_front := Color(0.72, 0.50, 0.30) if not golden else Color(1.0, 0.82, 0.32)
+			var wood_top := wood_front.lightened(0.24)
+			var wood_bot := wood_front.darkened(0.28)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, box_size, 8.0), wood_front, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, Vector2(box_size.x, 10.0), 6.0), wood_top, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect + Vector2(0, box_size.y - 8.0), Vector2(box_size.x, 8.0), 6.0), wood_bot, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect + Vector2(8, 16), Vector2(box_size.x - 16, 3.5), 1.5), wood_bot.lightened(0.1), 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect + Vector2(16, 26), Vector2(box_size.x - 32, 3.0), 1.5), wood_bot.lightened(0.1), 0.0)
+			var nail_col := Color(0.24, 0.22, 0.20) if not golden else Color(0.85, 0.60, 0.15)
+			for nx in [at_rect.x + 12.0, at_rect.x + box_size.x - 12.0]:
+				for ny in [at_rect.y + 10.0, at_rect.y + box_size.y - 10.0]:
+					Shapes.fill(node, Shapes.circle_points(Vector2(nx, ny), 3.8, 12), nail_col, 0.0)
+					Shapes.fill(node, Shapes.circle_points(Vector2(nx - 1.0, ny - 1.0), 1.6, 8), Color(1, 1, 1, 0.45), 0.0)
+
+		"block":
+			var base_tint := Color(0.52, 0.58, 0.70) if not golden else Color(1.0, 0.82, 0.32)
+			var top_bevel := base_tint.lightened(0.25)
+			var bot_shade := base_tint.darkened(0.30)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, box_size, 14.0), base_tint, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, Vector2(box_size.x, 14.0), 10.0), top_bevel, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect + Vector2(0, box_size.y - 12.0), Vector2(box_size.x, 12.0), 10.0), bot_shade, 0.0)
+			for rx in [at_rect.x + 14.0, at_rect.x + box_size.x - 14.0]:
+				for ry in [at_rect.y + 14.0, at_rect.y + box_size.y - 14.0]:
+					Shapes.fill(node, Shapes.circle_points(Vector2(rx, ry), 4.5, 12), Color(0.25, 0.30, 0.40), 0.0)
+					Shapes.fill(node, Shapes.circle_points(Vector2(rx - 1.2, ry - 1.2), 1.8, 8), Color(1, 1, 1, 0.5), 0.0)
+			var well_w := 60.0
+			var well_h := 50.0
+			Shapes.fill(node, Shapes.rounded_rect(Vector2(-well_w * 0.5, -well_h * 0.5), Vector2(well_w, well_h), 8.0), Color(0.12, 0.16, 0.25), 0.0)
+			var core_col := Color(0.35, 0.88, 1.0) if not golden else Color(1.0, 0.95, 0.50)
+			Shapes.fill(node, Shapes.rounded_rect(Vector2(-well_w * 0.38, -well_h * 0.38), Vector2(well_w * 0.76, well_h * 0.76), 6.0), core_col, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(Vector2(-well_w * 0.25, -well_h * 0.30), Vector2(well_w * 0.50, well_h * 0.30), 3.0), Color(1, 1, 1, 0.75), 0.0)
+
+		"limb":
+			var limb_tint := Color(0.48, 0.68, 0.90) if not golden else Color(1.0, 0.82, 0.32)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, box_size, 20.0), limb_tint, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, Vector2(box_size.x, 14.0), 14.0), limb_tint.lightened(0.24), 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect + Vector2(0, box_size.y - 12.0), Vector2(box_size.x, 12.0), 14.0), limb_tint.darkened(0.26), 0.0)
+			Shapes.fill(node, Shapes.circle_points(Vector2.ZERO, 26.0, 24), Color(0.22, 0.28, 0.40), 0.0)
+			Shapes.fill(node, Shapes.circle_points(Vector2.ZERO, 19.0, 20), Color(0.68, 0.76, 0.88), 0.0)
+			Shapes.fill(node, Shapes.circle_points(Vector2.ZERO, 9.0, 16), Color(0.18, 0.22, 0.32), 0.0)
+			Shapes.fill(node, Shapes.circle_points(Vector2(-4, -4), 4.0, 10), Color(1, 1, 1, 0.65), 0.0)
+
+		"hull":
+			var hull_tint := Color(0.72, 0.78, 0.90) if not golden else Color(1.0, 0.85, 0.35)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, box_size, 22.0), hull_tint, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, Vector2(box_size.x, 12.0), 16.0), hull_tint.lightened(0.22), 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect + Vector2(0, box_size.y - 10.0), Vector2(box_size.x, 10.0), 16.0), hull_tint.darkened(0.28), 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(Vector2(at_rect.x + 18, -2.5), Vector2(box_size.x - 36, 5.0), 2.5), Color(0.25, 0.85, 1.0, 0.85), 0.0)
+
+		"junk":
+			var junk_col := Color(0.50, 0.46, 0.42)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, box_size, 8.0), junk_col, 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect, Vector2(box_size.x, 8.0), 6.0), junk_col.lightened(0.14), 0.0)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect + Vector2(0, box_size.y - 8.0), Vector2(box_size.x, 8.0), 6.0), junk_col.darkened(0.22), 0.0)
+			var crack := Line2D.new()
+			crack.points = PackedVector2Array([
+				at_rect + Vector2(24, 0),
+				at_rect + Vector2(40, 18),
+				at_rect + Vector2(34, 26),
+				at_rect + Vector2(58, box_size.y)
+			])
+			crack.width = 4.0
+			crack.default_color = Color(0.18, 0.16, 0.14, 0.95)
+			crack.antialiased = true
+			node.add_child(crack)
+			Shapes.fill(node, Shapes.rounded_rect(at_rect + Vector2(box_size.x - 16, 0), Vector2(16, 12), 3.0), Color(0.25, 0.22, 0.20), 0.0)
 
 
 ## Where the machine stands on the REAL screen. One answer for the slots, the
@@ -239,10 +539,42 @@ func _on_dropped(item: Dictionary, slot: Dictionary, correct: bool) -> void:
 	_hints.progress()
 	if bool(item.get("golden", false)):
 		_golden_used = true
+
+	var item_node: Node2D = item.get("node", null)
+	if item_node != null and item_node.has_meta("part_3d"):
+		var p3d: Node3D = item_node.get_meta("part_3d", null) as Node3D
+		if p3d != null and is_instance_valid(p3d):
+			var tw := p3d.create_tween()
+			tw.tween_property(p3d, "scale", Vector3(1.25, 0.72, 1.25), 0.08)
+			tw.tween_property(p3d, "scale", Vector3.ONE, 0.16)\
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
 	_celebrate_step(slot)
 	_refresh_tally()
 	if _placed >= _wanted:
 		_run_the_machine()
+
+
+func _process(delta: float) -> void:
+	if _parts.is_empty() or _field == null:
+		return
+	var held_item: Dictionary = _field.held()
+	for item in _parts:
+		var node: Node2D = item.get("node", null)
+		if node == null or not is_instance_valid(node) or not node.has_meta("part_3d"):
+			continue
+		var p3d: Node3D = node.get_meta("part_3d", null) as Node3D
+		if p3d == null or not is_instance_valid(p3d):
+			continue
+		var is_held: bool = (held_item == item)
+		var is_placed: bool = bool(item.get("placed", false))
+		var target_y := 1.15 if is_held else (0.38 if is_placed else 0.42)
+		var target_pos := _screen_to_table_3d(node.position, target_y)
+		p3d.position = p3d.position.lerp(target_pos, clampf(delta * (28.0 if is_held else 16.0), 0.0, 1.0))
+		var target_rot_x := 15.0 if is_held else 0.0
+		p3d.rotation_degrees.x = lerpf(p3d.rotation_degrees.x, target_rot_x, clampf(delta * 15.0, 0.0, 1.0))
+		var target_s := Vector3(1.18, 1.18, 1.18) if is_held else Vector3.ONE
+		p3d.scale = p3d.scale.lerp(target_s, clampf(delta * 18.0, 0.0, 1.0))
 
 
 ## Every step is an event: the ghost fills in, a light comes on, the note goes
@@ -253,6 +585,7 @@ func _celebrate_step(slot: Dictionary) -> void:
 	if not is_instance_valid(node):
 		return
 	Juice.burst(_field, node.position, 16)
+	Juice.impact_sparks(_field, node.position, Color(1.0, 0.92, 0.45), 10)
 	Shapes.glow(node, Vector2.ZERO, 150.0, Color(1.0, 0.92, 0.55), 4, 0.34)
 	Juice.pop(node, 0.3)
 	AudioManager.play_sfx("res://assets/audio/build_step.ogg")
@@ -272,6 +605,8 @@ func _run_the_machine() -> void:
 	_finished_level = true
 	_hints.pause_watching(true)
 	AudioManager.play_sfx("res://assets/audio/machine.ogg")
+	Juice.burst(_field, machine_anchor(), 32)
+	Juice.shockwave(_field, machine_anchor(), 260.0, Color(0.45, 0.88, 1.0))
 	var plan: Dictionary = BLUEPRINTS[_kind]
 	match str(plan["runs"]):
 		"light":
