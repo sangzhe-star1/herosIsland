@@ -333,7 +333,7 @@ func setup_level() -> void:
 	SaveManager.save_game()
 	if not visit.is_empty():
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
-	elif bool(dew.get("applied", false)) and int(dew.get("watered_count", 0)) > 0:
+	elif bool(dew.get("applied", false)) and int(dew.get("sparkle_count", dew.get("watered_count", 0))) > 0:
 		AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
 	build_world(self, 0.42)
 	_rebuild()

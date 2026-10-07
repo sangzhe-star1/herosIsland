@@ -2047,10 +2047,11 @@ func _the_day_and_night_cycle_and_dew_work() -> void:
 
 	var dew := DayCycle.check_morning_dew(farm)
 	_ok(bool(dew.get("applied", false)), "morning dew applies in the morning")
-	_ok(int(dew.get("watered_count", 0)) == 1, "morning dew watered the thirsty plot")
-	_ok(float(farm["plots"][0].get("water_level", 0.0)) == 1.0, "plot water level restored to full")
-	_ok(str(farm["plots"][0].get("care_event", "")) == "", "plot care event cleared")
-	_ok(str(farm["plots"][0].get("state", "")) == Farm.GROWING, "plot returned to GROWING state")
+	_ok(int(dew.get("sparkle_count", 0)) == 1, "morning dew brings sparkle to planted plot")
+	_ok(str(farm["plots"][0].get("care_event", "")) == "thirsty",
+		"morning dew leaves thirsty plot for child to water, preserving agency")
+	_ok(str(farm["plots"][0].get("state", "")) == Farm.NEEDS_CARE,
+		"plot remains in NEEDS_CARE so daily watering task is not blocked")
 	_ok(str(farm.get("last_dew_date", "")) == GameClock.now_date(), "last_dew_date recorded")
 
 	# Second check on same day does not apply again

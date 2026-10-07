@@ -156,8 +156,6 @@ func _construct() -> void:
 	_fringe = _layer("Fringe")
 	_build_fringe()
 
-	_build_3d_stage()
-
 
 static func get_3d_model_for_world(world_id: String) -> String:
 	match world_id:
@@ -190,78 +188,11 @@ static func software_renderer() -> bool:
 	return false
 
 
+## The redundant 3D stage layer in Stage is retired. Each 3D minigame manages its own
+## visible 3D scene directly; Stage remains the clean 2D stage backdrop
+## without invisible full-screen SubViewports burning GPU fill-rate.
 func _build_3d_stage() -> bool:
-	if style == null or software_renderer():
-		return false
-	var glb_path := get_3d_model_for_world(style.id)
-	if not ResourceLoader.exists(glb_path):
-		return false
-	var vp_container := SubViewportContainer.new()
-	vp_container.name = "Stage3DContainer"
-	vp_container.stretch = true
-	vp_container.custom_minimum_size = Vector2(view_w, view_h)
-	vp_container.size = Vector2(view_w, view_h)
-	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vp_container.z_index = -60
-
-	var vp := SubViewport.new()
-	vp.name = "SubViewport"
-	vp.own_world_3d = true
-	vp.transparent_bg = false
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	vp.size = Vector2i(int(view_w), int(view_h))
-	vp_container.add_child(vp)
-
-	var world_root := Node3D.new()
-	world_root.name = "World3D"
-	vp.add_child(world_root)
-
-	var glb_scene: PackedScene = load(glb_path)
-	if glb_scene != null:
-		var glb_inst: Node = glb_scene.instantiate()
-		world_root.add_child(glb_inst)
-
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = style.sky_top.lerp(style.sky_bottom, 0.5)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = style.light_color.lightened(0.1)
-	env.ambient_light_energy = 0.55
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.glow_enabled = true
-	env.glow_intensity = 0.15
-
-	var env_node := WorldEnvironment.new()
-	env_node.environment = env
-	world_root.add_child(env_node)
-
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-38.0, -28.0, 0.0)
-	sun.light_color = style.light_color
-	sun.light_energy = 1.05
-	sun.shadow_enabled = true
-	sun.shadow_bias = 0.03
-	world_root.add_child(sun)
-
-	var cam := Camera3D.new()
-	cam.position = Vector3(0.0, 5.5, 11.2)
-	cam.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
-	cam.fov = 38.0
-	cam.current = true
-	world_root.add_child(cam)
-
-	add_child(vp_container)
-	move_child(vp_container, 0)
-
-	_sky.visible = false
-	_far.visible = false
-	_mid.visible = false
-	_near.visible = false
-	_ground.visible = false
-	_props.visible = false
-	_air.visible = false
-	_fringe.visible = false
-	return true
+	return false
 
 
 func _layer(layer_name: String) -> Node2D:

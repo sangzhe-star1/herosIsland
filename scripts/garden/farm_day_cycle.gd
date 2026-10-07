@@ -73,30 +73,27 @@ static func current_night_factor() -> float:
 	return night_factor_for_hour(int(dt.get("hour", 12)))
 
 
-## Waters all thirsty or low-water plots once per morning (6:00 - 10:59).
+## Morning dew brings a quiet sparkle to growing crops once per morning (6:00 - 10:59).
+## It does NOT clear thirsty care events, keeping morning watering agency for the child.
 ## Recorded in farm["last_dew_date"] to ensure exactly one morning blessing.
 static func check_morning_dew(farm: Dictionary) -> Dictionary:
 	var today := GameClock.now_date()
 	var dt: Dictionary = GameClock.now_datetime()
 	var hour := int(dt.get("hour", 12))
 	if hour < 6 or hour >= 11:
-		return {"applied": false, "watered_count": 0, "date": today}
+		return {"applied": false, "sparkle_count": 0, "watered_count": 0, "date": today}
 
 	if str(farm.get("last_dew_date", "")) == today:
-		return {"applied": false, "watered_count": 0, "date": today}
+		return {"applied": false, "sparkle_count": 0, "watered_count": 0, "date": today}
 
 	farm["last_dew_date"] = today
 	var plots: Array = farm.get("plots", [])
-	var watered_count := 0
+	var sparkle_count := 0
 	for i in range(plots.size()):
 		var plot: Dictionary = plots[i]
 		var crop_id := str(plot.get("crop_id", ""))
 		if crop_id.is_empty():
 			continue
-		var water_level := float(plot.get("water_level", 1.0))
-		var care := str(plot.get("care_event", ""))
-		if water_level < 0.99 or care == "thirsty":
-			plots[i] = Growth.water(plot)
-			watered_count += 1
+		sparkle_count += 1
 
-	return {"applied": true, "watered_count": watered_count, "date": today}
+	return {"applied": true, "sparkle_count": sparkle_count, "watered_count": 0, "date": today}
