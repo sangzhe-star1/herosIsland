@@ -445,6 +445,7 @@ func _rebuild() -> void:
 		_world.stroke_ended.connect(_on_stroke_ended)
 		_world.grass_pressed.connect(_poke_decoration)
 		_world.cloud_rained.connect(_on_cloud_rained)
+		_world.fish_caught.connect(_on_fish_caught)
 		_world.gesture_bed_check = _bed_wants_gesture
 		_world.gesture_moved.connect(_on_gesture_moved)
 		_world.gesture_finished.connect(_on_gesture_finished)
@@ -607,7 +608,7 @@ func _inventory_surface(inset: bool = false, selected: bool = false) -> StyleBox
 func _crop_picture(crop_id: String, box: float,
 		node_name: String = "GardenCropPicture", golden: bool = false) -> Control:
 	var art: Control
-	if crop_id in ["egg", "flour", "milk", "honey"]:
+	if crop_id in ["egg", "flour", "milk", "honey", "fish"]:
 		art = HarvestArt.prop_badge(crop_id, box, node_name)
 	else:
 		if golden:
@@ -1237,6 +1238,25 @@ func _on_cloud_rained(index: int) -> void:
 	_commit_plot(plots, index)
 	SaveManager.save_game()
 	_queue_rebuild()
+
+
+func _on_fish_caught(info: Dictionary) -> void:
+	SaveManager.save_game()
+	AudioManager.play_sfx("res://assets/audio/found.ogg")
+	var pond_pos := Vector2(1362.0, 612.0)
+	var at: Vector2 = _world.camera.world_to_screen(pond_pos) if _world != null and is_instance_valid(_world) else Vector2(640, 360)
+	var stored := int(info.get("stored", 1))
+	var spilled := int(info.get("spilled", 0))
+	if stored > 0:
+		_spawn_harvest_flight(-1, info, stored, _barn_button_at,
+			"warehouse", "HarvestFlight", at + Vector2(0, -20))
+	if spilled > 0:
+		_spawn_harvest_flight(-1, info, spilled, _spill_flight_destination(),
+			"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
+	_harvested_something = true
+	_queue_rebuild()
+	if bool(info.get("unlocked_ducklings", false)):
+		AudioManager.say("praise_3")
 
 
 func _show_coop_ring(at: Vector2, fraction: float) -> void:

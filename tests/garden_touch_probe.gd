@@ -4512,8 +4512,8 @@ func _inventory_keeps_its_rendered_food_and_readable_slots(view: Vector2) -> voi
 	var panel: Node = _find_named(_garden, "BarnCollectionPanel")
 	_ok(panel is Control and _visible_control_inside(panel, Rect2(Vector2.ZERO, view)),
 		"the collection panel stays above the shelf on both screen shapes")
-	_ok(foods.size() == 18 and Barn.contents().size() == foods.size(),
-		"all fourteen crops plus eggs, flour, milk and honey appear in the full collection")
+	_ok(foods.size() == 19 and Barn.contents().size() == foods.size(),
+		"all fourteen crops plus eggs, flour, milk, honey and fish appear in the full collection")
 	var slots: Array = []
 	var controls: Array = [(_garden.get("_panel_buttons") as Dictionary).get("upgrade"),
 		_find_named(_garden, "RecipeBook")]
@@ -4525,7 +4525,7 @@ func _inventory_keeps_its_rendered_food_and_readable_slots(view: Vector2) -> voi
 		_ok(crop_name is Label and (crop_name as Label).text == I18n.t(str(GameData.get_crop(crop_id).get("name_key", "")))
 			and _control_contains(slot, crop_name) and _controls_are_separate(crop_name, quantity),
 			"%s has a readable actual name above its separate quantity" % crop_id)
-		var asset := "props" if crop_id in ["egg", "flour", "milk", "honey"] else "crops"
+		var asset := "props" if crop_id in ["egg", "flour", "milk", "honey", "fish"] else "crops"
 		_ok(slot is Control and (slot as Control).size == Vector2(154.0, 60.0)
 			and _control_contains(panel, slot), "%s has one fixed slot inside the collection sheet" % crop_id)
 		_ok(_badge_has_rendered_asset(art, "res://assets/harvest_3d/%s/%s.png" % [asset, crop_id], 40.0),
@@ -4543,7 +4543,7 @@ func _inventory_keeps_its_rendered_food_and_readable_slots(view: Vector2) -> voi
 	for index in range(slots.size()):
 		for other in range(index + 1, slots.size()):
 			separate = separate and _controls_are_separate(slots[index], slots[other])
-	_ok(separate, "all eighteen collection slots have separate bounds")
+	_ok(separate, "all nineteen collection slots have separate bounds")
 	var up: Variant = (_garden.get("_panel_buttons") as Dictionary).get("upgrade")
 	if up is Control:
 		await _tap((up as Control).get_global_rect().get_center())
@@ -4592,12 +4592,12 @@ func _inventory_keeps_its_rendered_food_and_readable_slots(view: Vector2) -> voi
 	await get_tree().process_frame
 	var overflow: Node = _find_named(_garden, "OverflowShortcut")
 	var more: Node = _find_named(_garden, "OverflowMoreKinds")
-	_ok(more is Label and (more as Label).text == "+16",
+	_ok(more is Label and (more as Label).text == "+17",
 		"a full waiting harvest keeps its bounded summary and exact additional-kind count")
 	_ok(_visible_control_inside(overflow, Rect2(Vector2.ZERO, view))
 		and _controls_are_separate(overflow, _find_named(_garden, "NextTask"), 4.0)
 		and _controls_are_separate(overflow, _find_named(_garden, "DecoDoor"), 2.0),
-		"eighteen waiting kinds have their own reachable space beside the task and decoration doors")
+		"nineteen waiting kinds have their own reachable space beside the task and decoration doors")
 	var stored_before := JSON.stringify(SaveManager.data["farm"]["warehouse"])
 	var waiting_before := JSON.stringify(SaveManager.data["farm"]["harvest_basket"])
 	if overflow is Control:

@@ -226,5 +226,19 @@
         "count": 1
       }
     ]
+  },
+  {
+    "id": "fish_soup",
+    "name_key": "recipe.fish_soup",
+    "needs": [
+      {
+        "crop_id": "fish",
+        "count": 1
+      },
+      {
+        "crop_id": "carrot",
+        "count": 1
+      }
+    ]
   }
 ]

@@ -93,6 +93,8 @@ func _ready() -> void:
 	farm["visit_log"] = [{"who": "bear", "watered": 2, "star": 1,
 		"at": NOON - 900}]
 	farm["visit_log_unread"] = what == "garden"
+	if OS.get_environment("SHOT_DUCKLINGS") == "1":
+		farm["fish_caught_total"] = 5
 
 	GameManager.current_level_id = "star_garden"
 	var scene: Node

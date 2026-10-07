@@ -105,6 +105,7 @@ func _ready() -> void:
 	_the_pens_and_new_recipes_work()
 	_the_visitors_request_and_receive_dishes()
 	_the_day_and_night_cycle_and_dew_work()
+	_the_pond_fishing_and_ducklings_work()
 	_two_tablets_agree_about_the_bear()
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
@@ -2057,6 +2058,65 @@ func _the_day_and_night_cycle_and_dew_work() -> void:
 			has_firefly = true
 	_ok(has_lantern, "farm dressing includes lanterns on buildings/paths")
 	_ok(has_firefly, "farm dressing includes fireflies over the pond")
+
+
+## Candidate 4: The pond, fishing ring, ducklings reward, and fish soup recipe.
+func _the_pond_fishing_and_ducklings_work() -> void:
+	_fresh_save()
+	var PondManager := preload("res://scripts/garden/farm_pond_manager.gd")
+	var Recipes := preload("res://scripts/garden/recipe_manager.gd")
+	var farm: Dictionary = SaveManager.data["farm"]
+
+	# 1. Initial state
+	_ok(PondManager.fish_caught_total(farm) == 0, "fresh save has 0 fish caught")
+	_ok(not PondManager.has_ducklings(farm), "fresh save does not have ducklings")
+	_ok(PondManager.is_near_pond(Vector2(1362, 612)), "pond center is within fishing zone")
+	_ok(not PondManager.is_near_pond(Vector2(200, 200)), "far away point is outside fishing zone")
+
+	# 2. Catch first fish
+	var r1 := PondManager.catch_fish(farm)
+	_ok(bool(r1.get("success", false)), "first fishing attempt succeeds")
+	_ok(int(r1.get("total", 0)) == 1, "total fish count incremented to 1")
+	_ok(not bool(r1.get("unlocked_ducklings", false)), "1 fish does not unlock ducklings yet")
+	_ok(Barn.count("fish") == 1, "caught fish added to inventory")
+
+	# 3. Catch up to 4 fish
+	for i in range(3):
+		PondManager.catch_fish(farm)
+	_ok(PondManager.fish_caught_total(farm) == 4, "total fish count reaches 4")
+	_ok(not PondManager.has_ducklings(farm), "4 fish still does not unlock ducklings")
+	_ok(Barn.count("fish") == 4, "barn holds 4 fish")
+
+	# 4. Catch 5th fish (ducklings hatch & follow mama duck!)
+	var r5 := PondManager.catch_fish(farm)
+	_ok(int(r5.get("total", 0)) == 5, "total fish count reaches 5")
+	_ok(bool(r5.get("unlocked_ducklings", false)), "5th fish triggers duckling unlock celebration")
+	_ok(PondManager.has_ducklings(farm), "ducklings are now permanently following mama duck")
+
+	# 5. Market price and produce catalogue
+	var prices: Dictionary = GameData.farm_market_prices.get("prices", {})
+	_ok(int(prices.get("fish", 0)) == 12, "fish market price is 12 star coins")
+	var produce: Array = GameData.farm_produce.get("produce", [])
+	var has_fish_produce := false
+	for p in produce:
+		if str(p.get("id", "")) == "fish":
+			has_fish_produce = true
+			_ok(str(p.get("source", "")) == "pond", "fish source is pond")
+	_ok(has_fish_produce, "fish is registered in farm produce catalogue")
+
+	# 6. Cook fish soup in the kitchen
+	farm["unlocked_recipes"] = ["fish_soup"]
+	Barn.put("carrot", 1)
+	var fish_soup_recipe: Dictionary = {}
+	for r in Recipes.all():
+		if str(r.get("id", "")) == "fish_soup":
+			fish_soup_recipe = r
+	_ok(not fish_soup_recipe.is_empty(), "fish_soup recipe exists in catalogue")
+	_ok(Recipes.can_cook(fish_soup_recipe), "can cook fish soup with 1 fish and 1 carrot")
+	_ok(Recipes.cook("fish_soup"), "cook fresh fish soup")
+	_ok(Recipes.dish_count("fish_soup") == 1, "fish soup ready in dishes")
+	_ok(Barn.count("fish") == 4, "1 fish consumed for soup (4 left)")
+	_ok(Barn.count("carrot") == 0, "1 carrot consumed for soup")
 
 
 ## --- 阶段 6: the crop's own move -------------------------------------------

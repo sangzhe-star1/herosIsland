@@ -46,8 +46,10 @@ func poke_at(screen_at: Vector2) -> String:
 func poke_kind(kind: String) -> void:
 	for life in _alive:
 		var sprite: Control = life["sprite"]
-		if is_instance_valid(sprite) and str(sprite.get_meta("prop_id", "")) == kind:
-			_hop(life)
+		if is_instance_valid(sprite):
+			var pid := str(sprite.get_meta("prop_id", ""))
+			if pid == kind or (kind == "duck" and pid == "duckling"):
+				_hop(life)
 
 
 func _hop(life: Dictionary) -> void:

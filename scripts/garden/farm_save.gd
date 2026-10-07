@@ -222,6 +222,9 @@ static func default_farm() -> Dictionary:
 		"dailies": {"date": "", "progress": {}, "claimed": []},
 		# Morning dew date stamp: waters every bed once each morning.
 		"last_dew_date": "",
+		# Pond fishing: total fish caught and last fish timestamp.
+		"fish_caught_total": 0,
+		"last_fish_at": 0,
 	}
 
 

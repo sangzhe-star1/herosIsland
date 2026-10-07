@@ -62,6 +62,7 @@ signal gesture_moved(index: int, offset: Vector2)
 ## for which move is catalogue knowledge, not world knowledge.
 signal gesture_finished(index: int, track: PackedVector2Array, centre: Vector2,
 	net: Vector2)
+signal fish_caught(info: Dictionary)
 
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
@@ -75,6 +76,7 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const Dog := preload("res://scripts/garden/farm_dog_controller.gd")
 const VisitorActor := preload("res://scripts/garden/farm_visitor_actor.gd")
 const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
+const PondManager := preload("res://scripts/garden/farm_pond_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const FarmWorldArt := preload("res://scripts/garden/farm_world_art.gd")
 
@@ -134,6 +136,11 @@ var _beds: Array = []          # PlotView, one per bed in the save
 var _dog: Dog
 var _visitor: Node2D
 var _tint_layer: ColorRect
+var _ducklings: Array = []
+var _fishing_active := false
+var _fishing_elapsed := 0.0
+var _fishing_idle_timer := 0.0
+var _pond_ring: Node2D
 ## What the town looked like when it was last drawn: the bear door's
 ## presence, the farm level (which decides how the orchard corner is drawn),
 ## and how many beds stand. refresh() compares this against the save so a
@@ -214,6 +221,15 @@ func build(view: Vector2, top_bar: float, shelf: float, plots: Array) -> void:
 	_tint_layer.color = DayCycle.current_tint_color()
 	add_child(_tint_layer)
 
+	_pond_ring = preload("res://scripts/garden/farm_pond_ring.gd").new()
+	_pond_ring.name = "PondFishingRing"
+	_pond_ring.z_index = 1
+	_ground.add_child(_pond_ring)
+	_fishing_active = false
+	_fishing_elapsed = 0.0
+	_fishing_idle_timer = 0.0
+	_ducklings.clear()
+
 	# This layer has no Controls that can catch a press and no collision shapes.
 	# It follows the farm like a building, but lies above it so a delivery flag
 	# remains visible when a rooftop redraw happens underneath.
@@ -257,6 +273,7 @@ func refresh(plots: Array) -> void:
 		_visitor.setup(SaveManager.data.get("farm", {}))
 	if _tint_layer != null and is_instance_valid(_tint_layer):
 		_tint_layer.color = DayCycle.current_tint_color()
+	_refresh_ducklings()
 	# The town redraws when -- and only when -- something about it changed:
 	# the bear's door appearing after the first paid harvest, the orchard
 	# corner building up at a new farm level, stones leaving cleared land.
@@ -1236,8 +1253,12 @@ func press_at(at: Vector2) -> void:
 		return
 	var poked := poke_scenery_at(at)
 	if poked != "":
-		AudioManager.play_sfx("res://assets/audio/water.ogg" if poked == "duck"
+		AudioManager.play_sfx("res://assets/audio/water.ogg" if poked in ["duck", "duckling"]
 			else "res://assets/audio/rustle.ogg")
+		return
+	var world_pt := camera.screen_to_world(at)
+	if PondManager.is_near_pond(world_pt):
+		_tap_pond(world_pt)
 		return
 	_grass_tap(at)
 
@@ -1325,3 +1346,97 @@ func _process(delta: float) -> void:
 				_tint_layer.color = _tint_layer.color.lerp(target_tint, clampf(delta * 2.0, 0.0, 1.0))
 			else:
 				_tint_layer.color = target_tint
+	_tick_pond_fishing(delta)
+
+
+func _refresh_ducklings() -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	var should_have := PondManager.has_ducklings(farm)
+	_ducklings = _ducklings.filter(func(d): return is_instance_valid(d))
+	if should_have and _ducklings.is_empty():
+		var landmark := _ground.get_node_or_null("LandmarkScenery")
+		if landmark == null:
+			return
+		var life := landmark.get_node_or_null("SceneryLife")
+		var tex := HarvestArt.prop_texture("duckling")
+		if tex == null:
+			return
+		var mama_pos := Vector2(1338.0, 630.0)
+		var offsets := [Vector2(-20.0, 6.0), Vector2(-38.0, 10.0), Vector2(-54.0, 14.0)]
+		for i in range(offsets.size()):
+			var holder := Node2D.new()
+			holder.name = "Scenery_duckling_%d" % i
+			holder.position = mama_pos + offsets[i]
+			landmark.add_child(holder)
+			var sprite := HarvestArt.grounded_sprite(tex, 24.0, Vector2.ZERO, "Scenery_duckling_art_%d" % i)
+			sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			sprite.pivot_offset = -sprite.position
+			sprite.set_meta("prop_id", "duckling")
+			holder.add_child(sprite)
+			if life != null:
+				life.call("add", sprite, "bob", {"phase": 0.45 * (i + 1), "speed": 1.1})
+			_ducklings.append(holder)
+	elif not should_have and not _ducklings.is_empty():
+		for d in _ducklings:
+			if is_instance_valid(d):
+				d.queue_free()
+		_ducklings.clear()
+
+
+func _start_fishing_ring() -> void:
+	_fishing_active = true
+	_fishing_elapsed = 0.0
+	if _pond_ring != null and is_instance_valid(_pond_ring):
+		_pond_ring.active = true
+		_pond_ring.progress = 0.0
+		_pond_ring.queue_redraw()
+
+
+func _tick_pond_fishing(delta: float) -> void:
+	if _pond_ring == null or not is_instance_valid(_pond_ring):
+		return
+	if _fishing_active:
+		_fishing_elapsed += delta
+		var progress := _fishing_elapsed / PondManager.RING_DURATION
+		_pond_ring.progress = clampf(progress, 0.0, 1.0)
+		_pond_ring.active = true
+		_pond_ring.queue_redraw()
+		if _fishing_elapsed >= PondManager.RING_DURATION:
+			_fishing_active = false
+			_pond_ring.active = false
+			_pond_ring.queue_redraw()
+	else:
+		_fishing_idle_timer += delta
+		if _fishing_idle_timer >= 5.5:
+			_fishing_idle_timer = 0.0
+			_start_fishing_ring()
+
+
+func _tap_pond(_world_pt: Vector2) -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	if not Juice.motion_enabled():
+		_perform_catch(farm)
+		return
+	if _fishing_active:
+		var progress := _fishing_elapsed / PondManager.RING_DURATION
+		if progress >= (1.0 - PondManager.RING_TOLERANCE):
+			_fishing_active = false
+			if _pond_ring != null and is_instance_valid(_pond_ring):
+				_pond_ring.active = false
+				_pond_ring.queue_redraw()
+			_perform_catch(farm)
+		else:
+			AudioManager.play_sfx("res://assets/audio/water.ogg")
+			_start_fishing_ring()
+	else:
+		AudioManager.play_sfx("res://assets/audio/water.ogg")
+		_start_fishing_ring()
+
+
+func _perform_catch(farm: Dictionary) -> void:
+	var res := PondManager.catch_fish(farm)
+	AudioManager.play_sfx("res://assets/audio/water.ogg")
+	if bool(res.get("unlocked_ducklings", false)):
+		_refresh_ducklings()
+		FarmWorldArt.poke_scenery_kind(_ground, "duck")
+	fish_caught.emit(res)

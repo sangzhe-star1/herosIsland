@@ -24,6 +24,12 @@
       "name_key": "item.honey",
       "icon": "res://assets/harvest_3d/props/honey.png",
       "source": "beehive"
+    },
+    {
+      "id": "fish",
+      "name_key": "item.fish",
+      "icon": "res://assets/harvest_3d/props/fish.png",
+      "source": "pond"
     }
   ]
 }

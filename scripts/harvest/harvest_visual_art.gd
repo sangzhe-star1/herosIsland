@@ -36,7 +36,8 @@ const PROP_IDS := ["basket_empty", "soil_grass_patch", "soil_cover",
 	"building_coop", "egg", "grass_tile", "clearing", "meadow_patch",
 	"building_mill", "flour", "stick", "cloud", "rabbit",
 	"building_cow_shed", "milk", "building_beehive", "honey",
-	"robot", "tool_trowel", "tool_watering_can", "lantern", "firefly"]
+	"robot", "tool_trowel", "tool_watering_can", "lantern", "firefly",
+	"fish", "duckling"]
 static var _badge_region_cache: Dictionary = {}
 static var _crop_ground_width_cache: Dictionary = {}
 static var _plant_spec_cache: Dictionary = {}
