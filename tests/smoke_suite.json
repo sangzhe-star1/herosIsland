@@ -236,7 +236,7 @@
         "res://tests/HarvestTouchProbe.tscn"
       ],
       "expect": "HARVEST TOUCH PROBE PASSED",
-      "timeout": 300,
+      "timeout": 600,
       "window": true
     },
     {

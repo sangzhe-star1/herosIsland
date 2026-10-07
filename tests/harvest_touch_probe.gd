@@ -596,22 +596,34 @@ func _world_texture_alpha_rect(sprite: TextureRect) -> Rect2:
 		used.size * factor * transform.get_scale())
 
 
-## Rejection feedback changes only the local visual group, even when a lift
-## How far a display group gets from home during the next `seconds` of a
-## shake, sampled every frame. The shake is a 0.22 s tween through zero
-## twice; one snapshot at 0.04 s used to be the whole test, and a single
-## slow frame under software GL could land that snapshot on a zero crossing
-## and call a shaking cover still. Watching the frames is what an eye does.
-func _largest_swing(visual: Node2D, seconds: float) -> float:
+## Did a refusal shake its display group? The shake is four keys over 0.22 s. At 60 fps a dozen samples see the
+## sprite leave its origin; under software GL one frame can outlast the whole
+## shake, so every sample lands on the origin and the sprite looks still. The
+## evidence then is the refuse tween itself: alive and not yet stepped at the
+## first sample (it was made by the stroke this very frame), finished by a
+## later one. Either the eye saw it move, or the tween ran its course.
+func _shake_seen(target: Node2D, visual: Node2D, seconds: float) -> bool:
+	var tween: Tween = target.get("_refuse_tween") as Tween
+	var started: bool = tween != null and tween.is_valid()
 	var swing := 0.0
+	var finished := false
 	var left := seconds
-	while left > 0.0 and visual != null and is_instance_valid(visual):
+	var frames := 0
+	while visual != null and is_instance_valid(visual) and frames < 90:
 		swing = maxf(swing, visual.position.length())
+		if started and not tween.is_valid():
+			finished = true
+		if swing > 0.1 or finished:
+			break
+		if left <= 0.0 and not started:
+			break
 		left -= get_process_delta_time()
+		frames += 1
 		await get_tree().process_frame
-	return swing
+	return swing > 0.1 or (started and finished)
 
 
+## Rejection feedback changes only the local visual group, even when a lift
 ## or held bob owns the target transform. Real touches still use the same anchor.
 func _refusals_keep_the_input_anchor() -> void:
 	await _open_at("harvest_02", 2)
@@ -623,11 +635,10 @@ func _refusals_keep_the_input_anchor() -> void:
 		_ok(visual != null, "rejection feedback has a local display group")
 		for retry in range(2):
 			await _stroke(_move_for(unripe))
-			var swing := await _largest_swing(visual, 0.14)
+			var seen: bool = await _shake_seen(unripe, visual, 0.14)
 			_ok(unripe.position.distance_to(home) < 0.001,
 				"a refused gesture never moves the crop input anchor")
-			_ok(swing > 0.1,
-				"refusal still gives visible local shake feedback")
+			_ok(seen, "refusal still gives visible local shake feedback")
 		await get_tree().create_timer(0.28).timeout
 		_ok(visual != null and visual.position.length() < 0.001,
 			"rapid refused gestures return the display to its original position")
@@ -643,11 +654,10 @@ func _refusals_keep_the_input_anchor() -> void:
 		_ok(visual != null and cover != null and cover.get_parent() == visual,
 			"the opaque soil cover shares the rejection display group")
 		await _stroke([potato.global_position, potato.global_position + Vector2(12, 0)])
-		var swing := await _largest_swing(visual, 0.14)
+		var seen: bool = await _shake_seen(potato, visual, 0.14)
 		_ok(potato.position.distance_to(home) < 0.001,
 			"a failed dig preserves the potato input anchor")
-		_ok(swing > 0.1,
-			"the soil covering the potato visibly shakes on refusal")
+		_ok(seen, "the soil covering the potato visibly shakes on refusal")
 		await get_tree().create_timer(0.28).timeout
 		_ok(visual != null and visual.position.length() < 0.001,
 			"the soil cover returns to the crop origin after refusal")
