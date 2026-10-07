@@ -46,6 +46,8 @@ var farm_seed_shop: Dictionary = {}
 ## What the market box pays per crop. Read-only for the same reason: a price
 ## change must never reach into anyone's barn.
 var farm_market_prices: Dictionary = {}
+## Weekly market day schedule and price doubling rotation.
+var farm_market_day: Dictionary = {}
 ## The neighbours: who they are and what their farms look like. Their STATE is
 ## computed from the clock, never stored -- see npc_farm_manager.gd.
 var npc_farms: Dictionary = {}
@@ -99,6 +101,7 @@ func _ready() -> void:
 	farm_layout = _load_json("res://data/farm_world_layout.json", {})
 	farm_seed_shop = _load_json("res://data/farm_seed_shop.json", {})
 	farm_market_prices = _load_json("res://data/farm_market_prices.json", {})
+	farm_market_day = _load_json("res://data/farm_market_day.json", {})
 	npc_farms = _load_json("res://data/npc_farms.json", {})
 	farm_visit_texts = _load_json("res://data/farm_visit_texts.json", {})
 	farm_visitor_milestones = _load_json("res://data/farm_visitors.json", {})
@@ -144,6 +147,7 @@ func _ready() -> void:
 			["farm layout facilities", farm_layout.get("facilities", []).size()],
 			["seed shop shelf", farm_seed_shop.get("seeds", []).size()],
 			["market prices", farm_market_prices.get("prices", {}).size()],
+			["market day settings", farm_market_day.size()],
 			["npc farms", npc_farms.get("farms", []).size()],
 			["visit text lines",
 				farm_visit_texts.get("bear", {}).get("lines", []).size()],
@@ -257,10 +261,29 @@ func get_order(order_id: String) -> Dictionary:
 	return {}
 
 
+## Baseline market price without weekly Market Day multiplier.
+func market_base_price(crop_id: String) -> int:
+	return maxi(0, int(farm_market_prices.get("prices", {}).get(crop_id, 0)))
+
+
 ## What the market pays for one of these. Zero for a crop it has never heard
 ## of -- a retired crop sells for nothing rather than crashing the till.
+## Doubles on Market Day (Saturday) for the week's announced dear produce.
 func market_price(crop_id: String) -> int:
-	return maxi(0, int(farm_market_prices.get("prices", {}).get(crop_id, 0)))
+	var base := market_base_price(crop_id)
+	var m_day: int = int(farm_market_day.get("market_weekday", 6))
+	var dt := GameClock.now_datetime()
+	if int(dt.get("weekday", 0)) == m_day:
+		var rot: Array = farm_market_day.get("rotation", [])
+		if not rot.is_empty():
+			var t := GameClock.now_unix()
+			var days := int(t / 86400)
+			var weekday := (days + 4) % 7
+			var w := int((days - weekday) / 7)
+			var dear: String = str(rot[posmod(w, rot.size())])
+			if crop_id == dear:
+				return base * int(farm_market_day.get("multiplier", 2))
+	return base
 
 
 ## The shop's row for this crop, or {} if it is not on the shelf.

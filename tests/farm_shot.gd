@@ -77,6 +77,9 @@ func _ready() -> void:
 	var shot_hour := OS.get_environment("SHOT_HOUR")
 	if shot_hour != "":
 		shot_now = NOON + (int(shot_hour) - 12) * 3600
+	var shot_day_offset := OS.get_environment("SHOT_DAY_OFFSET")
+	if shot_day_offset != "":
+		shot_now += int(shot_day_offset) * 86400
 	GameClock.set_test_now(shot_now, 0)
 	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
@@ -174,7 +177,7 @@ func _ready() -> void:
 			# The sell decision with numbers on it: three kinds of crop on the
 			# shelf, each chip naming its unit price, and three carrots boxed
 			# out of twelve -- the row under the crate is the "keep nine" half.
-			farm["warehouse"] = {"carrot": 12, "strawberry": 6, "tomato": 3}
+			farm["warehouse"] = {"carrot": 12, "strawberry": 6, "tomato": 3, "pumpkin": 4}
 		if what == "kitchen":
 			# 五级农场，两道会做的菜：汤下得了锅（草莓正好），炖菜还缺
 			# 番茄，架上还有一份昨天的汤——面板的三种状态一屏看全。

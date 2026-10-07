@@ -107,6 +107,7 @@ func _ready() -> void:
 	_the_day_and_night_cycle_and_dew_work()
 	_the_pond_fishing_and_ducklings_work()
 	_the_dog_grows_tricks_and_daily_dig_work()
+	_the_market_day_announcement_and_price_doubling_work()
 	_two_tablets_agree_about_the_bear()
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
@@ -2184,6 +2185,76 @@ func _the_dog_grows_tricks_and_daily_dig_work() -> void:
 	var tomorrow := GameClock.now_unix() + 86400
 	GameClock.set_test_now(tomorrow, 0)
 	_ok(DogManager.can_dig_today(farm), "new day allows digging again")
+	GameClock.clear_test_now()
+
+
+func _the_market_day_announcement_and_price_doubling_work() -> void:
+	_fresh_save()
+	var MarketDay := preload("res://scripts/garden/farm_market_day_manager.gd")
+	var Market := preload("res://scripts/garden/farm_market_manager.gd")
+
+	# 1. Configuration & defaults
+	_ok(MarketDay.announce_weekday() == 5, "announce weekday is Friday (5)")
+	_ok(MarketDay.market_weekday() == 6, "market weekday is Saturday (6)")
+	_ok(MarketDay.multiplier() == 2, "market day multiplier is 2x")
+	_ok(MarketDay.rotation().size() >= 8, "rotation has sufficient produce entries")
+
+	# NOON is Tuesday (weekday 2): 1699963200 (2023-11-14 12:00:00 UTC)
+	GameClock.set_test_now(NOON, 0)
+	_ok(MarketDay.current_weekday() == 2, "NOON is Tuesday (weekday 2)")
+	_ok(not MarketDay.is_announce_day(), "Tuesday is not announce day")
+	_ok(not MarketDay.is_market_day(), "Tuesday is not market day")
+
+	# Base prices on Tuesday
+	var dear_crop := MarketDay.current_dear_produce()
+	var base_price := GameData.market_base_price(dear_crop)
+	_ok(base_price > 0, "base price for %s is positive (%d)" % [dear_crop, base_price])
+	_ok(GameData.market_price(dear_crop) == base_price, "Tuesday pays base price")
+	_ok(not MarketDay.is_doubled(dear_crop), "%s is not doubled on Tuesday" % dear_crop)
+
+	# 2. Friday (Announce Day): NOON + 3 days
+	var friday := NOON + 3 * 86400
+	GameClock.set_test_now(friday, 0)
+	_ok(MarketDay.current_weekday() == 5, "Friday is weekday 5")
+	_ok(MarketDay.is_announce_day(), "Friday is announce day")
+	_ok(not MarketDay.is_market_day(), "Friday is not market day yet")
+	_ok(MarketDay.current_dear_produce() == dear_crop, "Friday announces the same dear produce: %s" % dear_crop)
+	_ok(GameData.market_price(dear_crop) == base_price, "Friday price is not doubled yet (teaching planning)")
+
+	# 3. Saturday (Market Day): NOON + 4 days
+	var saturday := NOON + 4 * 86400
+	GameClock.set_test_now(saturday, 0)
+	_ok(MarketDay.current_weekday() == 6, "Saturday is weekday 6")
+	_ok(not MarketDay.is_announce_day(), "Saturday is not announce day")
+	_ok(MarketDay.is_market_day(), "Saturday is market day!")
+	_ok(MarketDay.current_dear_produce() == dear_crop, "Saturday features the announced dear produce: %s" % dear_crop)
+	_ok(MarketDay.is_doubled(dear_crop), "%s is doubled on Saturday" % dear_crop)
+	_ok(GameData.market_price(dear_crop) == base_price * 2,
+		"Saturday market price for %s is exactly doubled (%d -> %d)" % [dear_crop, base_price, base_price * 2])
+
+	# Non-dear produce remains at base price on Saturday
+	var other_crop := "strawberry" if dear_crop != "strawberry" else "carrot"
+	_ok(GameData.market_price(other_crop) == GameData.market_base_price(other_crop),
+		"non-dear produce %s remains at base price" % other_crop)
+
+	# 4. Market.quote() and Market.sell() pay the doubled price
+	Barn.put(dear_crop, 5)
+	var quote := Market.quote({dear_crop: 5})
+	_ok(quote == 5 * base_price * 2, "quote for 5 %s is doubled: %d" % [dear_crop, quote])
+	var before_coins := Coins.balance()
+	var sold_amount := Market.sell({dear_crop: 5})
+	_ok(sold_amount == quote, "sold amount matches doubled quote")
+	_ok(Coins.balance() == before_coins + sold_amount, "coins received match doubled price")
+	_ok(Barn.count(dear_crop) == 0, "barn deducted sold crops correctly")
+
+	# 5. Sunday (Next week): NOON + 5 days
+	var sunday := NOON + 5 * 86400
+	GameClock.set_test_now(sunday, 0)
+	_ok(MarketDay.current_weekday() == 0, "Sunday is weekday 0")
+	_ok(not MarketDay.is_market_day(), "Sunday is not market day")
+	_ok(GameData.market_price(dear_crop) == base_price, "Sunday price returns to normal")
+
+	# Clean up clock
 	GameClock.clear_test_now()
 
 

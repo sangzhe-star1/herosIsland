@@ -1,0 +1,19 @@
+{
+  "_comment": "每周集市日设定。周五预告明日特价，周六特价翻倍。确定性轮换，教规划不教赌博。",
+  "announce_weekday": 5,
+  "market_weekday": 6,
+  "multiplier": 2,
+  "rotation": [
+    "carrot",
+    "strawberry",
+    "tomato",
+    "corn",
+    "potato",
+    "pumpkin",
+    "egg",
+    "wheat",
+    "milk",
+    "honey",
+    "fish"
+  ]
+}

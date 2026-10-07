@@ -3,6 +3,7 @@ extends "res://scripts/garden/panels/farm_panel_base.gd"
 
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Market := preload("res://scripts/garden/farm_market_manager.gd")
+const MarketDay := preload("res://scripts/garden/farm_market_day_manager.gd")
 const DragField := preload("res://scripts/shared/drag_field.gd")
 const Shapes := preload("res://scripts/world/shapes.gd")
 
@@ -42,6 +43,16 @@ func build(view: Vector2) -> void:
 	shelf_title.size = Vector2(210.0, 30.0)
 	shelf_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	play.add_child(shelf_title)
+
+	if MarketDay.is_market_day():
+		var dear_id := MarketDay.current_dear_produce()
+		var dear_name := MarketDay.crop_display_name(dear_id)
+		var banner := UiKit.title(I18n.t("market.day_active_short") % dear_name, 15, Color(0.85, 0.46, 0.10))
+		banner.name = "MarketDayShelfBanner"
+		banner.position = origin + Vector2(200.0, 78.0)
+		banner.size = Vector2(220.0, 26.0)
+		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		play.add_child(banner)
 
 	var box_title := UiKit.title(I18n.t("garden.market.box"), 21)
 	box_title.position = origin + Vector2(458.0, 75.0)
@@ -106,12 +117,21 @@ func build(view: Vector2) -> void:
 			coin_glyph.position = Vector2(0.0, 12.0)
 			coin_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			chip.add_child(coin_glyph)
-		var unit := UiKit.title(str(GameData.market_price(crop_id)), 17)
+		var is_dear := MarketDay.is_doubled(crop_id)
+		var unit := UiKit.title(str(GameData.market_price(crop_id)), 17,
+			Color(0.85, 0.45, 0.10) if is_dear else Color(0.25, 0.22, 0.18))
 		unit.name = "UnitPrice_%s" % crop_id
 		unit.position = Vector2(18.0, 8.0)
 		unit.size = Vector2(28.0, 22.0)
 		unit.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(unit)
+		if is_dear:
+			var tag_x2 := UiKit.title("x2", 12, Color(0.85, 0.45, 0.10))
+			tag_x2.name = "DoubleTag_%s" % crop_id
+			tag_x2.position = Vector2(20.0, -28.0)
+			tag_x2.size = Vector2(24.0, 16.0)
+			tag_x2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			chip.add_child(tag_x2)
 		var market_item := market_field.add_item(chip, chip.position, crop_id)
 		if boxed > 0:
 			market_item["placed"] = true

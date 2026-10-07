@@ -127,7 +127,7 @@ is involved, and the two screenshots.
 | 3 | **Day and night.** The clock exists. Evening tint, fireflies over the pond, lanterns on the buildings; crops do not grow slower, this is scenery, not pressure. Morning dew waters every bed once. | GameClock, dressing life | tint layer, 2 life kinds | **Done 7 Oct** |
 | 4 | **The pond.** Fish ripple on a timer; tap when the ring closes. Fish is produce for the market and a soup; the duck gets ducklings that follow her after five fish. No luck involved: the ring always closes the same way. | pond prop, scenery life, produce path | fishing ring, fish toy, ducklings | **Done 7 Oct** |
 | 5 | **The dog grows.** Fetch count unlocks tricks (sit, roll, carry the basket). He digs at one marked spot a day and finds a seed, never coins and never a surprise box. Dog state stays off the save except the trick list. | `farm_dog.json`, fetch | dig spot, 2 poses | **Done 7 Oct** |
-| 6 | **Market day.** Once a week the board announces tomorrow's dear produce; prices for that one item double for the day. Announced ahead, so it teaches planning, not gambling. | market prices, visit board, GameClock | one board card, price rule |
+| 6 | **Market day.** Once a week the board announces tomorrow's dear produce; prices for that one item double for the day. Announced ahead, so it teaches planning, not gambling. | market prices, visit board, GameClock | one board card, price rule | **Done 7 Oct** |
 | 7 | **The bear comes back.** After the child helps on the bear's farm, the bear visits and waters a thirsty bed; a gift basket can be sent through the door. | bear farm, visitors, cloud's care path | bear walk, gift panel |
 
 Rules that hold for all of it: star coins only, nothing bought with real

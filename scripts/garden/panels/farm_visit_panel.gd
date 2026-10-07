@@ -2,6 +2,7 @@ extends "res://scripts/garden/panels/farm_panel_base.gd"
 ## Visitor board sheet: today's guest craving and past visitor logs.
 
 const VisitorManager := preload("res://scripts/garden/farm_visitor_manager.gd")
+const MarketDay := preload("res://scripts/garden/farm_market_day_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
@@ -9,7 +10,7 @@ const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
 func build(view: Vector2) -> void:
 	var wide := 640.0
-	var tall := 470.0
+	var tall := 510.0
 	var origin: Vector2 = screen.call("_panel_sheet", view, "garden.visit_title", wide, tall)
 	var farm: Dictionary = screen.call("_farm")
 	var log: Array = farm.get("visit_log", [])
@@ -108,9 +109,86 @@ func build(view: Vector2) -> void:
 				screen.call("_open_panel", "kitchen"))
 			play.add_child(cook_btn)
 
-		y += 108.0
+		y += 104.0
 
-	# 2. Historical Visit Logs
+	# 2. Market Day Card
+	var is_ann := MarketDay.is_announce_day()
+	var is_mkt := MarketDay.is_market_day()
+	var dear_crop := MarketDay.current_dear_produce()
+	var dear_crop_name := MarketDay.crop_display_name(dear_crop)
+
+	var market_card := Panel.new()
+	market_card.name = "MarketDayCard"
+	var card_bg: Color
+	if is_mkt:
+		card_bg = Color(1.0, 0.95, 0.86)
+	elif is_ann:
+		card_bg = Color(0.99, 0.96, 0.90)
+	else:
+		card_bg = Color(0.96, 0.97, 0.95)
+	market_card.add_theme_stylebox_override("panel", UiKit.panel_style(card_bg, 18))
+	market_card.position = Vector2(origin.x + 20.0, y)
+	market_card.custom_minimum_size = Vector2(wide - 40.0, 76.0)
+	market_card.size = Vector2(wide - 40.0, 76.0)
+	play.add_child(market_card)
+
+	var icon_node: Control = null
+	if is_ann or is_mkt:
+		icon_node = HarvestArt.prop_badge(dear_crop, 52.0, "MarketDayCropBadge")
+		if icon_node == null:
+			icon_node = UiKit.picture(MarketDay.crop_icon(dear_crop), 52.0)
+	else:
+		icon_node = UiKit.picture("star_coin", 46.0)
+	if icon_node != null:
+		icon_node.position = market_card.position + Vector2(16.0, 12.0)
+		play.add_child(icon_node)
+
+	var card_title_text := ""
+	var card_title_color := Color(0.35, 0.28, 0.18)
+	var card_desc_text := ""
+	if is_mkt:
+		card_title_text = "%s · %s" % [I18n.t("market.day_title"), I18n.t("market.day_active_tag")]
+		card_title_color = Color(0.82, 0.46, 0.10)
+		card_desc_text = I18n.t("market.day_active") % [dear_crop_name, I18n.t("market.double_tag")]
+	elif is_ann:
+		card_title_text = "%s · %s" % [I18n.t("market.day_title"), I18n.t("market.day_announce_tag")]
+		card_title_color = Color(0.75, 0.45, 0.12)
+		card_desc_text = I18n.t("market.day_announce") % [dear_crop_name, I18n.t("market.double_tag")]
+	else:
+		card_title_text = I18n.t("market.day_title")
+		card_desc_text = I18n.t("market.day_regular")
+
+	var mkt_header := UiKit.title(card_title_text, 17, card_title_color)
+	mkt_header.position = market_card.position + Vector2(86.0, 12.0)
+	mkt_header.size = Vector2(340.0, 24.0)
+	mkt_header.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	play.add_child(mkt_header)
+
+	var mkt_desc := UiKit.title(card_desc_text, 15, Color(0.48, 0.42, 0.32))
+	mkt_desc.name = "MarketDayDescription"
+	mkt_desc.position = market_card.position + Vector2(86.0, 38.0)
+	mkt_desc.size = Vector2(360.0, 24.0)
+	mkt_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	play.add_child(mkt_desc)
+
+	if is_mkt:
+		var go_btn := chip_button(I18n.t("market.go_market"), Color(1.0, 0.88, 0.55), Vector2(110.0, 46.0))
+		go_btn.name = "GoMarketButton"
+		go_btn.position = market_card.position + Vector2(market_card.size.x - 124.0, 15.0)
+		go_btn.pressed.connect(func():
+			AudioManager.play_sfx("res://assets/audio/pop.ogg")
+			screen.call("_open_panel", "market"))
+		play.add_child(go_btn)
+	elif is_ann:
+		var tag_badge := UiKit.title(I18n.t("market.double_tag"), 16, Color(0.82, 0.45, 0.10))
+		tag_badge.position = market_card.position + Vector2(market_card.size.x - 120.0, 26.0)
+		tag_badge.size = Vector2(100.0, 24.0)
+		tag_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		play.add_child(tag_badge)
+
+	y += 86.0
+
+	# 3. Historical Visit Logs
 	if log.is_empty():
 		var empty_line := UiKit.title(I18n.t("garden.visit_empty"), 20, Color(0.55, 0.50, 0.42))
 		empty_line.position = Vector2(origin.x + 30.0, y + 40.0)
