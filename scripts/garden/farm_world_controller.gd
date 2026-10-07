@@ -68,10 +68,13 @@ const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Coop := preload("res://scripts/garden/farm_coop_manager.gd")
+const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
 const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Dog := preload("res://scripts/garden/farm_dog_controller.gd")
+const VisitorActor := preload("res://scripts/garden/farm_visitor_actor.gd")
+const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const FarmWorldArt := preload("res://scripts/garden/farm_world_art.gd")
 
@@ -129,6 +132,8 @@ var _beds: Array = []          # PlotView, one per bed in the save
 ## The guard dog. Lives in the world so he moves with the ground; takes no
 ## input, keeps his distance, stores nothing.
 var _dog: Dog
+var _visitor: Node2D
+var _tint_layer: ColorRect
 ## What the town looked like when it was last drawn: the bear door's
 ## presence, the farm level (which decides how the orchard corner is drawn),
 ## and how many beds stand. refresh() compares this against the save so a
@@ -197,6 +202,18 @@ func build(view: Vector2, top_bar: float, shelf: float, plots: Array) -> void:
 	_dog = Dog.new()
 	add_child(_dog)
 
+	_visitor = VisitorActor.new()
+	_visitor.name = "FarmVisitor"
+	add_child(_visitor)
+
+	_tint_layer = ColorRect.new()
+	_tint_layer.name = "DayNightTint"
+	_tint_layer.size = Layout.world_size()
+	_tint_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tint_layer.z_index = 2
+	_tint_layer.color = DayCycle.current_tint_color()
+	add_child(_tint_layer)
+
 	# This layer has no Controls that can catch a press and no collision shapes.
 	# It follows the farm like a building, but lies above it so a delivery flag
 	# remains visible when a rooftop redraw happens underneath.
@@ -236,6 +253,10 @@ func refresh(plots: Array) -> void:
 	if _dog != null and is_instance_valid(_dog):
 		_dog.retarget(plots, bool(SaveManager.data.get("farm", {})
 			.get("visit_log_unread", false)))
+	if _visitor != null and is_instance_valid(_visitor):
+		_visitor.setup(SaveManager.data.get("farm", {}))
+	if _tint_layer != null and is_instance_valid(_tint_layer):
+		_tint_layer.color = DayCycle.current_tint_color()
 	# The town redraws when -- and only when -- something about it changed:
 	# the bear's door appearing after the first paid harvest, the orchard
 	# corner building up at a new farm level, stones leaving cleared land.
@@ -543,6 +564,10 @@ func _draw_buildings() -> void:
 			_dress_coop(hut, box)
 		if facility_id == "mill" and not locked_here:
 			_dress_mill(hut, box)
+		if facility_id == "cow_shed" and not locked_here:
+			_dress_cow_shed(hut, box)
+		if facility_id == "beehive" and not locked_here:
+			_dress_beehive(hut, box)
 		var art := UiKit.picture(str(f.get("icon", "star")), art_size)
 		if art != null:
 			art.position = FarmWorldArt.facility_icon_anchor(box,
@@ -723,6 +748,36 @@ func _dress_mill(hut: Node2D, box: Vector2) -> void:
 			Vector2(-box.x * 0.26 + 26.0 * float(n), box.y * 0.44), "MillSack_%d" % n)
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hut.add_child(art)
+
+
+func _dress_cow_shed(hut: Node2D, box: Vector2) -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	if Pen.state(farm, Pen.COW_SHED, GameClock.now_unix()) != Pen.READY:
+		return
+	var milk := HarvestArt.prop_texture("milk")
+	if milk == null:
+		return
+	Shapes.glow(hut, Vector2(-box.x * 0.28, box.y * 0.36), 52.0,
+		Color(1.0, 0.94, 0.62), 4, 0.5)
+	var art := HarvestArt.grounded_sprite(milk, 22.0,
+		Vector2(-box.x * 0.30, box.y * 0.40), "CowShedMilk")
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hut.add_child(art)
+
+
+func _dress_beehive(hut: Node2D, box: Vector2) -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	if Pen.state(farm, Pen.BEEHIVE, GameClock.now_unix()) != Pen.READY:
+		return
+	var honey := HarvestArt.prop_texture("honey")
+	if honey == null:
+		return
+	Shapes.glow(hut, Vector2(-box.x * 0.25, box.y * 0.36), 50.0,
+		Color(1.0, 0.94, 0.62), 4, 0.5)
+	var art := HarvestArt.grounded_sprite(honey, 22.0,
+		Vector2(-box.x * 0.26, box.y * 0.40), "BeehiveHoney")
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hut.add_child(art)
 
 
 # --- the dog's stick ----------------------------------------------------------
@@ -1174,6 +1229,11 @@ func press_at(at: Vector2) -> void:
 	if _dog != null and is_instance_valid(_dog) and _dog.pet_at(at, camera):
 		_dog.pet()
 		return
+	if _visitor != null and is_instance_valid(_visitor) and _visitor.visible \
+			and bool(_visitor.call("is_hit", camera.screen_to_world(at))):
+		look_at_facility("visit_board")
+		facility_pressed.emit("visit_board")
+		return
 	var poked := poke_scenery_at(at)
 	if poked != "":
 		AudioManager.play_sfx("res://assets/audio/water.ogg" if poked == "duck"
@@ -1258,3 +1318,10 @@ func _process(delta: float) -> void:
 			and Juice.motion_enabled():
 		_cloud.position.x = _cloud_home.x + sin(_clock * 0.35) * 70.0
 		_cloud.position.y = _cloud_home.y + sin(_clock * 0.9) * 4.0
+	if _tint_layer != null and is_instance_valid(_tint_layer):
+		var target_tint := DayCycle.current_tint_color()
+		if _tint_layer.color != target_tint:
+			if Juice.motion_enabled():
+				_tint_layer.color = _tint_layer.color.lerp(target_tint, clampf(delta * 2.0, 0.0, 1.0))
+			else:
+				_tint_layer.color = target_tint

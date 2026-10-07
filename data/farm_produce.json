@@ -1,5 +1,5 @@
 {
-  "_comment": "Things the farm makes that are not grown in a bed: the hens' eggs. GameData.get_crop() answers for these too, so the barn, orders, recipes and market draw them like any crop; nothing plants them because no seed lists them.",
+  "_comment": "Things the farm makes that are not grown in a bed: the hens' eggs, mill flour, cow shed milk, and beehive honey. GameData.get_crop() answers for these too, so the barn, orders, recipes and market draw them like any crop; nothing plants them because no seed lists them.",
   "produce": [
     {
       "id": "egg",
@@ -12,6 +12,18 @@
       "name_key": "item.flour",
       "icon": "res://assets/harvest_3d/props/flour.png",
       "source": "mill"
+    },
+    {
+      "id": "milk",
+      "name_key": "item.milk",
+      "icon": "res://assets/harvest_3d/props/milk.png",
+      "source": "cow_shed"
+    },
+    {
+      "id": "honey",
+      "name_key": "item.honey",
+      "icon": "res://assets/harvest_3d/props/honey.png",
+      "source": "beehive"
     }
   ]
 }

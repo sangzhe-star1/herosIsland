@@ -1,0 +1,47 @@
+{
+  "_comment": "每日来访朋友与想吃的菜。绝非随机，日程公开在告示板上，教规划不教赌博。送出料理获得金币与友谊。",
+  "schedule": [
+    {
+      "day_of_week": 0,
+      "who": "robot",
+      "dish_id": "bread",
+      "reward_coins": 16
+    },
+    {
+      "day_of_week": 1,
+      "who": "rabbit",
+      "dish_id": "strawberry_soup",
+      "reward_coins": 12
+    },
+    {
+      "day_of_week": 2,
+      "who": "puppy",
+      "dish_id": "cheese_toast",
+      "reward_coins": 15
+    },
+    {
+      "day_of_week": 3,
+      "who": "bear",
+      "dish_id": "honey_cake",
+      "reward_coins": 18
+    },
+    {
+      "day_of_week": 4,
+      "who": "robot",
+      "dish_id": "egg_tart",
+      "reward_coins": 16
+    },
+    {
+      "day_of_week": 5,
+      "who": "rabbit",
+      "dish_id": "fruit_plate",
+      "reward_coins": 15
+    },
+    {
+      "day_of_week": 6,
+      "who": "puppy",
+      "dish_id": "corn_chowder",
+      "reward_coins": 14
+    }
+  ]
+}

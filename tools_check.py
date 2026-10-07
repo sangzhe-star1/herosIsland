@@ -1457,7 +1457,7 @@ if os.path.exists("data/farm_world_dressing.json") and os.path.exists("data/farm
     def _hits(ax, ay, aw, ah, bx, by, bw, bh):
         return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
     for _e in _dress.get("props", []):
-        if "at" not in _e or str(_e.get("life", "")) == "flutter":
+        if "at" not in _e or str(_e.get("life", "")) in ["flutter", "firefly"]:
             continue
         _r = float(_e.get("size", 60)) * 0.5
         _x, _y = _e["at"]

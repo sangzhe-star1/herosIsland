@@ -220,6 +220,8 @@ static func default_farm() -> Dictionary:
 		# every load -- the first cut stored them and watched a same-day
 		# reopen hand out the day's coins a second time.
 		"dailies": {"date": "", "progress": {}, "claimed": []},
+		# Morning dew date stamp: waters every bed once each morning.
+		"last_dew_date": "",
 	}
 
 

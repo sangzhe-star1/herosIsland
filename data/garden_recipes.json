@@ -194,5 +194,37 @@
         "count": 1
       }
     ]
+  },
+  {
+    "id": "cheese_toast",
+    "name_key": "recipe.cheese_toast",
+    "needs": [
+      {
+        "crop_id": "flour",
+        "count": 1
+      },
+      {
+        "crop_id": "milk",
+        "count": 1
+      }
+    ]
+  },
+  {
+    "id": "honey_cake",
+    "name_key": "recipe.honey_cake",
+    "needs": [
+      {
+        "crop_id": "flour",
+        "count": 1
+      },
+      {
+        "crop_id": "honey",
+        "count": 1
+      },
+      {
+        "crop_id": "egg",
+        "count": 1
+      }
+    ]
   }
 ]

@@ -208,6 +208,32 @@
       "level": 3,
       "icon": "res://assets/harvest_3d/props/flour.png",
       "art_width": 0.46
+    },
+    {
+      "id": "cow_shed",
+      "at": [
+        550,
+        80
+      ],
+      "size": [
+        180,
+        130
+      ],
+      "level": 6,
+      "icon": "res://assets/harvest_3d/props/milk.png"
+    },
+    {
+      "id": "beehive",
+      "at": [
+        100,
+        880
+      ],
+      "size": [
+        160,
+        120
+      ],
+      "level": 7,
+      "icon": "res://assets/harvest_3d/props/honey.png"
     }
   ]
 }

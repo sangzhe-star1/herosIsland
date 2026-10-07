@@ -276,6 +276,79 @@
    "flip": true,
    "life": "peck",
    "phase": 1.7
+  },
+  {
+   "id": "lantern",
+   "at": [
+    420,
+    290
+   ],
+   "size": 42,
+   "life": "lantern",
+   "phase": 0.2
+  },
+  {
+   "id": "lantern",
+   "at": [
+    310,
+    460
+   ],
+   "size": 42,
+   "life": "lantern",
+   "phase": 1.1
+  },
+  {
+   "id": "lantern",
+   "at": [
+    1750,
+    760
+   ],
+   "size": 42,
+   "life": "lantern",
+   "phase": 2.4
+  },
+  {
+   "id": "lantern",
+   "at": [
+    600,
+    240
+   ],
+   "size": 42,
+   "life": "lantern",
+   "phase": 3.0
+  },
+  {
+   "id": "firefly",
+   "at": [
+    1340,
+    580
+   ],
+   "size": 28,
+   "life": "firefly",
+   "phase": 0.5,
+   "speed": 0.9
+  },
+  {
+   "id": "firefly",
+   "at": [
+    1390,
+    630
+   ],
+   "size": 26,
+   "life": "firefly",
+   "phase": 1.8,
+   "speed": 1.2
+  },
+  {
+   "id": "firefly",
+   "at": [
+    1360,
+    660
+   ],
+   "size": 24,
+   "life": "firefly",
+   "phase": 3.1,
+   "speed": 0.8
   }
  ]
 }

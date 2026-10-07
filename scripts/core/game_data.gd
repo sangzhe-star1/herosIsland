@@ -53,6 +53,7 @@ var npc_farms: Dictionary = {}
 ## in strings.json; this file only says which icon goes with which line.
 var farm_visit_texts: Dictionary = {}
 var farm_visitor_milestones: Dictionary = {}
+var farm_visitor_schedule: Dictionary = {}
 ## The dog's numbers: speed, height, how far from a bed it sits.
 var farm_dog: Dictionary = {}
 ## Where the farm's extra scenery stands (windmill, pond, hens...); read by
@@ -101,6 +102,7 @@ func _ready() -> void:
 	npc_farms = _load_json("res://data/npc_farms.json", {})
 	farm_visit_texts = _load_json("res://data/farm_visit_texts.json", {})
 	farm_visitor_milestones = _load_json("res://data/farm_visitors.json", {})
+	farm_visitor_schedule = _load_json("res://data/farm_visitor_schedule.json", {})
 	farm_dog = _load_json("res://data/farm_dog.json", {})
 	farm_dressing = _load_json("res://data/farm_world_dressing.json", {})
 	farm_produce = _load_json("res://data/farm_produce.json", {})

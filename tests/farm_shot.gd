@@ -73,7 +73,11 @@ func _ready() -> void:
 		get_window().size = Vector2i(int(parts[0]), int(parts[1]))
 		await get_tree().process_frame
 
-	GameClock.set_test_now(NOON, 0)
+	var shot_now := NOON
+	var shot_hour := OS.get_environment("SHOT_HOUR")
+	if shot_hour != "":
+		shot_now = NOON + (int(shot_hour) - 12) * 3600
+	GameClock.set_test_now(shot_now, 0)
 	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 	SaveManager.load_game()
@@ -421,7 +425,10 @@ func _ready() -> void:
 		await get_tree().process_frame
 	var focus_facility := OS.get_environment("SHOT_FOCUS_FACILITY")
 	if focus_facility != "" and what != "bear" and what != "home":
-		(scene.get("_world") as Node).call("look_at_facility", focus_facility)
+		if focus_facility == "pond":
+			(scene.get("_world") as Node).call("look_at_world", Vector2(1362, 612))
+		else:
+			(scene.get("_world") as Node).call("look_at_facility", focus_facility)
 		await get_tree().process_frame
 	print("FarmShot options reduce_motion=", SaveManager.get_setting("reduce_motion", false),
 		" focus_facility=", focus_facility)

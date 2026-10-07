@@ -5,6 +5,8 @@ extends Node2D
 ## nothing reads the save, and everything holds still under reduced motion.
 ## FarmWorldArt registers each moving sprite with the kind of life it has.
 
+const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
+
 var _alive: Array = []        # [{sprite, kind, base, phase, speed, path, t}]
 var _t := 0.0
 const GREETING_SECONDS := 0.9
@@ -105,12 +107,12 @@ func _process(delta: float) -> void:
 			life["hop"] = 0.0
 			continue
 		var base: Vector2 = life["base"]
+		var base_scale: Vector2 = life["base_scale"]
 		var phase: float = life["phase"]
 		var hop := 0.0
 		if float(life.get("hop", 0.0)) > 0.0:
 			life["hop"] = float(life["hop"]) - delta
 			hop = sin(clampf(float(life["hop"]) / 0.5, 0.0, 1.0) * PI) * 14.0
-			var base_scale: Vector2 = life["base_scale"]
 			sprite.scale = base_scale * (1.0 + hop / 100.0)
 		match str(life["kind"]):
 			"spin":
@@ -130,6 +132,35 @@ func _process(delta: float) -> void:
 				sprite.scale.y *= 1.0 + sin(_t * 1.8 + phase) * 0.012
 				sprite.rotation += sin(_t * 2.4) * hop * 0.006
 				sprite.position.y = base.y - hop * 0.45
+			"lantern":
+				var flicker := 0.97 + 0.03 * sin(_t * 4.6 + phase) + 0.015 * cos(_t * 7.2 + phase)
+				sprite.scale = base_scale * (flicker + hop / 100.0)
+				var nf := DayCycle.current_night_factor()
+				sprite.modulate = Color(1.0 + 0.15 * nf, 1.0 + 0.12 * nf, 0.95 + 0.05 * nf, 1.0)
+			"firefly":
+				_firefly(life, sprite, delta)
+
+
+func _firefly(life: Dictionary, sprite: Control, delta: float) -> void:
+	var nf := DayCycle.current_night_factor()
+	var visibility := clampf(nf * 1.25, 0.05, 1.0)
+	var phase: float = life["phase"]
+	var blink := 0.2 + 0.8 * pow(maxf(0.0, sin(_t * 2.5 + phase)), 2.0)
+	sprite.modulate.a = visibility * blink
+
+	var path: Array = life.get("path", [])
+	if path.size() >= 2:
+		_flutter(life, sprite, delta)
+	else:
+		var base: Vector2 = life["base"]
+		var speed: float = life.get("speed", 1.0)
+		var offset := Vector2(
+			cos(_t * 1.2 * speed + phase) * 28.0 + sin(_t * 0.6 * speed) * 14.0,
+			sin(_t * 1.7 * speed + phase) * 18.0 + cos(_t * 0.8 * speed) * 10.0
+		)
+		var holder := sprite.get_parent() as Node2D
+		var origin := holder.position if holder != null else Vector2.ZERO
+		sprite.position = base + offset - origin - sprite.pivot_offset
 
 
 func _flutter(life: Dictionary, sprite: Control, delta: float) -> void:

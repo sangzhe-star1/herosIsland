@@ -54,5 +54,21 @@
       "key": "garden.visit_rabbit_6",
       "gift": {"coins": 15}
     }
+  ],
+  "robot": [
+    {
+      "id": "robot_3",
+      "at_visits": 3,
+      "icon": "star_coin",
+      "key": "garden.visit_robot_3",
+      "gift": {"coins": 15}
+    },
+    {
+      "id": "robot_6",
+      "at_visits": 6,
+      "icon": "plank",
+      "key": "garden.visit_robot_6",
+      "gift": {"plank": 1}
+    }
   ]
 }

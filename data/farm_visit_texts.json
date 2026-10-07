@@ -80,5 +80,27 @@
         "key": "garden.visit_got_star"
       }
     ]
+  },
+  "robot": {
+    "lines": [
+      {
+        "icon": "robot",
+        "key": "garden.visit_robot_came"
+      },
+      {
+        "icon": "star",
+        "key": "garden.visit_star"
+      }
+    ],
+    "visited_lines": [
+      {
+        "icon": "robot",
+        "key": "garden.visit_robot_came"
+      },
+      {
+        "icon": "star",
+        "key": "garden.visit_got_star"
+      }
+    ]
   }
 }

@@ -105,26 +105,28 @@ static func cook(recipe_id: String) -> bool:
 	return true
 
 
-## Give one cooked dish to the bear: the dish leaves, the friendship grows by
-## one star, and the visit board gets an amber thank-you entry. kind="thanks"
-## keeps it clear of the visit templates -- the milestone rendering path
-## carries its one warm line.
-static func give_to_bear(recipe_id: String) -> bool:
+## Give one cooked dish to a friend: the dish leaves, the friendship grows by
+## one star, and the visit board gets an amber thank-you entry.
+static func give_to_friend(who: String, recipe_id: String) -> bool:
 	if not Barn.take(dish_id(recipe_id), 1, "inventory"):
 		return false
 	var farm: Dictionary = SaveManager.data["farm"]
 	var friends: Dictionary = farm.get("npc_friendship", {})
-	friends["bear"] = int(friends.get("bear", 0)) + 1
+	friends[who] = int(friends.get(who, 0)) + 1
 	farm["npc_friendship"] = friends
 	var name_key := ""
 	for row in all():
 		if str(row.get("id", "")) == recipe_id:
 			name_key = str(row.get("name_key", ""))
 	Farm.remember_visit(farm, {
-		"who": "bear", "kind": "thanks", "at": GameClock.now_unix(),
+		"who": who, "kind": "thanks", "at": GameClock.now_unix(),
 		"dish_name_key": name_key,
 		"milestone_key": "garden.dish_thanks",
 		"milestone_icon": "dish",
 	})
 	SaveManager.save_game()
 	return true
+
+
+static func give_to_bear(recipe_id: String) -> bool:
+	return give_to_friend("bear", recipe_id)

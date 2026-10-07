@@ -106,7 +106,7 @@ static func _add_dressing_props(layer: Node2D, protected: Array[Rect2]) -> void:
 			host.get_parent().add_child(sprite)
 		else:
 			var at := Vector2(float(entry["at"][0]), float(entry["at"][1]))
-			var floats := str(entry.get("life", "")) == "flutter"
+			var floats := str(entry.get("life", "")) in ["flutter", "firefly"]
 			if not floats and not _clear_of_targets(at, size * 0.5, protected):
 				continue
 			sprite = _prop(layer, id, at, size)

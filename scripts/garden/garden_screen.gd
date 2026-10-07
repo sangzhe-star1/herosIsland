@@ -43,13 +43,23 @@ const Market := preload("res://scripts/garden/farm_market_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
+const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
 const Coop := preload("res://scripts/garden/farm_coop_manager.gd")
+const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
 const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
+const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
+const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
+const FarmMarketPanel := preload("res://scripts/garden/panels/farm_market_panel.gd")
+const FarmBarnPanel := preload("res://scripts/garden/panels/farm_barn_panel.gd")
+const FarmVisitPanel := preload("res://scripts/garden/panels/farm_visit_panel.gd")
+const FarmRecipesPanel := preload("res://scripts/garden/panels/farm_recipes_panel.gd")
+const FarmKitchenPanel := preload("res://scripts/garden/panels/farm_kitchen_panel.gd")
+const FarmChallengePanel := preload("res://scripts/garden/panels/farm_challenge_panel.gd")
 
 ## WHERE THE BEDS ARE IS NO LONGER THIS FILE'S BUSINESS
 ##
@@ -300,6 +310,7 @@ func setup_level() -> void:
 	# and the garden's quiet clock (GARDEN_TICK) keeps it caught up from here
 	# on -- nothing accumulates frame by frame, the clock is only re-asked.
 	SaveManager.settle_farm()
+	var dew: Dictionary = DayCycle.check_morning_dew(SaveManager.data.get("farm", {}))
 	# Today's little jobs, rolled against today's date. A list from yesterday
 	# rolls over silently here -- nothing is lost, nothing nags; see
 	# farm_daily_manager.gd for why the date lives inside the claim keys.
@@ -318,6 +329,8 @@ func setup_level() -> void:
 	SaveManager.save_game()
 	if not visit.is_empty():
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+	elif bool(dew.get("applied", false)) and int(dew.get("watered_count", 0)) > 0:
+		AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
 	build_world(self, 0.42)
 	_rebuild()
 	# App resume settles the save before this signal. The settlement may
@@ -594,7 +607,7 @@ func _inventory_surface(inset: bool = false, selected: bool = false) -> StyleBox
 func _crop_picture(crop_id: String, box: float,
 		node_name: String = "GardenCropPicture", golden: bool = false) -> Control:
 	var art: Control
-	if crop_id in ["egg", "flour"]:
+	if crop_id in ["egg", "flour", "milk", "honey"]:
 		art = HarvestArt.prop_badge(crop_id, box, node_name)
 	else:
 		if golden:
@@ -1058,6 +1071,10 @@ func _tap_building(id: String) -> void:
 			_tap_coop()
 		"mill":
 			_tap_mill()
+		"cow_shed":
+			_tap_pen("cow_shed")
+		"beehive":
+			_tap_pen("beehive")
 		"workshop":
 			# 5 级前它画成圈好的地，点了轻响就够——没有锁，只有还没长到。
 			if Level.level() >= int(Layout.facility("workshop").get("level", 5)):
@@ -1161,6 +1178,50 @@ func _tap_mill() -> void:
 			else:
 				AudioManager.play_sfx("res://assets/audio/pop.ogg")
 				_float_want(at, str(GameData.get_crop(str(Maker.MILL["input"])).get("icon", "seed")))
+
+
+## Data-driven pen taps: cow shed (wheat -> milk), beehive (strawberry -> honey),
+## and any future facilities following the pen protocol.
+func _tap_pen(facility_id: String) -> void:
+	var spec := Pen.spec_for(facility_id)
+	if spec.is_empty():
+		return
+	var farm := _farm()
+	var needed_level := int(Layout.facility(facility_id).get("level", 1))
+	if Level.level() < needed_level:
+		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+		return
+	var now := GameClock.now_unix()
+	var at: Vector2 = _world.facility_screen_position(facility_id) \
+		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
+	match Pen.state(farm, spec, now):
+		Pen.READY:
+			var receipt := Pen.collect(farm, spec)
+			SaveManager.save_game()
+			AudioManager.play_sfx("res://assets/audio/found.ogg")
+			AudioManager.say(str(spec.get("voice_collect", "farm_coop_eggs")))
+			var stored := int(receipt.get("stored", 0))
+			var spilled := int(receipt.get("spilled", 0))
+			if stored > 0:
+				_spawn_harvest_flight(-1, receipt, stored, _barn_button_at,
+					"warehouse", "HarvestFlight", at + Vector2(0, -20))
+			if spilled > 0:
+				_spawn_harvest_flight(-1, receipt, spilled, _spill_flight_destination(),
+					"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
+			_harvested_something = true
+			_queue_rebuild()
+		Pen.PRODUCING:
+			AudioManager.play_sfx("res://assets/audio/correct.ogg")
+			_show_coop_ring(at, Pen.progress(farm, spec, now))
+		_:
+			if Pen.feed(farm, spec, now):
+				SaveManager.save_game()
+				AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+				AudioManager.say(str(spec.get("voice_feed", "farm_coop_feed")))
+				_queue_rebuild()
+			else:
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+				_float_want(at, str(GameData.get_crop(str(spec.get("feed_crop", ""))).get("icon", "seed")))
 
 
 ## The rain cloud he dragged over a thirsty bed let go: the bed drinks by
@@ -2664,221 +2725,7 @@ func _spill_flight_destination() -> Vector2:
 ## Who needs a hand today. Three cards, each one a picture of somebody, what
 ## they want, and what they will give for it.
 func _order_board(view: Vector2) -> void:
-	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
-	var board := _orders_for_board(delivered)
-	var at := _order_board_origin()
-
-	# The board used to live in the right third of the screen, permanently. It
-	# cannot any more: that third is farm now, and a panel nailed over it would
-	# hide the market and the order board's own building. So it opens when he
-	# walks up to the board and closes when he is done -- which is also how a
-	# real notice board works, and one fewer thing on screen the rest of the time.
-	var sheet := Panel.new()
-	sheet.add_theme_stylebox_override("panel",
-		UiKit.panel_style(Color(0.99, 0.97, 0.90), 28))
-	# A margin the heading can breathe in: twenty-eight all round, so the
-	# title is not wedged against the paper's edge and the close button does
-	# not sit on the cards' shoulder.
-	sheet.position = at - Vector2(28, 20)
-	sheet.custom_minimum_size = Vector2(ORDER_CARD.x + 56.0,
-		ORDER_FIRST + ORDER_GAP * float(maxi(board.size(), 1)) + 82.0)
-	sheet.size = sheet.custom_minimum_size
-	_play.add_child(sheet)
-	if _world != null and is_instance_valid(_world):
-		# The board stands over the beds. A press on one of its cards must not
-		# ALSO till the bed behind the card -- see FarmWorld.blockers.
-		_world.add_blocker(sheet)
-
-	# The way out, in the corner a back button is always in, and big enough for
-	# a thumb. Closing is never refused and never asks anything.
-	_sheet_close(sheet.position + Vector2(sheet.size.x + 14.0, 0.0),
-		_close_orders)
-
-	var heading := UiKit.title_on_art(I18n.t("garden.orders"), 30)
-	heading.position = at
-	heading.size = Vector2(400, 40)
-	_play.add_child(heading)
-
-	var y := at.y + ORDER_FIRST
-	for order in board:
-		var order_id := str(order.get("id", ""))
-		var done: bool = order_id in delivered
-		var wants: Dictionary = order.get("requirements", {})
-		var can: bool = Barn.can_pay(wants)
-
-		var card := Button.new()
-		card.name = "OrderCard_%s" % order_id
-		card.flat = false
-		card.focus_mode = Control.FOCUS_NONE
-		card.position = Vector2(at.x, y)
-		card.custom_minimum_size = ORDER_CARD
-		card.size = ORDER_CARD
-		var tint := Color(0.90, 0.92, 0.88) if done \
-			else (Color(1.0, 0.99, 0.94) if can else Color(0.98, 0.97, 0.92))
-		# "disabled" is in the list on purpose: a Button with no disabled
-		# look falls back to Godot's own dark grey, and every card on the
-		# opening board came out that grey.
-		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-			card.add_theme_stylebox_override(state, UiKit.panel_style(tint, 22))
-		_play.add_child(card)
-		# Every card answers a press. A card he cannot fill yet used to be a
-		# disabled Button -- no sound, no motion -- three cards on a board
-		# and a tap that did nothing. _deliver keeps the money honest (it
-		# refuses a repeat and refuses a short barn), so the card is free to
-		# say something: a small shrug for "not yet", a small nod for "done".
-		if not done and can:
-			card.pressed.connect(func(): _deliver(order))
-			UiKit.breathe(card, 0.02, 1.4)
-		else:
-			var this_card: Button = card
-			card.pressed.connect(func():
-				AudioManager.play_sfx("res://assets/audio/pop.ogg")
-				if done:
-					Juice.pop(this_card, 0.04)
-				else:
-					Juice.nudge(this_card, 8.0))
-
-		var has_purpose := not str(order.get("purpose_key", "")).is_empty()
-		var detail_nodes: Array[Control] = []
-		var detail_lift := -8.0 if has_purpose else 0.0
-		var who := _order_customer_art(order, 44.0)
-		if who != null:
-			who.position = Vector2(at.x + 16.0, y + 14.0 + detail_lift)
-			who.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_play.add_child(who)
-			detail_nodes.append(who)
-
-		# What they want, as pictures and numbers. No sentence to read.
-		var x := at.x + 86.0
-		for crop_id in wants.keys():
-			var art := _crop_picture(str(crop_id), 34.0)
-			if art != null:
-				art.position = Vector2(x, y + 16.0 + detail_lift)
-				art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				_play.add_child(art)
-				detail_nodes.append(art)
-			var need := int(wants[crop_id])
-			var have := Barn.count(str(crop_id))
-			var tally := UiKit.title("%d/%d" % [mini(have, need), need], 18)
-			tally.name = "OrderTally_%s_%s" % [order_id, crop_id]
-			tally.position = Vector2(x + 4.0, y + 48.0 + detail_lift)
-			tally.size = Vector2(60, 24)
-			tally.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_play.add_child(tally)
-			detail_nodes.append(tally)
-			x += 74.0
-
-		# The price, or a tick if it is already done.
-		if done:
-			var tick := UiKit.picture("check", 44.0)
-			if tick != null:
-				tick.position = Vector2(at.x + 310.0, y + 26.0)
-				tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				_play.add_child(tick)
-				detail_nodes.append(tick)
-		else:
-			var coin := UiKit.picture("star_coin", 28.0)
-			if coin != null:
-				coin.position = Vector2(at.x + 286.0, y + 14.0 + detail_lift)
-				coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				_play.add_child(coin)
-				detail_nodes.append(coin)
-			var price := UiKit.title(str(int(order.get("rewards", {}).get("coins", 0))), 22)
-			price.name = "OrderPrice_%s" % order_id
-			price.position = Vector2(at.x + 286.0, y + 44.0 + detail_lift)
-			price.size = Vector2(60, 26)
-			price.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_play.add_child(price)
-			detail_nodes.append(price)
-		if has_purpose:
-			card.tooltip_text = I18n.t(str(order["purpose_key"]))
-			var purpose := UiKit.title(I18n.t(str(order["purpose_key"])), 14,
-				Color(0.44, 0.40, 0.31))
-			purpose.name = "OrderPurpose_%s" % order_id
-			purpose.tooltip_text = I18n.t(str(order["purpose_key"]))
-			purpose.size = Vector2(ORDER_CARD.x - 32.0, 22.0)
-			purpose.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-			purpose.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-			purpose.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_play.add_child(purpose)
-			# Font fallbacks have different line heights. Measure the real label
-			# after it inherits the theme, then reserve its whole line plus air.
-			var purpose_height := maxf(22.0, purpose.get_minimum_size().y)
-			purpose.size.y = purpose_height
-			purpose.position = Vector2(at.x + 16.0, y + ORDER_CARD.y - 2.0 - purpose_height)
-			var details_bottom := y
-			for detail in detail_nodes:
-				details_bottom = maxf(details_bottom, detail.position.y + maxf(detail.size.y, detail.get_minimum_size().y))
-			var lift := minf(0.0, purpose.position.y - 2.0 - details_bottom)
-			for detail in detail_nodes:
-				detail.position.y += lift
-		y += ORDER_GAP
-
-	# Today's little jobs, along the bottom of the board -- 王者农场's daily
-	# spine, transplanted without the fangs: the same three verbs the farm
-	# already teaches, today's tally on each, a coin when the tally is full.
-	# Nothing expires with a sound; an unfinished list resets while he sleeps
-	# and never mentions it again.
-	var jobs_y := at.y + ORDER_FIRST + ORDER_GAP * float(board.size()) + 4.0
-	var daily_state: Dictionary = _farm().get("dailies", {})
-	var job_x := at.x + 12.0
-	for task in GameData.garden_dailies:
-		var task_id := str(task.get("id", ""))
-		var tally := int(daily_state.get("progress", {}).get(task_id, 0))
-		var want := Dailies.target(task_id)
-		var is_done := Dailies.done(daily_state, task)
-		var is_claimed := Dailies.claimed(daily_state, task)
-		var job := Button.new()
-		job.flat = false
-		job.focus_mode = Control.FOCUS_NONE
-		job.position = Vector2(job_x, jobs_y)
-		job.custom_minimum_size = Vector2(116, 48)
-		job.size = Vector2(116, 48)
-		var fill := Color(0.98, 0.97, 0.92)
-		if is_claimed:
-			fill = Color(0.93, 0.93, 0.90)
-		elif is_done:
-			fill = Color(0.88, 0.95, 0.84)
-		for look in ["normal", "hover", "pressed", "focus"]:
-			job.add_theme_stylebox_override(look, UiKit.panel_style(fill, 14))
-		var ready := is_done and not is_claimed
-		job.disabled = not ready
-		job.name = "DailyJob_%s" % task_id
-		_play.add_child(job)
-		if ready:
-			job.pressed.connect(func(): _claim_daily(task))
-			UiKit.breathe(job, 0.02, 1.4)
-		# One line per job: the verb's picture, today's tally, and the coin it
-		# pays -- a tick once it is claimed. No words anywhere; the strip is
-		# one 48-pixel row so the whole board fits between the bars.
-		var job_art := UiKit.picture(str(task.get("icon", "check")), 26.0)
-		if job_art != null:
-			job_art.position = Vector2(job_x + 8.0, jobs_y + 11.0)
-			job_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_play.add_child(job_art)
-		var tally_label := UiKit.title("%d/%d" % [mini(tally, want), want], 18)
-		tally_label.position = Vector2(job_x + 38.0, jobs_y + 13.0)
-		tally_label.size = Vector2(44, 22)
-		tally_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play.add_child(tally_label)
-		if is_claimed:
-			var tick := UiKit.picture("check", 20.0)
-			if tick != null:
-				tick.position = Vector2(job_x + 84.0, jobs_y + 14.0)
-				tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				_play.add_child(tick)
-		else:
-			var job_coin := UiKit.picture("star_coin", 14.0)
-			if job_coin != null:
-				job_coin.position = Vector2(job_x + 80.0, jobs_y + 17.0)
-				job_coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				_play.add_child(job_coin)
-			var job_price := UiKit.title(str(int(task.get("coins", 0))), 16)
-			job_price.position = Vector2(job_x + 94.0, jobs_y + 15.0)
-			job_price.size = Vector2(22, 20)
-			job_price.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_play.add_child(job_price)
-		job_x += 122.0
+	FarmOrdersPanel.new(self).build(view)
 
 
 ## One-time requests have a purpose and get their turn before routine baskets.
@@ -3233,121 +3080,7 @@ func _pager(origin: Vector2, wide: float, tall: float, page: int,
 ## A seed of a level the farm has not grown to is a dim silhouette with the
 ## star badge saying which level -- 圈好的地 on a shelf, never a lock.
 func _shop_panel(view: Vector2) -> void:
-	var wide := 780.0
-	var tall := 430.0
-	var origin := _panel_sheet(view, "garden.shop_title", wide, tall)
-	var seeds: Array = GameData.farm_seed_shop.get("seeds", [])
-	var pages := int(ceil(seeds.size() / float(PANEL_PAGE)))
-	_shop_page = clampi(_shop_page, 0, maxi(pages - 1, 0))
-	_pager(origin, wide, tall, _shop_page, pages, func(step: int):
-		_shop_page += step
-		_confirm_crop = ""
-		_queue_rebuild())
-	var y := origin.y + 74.0
-	for row in seeds.slice(_shop_page * PANEL_PAGE,
-			(_shop_page + 1) * PANEL_PAGE):
-		var crop_id := str(row.get("crop_id", ""))
-		var crop: Dictionary = GameData.get_crop(crop_id)
-		if crop.is_empty():
-			continue
-		var gated: bool = SeedShop.state_of(crop_id) == "level"
-		var art := UiKit.picture(str(crop.get("icon", "seed")), 44.0)
-		if art != null:
-			art.position = Vector2(origin.x + 30.0, y)
-			if gated:
-				# The silhouette treatment the world map's stones taught:
-				# still THERE, still named, just not grown to yet.
-				art.modulate = Color(1, 1, 1, 0.35)
-			_play.add_child(art)
-		var name_tag := UiKit.title(I18n.t(str(crop.get("name_key", ""))), 24,
-			Color(0.62, 0.60, 0.56) if gated else Color(0.25, 0.22, 0.18))
-		name_tag.position = Vector2(origin.x + 88.0, y + 8.0)
-		name_tag.size = Vector2(96, 30)
-		_play.add_child(name_tag)
-
-		if gated:
-			# No price, no clock, no chip: a seed the farm has not grown to
-			# has nothing to afford and nothing to miss. The star badge says
-			# which level, the same way the stones over the ninth bed do --
-			# pointing at the badge IS the whole answer.
-			var badge := UiKit.picture("star", 30.0)
-			if badge != null:
-				badge.position = Vector2(origin.x + 200.0, y + 6.0)
-				_play.add_child(badge)
-			var lvl := UiKit.title(str(SeedShop.level_needed(crop_id)), 26,
-				Color(0.62, 0.52, 0.36))
-			lvl.position = Vector2(origin.x + 238.0, y + 7.0)
-			lvl.size = Vector2(44, 30)
-			_play.add_child(lvl)
-			y += 56.0
-			continue
-
-		# The three numbers, always, owned or not: the row is the label on the
-		# shelf, not the receipt.
-		var coin := UiKit.picture("star_coin", 26.0)
-		if coin != null:
-			coin.position = Vector2(origin.x + 200.0, y + 8.0)
-			_play.add_child(coin)
-		var price := SeedShop.price_of(crop_id)
-		var price_tag := UiKit.title("0" if price <= 0 else str(price), 24)
-		price_tag.position = Vector2(origin.x + 232.0, y + 7.0)
-		price_tag.size = Vector2(64, 30)
-		_play.add_child(price_tag)
-		# How long it takes, as a picture first: a ring as full as this
-		# crop's wait is long, against the longest wait on the shelf. "30分"
-		# and "8时" are two words he cannot read; "a sliver" and "nearly the
-		# whole ring" he can compare. The number stays, smaller, for the
-		# adult in the room.
-		var seconds := int(GameData.crop_total_seconds(crop_id))
-		var ring := UiKit.wait_ring(float(seconds) / maxf(float(_longest_wait()), 1.0), 28.0)
-		ring.position = Vector2(origin.x + 318.0, y + 8.0)
-		_play.add_child(ring)
-		var time_tag := UiKit.title(_grow_time_text(seconds), 18,
-			Color(0.52, 0.48, 0.40))
-		time_tag.position = Vector2(origin.x + 352.0, y + 12.0)
-		time_tag.size = Vector2(60, 24)
-		_play.add_child(time_tag)
-		var pick := UiKit.picture("basket", 26.0)
-		if pick != null:
-			pick.position = Vector2(origin.x + 424.0, y + 8.0)
-			_play.add_child(pick)
-		var count_tag := UiKit.title("x%d" % int(crop.get("harvest_amount", 1)), 24)
-		count_tag.position = Vector2(origin.x + 456.0, y + 7.0)
-		count_tag.size = Vector2(60, 30)
-		_play.add_child(count_tag)
-
-		match SeedShop.state_of(crop_id):
-			"owned", "free":
-				var tick := UiKit.picture("check", 30.0)
-				if tick != null:
-					tick.position = Vector2(origin.x + wide - 200.0, y + 6.0)
-					_play.add_child(tick)
-				var owned_tag := UiKit.title(I18n.t("garden.owned"), 22)
-				owned_tag.position = Vector2(origin.x + wide - 162.0, y + 9.0)
-				owned_tag.size = Vector2(90, 28)
-				_play.add_child(owned_tag)
-			"buyable":
-				var buy := _chip_button(I18n.t("garden.buy"),
-					Color(0.72, 0.88, 0.60), Vector2(150, 48))
-				buy.position = Vector2(origin.x + wide - 214.0, y - 4.0)
-				var this_crop := crop_id
-				buy.pressed.connect(func():
-					_confirm_crop = this_crop
-					_queue_rebuild())
-				_play.add_child(buy)
-				_panel_buttons["buy_%s" % crop_id] = buy
-			"poor":
-				# He cannot afford it YET. Not hidden, not red, not disabled art:
-				# the row stays honest and the price sits where it always sits.
-				# A little star shows how far he has to go.
-				var short_tag := UiKit.title(
-					"还差%d" % Coins.short_by(price), 22, Color(0.62, 0.52, 0.36))
-				short_tag.position = Vector2(origin.x + wide - 200.0, y + 9.0)
-				short_tag.size = Vector2(150, 28)
-				_play.add_child(short_tag)
-		y += 56.0
-	if _confirm_crop != "":
-		_confirm_card(view, origin, wide)
+	FarmShopPanel.new(self).build(view)
 
 
 ## The confirm card: the crop, the price, and two honest buttons. Drawn on top
@@ -3412,189 +3145,7 @@ func _buy_confirmed() -> void:
 ## until 卖掉 is pressed -- shutting the panel forgets the box and loses
 ## nothing, which is what makes dragging things in safe to play with.
 func _market_panel(view: Vector2) -> void:
-	var wide := 780.0
-	var tall := 460.0
-	var origin := _panel_sheet(view, "garden.market_title", wide, tall)
-	# A rebuild clears the visual rows, not the basket contents. Recreate the
-	# widgets from that one basket snapshot so a resize cannot leave stale nodes.
-	_market_rows.clear()
-	_market_total = null
-	_market_rows_scroll = null
-	_market_rows_list = null
-	_market_drop_hint = null
-
-	# The market reads as two places: the barn shelf on the left and a small
-	# receipt counter on the right. These are low relief surfaces; crops and the
-	# sell action keep the stronger edges so the page still has one clear job.
-	var shelf := Panel.new()
-	shelf.name = "MarketBarnShelf"
-	shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	shelf.position = origin + Vector2(18.0, 72.0)
-	shelf.size = Vector2(414.0, 372.0)
-	shelf.add_theme_stylebox_override("panel", _quiet_surface_style(
-		Color(0.93, 0.91, 0.81, 0.64), 22, Color(0.57, 0.53, 0.40, 0.28), 1, 10))
-	_play.add_child(shelf)
-	var receipt := Panel.new()
-	receipt.name = "MarketReceipt"
-	receipt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	receipt.position = origin + Vector2(440.0, 72.0)
-	receipt.size = Vector2(322.0, 372.0)
-	receipt.add_theme_stylebox_override("panel", _quiet_surface_style(
-		Color(0.99, 0.96, 0.86, 0.76), 22, Color(0.77, 0.62, 0.34, 0.38), 1, 10))
-	_play.add_child(receipt)
-
-	var shelf_title := UiKit.title(I18n.t("garden.market.shelf"), 21)
-	shelf_title.position = origin + Vector2(34.0, 75.0)
-	shelf_title.size = Vector2(210.0, 30.0)
-	shelf_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_play.add_child(shelf_title)
-	var box_title := UiKit.title(I18n.t("garden.market.box"), 21)
-	box_title.position = origin + Vector2(458.0, 75.0)
-	box_title.size = Vector2(260.0, 30.0)
-	box_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_play.add_child(box_title)
-
-	_market_field = DragField.new()
-	_play.add_child(_market_field)
-	_market_field.dropped.connect(_on_market_drop)
-
-	# The basket still uses DragField as its only target rule. Its open dark
-	# mouth, warm rim and short ground shadow make the landing place legible
-	# without changing the snap radius or adding a second hit test.
-	var box_at := origin + Vector2(600.0, 166.0)
-	var crate := Node2D.new()
-	crate.position = box_at
-	_play.add_child(crate)
-	Shapes.fill(crate, Shapes.oval_points(Vector2(0.0, 42.0),
-		Vector2(80.0, 13.0), 24), Color(0.34, 0.25, 0.16, 0.15), 0.0)
-	Shapes.lit(crate, Shapes.rounded_rect(Vector2(-72.0, -5.0),
-		Vector2(144.0, 78.0), 16.0), Color(0.72, 0.52, 0.30), 0.8)
-	Shapes.fill(crate, Shapes.oval_points(Vector2(0.0, -9.0),
-		Vector2(68.0, 20.0), 24), Color(0.38, 0.25, 0.15), 0.65)
-	Shapes.lit(crate, Shapes.rounded_rect(Vector2(-72.0, 18.0),
-		Vector2(144.0, 15.0), 7.0), Color(0.83, 0.63, 0.37), 0.5)
-	var box_slot_node := Node2D.new()
-	_play.add_child(box_slot_node)
-	var box_slot: Dictionary = _market_field.add_slot(box_slot_node,
-		box_at, "", 99)
-
-	# Four columns by four rows cover all fourteen crops with thumb-sized drag
-	# points. Each card answers two questions at a glance: how many remain and
-	# what one crop is worth. Dragging a card still offers the remaining pile.
-	var contents := Barn.contents()
-	for i in range(contents.size()):
-		var pair: Array = contents[i]
-		var crop_id := str(pair[0])
-		var boxed := int(_market_sell.get(crop_id, 0))
-		var remaining := Barn.count(crop_id) - boxed
-		var chip := Node2D.new()
-		var col := i % 4
-		var row_index := int(i / 4)
-		# Four 96px cards with 4px gaps fill the shelf with even side margins;
-		# keep the first row clear of the shelf title.
-		chip.position = origin + Vector2(75.0 + 100.0 * col,
-			154.0 + 82.0 * row_index)
-		_play.add_child(chip)
-		var spent := remaining <= 0
-		Shapes.fill(chip, Shapes.rounded_rect(Vector2(-48.0, -32.0),
-			Vector2(96.0, 72.0), 15.0), Color(0.49, 0.38, 0.22, 0.12), 0.0)
-		Shapes.lit(chip, Shapes.rounded_rect(Vector2(-48.0, -36.0),
-			Vector2(96.0, 72.0), 15.0),
-			Color(0.91, 0.89, 0.82) if spent else Color(0.99, 0.97, 0.90), 0.72)
-		var art := UiKit.picture(
-			str(GameData.get_crop(crop_id).get("icon", "seed")), 40.0)
-		if art != null:
-			art.position = Vector2(-20.0, -32.0)
-			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			chip.add_child(art)
-		var many := UiKit.title("x%d" % remaining, 17)
-		many.name = "PileCount_%s" % crop_id
-		many.position = Vector2(-44.0, 8.0)
-		many.size = Vector2(42.0, 22.0)
-		many.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		many.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chip.add_child(many)
-		var coin_glyph := UiKit.picture("star_coin", 14.0)
-		if coin_glyph != null:
-			coin_glyph.position = Vector2(0.0, 12.0)
-			coin_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			chip.add_child(coin_glyph)
-		var unit := UiKit.title(str(GameData.market_price(crop_id)), 17)
-		unit.name = "UnitPrice_%s" % crop_id
-		unit.position = Vector2(18.0, 8.0)
-		unit.size = Vector2(28.0, 22.0)
-		unit.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chip.add_child(unit)
-		var market_item := _market_field.add_item(chip, chip.position, crop_id)
-		# `_market_sell` is the basket's state across a panel rebuild (for
-		# example, when the viewport changes size). Rebuild the matching visual
-		# placement too, so a boxed crop cannot appear draggable from the shelf
-		# while its receipt row still claims it is in the basket.
-		if boxed > 0:
-			market_item["placed"] = true
-			market_item["slot"] = box_slot
-			box_slot["held"] = int(box_slot["held"]) + 1
-			chip.position = box_at
-
-	# The box is also a compact receipt: selected crop rows scroll inside this
-	# area, while the quote and Sell button stay anchored at the bottom.
-	_market_rows_scroll = ScrollContainer.new()
-	_market_rows_scroll.name = "MarketReceiptRows"
-	_market_rows_scroll.position = origin + Vector2(456.0, 244.0)
-	_market_rows_scroll.custom_minimum_size = Vector2(290.0, 124.0)
-	_market_rows_scroll.size = Vector2(290.0, 124.0)
-	_market_rows_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_market_rows_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
-	_play.add_child(_market_rows_scroll)
-	_market_rows_list = VBoxContainer.new()
-	_market_rows_list.name = "MarketReceiptList"
-	_market_rows_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_market_rows_list.add_theme_constant_override("separation", 5)
-	_market_rows_scroll.add_child(_market_rows_list)
-	for crop_id in _market_sell.keys():
-		_ensure_market_row(str(crop_id))
-	# Scroll limits become available after the receipt containers lay out.
-	_market_rows_scroll.set_deferred("scroll_vertical", _market_scroll_offset)
-	_market_drop_hint = UiKit.title(I18n.t("garden.market.drop_hint"), 17,
-		Color(0.53, 0.48, 0.38))
-	_market_drop_hint.name = "MarketDropHint"
-	_market_drop_hint.position = origin + Vector2(466.0, 277.0)
-	_market_drop_hint.size = Vector2(270.0, 46.0)
-	_market_drop_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(_market_drop_hint)
-	_market_sync_rows_visibility()
-
-	var coin := UiKit.picture("star_coin", 20.0)
-	if coin != null:
-		coin.position = origin + Vector2(526.0, 395.0)
-		_play.add_child(coin)
-	var total_caption := UiKit.title(I18n.t("garden.market.total"), 14,
-		Color(0.48, 0.42, 0.31))
-	total_caption.position = origin + Vector2(458.0, 396.0)
-	total_caption.size = Vector2(66.0, 24.0)
-	total_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	total_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(total_caption)
-	_market_total = UiKit.title(str(Market.quote(_market_sell)), 26)
-	_market_total.position = origin + Vector2(546.0, 391.0)
-	_market_total.size = Vector2(46.0, 32.0)
-	_market_total.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_market_total.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(_market_total)
-
-	var sell := _chip_button(I18n.t("garden.sell"),
-		Color(0.99, 0.83, 0.52), Vector2(152.0, 56.0))
-	# The panel's generous text gutters would grow this 56px action into
-	# the tool dock. Keep its raised surface inside the receipt's last row.
-	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var style := sell.get_theme_stylebox(look) as StyleBoxFlat
-		style.content_margin_top = 6.0
-		style.content_margin_bottom = 6.0
-	sell.position = origin + Vector2(594.0, 382.0)
-	sell.pressed.connect(_sell_pressed)
-	_play.add_child(sell)
-	sell.size = Vector2(152.0, 56.0)
-	_panel_buttons["sell"] = sell
+	FarmMarketPanel.new(self).build(view)
 
 
 ## A pile landed in the box: remember it, give it its stepper row, and move
@@ -3779,155 +3330,7 @@ func _sell_pressed() -> void:
 ## The barn's own door: how full it is, what is in it, and -- once, ever --
 ## the upgrade that the three friends' planks were for.
 func _barn_panel(view: Vector2) -> void:
-	var wide := 700.0
-	var title_key := "garden.waiting_harvest_title" if _barn_show_overflow else "garden.warehouse_title"
-	var origin := _panel_sheet(view, title_key, wide, 390.0)
-	var basket := HarvestArt.prop_badge("basket_empty", 36.0, "BarnHeaderBasket")
-	if basket != null:
-		basket.position = origin + Vector2(28.0, 52.0)
-		_play.add_child(basket)
-	var amount_text := "×%d" % Barn.total(Barn.BASKET) if _barn_show_overflow 		else "%d/%d" % [Barn.total(), Barn.cap()]
-	var room := UiKit.title(amount_text, 20)
-	room.name = "BarnCollectionCapacity"
-	room.position = origin + Vector2(72.0, 50.0)
-	room.size = Vector2(116.0, 36.0)
-	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(room)
-
-	if _barn_show_overflow:
-		var back := _chip_button(I18n.t("garden.barn"), Color(0.98, 0.91, 0.73), Vector2(112.0, 60.0))
-		back.name = "BarnStorageSwitch"
-		back.add_theme_font_size_override("font_size", 18)
-		back.position = origin + Vector2(wide - 140.0, 38.0)
-		back.pressed.connect(func(): _open_panel("barn"))
-		_play.add_child(back)
-	else:
-		var book := _chip_button("", Color(0.98, 0.91, 0.73), Vector2(60, 60))
-		book.name = "RecipeBook"
-		book.position = origin + Vector2(wide - 92.0, 38.0)
-		var book_art := UiKit.picture("picture_book", 40.0)
-		if book_art != null:
-			book_art.position = Vector2(10, 10)
-			book_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			book.add_child(book_art)
-		book.pressed.connect(func():
-			AudioManager.play_sfx("res://assets/audio/pop.ogg")
-			_open_panel("recipes"))
-		_play.add_child(book)
-
-	# A name and a count make every 3D collectible identifiable. Four columns
-	# use all sixteen foods in four 60px rows, with no empty header-sized gap.
-	var contents := Barn.contents(Barn.BASKET if _barn_show_overflow else Barn.WAREHOUSE)
-	var extra_items: Control = null
-	if contents.size() > 16:
-		var overflow := ScrollContainer.new()
-		overflow.name = "BarnExtraItemsScroll"
-		overflow.position = origin + Vector2(26.0, 106.0)
-		overflow.size = Vector2(648.0, 264.0)
-		overflow.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		overflow.clip_contents = true
-		_play.add_child(overflow)
-		extra_items = Control.new()
-		extra_items.custom_minimum_size = Vector2(636.0,
-			float(int(ceil(contents.size() / 4.0))) * 66.0 - 2.0)
-		overflow.add_child(extra_items)
-	if contents.is_empty():
-		var empty_basket := HarvestArt.prop_badge("basket_empty", 104.0, "BarnEmptyBasket")
-		if empty_basket != null:
-			empty_basket.position = origin + Vector2(298.0, 142.0)
-			_play.add_child(empty_basket)
-		var empty_hint := UiKit.title(I18n.t("garden.waiting_harvest_empty" if _barn_show_overflow else "garden.collection_empty"), 18, Color(0.49, 0.39, 0.25))
-		empty_hint.name = "BarnEmptyHint"
-		empty_hint.position = origin + Vector2(28.0, 266.0)
-		empty_hint.size = Vector2(wide - 56.0, 36.0)
-		empty_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play.add_child(empty_hint)
-	for index in range(contents.size()):
-		var pair: Array = contents[index]
-		var crop_id := str(pair[0])
-		var slot := Panel.new()
-		slot.name = "BarnCollectionSlot_%s" % crop_id
-		slot.position = origin + Vector2(30.0 + (index % 4) * 162.0,
-			108.0 + int(index / 4) * 66.0)
-		slot.size = Vector2(154.0, 60.0)
-		slot.add_theme_stylebox_override("panel", _inventory_surface(true))
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if extra_items != null:
-			slot.position = Vector2(4.0 + (index % 4) * 158.0, 2.0 + int(index / 4) * 66.0)
-			extra_items.add_child(slot)
-		else:
-			_play.add_child(slot)
-		var art := _crop_picture(crop_id, 40.0, "BarnPicture_%s" % crop_id)
-		if art != null:
-			art.position = Vector2(6.0, 10.0)
-			slot.add_child(art)
-		var name_key := str(GameData.get_crop(crop_id).get("name_key", ""))
-		var crop_name := UiKit.title(I18n.t(name_key) if name_key != "" else crop_id, 14, Color(0.43, 0.33, 0.21))
-		crop_name.name = "BarnName_%s" % crop_id
-		crop_name.position = Vector2(54.0, 1.0)
-		crop_name.size = Vector2(96.0, 24.0)
-		crop_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		crop_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		crop_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.add_child(crop_name)
-		var many := UiKit.title("×%d" % int(pair[1]), 16)
-		many.name = "BarnQuantity_%s" % crop_id
-		many.position = Vector2(54.0, 28.0)
-		many.size = Vector2(96.0, 28.0)
-		many.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		many.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.add_child(many)
-
-	if _barn_show_overflow or Barn.cap() >= Farm.WAREHOUSE_UPGRADED:
-		return
-	var planks := Barn.count("plank", "inventory")
-	var can_do: bool = planks >= UPGRADE_PLANKS and Coins.can_afford(UPGRADE_COINS)
-	if _confirm_upgrade:
-		var yes := _chip_button(I18n.t("garden.upgrade"), Color(0.98, 0.83, 0.50), Vector2(168.0, 60.0))
-		yes.add_theme_font_size_override("font_size", 18)
-		yes.position = origin + Vector2(232.0, 38.0)
-		yes.pressed.connect(_upgrade_confirmed)
-		_play.add_child(yes)
-		_panel_buttons["confirm_upgrade"] = yes
-		var no := _chip_button(I18n.t("garden.cancel"), Color(0.95, 0.90, 0.79), Vector2(168.0, 60.0))
-		no.add_theme_font_size_override("font_size", 18)
-		no.position = origin + Vector2(412.0, 38.0)
-		no.pressed.connect(func():
-			_confirm_upgrade = false
-			_queue_rebuild())
-		_play.add_child(no)
-		_panel_buttons["cancel_upgrade"] = no
-	else:
-		var coin := UiKit.picture("star_coin", 24.0)
-		if coin != null:
-			coin.position = origin + Vector2(204.0, 53.0)
-			coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_play.add_child(coin)
-		var cost := UiKit.title(str(UPGRADE_COINS), 18)
-		cost.position = origin + Vector2(232.0, 48.0)
-		cost.size = Vector2(44.0, 36.0)
-		cost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play.add_child(cost)
-		var plank_art := UiKit.picture("plank", 24.0)
-		if plank_art != null:
-			plank_art.position = origin + Vector2(290.0, 53.0)
-			plank_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_play.add_child(plank_art)
-		var plank_tag := UiKit.title("%d/%d" % [planks, UPGRADE_PLANKS], 18,
-			Color(0.30, 0.43, 0.23) if planks >= UPGRADE_PLANKS else Color(0.62, 0.52, 0.36))
-		plank_tag.position = origin + Vector2(318.0, 48.0)
-		plank_tag.size = Vector2(64.0, 36.0)
-		plank_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play.add_child(plank_tag)
-		var up := _chip_button(I18n.t("garden.upgrade"), Color(0.98, 0.87, 0.62) if can_do else Color(0.90, 0.87, 0.79), Vector2(156.0, 60.0))
-		up.add_theme_font_size_override("font_size", 18)
-		up.position = origin + Vector2(402.0, 38.0)
-		up.disabled = not can_do
-		up.pressed.connect(func():
-			_confirm_upgrade = true
-			_queue_rebuild())
-		_play.add_child(up)
-		_panel_buttons["upgrade"] = up
+	FarmBarnPanel.new(self).build(view)
 
 
 ## The one purchase that is not a crop. Planks first -- take() is all or
@@ -3968,91 +3371,7 @@ func _upgrade_confirmed() -> void:
 ## only says so. A reward that must be COLLECTED from a panel is a red-line
 ## mechanic (miss-out anxiety) wearing a friendly face.
 func _visit_panel(view: Vector2) -> void:
-	var wide := 640.0
-	var origin := _panel_sheet(view, "garden.visit_title", wide, 400.0)
-	var log: Array = _farm().get("visit_log", [])
-	var templates: Dictionary = GameData.farm_visit_texts
-
-	if log.is_empty():
-		# Nobody yet: the board says so warmly, with the bear it is hoping
-		# for. An empty panel with no explanation reads as broken.
-		var face := UiKit.picture("teddy", 92.0)
-		if face != null:
-			face.position = origin + Vector2(wide * 0.5 - 46.0, 110.0)
-			_play.add_child(face)
-		var line := UiKit.title(I18n.t("garden.visit_empty"), 26,
-			Color(0.52, 0.48, 0.40))
-		line.position = origin + Vector2(60.0, 230.0)
-		line.size = Vector2(wide - 120.0, 40)
-		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_play.add_child(line)
-		return
-
-	var y := origin.y + 74.0
-	for entry_index in range(mini(log.size(), 3)):
-		var entry: Dictionary = log[entry_index]
-		var who := str(entry.get("who", "bear"))
-		var card := Panel.new()
-		card.add_theme_stylebox_override("panel",
-			UiKit.panel_style(Color(1.0, 0.99, 0.95), 20))
-		card.position = Vector2(origin.x + 24.0, y)
-		card.custom_minimum_size = Vector2(wide - 48.0, 92)
-		card.size = Vector2(wide - 48.0, 92)
-		_play.add_child(card)
-
-		var face := UiKit.picture("teddy", 64.0)
-		if face != null:
-			face.position = card.position + Vector2(14.0, 14.0)
-			_play.add_child(face)
-
-		# What they did, one icon at a time, from the same template table
-		# tools_check reads -- so a line the screen can show is always a line
-		# the checker has approved. Two stories, two line sets: "lines" when
-		# the bear came here, "visited_lines" when the child went THERE (a
-		# guest entry) -- same board, so kindness in both directions is one
-		# list.
-		var x := card.position.x + 100.0
-		var set_key := "visited_lines" \
-			if str(entry.get("kind", "")) == "guest" else "lines"
-		var lines: Array = templates.get(who, {}).get(set_key, [])
-		for line_def: Dictionary in lines:
-			var count_field := str(line_def.get("count_field", ""))
-			var count := int(entry.get(count_field, 0)) if count_field != "" else 1
-			if count <= 0:
-				continue
-			var art := UiKit.picture(str(line_def.get("icon", "star")), 40.0)
-			if art != null:
-				art.position = Vector2(x, card.position.y + 12.0)
-				_play.add_child(art)
-			# On a milestone entry the counts stand aside: the friendship
-			# line is long, it runs right under this column, and "x1" over
-			# the middle of a sentence reads as noise over news.
-			if count_field != "" and not entry.has("milestone_key"):
-				var many := UiKit.title("x%d" % count, 22)
-				many.position = Vector2(x + 6.0, card.position.y + 54.0)
-				many.size = Vector2(52, 26)
-				_play.add_child(many)
-			x += 74.0
-
-		# The footnote: the milestone's sentence when this visit carried one
-		# -- an old friend's Nth call is the more interesting story -- and
-		# the first template line's otherwise. Small, grey, one line.
-		var note_key := str(entry.get("milestone_key", ""))
-		if note_key == "" and not lines.is_empty():
-			note_key = str((lines[0] as Dictionary).get("key", ""))
-		if note_key != "":
-			var note := UiKit.title(I18n.t(note_key), 18,
-				Color(0.72, 0.52, 0.28) if entry.has("milestone_key")
-				else Color(0.55, 0.51, 0.44))
-			note.position = card.position + Vector2(100.0, 62.0)
-			note.size = Vector2(wide - 190.0, 24)
-			_play.add_child(note)
-		if entry.has("milestone_icon"):
-			var keepsake := UiKit.picture(str(entry.get("milestone_icon", "heart")), 40.0)
-			if keepsake != null:
-				keepsake.position = Vector2(x, card.position.y + 12.0)
-				_play.add_child(keepsake)
-		y += 104.0
+	FarmVisitPanel.new(self).build(view)
 
 
 ## A press on land still under stones. Three answers, all gentle: a confirm
@@ -4224,50 +3543,7 @@ func _recipe_learned_card(recipe: Dictionary) -> void:
 ## 小熊的菜谱本：一页六道菜，多了翻页。会做的亮着、配料和名字都在；还不
 ## 会的只留暗色配料——"去凑齐这些"本身就是答案，和图鉴的剪影一个道理。
 func _recipes_panel(view: Vector2) -> void:
-	var wide := 640.0
-	var tall := 470.0
-	var origin := _panel_sheet(view, "garden.recipes_title", wide, tall)
-	var book: Array = Recipes.all()
-	var pages := int(ceil(book.size() / float(PANEL_PAGE)))
-	_book_page = clampi(_book_page, 0, maxi(pages - 1, 0))
-	_pager(origin, wide, tall, _book_page, pages, func(step: int):
-		_book_page += step
-		_queue_rebuild())
-	# 62 起步、62 一步：和加工小屋同一把尺子——第六行的底边要停在
-	# 16:9 货架的上沿（552）之上，70 的步子会让它钻进货架底下。
-	var y := origin.y + 62.0
-	for recipe in book.slice(_book_page * PANEL_PAGE,
-			(_book_page + 1) * PANEL_PAGE):
-		var known: bool = Recipes.is_unlocked(str(recipe.get("id", "")))
-		var row := Panel.new()
-		row.add_theme_stylebox_override("panel", UiKit.panel_style(
-			Color(1.0, 0.99, 0.95) if known else Color(0.93, 0.91, 0.86), 16))
-		row.position = Vector2(origin.x + 24.0, y)
-		row.custom_minimum_size = Vector2(wide - 48.0, 56.0)
-		row.size = Vector2(wide - 48.0, 56.0)
-		_play.add_child(row)
-		var x := row.position.x + 14.0
-		for need in recipe.get("needs", []):
-			var art := UiKit.picture(str(GameData.get_crop(
-				str(need.get("crop_id", ""))).get("icon", "seed")), 30.0)
-			if art != null:
-				art.position = Vector2(x, y + 13.0)
-				art.modulate = Color(1, 1, 1, 1.0) if known else Color(1, 1, 1, 0.35)
-				_play.add_child(art)
-			var many := UiKit.title("x%d" % int(need.get("count", 1)), 16,
-				Color(0.4, 0.38, 0.34) if known else Color(0.62, 0.60, 0.56))
-			many.position = Vector2(x + 28.0, y + 20.0)
-			many.size = Vector2(34.0, 20.0)
-			_play.add_child(many)
-			x += 66.0
-		var dish := UiKit.title(I18n.t(str(recipe.get("name_key", ""))) if known
-			else "?", UiKit.TYPE_BODY,
-			Color(0.30, 0.28, 0.24) if known else Color(0.62, 0.60, 0.56))
-		dish.position = Vector2(row.position.x + row.size.x - 220.0, y + 12.0)
-		dish.size = Vector2(200.0, 32.0)
-		dish.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		_play.add_child(dish)
-		y += 62.0
+	FarmRecipesPanel.new(self).build(view)
 
 
 ## 加工小屋：会做的菜在这里下锅，做好的菜从这里送出去。
@@ -4279,174 +3555,7 @@ func _recipes_panel(view: Vector2) -> void:
 ## it goes (送给小熊). Cooking asks first, like every spend in this game;
 ## short ingredients get a headshake, never a greyed-out row.
 func _kitchen_panel(view: Vector2) -> void:
-	var wide := 660.0
-	var tall := 470.0
-	var origin := _panel_sheet(view, "garden.kitchen_title", wide, tall)
-	var known: Array = []
-	for recipe in Recipes.all():
-		if Recipes.is_unlocked(str(recipe.get("id", ""))):
-			known.append(recipe)
-	var pages := int(ceil(known.size() / float(PANEL_PAGE)))
-	_kitchen_page = clampi(_kitchen_page, 0, maxi(pages - 1, 0))
-	_pager(origin, wide, tall, _kitchen_page, pages, func(step: int):
-		_kitchen_page += step
-		_confirm_cook = ""
-		_queue_rebuild())
-
-	if known.is_empty():
-		var face := UiKit.picture("picture_book", 84.0)
-		if face != null:
-			face.position = origin + Vector2(wide * 0.5 - 42.0, 130.0)
-			_play.add_child(face)
-		var line := UiKit.title(I18n.t("garden.kitchen_empty"), UiKit.TYPE_CAPTION,
-			Color(0.52, 0.48, 0.40))
-		line.position = origin + Vector2(50.0, 240.0)
-		line.size = Vector2(wide - 100.0, 40)
-		line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_play.add_child(line)
-		return
-
-	# 行高 56、步进 62、从 62 起步：16:9 的玻璃在货架上沿（720-168=552）
-	# 就到头了，一页 6 行时最后一行的底边得停在它上面——
-	# 112 + 62 + 5x62 + 56 = 540，留 12px。按 70 一步走，第六行就
-	# 钻到货架底下去了。
-	var y := origin.y + 62.0
-	for recipe in known.slice(_kitchen_page * PANEL_PAGE,
-			(_kitchen_page + 1) * PANEL_PAGE):
-		var rid := str(recipe.get("id", ""))
-		var row := Panel.new()
-		row.add_theme_stylebox_override("panel",
-			UiKit.panel_style(Color(1.0, 0.99, 0.95), 16))
-		row.position = Vector2(origin.x + 24.0, y)
-		row.custom_minimum_size = Vector2(wide - 48.0, 56.0)
-		row.size = Vector2(wide - 48.0, 56.0)
-		_play.add_child(row)
-
-		var x := row.position.x + 14.0
-		var cookable := Recipes.can_cook(recipe)
-		for need in recipe.get("needs", []):
-			var art := UiKit.picture(str(GameData.get_crop(
-				str(need.get("crop_id", ""))).get("icon", "seed")), 30.0)
-			if art != null:
-				art.position = Vector2(x, y + 6.0)
-				art.modulate = Color(1, 1, 1, 1.0 if cookable else 0.4)
-				_play.add_child(art)
-			var many := UiKit.title("x%d" % int(need.get("count", 1)), 16,
-				Color(0.4, 0.38, 0.34) if cookable else Color(0.66, 0.64, 0.60))
-			many.position = Vector2(x + 26.0, y + 12.0)
-			many.size = Vector2(34.0, 20.0)
-			_play.add_child(many)
-			x += 62.0
-		var dish_label := UiKit.title(I18n.t(str(recipe.get("name_key", ""))), 16,
-			Color(0.30, 0.28, 0.24))
-		dish_label.position = Vector2(row.position.x + 14.0, y + 34.0)
-		dish_label.size = Vector2(220.0, 20.0)
-		dish_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		_play.add_child(dish_label)
-
-		# 右侧三件，从左往右按故事的顺序站：架上有几份、做一份、送给小熊。
-		# 槽位是固定的——没有菜时「做一份」不往右挪：一个在重建之间跳来
-		# 跳去的按钮，比一块空着的地方更让拇指为难。
-		var owned := Recipes.dish_count(rid)
-		if owned > 0:
-			var plate := UiKit.picture("dish", 34.0)
-			if plate != null:
-				plate.position = Vector2(row.position.x + row.size.x - 318.0, y + 11.0)
-				_play.add_child(plate)
-			var have := UiKit.title("x%d" % owned, 20)
-			have.position = Vector2(row.position.x + row.size.x - 282.0, y + 17.0)
-			have.size = Vector2(44.0, 24.0)
-			_play.add_child(have)
-
-		var cook := _chip_button(I18n.t("garden.cook_one"),
-			Color(0.55, 0.74, 0.42) if cookable else Color(0.86, 0.84, 0.78),
-			Vector2(92, 46))
-		cook.position = Vector2(row.position.x + row.size.x - 236.0, y + 5.0)
-		var this_row: Panel = row
-		cook.pressed.connect(func():
-			if not Recipes.can_cook(recipe):
-				Juice.nudge(this_row)
-				AudioManager.play_sfx("res://assets/audio/pop.ogg")
-				return
-			_confirm_cook = rid
-			_queue_rebuild())
-		_play.add_child(cook)
-		_panel_buttons["cook_%s" % rid] = cook
-
-		if owned > 0:
-			var give := _chip_button(I18n.t("garden.give_bear"),
-				Color(0.94, 0.72, 0.42), Vector2(120, 46))
-			give.position = Vector2(row.position.x + row.size.x - 134.0, y + 5.0)
-			give.pressed.connect(func():
-				if Recipes.give_to_bear(rid):
-					AudioManager.play_sfx("res://assets/audio/correct.ogg")
-					_queue_rebuild())
-			_play.add_child(give)
-			_panel_buttons["give_%s" % rid] = give
-		y += 62.0
-
-	# 确认条：这一步食材真的会离开
-	if _confirm_cook != "":
-		var picked: Dictionary = {}
-		for recipe in known:
-			if str(recipe.get("id", "")) == _confirm_cook:
-				picked = recipe
-		if not picked.is_empty():
-			var strip := Panel.new()
-			strip.add_theme_stylebox_override("panel",
-				UiKit.panel_style(Color(0.99, 0.95, 0.85), 16))
-			# 470-66 会让条子的下半截藏进货架底下（16:9 上货架上沿在
-			# 552）；抬到 380 整条都在玻璃上，问的时候盖住最后一两行——
-			# 问题挡在清单前面，本来就是确认条的站法。
-			strip.position = Vector2(origin.x + 24.0, origin.y + 380.0)
-			strip.custom_minimum_size = Vector2(wide - 48.0, 54.0)
-			strip.size = Vector2(wide - 48.0, 54.0)
-			_play.add_child(strip)
-			# 每一颗要离开的食材都自己站出来：三颗草莓就是三颗草莓，不是
-			# 一颗草莓带个小字。数得出来的告别，才算看清楚了再点头——和
-			# 买东西的三个数字同一个脾气。最多的食谱 6 颗（2+2+2），条子
-			# 装得下。
-			var sx := strip.position.x + 14.0
-			for need in picked.get("needs", []):
-				for i in range(int(need.get("count", 1))):
-					var art := UiKit.picture(str(GameData.get_crop(
-						str(need.get("crop_id", ""))).get("icon", "seed")), 28.0)
-					if art != null:
-						art.position = Vector2(sx, strip.position.y + 13.0)
-						_play.add_child(art)
-					sx += 34.0
-				sx += 8.0
-			var arrow := UiKit.title("→", 22, Color(0.5, 0.46, 0.4))
-			arrow.position = Vector2(sx + 2.0, strip.position.y + 14.0)
-			arrow.size = Vector2(30, 26)
-			_play.add_child(arrow)
-			var plate2 := UiKit.picture("dish", 32.0)
-			if plate2 != null:
-				plate2.position = Vector2(sx + 36.0, strip.position.y + 11.0)
-				_play.add_child(plate2)
-			var yes := _chip_button("", Color(0.55, 0.74, 0.42), Vector2(64, 42))
-			var tick := UiKit.picture("check", 30.0)
-			if tick != null:
-				tick.position = Vector2(17, 6)
-				tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				yes.add_child(tick)
-			yes.position = Vector2(strip.position.x + strip.size.x - 146.0,
-				strip.position.y + 6.0)
-			yes.pressed.connect(func():
-				if Recipes.cook(_confirm_cook):
-					AudioManager.play_sfx("res://assets/audio/correct.ogg")
-				_confirm_cook = ""
-				_queue_rebuild())
-			_play.add_child(yes)
-			_panel_buttons["confirm_cook"] = yes
-			var no := _chip_button("<", Color(0.72, 0.74, 0.78), Vector2(64, 42))
-			no.position = Vector2(strip.position.x + strip.size.x - 74.0,
-				strip.position.y + 6.0)
-			no.pressed.connect(func():
-				_confirm_cook = ""
-				_queue_rebuild())
-			_play.add_child(no)
-			_panel_buttons["cancel_cook"] = no
+	FarmKitchenPanel.new(self).build(view)
 
 
 func _undo_toast(view: Vector2) -> void:
@@ -5070,52 +4179,4 @@ func _challenge_door(view: Vector2) -> void:
 ## rows and the existing sheet pager fit both screen shapes without a scroll
 ## gesture fighting the farm camera. Stars come straight from level progress.
 func _challenge_panel(view: Vector2) -> void:
-	var levels: Array = GameData.get_levels_for_mode("harvest")
-	const ROWS := 4
-	var pages := maxi(1, int(ceil(float(levels.size()) / ROWS)))
-	_challenge_page = clampi(_challenge_page, 0, pages - 1)
-	var wide := 620.0
-	var tall := 410.0
-	var origin := _panel_sheet(view, "garden.challenge_levels", wide, tall)
-	for slot in range(ROWS):
-		var index := _challenge_page * ROWS + slot
-		if index >= levels.size():
-			break
-		var level: Dictionary = levels[index]
-		var level_id := str(level.get("id", ""))
-		var stars := clampi(int(SaveManager.get_level_progress(level_id).get("stars", 0)), 0, 3)
-		var row := _chip_button("", Color(1.0, 0.99, 0.94), Vector2(wide - 56.0, 64.0))
-		row.name = "ChallengeLevel_%s" % level_id
-		row.position = origin + Vector2(28.0, 68.0 + slot * 74.0)
-		row.set_meta("stars", stars)
-		row.pressed.connect(func(): GameManager.start_level(level_id))
-		_play.add_child(row)
-		var number := UiKit.title("%02d" % (index + 1), 24, Color(0.62, 0.43, 0.18))
-		number.position = Vector2(12.0, 14.0)
-		number.size = Vector2(42.0, 36.0)
-		number.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(number)
-		var title := UiKit.title(I18n.t(str(level.get("name_key", ""))), 22)
-		title.name = "ChallengeLevelName"
-		title.position = Vector2(64.0, 14.0)
-		title.size = Vector2(340.0, 36.0)
-		title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(title)
-		for star_index in range(3):
-			var star := UiKit.picture("star", 24.0)
-			if star != null:
-				star.position = Vector2(wide - 150.0 + star_index * 27.0 - 56.0, 20.0)
-				star.modulate = Color.WHITE if star_index < stars else Color(0.65, 0.64, 0.58, 0.38)
-				star.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				row.add_child(star)
-	var page_label := UiKit.title(I18n.t("garden.challenge_page")
-		.replace("{page}", str(_challenge_page + 1)).replace("{pages}", str(pages)), 18)
-	page_label.position = origin + Vector2(28.0, tall - 38.0)
-	page_label.size = Vector2(wide - 56.0, 26.0)
-	page_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(page_label)
-	_pager(origin, wide, tall, _challenge_page, pages, func(step: int):
-		_challenge_page = clampi(_challenge_page + step, 0, pages - 1)
-		_queue_rebuild())
+	FarmChallengePanel.new(self).build(view)

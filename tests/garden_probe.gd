@@ -102,6 +102,9 @@ func _ready() -> void:
 	_the_quiet_strawberry_is_answered_with_grace()
 	_the_regular_gets_his_milestones_once()
 	_the_kitchen_cooks_knowledge_and_feeds_a_friend()
+	_the_pens_and_new_recipes_work()
+	_the_visitors_request_and_receive_dishes()
+	_the_day_and_night_cycle_and_dew_work()
 	_two_tablets_agree_about_the_bear()
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
@@ -1891,6 +1894,169 @@ func _the_kitchen_cooks_knowledge_and_feeds_a_friend() -> void:
 	_ok(str(((SaveManager.data["farm"].get("visit_log", []) as Array)[0]
 		as Dictionary).get("kind", "")) == "thanks",
 		"the thank-you vanished across a save round-trip")
+
+
+## Data-driven pens (cow shed, beehive) and recipes using the new produce (cheese_toast, honey_cake).
+func _the_pens_and_new_recipes_work() -> void:
+	_fresh_save()
+	var Pen := preload("res://scripts/garden/farm_pen_manager.gd")
+	var Recipes := preload("res://scripts/garden/recipe_manager.gd")
+	var farm: Dictionary = SaveManager.data["farm"]
+	var now := 1000
+
+	# 1. Cow shed (wheat -> milk)
+	_ok(not Pen.can_feed(Pen.COW_SHED), "cannot feed cow shed with empty barn")
+	Barn.put("wheat", 2)
+	_ok(Pen.can_feed(Pen.COW_SHED), "can feed cow shed with 2 wheat")
+	_ok(Pen.feed(farm, Pen.COW_SHED, now), "feeding cow shed consumes wheat and records time")
+	_ok(Barn.count("wheat") == 0, "wheat was taken from the barn")
+	_ok(Pen.state(farm, Pen.COW_SHED, now) == Pen.PRODUCING, "cow shed is producing right after feeding")
+	_ok(Pen.state(farm, Pen.COW_SHED, now + 150) == Pen.READY, "cow shed is ready after 150 seconds")
+	var milk_receipt := Pen.collect(farm, Pen.COW_SHED)
+	_ok(milk_receipt.get("crop_id") == "milk" and int(milk_receipt.get("amount", 0)) == 1,
+		"collecting cow shed yields 1 milk")
+	_ok(Barn.count("milk") == 1, "milk is stored in barn")
+	_ok(Pen.state(farm, Pen.COW_SHED, now + 150) == Pen.HUNGRY, "cow shed returns to hungry after collection")
+
+	# 2. Beehive (strawberry -> honey)
+	_ok(not Pen.can_feed(Pen.BEEHIVE), "cannot feed beehive without strawberries")
+	Barn.put("strawberry", 2)
+	_ok(Pen.can_feed(Pen.BEEHIVE), "can feed beehive with 2 strawberries")
+	_ok(Pen.feed(farm, Pen.BEEHIVE, now), "feeding beehive starts honey production")
+	_ok(Barn.count("strawberry") == 0, "strawberries were taken from the barn")
+	_ok(Pen.state(farm, Pen.BEEHIVE, now) == Pen.PRODUCING, "beehive is producing")
+	_ok(Pen.state(farm, Pen.BEEHIVE, now + 90) == Pen.READY, "beehive is ready after 90 seconds")
+	var honey_receipt := Pen.collect(farm, Pen.BEEHIVE)
+	_ok(honey_receipt.get("crop_id") == "honey" and int(honey_receipt.get("amount", 0)) == 1,
+		"collecting beehive yields 1 honey")
+	_ok(Barn.count("honey") == 1, "honey is stored in barn")
+	_ok(Pen.state(farm, Pen.BEEHIVE, now + 90) == Pen.HUNGRY, "beehive returns to hungry after collection")
+
+	# 3. New recipes: cheese_toast (flour + milk) and honey_cake (flour + honey + egg)
+	farm["unlocked_recipes"] = ["cheese_toast", "honey_cake"]
+	Barn.put("flour", 2)
+	Barn.put("egg", 1)
+	_ok(Recipes.cook("cheese_toast"), "cook cheese_toast with flour and milk")
+	_ok(Recipes.dish_count("cheese_toast") == 1, "cheese_toast was prepared")
+	_ok(Barn.count("milk") == 0 and Barn.count("flour") == 1, "ingredients for cheese_toast deducted")
+
+	_ok(Recipes.cook("honey_cake"), "cook honey_cake with flour, honey and egg")
+	_ok(Recipes.dish_count("honey_cake") == 1, "honey_cake was prepared")
+	_ok(Barn.count("honey") == 0 and Barn.count("egg") == 0 and Barn.count("flour") == 0,
+		"all ingredients for honey_cake deducted")
+
+
+## Candidate 2: visitors who want a dish from the kitchen (schedule, want bubble, and gifting).
+func _the_visitors_request_and_receive_dishes() -> void:
+	_fresh_save()
+	var VisitorManager := preload("res://scripts/garden/farm_visitor_manager.gd")
+	var Recipes := preload("res://scripts/garden/recipe_manager.gd")
+	var farm: Dictionary = SaveManager.data["farm"]
+
+	var schedule := VisitorManager.schedule()
+	_ok(schedule.size() == 7, "visitor schedule covers all seven days of the week")
+
+	# NOON is 1699963200 (2023-11-14 12:00:00, which is a Tuesday, weekday 2)
+	GameClock.set_test_now(1_699_963_200, 0)
+	var tuesday_visitor := VisitorManager.today_visitor()
+	_ok(str(tuesday_visitor.get("who", "")) == "puppy" and str(tuesday_visitor.get("dish_id", "")) == "cheese_toast",
+		"Tuesday visitor is puppy requesting cheese_toast")
+
+	# Cannot feed when empty
+	_ok(not VisitorManager.can_feed_visitor(farm), "cannot feed visitor without the cooked dish")
+
+	# Prepare dish and feed puppy
+	farm["unlocked_recipes"] = ["cheese_toast"]
+	Barn.put("flour", 1)
+	Barn.put("milk", 1)
+	_ok(Recipes.cook("cheese_toast"), "cooked cheese_toast for puppy")
+	_ok(VisitorManager.can_feed_visitor(farm), "can feed puppy now that cheese_toast is in inventory")
+
+	var coins_before := Coins.balance()
+	var friends_before: int = int((farm.get("npc_friendship", {}) as Dictionary).get("puppy", 0))
+	var receipt := VisitorManager.feed_visitor(farm)
+	_ok(bool(receipt.get("success", false)), "fed puppy the requested dish")
+	_ok(Recipes.dish_count("cheese_toast") == 0, "cheese_toast was consumed")
+	_ok(Coins.balance() == coins_before + int(tuesday_visitor.get("reward_coins", 15)),
+		"puppy rewarded star coins for the dish")
+	_ok(int((farm.get("npc_friendship", {}) as Dictionary).get("puppy", 0)) == friends_before + 1,
+		"friendship with puppy increased by one")
+	_ok(VisitorManager.has_fed_today(farm), "visitor marked as fed for today")
+
+	# Cannot feed again on the same day
+	Barn.put("dish_cheese_toast", 1, "inventory")
+	_ok(not VisitorManager.can_feed_visitor(farm), "cannot feed the visitor a second time today")
+	_ok(VisitorManager.feed_visitor(farm).is_empty(), "second feed attempt is safely refused")
+
+
+## Candidate 3: Day and night cycle, lighting tints, fireflies/lanterns, and morning dew.
+func _the_day_and_night_cycle_and_dew_work() -> void:
+	_fresh_save()
+	var DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
+	var farm: Dictionary = SaveManager.data["farm"]
+
+	# 1. Phase calculation for hours
+	_ok(DayCycle.phase_for_hour(7) == "morning", "hour 7 is morning phase")
+	_ok(DayCycle.phase_for_hour(12) == "day", "hour 12 is daytime phase")
+	_ok(DayCycle.phase_for_hour(18) == "evening", "hour 18 is evening phase")
+	_ok(DayCycle.phase_for_hour(22) == "night", "hour 22 is night phase")
+	_ok(DayCycle.phase_for_hour(3) == "night", "hour 3 is night phase")
+
+	# 2. Lighting tints
+	_ok(DayCycle.tint_color_for_hour(12).a == 0.0, "daytime has transparent tint overlay")
+	_ok(DayCycle.tint_color_for_hour(18).r > 0.9 and DayCycle.tint_color_for_hour(18).a > 0.1,
+		"evening has warm amber tint overlay")
+	_ok(DayCycle.tint_color_for_hour(22).b > 0.3 and DayCycle.tint_color_for_hour(22).a > 0.2,
+		"night has cozy blue/indigo tint overlay")
+
+	# 3. Night factor
+	_ok(DayCycle.night_factor_for_hour(22) == 1.0, "night factor is 1.0 at night")
+	_ok(DayCycle.night_factor_for_hour(18) == 0.75, "night factor is 0.75 in evening")
+	_ok(DayCycle.night_factor_for_hour(12) == 0.0, "night factor is 0.0 during the day")
+
+	# 4. Morning dew
+	# Set clock to morning (8:00 AM on 2026-10-07)
+	# 1791360000 = 2026-10-07 08:00:00 UTC
+	GameClock.set_test_now(1_791_360_000, 0)
+	farm["last_dew_date"] = ""
+	var p0 := farm["plots"][0] as Dictionary
+	p0["crop_id"] = "carrot"
+	p0["water_level"] = 0.0
+	p0["care_event"] = "thirsty"
+	p0["state"] = Farm.NEEDS_CARE
+	farm["plots"][0] = p0
+
+	var dew := DayCycle.check_morning_dew(farm)
+	_ok(bool(dew.get("applied", false)), "morning dew applies in the morning")
+	_ok(int(dew.get("watered_count", 0)) == 1, "morning dew watered the thirsty plot")
+	_ok(float(farm["plots"][0].get("water_level", 0.0)) == 1.0, "plot water level restored to full")
+	_ok(str(farm["plots"][0].get("care_event", "")) == "", "plot care event cleared")
+	_ok(str(farm["plots"][0].get("state", "")) == Farm.GROWING, "plot returned to GROWING state")
+	_ok(str(farm.get("last_dew_date", "")) == GameClock.now_date(), "last_dew_date recorded")
+
+	# Second check on same day does not apply again
+	var dew_second := DayCycle.check_morning_dew(farm)
+	_ok(not bool(dew_second.get("applied", false)), "morning dew only applies once per day")
+
+	# Outside morning hours (e.g. 14:00 PM)
+	GameClock.set_test_now(1_791_381_600, 0) # 14:00:00
+	farm["last_dew_date"] = ""
+	var dew_afternoon := DayCycle.check_morning_dew(farm)
+	_ok(not bool(dew_afternoon.get("applied", false)), "morning dew does not trigger in the afternoon")
+	GameClock.clear_test_now()
+
+	# 5. Scenery props exist in dressing
+	var dressing: Dictionary = GameData.farm_dressing
+	var props: Array = dressing.get("props", [])
+	var has_lantern := false
+	var has_firefly := false
+	for prop in props:
+		if str(prop.get("id", "")) == "lantern":
+			has_lantern = true
+		if str(prop.get("id", "")) == "firefly":
+			has_firefly = true
+	_ok(has_lantern, "farm dressing includes lanterns on buildings/paths")
+	_ok(has_firefly, "farm dressing includes fireflies over the pond")
 
 
 ## --- 阶段 6: the crop's own move -------------------------------------------
