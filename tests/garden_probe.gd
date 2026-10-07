@@ -108,6 +108,7 @@ func _ready() -> void:
 	_the_pond_fishing_and_ducklings_work()
 	_the_dog_grows_tricks_and_daily_dig_work()
 	_the_market_day_announcement_and_price_doubling_work()
+	_the_bear_comes_back_and_gift_basket_work()
 	_two_tablets_agree_about_the_bear()
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
@@ -2256,6 +2257,76 @@ func _the_market_day_announcement_and_price_doubling_work() -> void:
 
 	# Clean up clock
 	GameClock.clear_test_now()
+
+
+func _the_bear_comes_back_and_gift_basket_work() -> void:
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+
+	# 1. Default save has no pending bear visit
+	_ok(not bool(farm.get("bear_return_visit_pending", false)), "new farm has no pending bear visit")
+
+	# 2. When child waters on the bear's farm, bear_return_visit_pending becomes true
+	farm["bear_return_visit_pending"] = true
+	SaveManager.save_game()
+	_ok(bool(SaveManager.data["farm"].get("bear_return_visit_pending", false)), "pending bear visit saved")
+
+	# 3. Reciprocal visit resolution
+	var pending: bool = bool(farm.get("bear_return_visit_pending", false))
+	_ok(pending, "pending flag detected")
+	farm["bear_return_visit_pending"] = false
+	Farm.remember_visit(farm, {"who": "bear", "watered": 1, "star": 1, "at": GameClock.now_unix()})
+	farm["visit_log_unread"] = true
+	SaveManager.save_game()
+
+	_ok(not bool(farm.get("bear_return_visit_pending", false)), "pending flag cleared after visit")
+	_ok(bool(farm.get("visit_log_unread", false)), "visit board marked unread after bear visit")
+	var log: Array = farm.get("visit_log", [])
+	_ok(not log.is_empty(), "visit log has entries")
+	var last_entry: Dictionary = log[0]
+	_ok(str(last_entry.get("who", "")) == "bear" and int(last_entry.get("watered", 0)) == 1,
+		"bear visit recorded as watering 1 bed")
+
+	# 4. Gift Basket packing & sending
+	Barn.put("carrot", 5)
+	Barn.put("strawberry", 4)
+	_ok(Barn.count("carrot") == 5, "barn has 5 carrots")
+	_ok(Barn.count("strawberry") == 4, "barn has 4 strawberries")
+
+	var basket: Dictionary = {"carrot": 2, "strawberry": 1}
+	var total_items := 0
+	for count in basket.values():
+		total_items += int(count)
+	_ok(total_items == 3, "basket has 3 items (at basket limit)")
+
+	# Paying the basket from barn
+	var paid := Barn.pay(basket)
+	_ok(paid, "barn successfully pays the packed basket")
+	_ok(Barn.count("carrot") == 3, "barn carrot count decremented (5 -> 3)")
+	_ok(Barn.count("strawberry") == 3, "barn strawberry count decremented (4 -> 3)")
+
+	# Friendship and reward
+	var initial_coins := Coins.balance()
+	var friends: Dictionary = farm.get("npc_friendship", {})
+	var prev_friendship := int(friends.get("bear", 0))
+	friends["bear"] = prev_friendship + 1
+	farm["npc_friendship"] = friends
+	Coins.earn(20)
+	Farm.remember_visit(farm, {
+		"who": "bear",
+		"kind": "thanks",
+		"at": GameClock.now_unix(),
+		"milestone_key": "garden.gift_thanks",
+		"milestone_icon": "heart"
+	})
+	farm["visit_log_unread"] = true
+	SaveManager.save_game()
+
+	_ok(int(farm.get("npc_friendship", {}).get("bear", 0)) == prev_friendship + 1, "bear friendship increased")
+	_ok(Coins.balance() == initial_coins + 20, "earned 20 friendship star coins")
+	var thanks_entry: Dictionary = farm.get("visit_log", [])[0]
+	_ok(str(thanks_entry.get("who", "")) == "bear" and str(thanks_entry.get("kind", "")) == "thanks",
+		"thanks recorded in visit log")
 
 
 ## --- 阶段 6: the crop's own move -------------------------------------------

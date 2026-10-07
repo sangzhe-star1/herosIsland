@@ -60,6 +60,7 @@ const FarmVisitPanel := preload("res://scripts/garden/panels/farm_visit_panel.gd
 const FarmRecipesPanel := preload("res://scripts/garden/panels/farm_recipes_panel.gd")
 const FarmKitchenPanel := preload("res://scripts/garden/panels/farm_kitchen_panel.gd")
 const FarmChallengePanel := preload("res://scripts/garden/panels/farm_challenge_panel.gd")
+const FarmGiftPanel := preload("res://scripts/garden/panels/farm_gift_panel.gd")
 
 ## WHERE THE BEDS ARE IS NO LONGER THIS FILE'S BUSINESS
 ##
@@ -211,6 +212,8 @@ var _barn_show_overflow := false
 var _visit_open := false
 var _recipes_open := false
 var _kitchen_open := false
+var _gift_open := false
+var _gift_basket: Dictionary = {}
 var _confirm_cook := ""
 ## Shop, recipe and kitchen sheets show six rows at a time. The rack holds
 ## all fourteen familiar seeds and keeps the same pager for future additions.
@@ -484,6 +487,8 @@ func _rebuild() -> void:
 		_recipes_panel(view)
 	elif _kitchen_open:
 		_kitchen_panel(view)
+	elif _gift_open:
+		_gift_panel(view)
 	_expand_card(view)
 	_undo_toast(view)
 	# The barn is drawn AFTER the rack, because the rack lays down the shelf
@@ -1052,12 +1057,7 @@ func _tap_building(id: String) -> void:
 		"warehouse":
 			_open_panel("barn")
 		"bear_door":
-			# Through the gate to the bear's farm. The door only exists once
-			# the first harvest has been paid (see FarmWorld._bear_door_open),
-			# so there is no locked state to explain here -- a door he can see
-			# is a door that opens.
-			AudioManager.play_sfx("res://assets/audio/door.ogg")
-			SceneManager.goto_scene("res://scenes/garden/BearFarm.tscn")
+			_open_panel("gift")
 		"visit_board":
 			# Reading the board is what makes its news old: the unread flag
 			# clears here, which also sends the dog home -- the rebuild that
@@ -1319,6 +1319,7 @@ func _open_panel(which: String) -> void:
 	_visit_open = which == "visits"
 	_recipes_open = which == "recipes"
 	_kitchen_open = which == "kitchen"
+	_gift_open = which in ["gift", "bear_door"]
 	# A door always opens on its first page -- a shop remembered mid-flip
 	# reads as a shop with rows missing.
 	_shop_page = 0
@@ -1331,6 +1332,8 @@ func _open_panel(which: String) -> void:
 	if which != "market":
 		_market_sell = {}
 		_market_rows = {}
+	if which != "gift" and which != "bear_door":
+		_gift_basket = {}
 	AudioManager.play_sfx("res://assets/audio/door.ogg")
 	_queue_rebuild()
 
@@ -1344,6 +1347,8 @@ func _close_panels() -> void:
 	_visit_open = false
 	_recipes_open = false
 	_kitchen_open = false
+	_gift_open = false
+	_gift_basket = {}
 	_confirm_cook = ""
 	_confirm_crop = ""
 	_confirm_expand = -1
@@ -1360,7 +1365,7 @@ func _close_panels() -> void:
 ## top of the farm and would otherwise not count as "something is open".
 func _something_is_open() -> bool:
 	return _challenges_open or _orders_open or _shop_open or _market_open or _barn_open \
-		or _visit_open or _recipes_open or _kitchen_open \
+		or _visit_open or _recipes_open or _kitchen_open or _gift_open \
 		or _confirm_expand >= 0
 
 
@@ -3587,6 +3592,10 @@ func _recipes_panel(view: Vector2) -> void:
 ## short ingredients get a headshake, never a greyed-out row.
 func _kitchen_panel(view: Vector2) -> void:
 	FarmKitchenPanel.new(self).build(view)
+
+
+func _gift_panel(view: Vector2) -> void:
+	FarmGiftPanel.new(self).build(view)
 
 
 func _undo_toast(view: Vector2) -> void:

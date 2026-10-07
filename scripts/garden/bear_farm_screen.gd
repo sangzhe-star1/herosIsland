@@ -478,6 +478,7 @@ func _water_for_the_bear(index: int) -> void:
 		# own visits go on, so "who has been kind lately" is one place --
 		# and the entry is a GUEST entry, telling the story from this side.
 		var farm: Dictionary = SaveManager.data["farm"]
+		farm["bear_return_visit_pending"] = true
 		Farm.remember_visit(farm, {"who": "bear", "kind": "guest",
 			"shared": 1, "star": 1, "at": GameClock.now_unix()})
 		# Helping a friend grows the farm too -- inside the help_owed gate,

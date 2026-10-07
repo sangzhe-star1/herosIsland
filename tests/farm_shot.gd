@@ -285,6 +285,22 @@ func _ready() -> void:
 			scene.set("_book_page", page)
 			scene.call("_queue_rebuild")
 			await get_tree().process_frame
+		elif what in ["gift", "gift_basket"]:
+			farm["warehouse"] = {"carrot": 4, "strawberry": 2, "tomato": 1}
+			scene.call("_open_panel", "gift")
+			scene.call("_queue_rebuild")
+			await get_tree().process_frame
+			if OS.get_environment("SHOT_PACKED") == "1":
+				var carrot_btn := scene.find_child("GiftPick_carrot", true, false) as Button
+				if carrot_btn != null:
+					carrot_btn.emit_signal("pressed")
+					await get_tree().process_frame
+					carrot_btn.emit_signal("pressed")
+					await get_tree().process_frame
+				var berry_btn := scene.find_child("GiftPick_strawberry", true, false) as Button
+				if berry_btn != null:
+					berry_btn.emit_signal("pressed")
+					await get_tree().process_frame
 		elif what == "daily_board":
 			var water_task := Dailies.task_by_id("water")
 			var before := Coins.balance()

@@ -229,6 +229,8 @@ static func default_farm() -> Dictionary:
 		"dog_fetches": 0,
 		"dog_tricks": [],
 		"last_dog_dig_date": "",
+		# Bear return visit: true when child helped bear, triggers reciprocal visit.
+		"bear_return_visit_pending": false,
 	}
 
 

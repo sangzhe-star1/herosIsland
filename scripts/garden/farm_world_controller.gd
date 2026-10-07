@@ -64,6 +64,7 @@ signal gesture_finished(index: int, track: PackedVector2Array, centre: Vector2,
 	net: Vector2)
 signal fish_caught(info: Dictionary)
 signal dog_found_seed(crop_id: String)
+signal bear_visited(index: int)
 
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
@@ -284,6 +285,7 @@ func refresh(plots: Array) -> void:
 	if _dig_spot != null and is_instance_valid(_dig_spot):
 		_dig_spot.dug_today = not DogManager.can_dig_today(SaveManager.data.get("farm", {}))
 		_dig_spot.queue_redraw()
+	_check_bear_return_visit(plots)
 	# The town redraws when -- and only when -- something about it changed:
 	# the bear's door appearing after the first paid harvest, the orchard
 	# corner building up at a new farm level, stones leaving cleared land.
@@ -1479,3 +1481,43 @@ func _on_dog_dig_done() -> void:
 	AudioManager.play_sfx("res://assets/audio/found.ogg")
 	AudioManager.say("praise_1")
 	dog_found_seed.emit(crop_id)
+
+
+func _check_bear_return_visit(plots: Array) -> void:
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	if not bool(farm.get("bear_return_visit_pending", false)):
+		return
+
+	var target_idx := -1
+	for i in range(plots.size()):
+		var p: Dictionary = plots[i]
+		if str(p.get("care_event", "")) == Growth.CARE_THIRSTY:
+			target_idx = i
+			break
+	if target_idx < 0 and not plots.is_empty():
+		target_idx = 0
+
+	farm["bear_return_visit_pending"] = false
+	Farm.remember_visit(farm, {"who": "bear", "watered": 1, "star": 1, "at": GameClock.now_unix()})
+	farm["visit_log_unread"] = true
+	SaveManager.save_game()
+
+	if target_idx < 0:
+		return
+
+	var door := Layout.facility("bear_door")
+	var door_pos := Layout.facility_at(door)
+	var bed_pos := Layout.plot_at(target_idx)
+
+	var bear_actor := preload("res://scripts/garden/farm_bear_visitor_actor.gd").new()
+	bear_actor.name = "BearVisitorActor"
+	bear_actor.z_index = 22
+	_ground.add_child(bear_actor)
+	bear_actor.setup(door_pos)
+
+	bear_actor.walk_to_bed_and_water(bed_pos,
+		func():
+			cloud_rained.emit(target_idx),
+		func():
+			bear_visited.emit(target_idx)
+	)
