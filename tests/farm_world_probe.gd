@@ -1032,10 +1032,24 @@ func _find_named(node: Node, wanted: String) -> Node:
 	return null
 
 
-func _flight_destination(node: Node) -> Vector2:
-	if node == null:
-		return Vector2.INF
-	var destination: Variant = node.get_meta("destination_at", Vector2.INF)
+## A flight by node name: the live sprite's metas while it is on screen, else
+## the receipt the garden kept of it (`harvest_flights`, the last eight).
+func _flight_receipt(node_name: String) -> Dictionary:
+	var live: Node = _find_named(_garden, node_name)
+	if live != null:
+		return {"node": node_name, "crop_id": str(live.get_meta("crop_id", "")),
+			"amount": int(live.get_meta("amount", 0)),
+			"destination": str(live.get_meta("destination", "")),
+			"destination_at": live.get_meta("destination_at", Vector2.INF)}
+	var flights: Array = _garden.get_meta("harvest_flights", [])
+	for stamp in flights:
+		if stamp is Dictionary and str((stamp as Dictionary).get("node", "")) == node_name:
+			return stamp as Dictionary
+	return {}
+
+
+func _receipt_destination(stamp: Dictionary) -> Vector2:
+	var destination: Variant = stamp.get("destination_at", Vector2.INF)
 	if destination is Vector2:
 		return destination as Vector2
 	return Vector2.INF
@@ -1259,36 +1273,39 @@ func _one_brush_stroke_keeps_every_spill_on_the_same_basket_rim() -> void:
 	await _tap((_tool_button("basket") as Button).position + Vector2(48, 38))
 	_ok(_tools_state().selected == "basket",
 		"the full-barn basket brush is genuinely in the child's hand")
-	# Two moves keep both 0 and 1 inside one real touch stroke while leaving the
-	# 0.4s receipt animation alive long enough to inspect its destination.
+	# Two moves keep both 0 and 1 inside one real touch stroke. The carrot
+	# flies on the first move and the strawberry on the last; under a slow
+	# software-GL window the first 0.4 s sprite is gone before the stroke
+	# ends, so each flight is read from the screen's receipt list, which
+	# the live sprite only confirms.
+	if _garden.has_meta("harvest_flights"):
+		_garden.remove_meta("harvest_flights")
 	await _finger(_garden.call("_bed_centre", 0),
 		_garden.call("_bed_centre", 1), 2)
 
-	var carrot_flight: Node = _find_named(_garden, "HarvestSpillFlight_carrot")
-	var strawberry_flight: Node = _find_named(_garden,
-		"HarvestSpillFlight_strawberry")
-	var accidental_carrot: Node = _find_named(_garden, "HarvestFlight_carrot")
-	var accidental_strawberry: Node = _find_named(_garden, "HarvestFlight_strawberry")
-	_ok(carrot_flight != null and strawberry_flight != null
-		and accidental_carrot == null and accidental_strawberry == null,
+	var carrot_flight := _flight_receipt("HarvestSpillFlight_carrot")
+	var strawberry_flight := _flight_receipt("HarvestSpillFlight_strawberry")
+	var accidental_carrot := _flight_receipt("HarvestFlight_carrot")
+	var accidental_strawberry := _flight_receipt("HarvestFlight_strawberry")
+	_ok(not carrot_flight.is_empty() and not strawberry_flight.is_empty()
+		and accidental_carrot.is_empty() and accidental_strawberry.is_empty(),
 		"one full-barn brush makes two overflow receipts and no lying barn receipts")
 
 	var carrot_yield := maxi(int(GameData.get_crop("carrot")
 		.get("harvest_amount", 1)), 1)
 	var strawberry_yield := maxi(int(GameData.get_crop("strawberry")
 		.get("harvest_amount", 1)), 1)
-	_ok(carrot_flight != null and str(carrot_flight.get_meta("crop_id", "")) == "carrot"
-		and int(carrot_flight.get_meta("amount", 0)) == carrot_yield
-		and str(carrot_flight.get_meta("destination", "")) == "harvest_basket",
+	_ok(str(carrot_flight.get("crop_id", "")) == "carrot"
+		and int(carrot_flight.get("amount", 0)) == carrot_yield
+		and str(carrot_flight.get("destination", "")) == "harvest_basket",
 		"the carrot receipt keeps its real crop, full yield, and overflow destination")
-	_ok(strawberry_flight != null
-		and str(strawberry_flight.get_meta("crop_id", "")) == "strawberry"
-		and int(strawberry_flight.get_meta("amount", 0)) == strawberry_yield
-		and str(strawberry_flight.get_meta("destination", "")) == "harvest_basket",
+	_ok(str(strawberry_flight.get("crop_id", "")) == "strawberry"
+		and int(strawberry_flight.get("amount", 0)) == strawberry_yield
+		and str(strawberry_flight.get("destination", "")) == "harvest_basket",
 		"the strawberry receipt keeps its real crop, full yield, and overflow destination")
 
-	var carrot_landing := _flight_destination(carrot_flight)
-	var strawberry_landing := _flight_destination(strawberry_flight)
+	var carrot_landing := _receipt_destination(carrot_flight)
+	var strawberry_landing := _receipt_destination(strawberry_flight)
 	_ok(carrot_landing != Vector2.INF and strawberry_landing != Vector2.INF
 		and carrot_landing.distance_to(strawberry_landing) < 0.5,
 		"both crops from one stroke fly to the same fixed overflow basket rim")

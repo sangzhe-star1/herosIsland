@@ -2298,8 +2298,16 @@ func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
 	# The flight lives 0.4 s. A receipt of it stays on the screen so a slow
 	# frame (a probe under software GL, a tablet mid-save) can still ask
 	# "what flew, and how much" after the sprite itself has gone.
-	set_meta("last_harvest_flight", {"node": art.name, "crop_id": crop_id,
-		"amount": amount, "destination": destination})
+	var stamp := {"node": art.name, "crop_id": crop_id, "amount": amount,
+		"destination": destination, "destination_at": destination_at}
+	set_meta("last_harvest_flight", stamp)
+	# One stroke across two beds makes two flights 0.4 s apart; the first is
+	# gone before the second is asked about. Keep the last few, in order.
+	var flights: Array = get_meta("harvest_flights", [])
+	flights.append(stamp)
+	while flights.size() > 8:
+		flights.pop_front()
+	set_meta("harvest_flights", flights)
 	if bool(receipt.get("golden", false)):
 		# The one that came up gold flies gold: the same flight, telling the
 		# same story, in the colour the bed promised.
