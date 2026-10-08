@@ -458,7 +458,8 @@ static func title(text: String, size: int = TYPE_DISPLAY, color: Color = Palette
 ## Title over artwork or a dark background, where a plain label would be lost.
 static func title_on_art(text: String, size: int = TYPE_DISPLAY) -> Label:
 	var l := title(text, size, Palette.ON_COLOR)
-	return on_art(l, 10)
+	var outline := maxi(3, int(roundf(float(size) * 0.14)))
+	return on_art(l, outline)
 
 
 ## Makes any label survive whatever is behind it.

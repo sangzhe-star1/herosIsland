@@ -64,9 +64,9 @@ func panel_sheet(view: Vector2, title_key: String, wide: float, tall: float, on_
 		title.position = origin + Vector2(28.0, 8.0)
 		title.size = Vector2(wide - 130.0, 28.0)
 	else:
-		title = UiKit.title_on_art(I18n.t(title_key), 30)
-		title.position = origin + Vector2(28.0, 14.0)
-		title.size = Vector2(wide - 130.0, 40.0)
+		title = UiKit.title(I18n.t(title_key), 24, Color(0.26, 0.22, 0.17))
+		title.position = origin + Vector2(28.0, 12.0)
+		title.size = Vector2(wide - 130.0, 32.0)
 	play.add_child(title)
 
 	sheet_close(origin + Vector2(wide + 14.0, 0.0), on_close)

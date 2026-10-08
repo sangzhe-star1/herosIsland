@@ -3081,9 +3081,9 @@ func _panel_sheet(view: Vector2, title_key: String, wide: float,
 		_world.add_blocker(sheet)
 
 	var title := UiKit.title(I18n.t(title_key), 22, Color(0.29, 0.24, 0.16)) \
-		if title_key in ["garden.warehouse_title", "garden.waiting_harvest_title"] else UiKit.title_on_art(I18n.t(title_key), 30)
-	title.position = origin + Vector2(28, 14)
-	title.size = Vector2(wide - 130.0, 40)
+		if title_key in ["garden.warehouse_title", "garden.waiting_harvest_title"] else UiKit.title(I18n.t(title_key), 24, Color(0.26, 0.22, 0.17))
+	title.position = origin + Vector2(28, 12)
+	title.size = Vector2(wide - 130.0, 32)
 	if title_key in ["garden.warehouse_title", "garden.waiting_harvest_title"]:
 		title.name = "BarnCollectionTitle"
 		title.position = origin + Vector2(28.0, 8.0)
@@ -3623,9 +3623,9 @@ func _show_master_farmer_celebration() -> void:
 	var card := Panel.new()
 	card.name = "MasterCelebration"
 	card.add_theme_stylebox_override("panel", UiKit.panel_style(
-		Color(1.0, 0.97, 0.82, 0.98), 24))
-	var wide := 560.0
-	var tall := 116.0
+		Color(1.0, 0.97, 0.82, 0.98), 20))
+	var wide := 480.0
+	var tall := 90.0
 	var view: Vector2 = get_viewport_rect().size
 	card.position = Vector2((view.x - wide) * 0.5, 96.0)
 	card.custom_minimum_size = Vector2(wide, tall)
@@ -3633,30 +3633,30 @@ func _show_master_farmer_celebration() -> void:
 	card.z_index = 32
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(card)
-	var crown := UiKit.picture("crown", 72.0)
+	var crown := UiKit.picture("crown", 48.0)
 	if crown != null:
-		crown.position = Vector2(20.0, 22.0)
+		crown.position = Vector2(16.0, 21.0)
 		crown.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(crown)
-	var title := UiKit.title(I18n.t("farm.level_8_title"), UiKit.TYPE_TITLE, Color(0.72, 0.45, 0.10))
-	title.position = Vector2(104.0, 16.0)
-	title.size = Vector2(wide - 120.0, 28.0)
+	var title := UiKit.title(I18n.t("farm.level_8_title"), 22, Color(0.68, 0.42, 0.10))
+	title.position = Vector2(78.0, 12.0)
+	title.size = Vector2(wide - 92.0, 24.0)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	card.add_child(title)
-	var desc := UiKit.title(I18n.t("farm.level_8_desc"), UiKit.TYPE_BODY, Color(0.40, 0.34, 0.22))
-	desc.position = Vector2(104.0, 48.0)
-	desc.size = Vector2(wide - 120.0, 26.0)
+	var desc := UiKit.title(I18n.t("farm.level_8_desc"), 16, Color(0.42, 0.36, 0.25))
+	desc.position = Vector2(78.0, 38.0)
+	desc.size = Vector2(wide - 92.0, 20.0)
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	card.add_child(desc)
-	var reward_lbl := UiKit.title(I18n.t("farm.level_8_reward"), UiKit.TYPE_CAPTION, Color(0.60, 0.48, 0.22))
-	reward_lbl.position = Vector2(104.0, 78.0)
-	reward_lbl.size = Vector2(wide - 120.0, 24.0)
+	var reward_lbl := UiKit.title(I18n.t("farm.level_8_reward"), 14, Color(0.56, 0.46, 0.22))
+	reward_lbl.position = Vector2(78.0, 60.0)
+	reward_lbl.size = Vector2(wide - 92.0, 18.0)
 	reward_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	card.add_child(reward_lbl)
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
-	Juice.pop(card, 0.16)
+	Juice.pop(card, 0.14)
 	if Juice.motion_enabled():
-		Juice.burst(layer, Vector2(view.x * 0.5, 150.0), 20)
+		Juice.burst(layer, Vector2(view.x * 0.5, 140.0), 16)
 	var t := card.create_tween()
 	t.tween_interval(3.6)
 	t.tween_property(card, "modulate:a", 0.0, 0.45)

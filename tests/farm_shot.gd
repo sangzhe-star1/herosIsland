@@ -48,6 +48,7 @@ const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
+const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
 
 const NOON := 1_699_963_200
@@ -98,6 +99,12 @@ func _ready() -> void:
 	farm["visit_log_unread"] = what == "garden"
 	if OS.get_environment("SHOT_DUCKLINGS") == "1":
 		farm["fish_caught_total"] = 5
+	if what in ["master", "master_celebration", "feast"] or OS.get_environment("SHOT_MASTER") == "1":
+		farm["farm_xp"] = 560
+		farm["farm_level"] = 8
+		Level.ensure_master_farmer()
+		farm["warehouse"] = {"flour": 4, "milk": 2, "honey": 2, "strawberry": 4}
+		farm["unlocked_recipes"] = ["star_feast", "strawberry_soup"]
 
 	GameManager.current_level_id = "star_garden"
 	var scene: Node
@@ -259,12 +266,24 @@ func _ready() -> void:
 					delivered.append(str(order["id"]))
 			SaveManager.data["farm_orders"] = {"delivered": delivered}
 			farm["warehouse"] = {"carrot": 4, "strawberry": 2, "corn": 2}
+		if what in ["master", "master_celebration", "feast"] or OS.get_environment("SHOT_MASTER") == "1":
+			farm["farm_xp"] = 560
+			farm["farm_level"] = 8
+			Level.ensure_master_farmer()
+			farm["warehouse"] = {"flour": 4, "milk": 2, "honey": 2, "strawberry": 4}
+			farm["unlocked_recipes"] = ["star_feast", "strawberry_soup"]
 		scene.call("_rebuild")
 		await get_tree().process_frame
 		var page := int(OS.get_environment("SHOT_PAGE")) \
 			if OS.get_environment("SHOT_PAGE") != "" else 0
 		if what == "board" or what == "thanks" or what == "wink":
 			scene.call("_tap_building", "visit_board")
+			await get_tree().process_frame
+		elif what == "feast":
+			scene.call("_tap_building", "workshop")
+			await get_tree().process_frame
+		elif what == "master_celebration":
+			scene.call("_show_master_farmer_celebration")
 			await get_tree().process_frame
 		elif what == "kitchen":
 			scene.call("_tap_building", "workshop")
@@ -448,6 +467,10 @@ func _ready() -> void:
 	if focus_facility != "" and what != "bear" and what != "home":
 		if focus_facility == "pond":
 			(scene.get("_world") as Node).call("look_at_world", Vector2(1362, 612))
+		elif focus_facility == "scarecrow":
+			(scene.get("_world") as Node).call("look_at_world", Vector2(650, 605))
+		elif focus_facility == "well":
+			(scene.get("_world") as Node).call("look_at_world", Vector2(830, 165))
 		else:
 			(scene.get("_world") as Node).call("look_at_facility", focus_facility)
 		await get_tree().process_frame

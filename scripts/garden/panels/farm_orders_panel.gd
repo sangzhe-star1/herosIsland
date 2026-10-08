@@ -28,9 +28,9 @@ func build(view: Vector2) -> void:
 	sheet_close(sheet.position + Vector2(sheet.size.x + 14.0, 0.0),
 		Callable(screen, "_close_orders"))
 
-	var heading := UiKit.title_on_art(I18n.t("garden.orders"), 30)
+	var heading := UiKit.title(I18n.t("garden.orders"), 24, Color(0.26, 0.22, 0.17))
 	heading.position = at
-	heading.size = Vector2(400, 40)
+	heading.size = Vector2(400, 32)
 	play.add_child(heading)
 
 	var y := at.y + ORDER_FIRST
