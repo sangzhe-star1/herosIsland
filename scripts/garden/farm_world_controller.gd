@@ -65,6 +65,7 @@ signal gesture_finished(index: int, track: PackedVector2Array, centre: Vector2,
 signal fish_caught(info: Dictionary)
 signal dog_found_seed(crop_id: String)
 signal bear_visited(index: int)
+signal scarecrow_tapped()
 
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmCamera := preload("res://scripts/garden/farm_camera_controller.gd")
@@ -86,6 +87,7 @@ const FarmWorldArt := preload("res://scripts/garden/farm_world_art.gd")
 ## How long between two presses on the grass still counts as a double tap.
 ## Generous: a six-year-old's second tap is not fast.
 const DOUBLE_TAP := 0.55
+const SCARECROW_POS := Vector2(650.0, 605.0)
 
 var camera := FarmCamera.new()
 
@@ -1269,6 +1271,9 @@ func press_at(at: Vector2) -> void:
 			else "res://assets/audio/rustle.ogg")
 		return
 	var world_pt := camera.screen_to_world(at)
+	if is_near_scarecrow(world_pt):
+		_tap_scarecrow()
+		return
 	if DogManager.is_near_dig_spot(world_pt):
 		_tap_dig_spot()
 		return
@@ -1455,6 +1460,15 @@ func _perform_catch(farm: Dictionary) -> void:
 		_refresh_ducklings()
 		FarmWorldArt.poke_scenery_kind(_ground, "duck")
 	fish_caught.emit(res)
+
+
+static func is_near_scarecrow(world_pt: Vector2) -> bool:
+	return world_pt.distance_to(SCARECROW_POS) <= 55.0
+
+
+func _tap_scarecrow() -> void:
+	poke_scenery_kind("scarecrow")
+	scarecrow_tapped.emit()
 
 
 func _tap_dig_spot() -> void:

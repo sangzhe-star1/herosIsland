@@ -8,6 +8,8 @@ extends RefCounted
 
 const Art := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
+const Level := preload("res://scripts/garden/farm_level_manager.gd")
+const UiKit := preload("res://scripts/ui/ui_kit.gd")
 const MEADOW_LIGHT := Color(0.71, 0.85, 0.58)
 const MEADOW_SHADE := Color(0.57, 0.75, 0.44)
 const BUSH_DARK := Color(0.29, 0.52, 0.31)
@@ -123,6 +125,28 @@ static func _add_dressing_props(layer: Node2D, protected: Array[Rect2]) -> void:
 			life.add(sprite, str(entry["life"]), entry)
 			sprite.set_meta("prop_id", id)
 		placed[id] = sprite
+		if id == "scarecrow" and Level.is_master_farmer() and sprite != null:
+			_decorate_golden_scarecrow(sprite.get_parent(), size)
+
+
+static func _decorate_golden_scarecrow(holder: Node2D, size: float) -> void:
+	if holder == null:
+		return
+	var aura := Node2D.new()
+	aura.name = "GoldenAura"
+	Shapes.fill(aura, Shapes.circle_points(Vector2(0.0, -size * 0.55), size * 0.52),
+		Color(1.0, 0.88, 0.35, 0.22), 0.0)
+	Shapes.fill(aura, Shapes.circle_points(Vector2(0.0, -size * 0.55), size * 0.36),
+		Color(1.0, 0.95, 0.55, 0.30), 0.0)
+	holder.add_child(aura)
+	holder.move_child(aura, 0)
+
+	var crown: Control = UiKit.picture("crown", 28.0)
+	if crown != null:
+		crown.name = "GoldenScarecrowCrown"
+		crown.position = Vector2(-14.0, -size * 1.08)
+		crown.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.add_child(crown)
 
 
 ## A press on the glass: which living scenery is under it? The life node
@@ -774,6 +798,18 @@ static func _draw_well(parent: Node2D, box: Vector2) -> void:
 	]), Color(0.45, 0.68, 0.76), 0.84)
 	Shapes.fill(parent, Shapes.rounded_rect(Vector2(-box.x * 0.18, -box.y * 0.51),
 		Vector2(box.x * 0.36, 10.0), 5.0), Color(0.78, 0.92, 0.96), 0.0)
+	if Level.is_master_farmer():
+		# Wishing Well Awakening: starlight ripples and golden crest
+		Shapes.fill(parent, Shapes.oval_points(Vector2(0.0, box.y * 0.04),
+			Vector2(box.x * 0.28, box.y * 0.15)), Color(1.0, 0.88, 0.38, 0.35), 0.0)
+		Shapes.fill(parent, Shapes.circle_points(Vector2(-box.x * 0.07, box.y * 0.03), 4.0),
+			Color(1.0, 1.0, 0.9, 0.85), 0.0)
+		Shapes.fill(parent, Shapes.circle_points(Vector2(box.x * 0.07, box.y * 0.05), 3.0),
+			Color(1.0, 0.92, 0.55, 0.75), 0.0)
+		Shapes.fill(parent, Shapes.circle_points(Vector2(0.0, -box.y * 0.74), 7.0),
+			Color(1.0, 0.82, 0.24), 0.0)
+		Shapes.fill(parent, Shapes.circle_points(Vector2(0.0, -box.y * 0.74), 4.0),
+			Color(1.0, 1.0, 0.9), 0.0)
 
 
 static func _draw_notice_board(parent: Node2D, box: Vector2, warm: bool) -> void:

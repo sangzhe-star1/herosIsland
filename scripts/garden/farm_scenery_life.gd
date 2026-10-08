@@ -33,7 +33,8 @@ func add(sprite: Control, kind: String, spec: Dictionary) -> void:
 func poke_at(screen_at: Vector2) -> String:
 	for life in _alive:
 		var sprite: Control = life["sprite"]
-		if not is_instance_valid(sprite) or str(life["kind"]) == "flutter":
+		if not is_instance_valid(sprite) \
+				or str(life["kind"]) in ["flutter", "firefly", "scarecrow", "lantern"]:
 			continue
 		var local_at := sprite.get_global_transform_with_canvas().affine_inverse() * screen_at
 		var hit: Rect2 = life["hit"]
@@ -141,6 +142,17 @@ func _process(delta: float) -> void:
 				sprite.modulate = Color(1.0 + 0.15 * nf, 1.0 + 0.12 * nf, 0.95 + 0.05 * nf, 1.0)
 			"firefly":
 				_firefly(life, sprite, delta)
+			"scarecrow":
+				var cycle := fmod(_t * 0.8 + phase, 4.0)
+				sprite.rotation = sin(cycle * TAU) * 0.03 if cycle < 1.0 else 0.0
+				if hop > 0.0:
+					var hop_norm := clampf(float(life["hop"]) / 0.5, 0.0, 1.0)
+					sprite.scale.x = base_scale.x * (1.0 + sin(hop_norm * PI) * 0.22)
+					sprite.scale.y = base_scale.y * (1.0 - sin(hop_norm * PI) * 0.16)
+					sprite.rotation = sin(hop_norm * PI * 2.0) * 0.18
+					sprite.position.y = base.y - hop * 0.5
+				else:
+					sprite.position.y = base.y
 
 
 func _firefly(life: Dictionary, sprite: Control, delta: float) -> void:

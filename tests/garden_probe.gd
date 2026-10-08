@@ -25,6 +25,8 @@ const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
+const Recipes := preload("res://scripts/garden/recipe_manager.gd")
+const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 
 ## The fewest questions this probe is allowed to have asked by the time it
 ## prints its verdict.
@@ -41,7 +43,7 @@ const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 640
+const CHECKS_EXPECTED := 680
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -113,6 +115,7 @@ func _ready() -> void:
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
 	_the_seventh_bed_is_bought_once()
+	_the_level_8_master_farmer_milestone_and_celebration_work()
 	# --- 阶段 6: the crop's own move ---
 	_the_moves_a_crop_asks_for_are_moves_the_finger_can_make()
 
@@ -2752,3 +2755,104 @@ func _board_ids(board: Array) -> Array:
 	for order in board:
 		ids.append(str(order.get("id", "")))
 	return ids
+
+
+## Level 8 Master Farmer milestone:
+##   - 560 XP ladder threshold, crown icon, and level 8 reward key
+##   - Star Feast 18th recipe (flour x2, milk x1, honey x1, strawberry x2)
+##   - Master farmer achievement badge ("master_farmer")
+##   - Scarecrow interaction geometry at (650, 605)
+##   - Daily wishing well starlight blessing at Level 8
+##   - Persistence across save/load round-trips
+func _the_level_8_master_farmer_milestone_and_celebration_work() -> void:
+	_fresh_save()
+
+	# 1. Level ladder arithmetic
+	_ok(Level.level_of(0) == 1, "0 xp is level 1")
+	_ok(Level.level_of(559) == 7, "559 xp is level 7")
+	_ok(Level.level_of(560) == 8, "560 xp reaches level 8")
+	_ok(Level.level_of(700) == 8, "xp past 560 stays level 8")
+
+	var lv8_row: Dictionary = {}
+	for row in GameData.farm_level_table():
+		if int(row.get("level", 0)) == 8:
+			lv8_row = row
+	_ok(not lv8_row.is_empty(), "level 8 exists in farm level table")
+	_ok(int(lv8_row.get("xp", 0)) == 560, "level 8 requires 560 xp")
+	_ok(str(lv8_row.get("reward_key", "")) == "farm.level_8_reward", "level 8 has reward key")
+	_ok(str(lv8_row.get("icon", "")) == "crown", "level 8 has crown icon")
+
+	# 2. Recipe 18: star_feast
+	var star_feast: Dictionary = {}
+	for r in GameData.garden_recipes:
+		if str(r.get("id", "")) == "star_feast":
+			star_feast = r
+	_ok(not star_feast.is_empty(), "star_feast is in garden_recipes catalogue")
+	var needs: Dictionary = {}
+	for n in star_feast.get("needs", []):
+		needs[str(n.get("crop_id", ""))] = int(n.get("count", 0))
+	_ok(needs.get("flour", 0) == 2, "star_feast needs 2 flour")
+	_ok(needs.get("milk", 0) == 1, "star_feast needs 1 milk")
+	_ok(needs.get("honey", 0) == 1, "star_feast needs 1 honey")
+	_ok(needs.get("strawberry", 0) == 2, "star_feast needs 2 strawberry")
+
+	# Cooking star_feast requires both knowledge and ingredients
+	_ok(not Recipes.is_unlocked("star_feast"), "star_feast starts locked")
+	_ok(not Recipes.can_cook(star_feast), "cannot cook star_feast before unlock and ingredients")
+	Barn.put("flour", 2)
+	Barn.put("milk", 1)
+	Barn.put("honey", 1)
+	Barn.put("strawberry", 2)
+	_ok(Recipes.barn_has_all(star_feast), "barn now has all ingredients for star_feast")
+	var newly_unlocked := Recipes.check_barn()
+	var found_unlocked := false
+	for u in newly_unlocked:
+		if str(u.get("id", "")) == "star_feast":
+			found_unlocked = true
+	_ok(found_unlocked, "check_barn unlocks star_feast when all ingredients present")
+	_ok(Recipes.is_unlocked("star_feast"), "star_feast is now unlocked")
+	_ok(Recipes.can_cook(star_feast), "can cook star_feast now")
+	var cooked := Recipes.cook("star_feast")
+	_ok(cooked, "cooking star_feast succeeds")
+	_ok(Recipes.dish_count("star_feast") == 1, "dish_star_feast is now in inventory")
+	_ok(Barn.count("flour") == 0, "flour consumed")
+	_ok(Barn.count("milk") == 0, "milk consumed")
+	_ok(Barn.count("honey") == 0, "honey consumed")
+	_ok(Barn.count("strawberry") == 0, "strawberry consumed")
+
+	# 3. Master Farmer promotion & badge
+	_ok(not Level.is_master_farmer(), "fresh farm is not master farmer")
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["farm_xp"] = 550
+	var ladder := Level.award("order")  # order pays 10 XP -> 560
+	_ok(int(ladder[0]) == 7, "before level was 7")
+	_ok(int(ladder[1]) == 8, "after level is 8")
+	_ok(Level.is_master_farmer(), "is_master_farmer is true after reaching level 8")
+	_ok(bool(farm.get("master_farmer_achieved", false)), "master_farmer_achieved flag set")
+	var badges: Array = SaveManager.data.get("rewards", {}).get("badges", [])
+	_ok("master_farmer" in badges, "master_farmer badge awarded")
+
+	# Save/load round-trip preserves Level 8 and wishing date
+	farm["last_well_wish_date"] = "2026-10-07"
+	SaveManager.save_game()
+	SaveManager.load_game()
+	var loaded_farm: Dictionary = SaveManager.data["farm"]
+	_ok(bool(loaded_farm.get("master_farmer_achieved", false)), "master_farmer_achieved survives save round-trip")
+	_ok(str(loaded_farm.get("last_well_wish_date", "")) == "2026-10-07", "last_well_wish_date survives save round-trip")
+	_ok(Level.is_master_farmer(), "is_master_farmer remains true after reload")
+
+	# 4. Scarecrow hit detection geometry
+	_ok(FarmWorld.SCARECROW_POS == Vector2(650, 605), "scarecrow position is (650, 605)")
+	_ok(FarmWorld.is_near_scarecrow(Vector2(650, 605)), "exact center is near scarecrow")
+	_ok(FarmWorld.is_near_scarecrow(Vector2(670, 620)), "offset within 55px is near scarecrow")
+	_ok(not FarmWorld.is_near_scarecrow(Vector2(800, 605)), "far point is not near scarecrow")
+
+	# 5. Localization strings verification
+	_ok(not I18n.t("farm.level_8_title").is_empty(), "level 8 title is localized")
+	_ok(not I18n.t("farm.level_8_desc").is_empty(), "level 8 desc is localized")
+	_ok(not I18n.t("farm.level_8_reward").is_empty(), "level 8 reward is localized")
+	_ok(not I18n.t("farm.scarecrow_cheer").is_empty(), "scarecrow cheer is localized")
+	_ok(not I18n.t("farm.well_wish_done").is_empty(), "well wish is localized")
+	_ok(not I18n.t("recipe.star_feast").is_empty(), "star_feast recipe is localized")
+	_ok(not I18n.t("badge.master_farmer").is_empty(), "master_farmer badge is localized")
+

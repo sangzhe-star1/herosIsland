@@ -240,5 +240,27 @@
         "count": 1
       }
     ]
+  },
+  {
+    "id": "star_feast",
+    "name_key": "recipe.star_feast",
+    "needs": [
+      {
+        "crop_id": "flour",
+        "count": 2
+      },
+      {
+        "crop_id": "milk",
+        "count": 1
+      },
+      {
+        "crop_id": "honey",
+        "count": 1
+      },
+      {
+        "crop_id": "strawberry",
+        "count": 2
+      }
+    ]
   }
 ]

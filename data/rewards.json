@@ -123,6 +123,10 @@
     "island_hero": {
       "name_key": "badge.island_hero",
       "icon": "medal"
+    },
+    "master_farmer": {
+      "name_key": "badge.master_farmer",
+      "icon": "crown"
     }
   },
   "growth_attributes": [

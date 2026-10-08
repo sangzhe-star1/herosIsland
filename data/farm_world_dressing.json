@@ -134,7 +134,8 @@
     650,
     605
    ],
-   "size": 110
+   "size": 110,
+   "life": "scarecrow"
   },
   {
    "id": "pond",

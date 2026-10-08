@@ -234,6 +234,9 @@ static func default_farm() -> Dictionary:
 		"last_dog_dig_date": "",
 		# Bear return visit: true when child helped bear, triggers reciprocal visit.
 		"bear_return_visit_pending": false,
+		# Level 8 Master Farmer milestone:
+		"master_farmer_achieved": false,
+		"last_well_wish_date": "",
 	}
 
 

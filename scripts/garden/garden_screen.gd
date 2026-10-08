@@ -451,6 +451,7 @@ func _rebuild() -> void:
 		_world.cloud_rained.connect(_on_cloud_rained)
 		_world.fish_caught.connect(_on_fish_caught)
 		_world.dog_found_seed.connect(_on_dog_found_seed)
+		_world.scarecrow_tapped.connect(_on_scarecrow_tapped)
 		_world.gesture_bed_check = _bed_wants_gesture
 		_world.gesture_moved.connect(_on_gesture_moved)
 		_world.gesture_finished.connect(_on_gesture_finished)
@@ -1069,7 +1070,10 @@ func _tap_building(id: String) -> void:
 				SaveManager.save_game()
 			_open_panel("visits")
 		"well":
-			AudioManager.play_sfx("res://assets/audio/water.ogg")
+			if Level.is_master_farmer():
+				_tap_wishing_well()
+			else:
+				AudioManager.play_sfx("res://assets/audio/water.ogg")
 		"coop":
 			_tap_coop()
 		"mill":
@@ -1269,6 +1273,37 @@ func _on_dog_found_seed(crop_id: String) -> void:
 	var receipt := {"crop_id": crop_id, "amount": 1, "stored": 1, "spilled": 0}
 	_spawn_harvest_flight(-1, receipt, 1, _barn_button_at,
 		"seed", "HarvestFlight", at + Vector2(0, -20))
+
+
+func _on_scarecrow_tapped() -> void:
+	if Level.is_master_farmer():
+		AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
+		AudioManager.say("praise_3")
+		if Juice.motion_enabled() and _world != null and is_instance_valid(_world):
+			var at: Vector2 = _world.camera.world_to_screen(FarmWorld.SCARECROW_POS)
+			Juice.burst(_harvest_feedback_layer(), at, 16)
+		_show_toast_message(I18n.t("farm.scarecrow_cheer"), "crown")
+	else:
+		AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+
+
+func _tap_wishing_well() -> void:
+	var farm: Dictionary = _farm()
+	var today: String = GameClock.now_date()
+	if str(farm.get("last_well_wish_date", "")) == today:
+		AudioManager.play_sfx("res://assets/audio/water.ogg")
+		_show_toast_message(I18n.t("farm.well_wish_done"), "star")
+		return
+	farm["last_well_wish_date"] = today
+	Coins.earn(2, "farm:well_wish")
+	SaveManager.save_game()
+	AudioManager.play_sfx("res://assets/audio/water.ogg")
+	AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
+	if Juice.motion_enabled() and _world != null and is_instance_valid(_world):
+		var well_pos: Vector2 = _world.facility_screen_position("well")
+		Juice.burst(_harvest_feedback_layer(), well_pos, 16)
+	_show_toast_message(I18n.t("farm.well_wish_done"), "star")
+	_queue_rebuild()
 
 
 func _show_coop_ring(at: Vector2, fraction: float) -> void:
@@ -3505,6 +3540,8 @@ func _earn_xp(kind: String) -> void:
 	AudioManager.say("farm_level_up")
 	if Juice.motion_enabled() and _play != null and is_instance_valid(_play):
 		Juice.burst(_play, Vector2(190.0, TOP_BAR * 0.55), 16)
+	if int(levels[0]) < 8 and int(levels[1]) >= 8:
+		_show_master_farmer_celebration()
 	# The chip redraws with the screen; the town (orchard corner, star
 	# badges over the stones) redraws itself on the world's next refresh.
 	_queue_rebuild()
@@ -3575,6 +3612,92 @@ func _recipe_learned_card(recipe: Dictionary) -> void:
 	t.tween_interval(2.6)
 	t.tween_property(card, "modulate:a", 0.0, 0.4)
 	t.tween_callback(card.queue_free)
+
+
+func _show_master_farmer_celebration() -> void:
+	var layer := _harvest_feedback_layer()
+	var old := layer.get_node_or_null("MasterCelebration")
+	if old != null:
+		old.name = "ExpiredMasterCelebration"
+		old.queue_free()
+	var card := Panel.new()
+	card.name = "MasterCelebration"
+	card.add_theme_stylebox_override("panel", UiKit.panel_style(
+		Color(1.0, 0.97, 0.82, 0.98), 24))
+	var wide := 560.0
+	var tall := 116.0
+	var view: Vector2 = get_viewport_rect().size
+	card.position = Vector2((view.x - wide) * 0.5, 96.0)
+	card.custom_minimum_size = Vector2(wide, tall)
+	card.size = Vector2(wide, tall)
+	card.z_index = 32
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(card)
+	var crown := UiKit.picture("crown", 72.0)
+	if crown != null:
+		crown.position = Vector2(20.0, 22.0)
+		crown.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(crown)
+	var title := UiKit.title(I18n.t("farm.level_8_title"), UiKit.TYPE_TITLE, Color(0.72, 0.45, 0.10))
+	title.position = Vector2(104.0, 16.0)
+	title.size = Vector2(wide - 120.0, 28.0)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	card.add_child(title)
+	var desc := UiKit.title(I18n.t("farm.level_8_desc"), UiKit.TYPE_BODY, Color(0.40, 0.34, 0.22))
+	desc.position = Vector2(104.0, 48.0)
+	desc.size = Vector2(wide - 120.0, 26.0)
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	card.add_child(desc)
+	var reward_lbl := UiKit.title(I18n.t("farm.level_8_reward"), UiKit.TYPE_CAPTION, Color(0.60, 0.48, 0.22))
+	reward_lbl.position = Vector2(104.0, 78.0)
+	reward_lbl.size = Vector2(wide - 120.0, 24.0)
+	reward_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	card.add_child(reward_lbl)
+	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+	Juice.pop(card, 0.16)
+	if Juice.motion_enabled():
+		Juice.burst(layer, Vector2(view.x * 0.5, 150.0), 20)
+	var t := card.create_tween()
+	t.tween_interval(3.6)
+	t.tween_property(card, "modulate:a", 0.0, 0.45)
+	t.tween_callback(card.queue_free)
+
+
+func _show_toast_message(text: String, icon_name: String = "") -> void:
+	var layer := _harvest_feedback_layer()
+	var old := layer.get_node_or_null("ToastBanner")
+	if old != null:
+		old.name = "ExpiredToastBanner"
+		old.queue_free()
+	var card := Panel.new()
+	card.name = "ToastBanner"
+	card.add_theme_stylebox_override("panel", UiKit.panel_style(
+		Color(1.0, 0.98, 0.89, 0.98), 20))
+	var wide := 500.0
+	card.position = Vector2((get_viewport_rect().size.x - wide) * 0.5, TOP_BAR + 14.0)
+	card.size = Vector2(wide, 64.0)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(card)
+	var x_offset := 16.0
+	if icon_name != "":
+		var art := UiKit.picture(icon_name, 40.0)
+		if art != null:
+			art.position = Vector2(14.0, 12.0)
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			card.add_child(art)
+			x_offset = 64.0
+	var words := UiKit.title(text, 17, Color(0.34, 0.31, 0.23))
+	words.position = Vector2(x_offset, 10.0)
+	words.size = Vector2(wide - x_offset - 16.0, 44.0)
+	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(words)
+	Juice.pop(card, 0.05)
+	var lifetime := card.create_tween()
+	lifetime.tween_interval(2.8)
+	lifetime.tween_property(card, "modulate:a", 0.0, 0.35)
+	lifetime.tween_callback(card.queue_free)
 
 
 ## 小熊的菜谱本：一页六道菜，多了翻页。会做的亮着、配料和名字都在；还不

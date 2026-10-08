@@ -65,6 +65,24 @@ static func progress() -> float:
 	return clampf(float(xp() - floor_xp) / float(ahead - floor_xp), 0.0, 1.0)
 
 
+## Is this farm at the top of the ladder (Level 8 Master Farmer)?
+static func is_master_farmer() -> bool:
+	return level() >= 8
+
+
+## Ensure master farmer rewards are registered once Level 8 is attained.
+static func ensure_master_farmer() -> void:
+	if not is_master_farmer():
+		return
+	var farm: Dictionary = SaveManager.data.get("farm", {})
+	farm["master_farmer_achieved"] = true
+	var rewards: Dictionary = SaveManager.data.get("rewards", {})
+	var badges: Array = rewards.get("badges", [])
+	if not ("master_farmer" in badges):
+		badges.append("master_farmer")
+		rewards["badges"] = badges
+
+
 ## Pay one event's worth of xp. Returns [level before, level after], so the
 ## caller can tell a level-up from an ordinary day without asking twice.
 ## Writes the farm but does NOT save: every caller is already inside a
@@ -79,4 +97,6 @@ static func award(kind: String) -> Array:
 	farm["farm_xp"] = maxi(0, int(farm.get("farm_xp", 0))) + points
 	var after := level_of(int(farm["farm_xp"]))
 	farm["farm_level"] = after
+	if before < 8 and after >= 8:
+		ensure_master_farmer()
 	return [before, after]
