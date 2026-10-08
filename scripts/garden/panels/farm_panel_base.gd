@@ -105,11 +105,29 @@ func chip_button(symbol: String, tint: Color, box: Vector2) -> Button:
 	btn.flat = false
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.text = symbol
-	btn.add_theme_font_size_override("font_size", int(box.y * 0.44))
-	btn.add_theme_color_override("font_color", Color(0.15, 0.13, 0.10))
+	var bold := UiKit.bold_font()
+	if bold != null:
+		btn.add_theme_font_override("font", bold)
+	var font_sz: int = int(roundf(box.y * 0.40))
+	if symbol.length() >= 4:
+		font_sz = mini(font_sz, 16)
+	elif symbol.length() >= 3:
+		font_sz = mini(font_sz, 17)
+	else:
+		font_sz = mini(font_sz, 19)
+	btn.add_theme_font_size_override("font_size", font_sz)
+	var is_dark := tint.get_luminance() < 0.62
+	var text_col := Palette.ON_COLOR if is_dark else Color(0.20, 0.17, 0.13)
+	btn.add_theme_color_override("font_color", text_col)
+	btn.add_theme_color_override("font_hover_color", text_col)
+	btn.add_theme_color_override("font_pressed_color", text_col)
+	btn.add_theme_color_override("font_focus_color", text_col)
 	btn.add_theme_color_override("font_disabled_color", Color(0.55, 0.53, 0.48))
-	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
-		btn.add_theme_stylebox_override(look, UiKit.chip_style(tint, 16))
+	btn.add_theme_stylebox_override("normal", UiKit.chip_style(tint, 16))
+	btn.add_theme_stylebox_override("hover", UiKit.chip_style(Palette.lift(tint), 16))
+	btn.add_theme_stylebox_override("pressed", UiKit.chip_style(tint.darkened(0.08), 16))
+	btn.add_theme_stylebox_override("focus", UiKit.chip_style(tint, 16))
+	btn.add_theme_stylebox_override("disabled", UiKit.chip_style(Color(0.88, 0.86, 0.82), 16))
 	btn.custom_minimum_size = box
 	btn.size = box
 	return btn

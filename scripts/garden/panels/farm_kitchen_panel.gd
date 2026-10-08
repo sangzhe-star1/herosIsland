@@ -79,7 +79,7 @@ func build(view: Vector2) -> void:
 			play.add_child(have)
 
 		var cook := chip_button(I18n.t("garden.cook_one"),
-			Color(0.55, 0.74, 0.42) if cookable else Color(0.86, 0.84, 0.78),
+			Color(0.28, 0.64, 0.34) if cookable else Color(0.86, 0.84, 0.78),
 			Vector2(92, 46))
 		cook.position = Vector2(row.position.x + row.size.x - 236.0, y + 5.0)
 		var this_row: Panel = row
@@ -95,7 +95,7 @@ func build(view: Vector2) -> void:
 
 		if owned > 0:
 			var give := chip_button(I18n.t("garden.give_bear"),
-				Color(0.94, 0.72, 0.42), Vector2(120, 46))
+				Color(0.88, 0.56, 0.22), Vector2(120, 46))
 			give.position = Vector2(row.position.x + row.size.x - 134.0, y + 5.0)
 			give.pressed.connect(func():
 				if Recipes.give_to_bear(rid):

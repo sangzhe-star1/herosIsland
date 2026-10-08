@@ -40,7 +40,7 @@ func build(view: Vector2) -> void:
 	door_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	play.add_child(door_prompt)
 
-	var visit_btn := chip_button(I18n.t("garden.gift_visit_btn"), Color(1.0, 0.88, 0.55), Vector2(120.0, 48.0))
+	var visit_btn := chip_button(I18n.t("garden.gift_visit_btn"), Color(0.88, 0.56, 0.22), Vector2(120.0, 48.0))
 	visit_btn.name = "VisitBearFarmButton"
 	visit_btn.position = door_card.position + Vector2(door_card.size.x - 136.0, 16.0)
 	visit_btn.pressed.connect(func():
@@ -155,7 +155,7 @@ func build(view: Vector2) -> void:
 				slot_x += 42.0
 
 	# Send Button
-	var send_btn := chip_button(I18n.t("garden.gift_send_btn"), Color(1.0, 0.86, 0.52), Vector2(180.0, 52.0))
+	var send_btn := chip_button(I18n.t("garden.gift_send_btn"), Color(0.88, 0.56, 0.22), Vector2(180.0, 52.0))
 	send_btn.name = "SendGiftBasketButton"
 	send_btn.position = shelf_panel.position + Vector2(shelf_panel.size.x - 208.0, 182.0)
 	send_btn.disabled = total_items == 0

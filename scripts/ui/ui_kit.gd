@@ -68,6 +68,24 @@ static func theme() -> Theme:
 	return _theme
 
 
+static var _bold_font: Font = null
+
+
+## Semibold variation of the primary font for buttons and emphasis.
+## Gives action labels tactile punch without having to load a separate TTF.
+static func bold_font() -> Font:
+	if _bold_font != null:
+		return _bold_font
+	var base := _load_font(FONT_CJK)
+	if base == null:
+		return null
+	var fv := FontVariation.new()
+	fv.base_font = base
+	fv.variation_embolden = 0.45
+	_bold_font = fv
+	return _bold_font
+
+
 static func _load_font(path: String) -> Font:
 	if not ResourceLoader.exists(path):
 		return null
@@ -113,8 +131,13 @@ static func framed_panel_style(fill: Color, border: Color,
 ## top of each other. The chip's box is the chip's box; the label centres
 ## inside it without help from a margin.
 static func chip_style(fill: Color = Palette.SURFACE, radius: int = RADIUS) -> StyleBoxFlat:
-	var style := panel_style(fill, radius)
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.set_corner_radius_all(radius)
 	style.set_content_margin_all(0)
+	style.shadow_color = Color(0.0, 0.05, 0.15, 0.12)
+	style.shadow_size = 4
+	style.shadow_offset = Vector2(0, 2)
 	return style
 
 

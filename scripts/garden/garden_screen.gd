@@ -469,6 +469,7 @@ func _rebuild() -> void:
 	_draw_decorations()
 
 	_play = UiKit.play_area(self, true)
+	_play.theme = UiKit.theme()
 	_top_bar(view)
 	_seed_drop_targets()
 	_panel_buttons.clear()
@@ -3019,14 +3020,29 @@ func _chip_button(text: String, fill: Color, box: Vector2) -> Button:
 	b.flat = false
 	b.focus_mode = Control.FOCUS_NONE
 	b.text = text
-	b.add_theme_font_size_override("font_size", int(box.y * 0.44))
-	b.add_theme_color_override("font_color", Color(0.15, 0.13, 0.10))
+	var bold := UiKit.bold_font()
+	if bold != null:
+		b.add_theme_font_override("font", bold)
+	var font_sz: int = int(roundf(box.y * 0.40))
+	if text.length() >= 4:
+		font_sz = mini(font_sz, 16)
+	elif text.length() >= 3:
+		font_sz = mini(font_sz, 17)
+	else:
+		font_sz = mini(font_sz, 19)
+	b.add_theme_font_size_override("font_size", font_sz)
+	var is_dark := fill.get_luminance() < 0.62
+	var text_col := Palette.ON_COLOR if is_dark else Color(0.20, 0.17, 0.13)
+	b.add_theme_color_override("font_color", text_col)
+	b.add_theme_color_override("font_hover_color", text_col)
+	b.add_theme_color_override("font_pressed_color", text_col)
+	b.add_theme_color_override("font_focus_color", text_col)
 	b.add_theme_color_override("font_disabled_color", Color(0.55, 0.53, 0.48))
-	# chip_style, not panel_style: the panel's 20px margins would make a
-	# 48-tall chip 70 tall, and the size asked for here IS the layout --
-	# see _no_button_grew_or_landed_on_another in garden_touch_probe.
-	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
-		b.add_theme_stylebox_override(look, UiKit.chip_style(fill, 16))
+	b.add_theme_stylebox_override("normal", UiKit.chip_style(fill, 16))
+	b.add_theme_stylebox_override("hover", UiKit.chip_style(Palette.lift(fill), 16))
+	b.add_theme_stylebox_override("pressed", UiKit.chip_style(fill.darkened(0.08), 16))
+	b.add_theme_stylebox_override("focus", UiKit.chip_style(fill, 16))
+	b.add_theme_stylebox_override("disabled", UiKit.chip_style(Color(0.88, 0.86, 0.82), 16))
 	b.custom_minimum_size = box
 	b.size = box
 	return b
