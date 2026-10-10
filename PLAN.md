@@ -842,6 +842,16 @@ These are yours to make. Nothing below has been changed without asking.
   `tools_check.py` reported 0 errors and 208 existing warnings. This synthetic
   coverage still does not replace the real iPad-backup migration or the planned
   iPad pacing/playability session.
+- **Phase 7 promise migration follow-up (10 October):** `Farm.normalise_npc()`
+  now has explicit probe coverage for old boolean-only records: completed bear
+  help and quiet-pick cycles receive completion high-water marks, while owed
+  rabbit promises remain owed. `GardenProbe` passed 1,208 checks. The isolated
+  migration runner also processed a synthetic Phase 7 `save_version: 4` farm:
+  all eight preservation checks passed, `lost_farm_keys` was empty, and the
+  input SHA-256 stayed unchanged. The report correctly flagged `plot_count`,
+  `plots`, and `npc` as changed by bed expansion and ordinary arrival
+  settlement, and listed the twelve newer farm fields added with defaults.
+  This remains synthetic evidence; the actual iPad backup still needs review.
 
 ---
 

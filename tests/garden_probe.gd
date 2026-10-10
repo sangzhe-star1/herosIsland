@@ -3055,6 +3055,26 @@ func _the_regular_gets_his_milestones_once() -> void:
 ## Two tablets, one bear. The merge must never un-make a promise, un-pick a
 ## cycle, or lose a visit either tablet saw.
 func _two_tablets_agree_about_the_bear() -> void:
+	# Phase 7 saves only carried booleans. Reconstruct a completed high-water
+	# mark from an old false flag so the first import after upgrading cannot
+	# reopen a promise that was already fulfilled on the other tablet.
+	var legacy_npc: Dictionary = Farm.normalise_npc({
+		"bear": {"last_share_cycle": 5, "help_owed": false,
+			"last_sneak_cycle": 8, "sneak_owed": false},
+		"rabbit": {"last_share_cycle": 4, "help_owed": true},
+		"puppy": {"last_share_cycle": 3, "help_owed": false},
+	})
+	_ok(int(legacy_npc["bear"].get("help_completed_cycle", -1)) == 5
+			and not bool(legacy_npc["bear"].get("help_owed", true))
+			and int(legacy_npc["bear"].get("sneak_completed_cycle", -1)) == 8
+			and not bool(legacy_npc["bear"].get("sneak_owed", true)),
+		"legacy fulfilled bear promises migrate into completion-cycle marks")
+	_ok(int(legacy_npc["rabbit"].get("help_completed_cycle", -1)) == -1
+			and bool(legacy_npc["rabbit"].get("help_owed", false))
+			and int(legacy_npc["puppy"].get("help_completed_cycle", -1)) == 3
+			and not bool(legacy_npc["puppy"].get("help_owed", true)),
+		"legacy owed and completed friend states remain distinct after migration")
+
 	_fresh_save()
 	var farm: Dictionary = SaveManager.data["farm"]
 	var npc: Dictionary = Farm.normalise_npc(null)
