@@ -81,6 +81,7 @@ const FarmSeedRackPanel := preload("res://scripts/garden/panels/farm_seed_rack_p
 const FarmToolRackPanel := preload("res://scripts/garden/panels/farm_tool_rack_panel.gd")
 const FarmPanelBase := preload("res://scripts/garden/panels/farm_panel_base.gd")
 const FarmExpansionPanel := preload("res://scripts/garden/panels/farm_expansion_panel.gd")
+const FarmUndoPanel := preload("res://scripts/garden/panels/farm_undo_panel.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -2533,26 +2534,7 @@ func _gift_panel(view: Vector2) -> void:
 
 
 func _undo_toast(view: Vector2) -> void:
-	if _pending_undo.is_empty():
-		return
-	if not Undo.is_open(_pending_undo, GameClock.ticks_ms()):
-		_pending_undo = {}
-		return
-	var card := Panel.new()
-	card.add_theme_stylebox_override("panel",
-		UiKit.panel_style(Color(1.0, 0.98, 0.90), 22))
-	card.position = Vector2(view.x * 0.5 - 150.0, view.y - SHELF - 84.0)
-	card.custom_minimum_size = Vector2(300, 64)
-	card.size = Vector2(300, 64)
-	_play.add_child(card)
-	if _world != null and is_instance_valid(_world):
-		_world.add_blocker(card)
-	var undo := _chip_button(I18n.t("garden.undo"),
-		Color(0.78, 0.86, 0.97), Vector2(160, 48))
-	undo.position = card.position + Vector2(70, 8)
-	undo.pressed.connect(_undo_pressed)
-	_play.add_child(undo)
-	_panel_buttons["undo"] = undo
+	FarmUndoPanel.new(self).build(view)
 
 
 func _undo_pressed() -> void:

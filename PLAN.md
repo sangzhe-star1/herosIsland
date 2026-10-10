@@ -191,8 +191,9 @@ These are yours to make. Nothing below has been changed without asking.
    `scripts/garden/farm_order_board_controller.gd`; the screen supplies the
    live save and draws the selected cards. The regret window and the safe
    reversals for seed purchases, barn upgrades, and new beds now live in
-   `scripts/garden/farm_undo_controller.gd`; the screen keeps the toast,
-   sounds, and rebuild. Its probe checks the deadline, once-only refunds,
+   `scripts/garden/farm_undo_controller.gd`; `FarmUndoPanel` draws the shared
+   regret toast, while the screen keeps sounds and rebuild. Its probe checks
+   the deadline, once-only refunds,
    retained barn goods, and the rule that tilled land cannot be taken away.
    The six first-planting lesson decisions—next action, target bed, and the
    pre-plant target used for the fast carrot—now live in
@@ -256,7 +257,8 @@ These are yours to make. Nothing below has been changed without asking.
    belongs to `FarmShopPanel`; the screen keeps the purchase transaction and
    undo receipt. The land-expansion confirmation now lives in
    `FarmExpansionPanel`; the screen keeps the purchase and world animation.
-   `garden_screen.gd` is 2,968 lines.
+   The shared regret toast is now `FarmUndoPanel`; purchase reversal still
+   settles through `farm_undo_controller.gd`. `garden_screen.gd` is 2,950 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -676,6 +678,12 @@ These are yours to make. Nothing below has been changed without asking.
   cancelled without changing land or coins, reopened it, then purchased and
   undid the bed. It passed 889 checks; `tools_check.py` reports 0 errors and
   208 warnings.
+- **Purchase-reversal presentation boundary (10 October):** `FarmUndoPanel`
+  owns the shared regret toast for seed, barn, and land purchases; expiry,
+  reversal state, sounds, and rebuilding remain on their existing paths.
+  GardenTouchProbe and FarmWorldProbe both passed at 16:9 and 4:3, including
+  real purchase, cancel, and undo touches; they asked 1,993 and 889 checks.
+  `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

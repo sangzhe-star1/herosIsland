@@ -451,8 +451,8 @@ func _undo_button_returns_a_seed_on_the_live_screen() -> void:
 		and Coins.balance() == 60 and str(_garden.get("_pending_undo").get(
 			"kind", "")) == "seed",
 		"a successful screen purchase creates its matching undo receipt")
-	_ok(is_instance_valid(undo),
-		"the screen shows an undo button during the regret window")
+	_ok(_find_named(_garden, "FarmUndoCard") is Panel and is_instance_valid(undo),
+		"the undo panel shows its button during the regret window")
 	if is_instance_valid(undo):
 		await _tap(undo.get_global_rect().get_center())
 	_ok("potato" not in farm.get("unlocked_crops", [])
