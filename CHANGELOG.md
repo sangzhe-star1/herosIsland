@@ -1,5 +1,11 @@
 # Changelog
 
+## 工具坞折叠为三项快捷栏 — 10 October 2026
+
+- 新增 `farm_tool_rack_panel.gd`：常驻手势、当前任务工具和当前选择等最多三个快捷工具，其余工具通过四格按钮展开；原有七个工具、可用状态、选择反馈和 `FarmToolController` 规则保持一致。
+- 抽屉开合等触摸释放后再重绘，避免按下时重建控件、抬起事件落到新按钮上而把抽屉立即关回去。农场世界探针改用实际全局控件矩形点击隐藏工具。
+- `GardenTouchProbe` 双比例通过 1,959 项，`FarmWorldProbe` 双比例通过 829 项；16:9 与 4:3 展开态截图已复核。`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
+
 ## 种子栏视图从菜园屏幕拆出 — 10 October 2026
 
 - 新增 `farm_seed_rack_panel.gd`，集中绘制种子栏底板、种子槽、选择标记、拖放物件和分页箭头；屏幕继续持有 DragField、当前页、种子选择回调和教程指向位置。

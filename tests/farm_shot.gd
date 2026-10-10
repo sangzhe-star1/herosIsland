@@ -40,6 +40,7 @@ extends Node
 ##         foods or its empty state; upgrade captures the real confirmation.
 ## SHOT_PAGE=N flips the mode's paged surface to page N before the shot.
 ## SHOT_REDUCE_MOTION=1 enables the existing low-motion setting before entry.
+## SHOT_TOOL_DRAWER=1 opens the existing farm-tool drawer for layout review.
 ## SHOT_FOCUS_FACILITY=bear_door centres the garden view on that facility.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
@@ -382,6 +383,11 @@ func _ready() -> void:
 		elif what == "rack" and page > 0:
 			scene.set("_rack_page", page)
 			scene.call("_queue_rebuild")
+			await get_tree().process_frame
+		if what == "garden" and OS.get_environment("SHOT_TOOL_DRAWER") == "1":
+			scene.set("_tool_rack_expanded", true)
+			scene.call("_rebuild")
+			await get_tree().process_frame
 			await get_tree().process_frame
 
 	# SHOT_ZOOM=out presses minus until it stops: the whole-farm overview.

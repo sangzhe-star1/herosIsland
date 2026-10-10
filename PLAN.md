@@ -522,6 +522,12 @@ These are yours to make. Nothing below has been changed without asking.
   and barn contents as it grows to six beds. This still needs the planned
   iPad play session and a migration run against the actual iPad save before
   calling device migration verified.
+- **Visual plan P1-2 closed (10 October):** the garden now keeps at most three
+  useful tools in the quick row and puts all seven choices behind a four-square
+  drawer control. The drawer waits for touch release before redrawing. The
+  isolated GardenTouchProbe passed 1,959 checks across 16:9 and 4:3;
+  FarmWorldProbe passed 829 checks, and both drawer layouts were rendered and
+  reviewed. See `docs/GARDEN_HARVEST_VISUAL_UPGRADE_PLAN.md`.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

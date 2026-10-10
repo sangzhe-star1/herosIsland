@@ -1227,7 +1227,15 @@ func _buttons() -> Dictionary:
 
 
 func _tool_button(tool_id: String) -> Button:
-	return _buttons().get(tool_id)
+	var button: Button = _buttons().get(tool_id)
+	if button != null and not button.visible \
+			and not bool(_garden.get("_tool_rack_expanded")):
+		_garden.set("_tool_rack_expanded", true)
+		_garden.call("_rebuild")
+		await get_tree().process_frame
+		await get_tree().process_frame
+		button = _buttons().get(tool_id)
+	return button
 
 
 func _set_bed(index: int, fields: Dictionary) -> void:
@@ -1341,7 +1349,8 @@ func _the_tool_rack_is_on_the_shelf(view: Vector2) -> void:
 		"plant_cycle_id": 3})
 	await _redraw()
 	for tool_id in _buttons().keys():
-		_ok(not (_tool_button(tool_id) as Button).disabled,
+		var available_button: Button = await _tool_button(str(tool_id))
+		_ok(not available_button.disabled,
 			"with one of everything to do, '%s' is awake" % tool_id)
 
 	# Nothing to do at all: every brush greys, the hand never does.
@@ -1350,18 +1359,20 @@ func _the_tool_rack_is_on_the_shelf(view: Vector2) -> void:
 			"growth_stage": 1})
 	await _redraw()
 	for tool_id in _buttons().keys():
+		var available_button: Button = await _tool_button(str(tool_id))
 		if tool_id == Tools.HAND:
-			_ok(not (_tool_button(tool_id) as Button).disabled,
+			_ok(not available_button.disabled,
 				"the hand can never be taken away")
 		else:
-			_ok((_tool_button(tool_id) as Button).disabled,
+			_ok(available_button.disabled,
 				"'%s' greys out when no bed needs it" % tool_id)
 
 
 func _a_grey_tool_stays_out_of_his_hand() -> void:
 	# Everything is growing; the watering can is grey. Pressing it changes
 	# nothing -- not the selection, not the arming.
-	await _tap((_tool_button("water") as Button).position + Vector2(48, 38))
+	var water_button: Button = await _tool_button("water")
+	await _tap(water_button.get_global_rect().get_center())
 	_ok(_tools_state().selected == Tools.HAND,
 		"pressing a grey tool leaves the hand in his hand")
 	_ok(not _world().brush_armed, "and arms nothing")
@@ -1375,7 +1386,8 @@ func _the_shovel_sweeps_a_row() -> void:
 			"growth_stage": 1, "growth_progress": 0.4})
 	await _redraw()
 
-	await _tap((_tool_button("shovel") as Button).position + Vector2(48, 38))
+	var shovel_button: Button = await _tool_button("shovel")
+	await _tap(shovel_button.get_global_rect().get_center())
 	_ok(_tools_state().selected == "shovel", "the shovel can be picked up")
 	_ok(_world().brush_armed, "and picking it up arms the brush")
 
@@ -1400,7 +1412,8 @@ func _the_brush_skips_beds_that_do_not_need_it() -> void:
 	_set_bed(5, {})
 	await _redraw()
 	if _tools_state().selected != "shovel":
-		await _tap((_tool_button("shovel") as Button).position + Vector2(48, 38))
+		var shovel_button: Button = await _tool_button("shovel")
+		await _tap(shovel_button.get_global_rect().get_center())
 	var untouched := JSON.stringify(_plots()[4])
 
 	await _finger(_garden.call("_bed_centre", 3),
@@ -1424,7 +1437,8 @@ func _one_stroke_never_pays_twice() -> void:
 	SaveManager.data["farm"]["paid_harvests"] = []
 	await _redraw()
 
-	await _tap((_tool_button("basket") as Button).position + Vector2(48, 38))
+	var basket_button: Button = await _tool_button("basket")
+	await _tap(basket_button.get_global_rect().get_center())
 	_ok(_tools_state().selected == "basket", "the basket can be picked up")
 	if _garden.has_meta("last_harvest_flight"):
 		_garden.remove_meta("last_harvest_flight")
@@ -1492,7 +1506,8 @@ func _one_brush_stroke_keeps_every_spill_on_the_same_basket_rim() -> void:
 	_world().go_home()
 	await _redraw()
 
-	await _tap((_tool_button("basket") as Button).position + Vector2(48, 38))
+	var basket_button: Button = await _tool_button("basket")
+	await _tap(basket_button.get_global_rect().get_center())
 	_ok(_tools_state().selected == "basket",
 		"the full-barn basket brush is genuinely in the child's hand")
 	# Two moves keep both 0 and 1 inside one real touch stroke. The carrot
@@ -1577,7 +1592,8 @@ func _the_last_job_hands_back_the_hand() -> void:
 			"water_level": 0.0})
 	await _redraw()
 
-	await _tap((_tool_button("water") as Button).position + Vector2(48, 38))
+	var water_button: Button = await _tool_button("water")
+	await _tap(water_button.get_global_rect().get_center())
 	_ok(_tools_state().selected == "water", "the can can be picked up")
 	await _finger(_garden.call("_bed_centre", 2),
 		_garden.call("_bed_centre", 4), 14)
@@ -1589,7 +1605,8 @@ func _the_last_job_hands_back_the_hand() -> void:
 	_ok(_tools_state().selected == Tools.HAND,
 		"watering the last thirsty bed hands him back the hand")
 	_ok(not _world().brush_armed, "and disarms the brush")
-	_ok((_tool_button("water") as Button).disabled,
+	water_button = await _tool_button("water")
+	_ok(water_button.disabled,
 		"and the can greys out, because there is nothing left for it")
 
 
@@ -1625,7 +1642,8 @@ func _the_seed_brush_plants_what_he_chose() -> void:
 		_garden.call("_bed_centre", 0), 12)
 	_ok(JSON.stringify(_plots()[0]) == again,
 		"sweeping back over a planted bed changes nothing")
-	await _tap((_tool_button(Tools.HAND) as Button).position + Vector2(48, 38))
+	var hand_button: Button = await _tool_button(Tools.HAND)
+	await _tap(hand_button.get_global_rect().get_center())
 	_ok(_tools_state().selected == Tools.HAND, "and he can put the hand back")
 
 	# A damaged or migrating save may have no unlocked crop even though the
@@ -1660,7 +1678,8 @@ func _grass_pans_and_buildings_answer_with_a_tool_in_hand() -> void:
 	_set_bed(5, {})
 	await _redraw()
 	if _tools_state().selected != "shovel":
-		await _tap((_tool_button("shovel") as Button).position + Vector2(48, 38))
+		var shovel_button: Button = await _tool_button("shovel")
+		await _tap(shovel_button.get_global_rect().get_center())
 
 	var grass := _bare_grass()
 	_ok(grass != Vector2.ZERO, "there is still grass with a tool in hand")
@@ -1684,7 +1703,8 @@ func _grass_pans_and_buildings_answer_with_a_tool_in_hand() -> void:
 	# The barn's door opens now (阶段 3), and an open sheet blocks whatever the
 	# next test presses. Shut it behind us like everything else.
 	await _shut_panels()
-	await _tap((_tool_button(Tools.HAND) as Button).position + Vector2(48, 38))
+	var hand_button: Button = await _tool_button(Tools.HAND)
+	await _tap(hand_button.get_global_rect().get_center())
 	_world().go_home()
 	await get_tree().process_frame
 

@@ -77,6 +77,7 @@ const FarmKitchenPanel := preload("res://scripts/garden/panels/farm_kitchen_pane
 const FarmChallengePanel := preload("res://scripts/garden/panels/farm_challenge_panel.gd")
 const FarmGiftPanel := preload("res://scripts/garden/panels/farm_gift_panel.gd")
 const FarmSeedRackPanel := preload("res://scripts/garden/panels/farm_seed_rack_panel.gd")
+const FarmToolRackPanel := preload("res://scripts/garden/panels/farm_tool_rack_panel.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -235,6 +236,9 @@ var _stroke := Stroke.new()
 ## tool id -> its Button, rebuilt with the rest of the furniture. The probe
 ## reads this instead of guessing at coordinates.
 var _tool_buttons: Dictionary = {}
+## The tool drawer is closed by default; the hand and the tools for the current
+## task stay on the shelf, while the complete rack remains one tap away.
+var _tool_rack_expanded := false
 ## The running count while a harvest stroke is going, and the label showing it.
 var _combo := 0
 ## Where picked crops fly to: the barn shortcut is the honest home for food.
@@ -525,11 +529,12 @@ func _rebuild() -> void:
 ## half-second tick made it common enough for the touch probe to catch, and the
 ## fix belongs here rather than in the tick, because the rule is about drags and
 ## not about lessons. The reason for the rebuild is still true when he lets go.
-func _queue_rebuild() -> void:
+func _queue_rebuild(release_frames: int = 1) -> void:
 	if _rebuild_queued:
 		return
 	_rebuild_queued = true
-	await get_tree().process_frame
+	for _frame in range(maxi(release_frames, 1)):
+		await get_tree().process_frame
 	while is_inside_tree() and ((_field != null and is_instance_valid(_field) \
 			and not _field.held().is_empty()) \
 			or (is_instance_valid(_market_field) and not _market_field.held().is_empty()) \
@@ -1759,90 +1764,19 @@ func _bed_centre(index: int) -> Vector2:
 
 # --- the tool rack and the brush ------------------------------------------
 
-## The seven tools, along the top row of the shelf.
-##
-## The FIRST one is the hand, and the hand is the old game: tap a bed, it does
-## the one thing it wants. Always selected on the way in, never grey, never
-## taken away. The six after it are batch brushes for a farm that has more
-## beds than a morning has taps -- and a brush with no work anywhere is drawn
-## grey and dead, because a tool that can be picked up and then does nothing
-## teaches him that tools sometimes do nothing.
+## The compact shelf keeps the current job close; the full rack stays one tap
+## away for everything else. FarmToolRackPanel only presents the choices --
+## availability and selection still come from FarmToolController.
 func _tool_bar(view: Vector2) -> void:
-	_tool_buttons.clear()
-	# The choice has to be honest before it is drawn: if the tool in his hand
-	# ran out of work while the screen was away, it is the hand again now.
-	_auto_return()
-
-	var x := 16.0
-	var y := view.y - SHELF + 6.0
-	for tool in Tools.TOOLS:
-		var tool_id := str(tool.get("id", ""))
-		var live: bool = tool_id == Tools.HAND \
-			or _tools.work_exists(tool_id, _plots())
-		var held: bool = _tools.selected == tool_id
-
-		var button := Button.new()
-		button.name = "GardenTool_%s" % tool_id
-		button.flat = false
-		button.focus_mode = Control.FOCUS_NONE
-		button.position = Vector2(x, y)
-		button.custom_minimum_size = Vector2(72, 60)
-		button.size = Vector2(72, 60)
-		button.pivot_offset = Vector2(36, 30)
-		# Tools and seeds share the same warm inset material. The chosen tool
-		# keeps a darker edge; its established size and label remain unchanged.
-		var fill := Color(0.98, 0.94, 0.83) if live else Color(0.91, 0.88, 0.81)
-		var edge := Color(0.48, 0.34, 0.14) if held else Color(0.69, 0.52, 0.28, 0.42)
-		var normal := _tool_tile_style(fill, edge, held)
-		var hover := _tool_tile_style(fill.lightened(0.025), edge, held, not held)
-		var pressed := _tool_tile_style(fill.darkened(0.025), edge, held, not held)
-		var disabled := _tool_tile_style(Color(0.91, 0.88, 0.81),
-			Color(0.69, 0.62, 0.48, 0.28), false)
-		button.add_theme_stylebox_override("normal", normal)
-		button.add_theme_stylebox_override("hover", hover)
-		button.add_theme_stylebox_override("pressed", pressed)
-		button.add_theme_stylebox_override("focus", normal)
-		button.add_theme_stylebox_override("disabled", disabled)
-		button.tooltip_text = I18n.t(_tools.label_key(tool_id))
-		button.disabled = not live
-		button.modulate = Color(1, 1, 1, 1.0 if live else 0.82)
-		var art := _tool_picture(tool, 30.0)
-		if art != null:
-			art.name = "GardenToolIcon"
-			art.position = Vector2(21, 2)
-			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			art.modulate.a = 1.0 if live else 0.40
-			button.add_child(art)
-		var label := UiKit.title(I18n.t(_tools.label_key(tool_id)), 14,
-			Color(0.30, 0.28, 0.24) if live else Color(0.58, 0.57, 0.54))
-		label.name = "GardenToolLabel"
-		# The 30px picture ends at 32, followed by a 2px gutter and Noto's
-		# 24px line box. The touch target remains 60px tall.
-		label.position = Vector2(2.0, 34.0)
-		label.size = Vector2(68.0, 24.0)
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.clip_text = true
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		button.add_child(label)
-		# Pressing SHRINKS it under the finger -- the cheap half of feeling
-		# mechanical -- and release springs it back.
-		button.button_down.connect(func():
-			if Juice.motion_enabled():
-				var t := button.create_tween()
-				t.tween_property(button, "scale", Vector2(0.90, 0.90), 0.06))
-		button.button_up.connect(func():
-			if Juice.motion_enabled():
-				var t := button.create_tween()
-				t.tween_property(button, "scale", Vector2.ONE, 0.10)\
-					.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT))
-		button.pressed.connect(func(): _select_tool(tool_id))
-		_play.add_child(button)
-		_tool_buttons[tool_id] = button
-		x += 80.0
+	FarmToolRackPanel.new(self).build(view, SHELF)
 
 
 func _select_tool(tool_id: String) -> void:
+	var drawer_was_open := _tool_rack_expanded
+	_tool_rack_expanded = false
 	if _tools.selected == tool_id:
+		if drawer_was_open:
+			_queue_rebuild()
 		return
 	_tools.selected = tool_id
 	_world.brush_armed = _tools.is_brush()

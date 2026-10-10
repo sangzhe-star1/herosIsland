@@ -259,37 +259,56 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 
 	var tools: Dictionary = _garden.get("_tool_buttons")
 	_ok(tools.size() == Tools.TOOLS.size(),
-		"the hero base keeps all seven familiar tool choices")
+		"the compact shelf preserves all seven familiar tool choices")
 	var previous_tool: Node = null
 	var lowest_tool_edge := -INF
+	var quick_ids: Array[String] = []
 	for tool_data in Tools.TOOLS:
 		var tool_id := str((tool_data as Dictionary).get("id", ""))
 		var tool: Node = _find_named(_garden, "GardenTool_%s" % tool_id)
 		_ok(tool is Button and tools.get(tool_id) == tool,
 			"the %s tool has one named, reused button" % tool_id)
-		_ok(_visible_control_inside(tool, screen),
-			"the %s tool remains a visible touch target" % tool_id)
-		_ok(_control_contains(tool_deck, tool),
-			"the %s tool belongs inside the warm tool lane" % tool_id)
-		if previous_tool != null:
-			_ok(_horizontal_gutter(previous_tool, tool) >= 8.0,
-				"neighbouring tools have a finger-sized horizontal gutter")
-		previous_tool = tool
-		if tool is Control:
+		if tool is Control and (tool as Control).visible:
+			quick_ids.append(tool_id)
+			_ok(_visible_control_inside(tool, screen),
+				"the quick %s tool remains a visible touch target" % tool_id)
+			_ok(_control_contains(tool_deck, tool),
+				"the quick %s tool belongs inside the warm tool lane" % tool_id)
+			if previous_tool != null:
+				_ok(_horizontal_gutter(previous_tool, tool) >= 8.0,
+					"neighbouring quick tools have a finger-sized gutter")
+			previous_tool = tool
 			lowest_tool_edge = maxf(lowest_tool_edge,
 				(tool as Control).get_global_rect().end.y)
+		else:
+			_ok(tool is Control and not (tool as Control).is_visible_in_tree(),
+				"the %s tool stays out of the closed drawer" % tool_id)
 
 		var icon: Node = tool.get_node_or_null("GardenToolIcon") if tool != null else null
 		var label: Node = tool.get_node_or_null("GardenToolLabel") if tool != null else null
-		_ok(icon is Control and label is Label and (icon as Control).visible
-			and (label as Label).visible,
-			"the %s tool keeps both its picture and its word" % tool_id)
+		_ok(icon is Control and label is Label,
+			"the %s tool keeps its picture and short name" % tool_id)
 		_ok(_control_contains(tool, icon, 2.0) and _control_contains(tool, label, 2.0),
 			"the %s picture and word stay inside their own button" % tool_id)
 		_ok(_vertical_gutter(icon, label) >= 2.0,
 			"the %s tool leaves at least two pixels between picture and readable word" % tool_id)
 		_ok(_controls_are_separate(icon, label),
 			"the %s picture and word never overlap" % tool_id)
+	_ok(quick_ids.size() <= 3 and quick_ids.has(Tools.HAND),
+		"the default shelf shows at most three tools and always keeps the tap hand")
+	var task_for_tools: Dictionary = _garden.call("_next_task")
+	var task_tool_id := str(task_for_tools.get("tool_id", ""))
+	if task_tool_id != "" and tools.get(task_tool_id) is Button \
+			and not (tools[task_tool_id] as Button).disabled:
+		_ok(quick_ids.has(task_tool_id),
+			"the shelf keeps the live tool for its one primary task in quick reach")
+	var more: Node = _find_named(_garden, "GardenToolsExpand")
+	_ok(more is Button and _visible_control_inside(more, screen)
+		and _control_contains(tool_deck, more),
+		"one fixed four-square button opens every other tool")
+	_ok(lowest_tool_edge > -INF and more is Control
+		and _horizontal_gutter(previous_tool, more) >= 8.0,
+		"the full-rack control keeps its own finger-sized slot after quick tools")
 
 	var unlocked: Array = SaveManager.data.get("farm", {}).get("unlocked_crops", [])
 	var visible_seed_slots := mini(14, unlocked.size())
@@ -330,6 +349,47 @@ func _the_hero_base_hud_keeps_reading_lanes_open(view: Vector2) -> void:
 		and not (shelf as Control).get_global_rect().intersects(
 			(top as Control).get_global_rect()),
 		"top information and bottom tools leave the farm window between them")
+
+	# Exercise the actual drawer only after the remaining geometry checks have
+	# consumed the controls from the closed-layout frame.
+	if more is Control:
+		await _tap((more as Control).get_global_rect().get_center())
+	var drawer: Node = _find_named(_garden, "GardenToolDrawer")
+	var drawer_grid: Node = _find_named(_garden, "GardenToolDrawerGrid")
+	_ok(bool(_garden.get("_tool_rack_expanded")) and drawer is Panel
+		and _visible_control_inside(drawer, screen)
+		and (drawer as Control).mouse_filter == Control.MOUSE_FILTER_STOP,
+		"opening the tool rack shows a bounded drawer above the shelf")
+	_ok(drawer_grid is GridContainer and (drawer_grid as GridContainer).columns == 4
+		and (drawer_grid as Control).mouse_filter == Control.MOUSE_FILTER_PASS
+		and drawer_grid.get_child_count() == Tools.TOOLS.size(),
+		"the expanded rack flows all seven choices in the shared four-column grid")
+	var farm_world: Node = _garden.get("_world")
+	var world_blockers: Array = farm_world.get("blockers") \
+		if farm_world != null else []
+	_ok(farm_world != null and world_blockers.has(drawer),
+		"the open tool drawer blocks world touches under its card")
+	var expanded_tool_row: Array[Control] = []
+	for tool_data in Tools.TOOLS:
+		var tool_id := str((tool_data as Dictionary).get("id", ""))
+		var tool: Node = (_garden.get("_tool_buttons") as Dictionary).get(tool_id)
+		_ok(tool is Button and _visible_control_inside(tool, screen)
+			and _control_contains(drawer, tool, 2.0),
+			"the expanded %s remains a full-sized choice inside the drawer" % tool_id)
+		if tool is Control:
+			expanded_tool_row.append(tool as Control)
+	for index in range(expanded_tool_row.size() - 1):
+		var current: Rect2 = expanded_tool_row[index].get_global_rect()
+		var next: Rect2 = expanded_tool_row[index + 1].get_global_rect()
+		if is_equal_approx(current.position.y, next.position.y):
+			_ok(next.position.x - current.end.x >= 8.0,
+				"tools in the same drawer row keep an eight-pixel gap")
+	var open_toggle: Node = _find_named(_garden, "GardenToolsExpand")
+	if open_toggle is Control:
+		await _tap((open_toggle as Control).get_global_rect().get_center())
+	_ok(not bool(_garden.get("_tool_rack_expanded"))
+		and _find_named(_garden, "GardenToolDrawer") == null,
+		"the same four-square control closes the drawer again")
 
 
 func _fresh_garden() -> void:
@@ -432,6 +492,14 @@ func _tap(at: Vector2, trace: Dictionary = {}) -> void:
 	# The screen rebuilds itself one frame after an action.
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+func _open_tools_drawer() -> void:
+	if bool(_garden.get("_tool_rack_expanded")):
+		return
+	var more: Node = _find_named(_garden, "GardenToolsExpand")
+	if more is Control:
+		await _tap((more as Control).get_global_rect().get_center())
 
 
 func _finger(from: Vector2, to: Vector2, after_press: Callable = Callable(),
@@ -584,6 +652,7 @@ func _tapping_grass_turns_it_over() -> void:
 ## brush has exactly one true target; restoring the hand leaves the following
 ## real rack-to-bed drag in its original state.
 func _the_selected_tool_marks_its_possible_beds() -> void:
+	await _open_tools_drawer()
 	var seed: Variant = (_garden.get("_tool_buttons") as Dictionary).get("seed")
 	_ok(seed is Button and not (seed as Button).disabled,
 		"the seed brush is live when one bed has been turned")
@@ -602,6 +671,7 @@ func _the_selected_tool_marks_its_possible_beds() -> void:
 			and not (halo is Control) and not (ring is Control),
 		"a possible-bed halo is world art, never a control that can eat a drag")
 
+	await _open_tools_drawer()
 	var hand: Variant = (_garden.get("_tool_buttons") as Dictionary).get(Tools.HAND)
 	_ok(hand is Button, "the familiar hand remains available to leave brush mode")
 	if hand is Button:
@@ -4886,12 +4956,16 @@ func _inventory_keeps_its_rendered_food_and_readable_slots(view: Vector2) -> voi
 			"%s crop picture travels with the existing dragged seed node" % crop_id)
 	_ok(_find_named(_garden, "SeedSelectedMark") != null,
 		"one chosen seed has a visible selection mark inside its slot")
+	await _open_tools_drawer()
 	for pair in [["shovel", "tool_trowel"], ["water", "tool_watering_can"], ["basket", "basket_empty"]]:
 		var tool: Node = _find_named(_garden, "GardenTool_%s" % str(pair[0]))
 		var art: Node = tool.get_node_or_null("GardenToolIcon") if tool != null else null
 		_ok(_badge_has_rendered_asset(art, "res://assets/harvest_3d/props/%s.png" % str(pair[1]), 30.0),
 			"%s tool uses its real Blender model in the fixed icon box" % str(pair[0]))
 		_ok(_control_contains(tool, art), "%s tool picture stays inside its own button" % str(pair[0]))
+	var tool_drawer_toggle: Node = _find_named(_garden, "GardenToolsExpand")
+	if tool_drawer_toggle is Control:
+		await _tap((tool_drawer_toggle as Control).get_global_rect().get_center())
 	var basket: Node = _find_named(_garden, "BarnBasketPicture")
 	_ok(_badge_has_rendered_asset(basket, "res://assets/harvest_3d/props/basket_empty.png", 36.0),
 		"the bottom collection shortcut uses the rendered basket")
