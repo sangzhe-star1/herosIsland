@@ -30,6 +30,7 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controller.gd")
+const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
@@ -1695,7 +1696,9 @@ func _tap_plot(index: int) -> void:
 
 	match str(plot.get("state", Farm.EMPTY)):
 		Farm.EMPTY:
-			plot["state"] = Farm.TILLED
+			plot = PlotTilling.till(plot)
+			if plot.is_empty():
+				return
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		Farm.READY:
 			_harvest(plot, index)
@@ -2251,7 +2254,9 @@ func _on_stroke_swept(index: int) -> void:
 	var plot: Dictionary = plots[index]
 	match _tools.selected:
 		"shovel":
-			plot["state"] = Farm.TILLED
+			plot = PlotTilling.till(plot)
+			if plot.is_empty():
+				return
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		"seed":
 			_plant_in(index, _tools.crop_to_plant(_farm().get("unlocked_crops", [])))
@@ -4151,7 +4156,10 @@ func _do_the_hard_part() -> void:
 	if str(plots[index].get("state", "")) != Farm.EMPTY:
 		_show_the_move()
 		return
-	plots[index]["state"] = Farm.TILLED
+	var tilled: Dictionary = PlotTilling.till(plots[index])
+	if tilled.is_empty():
+		return
+	plots[index] = tilled
 	SaveManager.data["farm"]["plots"] = plots
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")

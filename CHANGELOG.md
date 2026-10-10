@@ -1,5 +1,11 @@
 # Changelog
 
+## 翻地状态迁移独立与整套回归 — 10 October 2026
+
+- 新增 `farm_plot_tilling_controller.gd`，把“空草地 → 已翻地”的纯转换从 `garden_screen.gd` 拆出；点击、铲子刷地、提示导演共用它，并拒绝重复翻已种植地。
+- GardenProbe 新增 5 项状态迁移断言，通过 917 项；GardenTouchProbe 在 16:9 和 4:3 通过 1,862 项，覆盖实际点地路径。
+- `./tests/run_smoke.sh`：30 passed, 0 skipped；`python3 tools_check.py`：0 errors, 208 warnings。
+
 ## Blender 本机全套重渲与土盖配方登记 — 10 October 2026
 
 - 给 `soil_cover` 增加 `from_glb` 配方，记录源 GLB 与冻结摄影棚的 SHA-256；自测会对照实际文件校验这两个指纹，接地阴影继续由运行时负责。

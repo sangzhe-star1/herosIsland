@@ -17,6 +17,7 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controller.gd")
+const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -45,7 +46,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 680
+const CHECKS_EXPECTED := 685
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -69,6 +70,7 @@ func _ready() -> void:
 	_a_damaged_garden_is_repaired_not_believed()
 	_a_plot_says_what_it_is_doing_in_one_word()
 	_a_save_from_before_the_state_machine_still_knows_what_it_was_doing()
+	_the_tilling_controller_turns_only_empty_earth()
 	_the_planting_controller_starts_one_cycle()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
@@ -1484,6 +1486,29 @@ func _a_save_from_before_the_state_machine_still_knows_what_it_was_doing() -> vo
 		"crop_id": "carrot", "growth_stage": 0, "growth_progress": 0.0}]}
 	_ok(str(Farm.normalise_farm(seeded)["plots"][0]["state"]) == Farm.SEEDED,
 		"a seed that has not come up yet is still a seed")
+
+
+## A tap, the shovel brush, and the hint use one immutable soil transition.
+func _the_tilling_controller_turns_only_empty_earth() -> void:
+	var empty := Farm.fresh_plot(0)
+	empty["plant_cycle_id"] = 4
+	empty["test_marker"] = "preserved"
+	var original := empty.duplicate(true)
+	var tilled: Dictionary = PlotTilling.till(empty)
+	_ok(not tilled.is_empty() and str(tilled.get("state", "")) == Farm.TILLED,
+		"untouched earth becomes a seed bed")
+	_ok(str(tilled.get("plot_id", "")) == str(empty.get("plot_id", ""))
+			and int(tilled.get("plant_cycle_id", 0)) == 4
+			and str(tilled.get("test_marker", "")) == "preserved",
+		"turning the soil keeps the bed identity and its other fields")
+	_ok(empty == original,
+		"the till transition does not mutate the screen's source snapshot")
+	_ok(PlotTilling.till(tilled).is_empty(),
+		"a second till cannot overwrite a bed that is already turned")
+	var seeded := Farm.fresh_plot(1)
+	seeded["state"] = Farm.SEEDED
+	_ok(PlotTilling.till(seeded).is_empty(),
+		"the shovel cannot turn soil under a planted crop")
 
 
 ## The planting cycle only ever goes up.
