@@ -326,8 +326,10 @@ static func remember_visit(farm: Dictionary, entry: Dictionary) -> void:
 static func default_orders() -> Dictionary:
 	# `delivered` is the whole of the "an order pays once" rule: an id in this
 	# list has been paid for and can never be paid for again, however many
-	# times the button is pressed or the clock is moved.
-	return {"active": [], "delivered": []}
+	# times the button is pressed or the clock is moved. Recurring orders use a
+	# high-water count and their own once-key ledger so both survive a device
+	# import and the next delivery cannot reuse an old receipt.
+	return {"active": [], "delivered": [], "counts": {}, "recurring_paid": []}
 
 
 ## Put one plot back into a shape the rest of the code can rely on.

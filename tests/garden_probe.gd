@@ -78,7 +78,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1154
+const CHECKS_EXPECTED := 1156
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -1446,10 +1446,30 @@ func _order_delivery_controller_settles_story_and_recurring_orders() -> void:
 		"the order catalogue has a recurring basket to deliver")
 	var recurring_id := str(recurring.get("id", ""))
 	var recurring_wants: Dictionary = recurring.get("requirements", {})
-	for item_id in recurring_wants.keys():
-		Barn.put(str(item_id), int(recurring_wants[item_id]))
 	var recurring_price := int(recurring.get("rewards", {}).get("coins", 0))
 	var recurring_key := str(recurring.get("completion_transaction_key", recurring_id))
+	var guard_orders := Farm.default_orders()
+	guard_orders["recurring_paid"] = ["%s:1" % recurring_key]
+	for item_id in recurring_wants.keys():
+		Barn.put(str(item_id), int(recurring_wants[item_id]))
+	var guard_coins := Coins.balance()
+	var guarded := OrderDelivery.settle(recurring, guard_orders)
+	var basket_intact := true
+	for item_id in recurring_wants.keys():
+		if Barn.count(str(item_id)) < int(recurring_wants[item_id]):
+			basket_intact = false
+	_ok(not bool(guarded.get("settled", false))
+			and str(guarded.get("reason", "")) == "already_paid",
+		"a stale recurring counter cannot reuse a receipt key")
+	_ok(basket_intact
+			and int(guard_orders.get("counts", {}).get(recurring_id, 0)) == 0
+			and Coins.balance() == guard_coins,
+		"a rejected recurring receipt keeps its basket, count, and coins intact")
+
+	_fresh_save()
+	recurring_wants = recurring.get("requirements", {})
+	for item_id in recurring_wants.keys():
+		Barn.put(str(item_id), int(recurring_wants[item_id]))
 	coins_before = Coins.balance()
 	orders = SaveManager.data["farm_orders"]
 	var first_delivery := OrderDelivery.settle(recurring, orders)

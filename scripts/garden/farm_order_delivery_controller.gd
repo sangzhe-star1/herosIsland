@@ -12,29 +12,43 @@ static func settle(order: Dictionary, orders: Dictionary) -> Dictionary:
 	var order_id := str(order.get("id", ""))
 	var delivered: Array = orders.get("delivered", [])
 	var recurring := bool(order.get("recurring", false))
+	var counts: Dictionary = {}
+	var delivery_number := 0
+	var recurring_key := ""
+	var recurring_paid: Array = []
 
 	# Ask before emptying the barn. Story orders use their delivered list as the
 	# once gate; recurring orders remain available and use a numbered ledger.
 	if not recurring and order_id in delivered:
 		return {"settled": false, "reason": "already_delivered"}
+	if recurring:
+		var counts_value: Variant = orders.get("counts", {})
+		counts = counts_value if counts_value is Dictionary else {}
+		var paid_value: Variant = orders.get("recurring_paid", [])
+		recurring_paid = paid_value if paid_value is Array else []
+		delivery_number = maxi(0, int(counts.get(order_id, 0))) + 1
+		recurring_key = "%s:%d" % [
+			str(order.get("completion_transaction_key", order_id)),
+			delivery_number,
+		]
+		# A restored or merged counter can be behind its receipt ledger. Refuse
+		# before removing goods; the caller can keep the basket and repair the
+		# counter instead of losing a delivery with no reward.
+		if recurring_key in recurring_paid:
+			return {"settled": false, "reason": "already_paid",
+				"once_key": recurring_key}
 	var wants: Dictionary = order.get("requirements", {})
 	if not Barn.pay(wants):
 		return {"settled": false, "reason": "missing_items"}
 
 	var paid := 0
 	if recurring:
-		var counts: Dictionary = orders.get("counts", {})
-		var delivery_number := int(counts.get(order_id, 0)) + 1
 		counts[order_id] = delivery_number
 		orders["counts"] = counts
-		var once_key := "%s:%d" % [
-			str(order.get("completion_transaction_key", order_id)),
-			delivery_number,
-		]
-		var ledger: Array = orders.get("recurring_paid", [])
 		paid = RewardManager.grant("garden:order:%s" % order_id,
-			int(order.get("rewards", {}).get("coins", 0)), once_key, ledger)
-		orders["recurring_paid"] = ledger
+			int(order.get("rewards", {}).get("coins", 0)), recurring_key,
+			recurring_paid)
+		orders["recurring_paid"] = recurring_paid
 	else:
 		paid = RewardManager.grant("garden:order:%s" % order_id,
 			int(order.get("rewards", {}).get("coins", 0)), order_id, delivered)

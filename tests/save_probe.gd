@@ -7,6 +7,7 @@ extends Node
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 
 const SETTLEMENT_TIME := 1_800_000_000
 
@@ -133,6 +134,18 @@ func _ready() -> void:
 	SaveManager.data["farm"]["plots"][0]["crop_id"] = "carrot"
 	SaveManager.data["farm"]["warehouse"] = {"strawberry": 5}
 	SaveManager.data["farm_orders"]["delivered"] = ["bear_carrots"]
+	var recurring_order: Dictionary = {}
+	for candidate in GameData.garden_orders:
+		if bool(candidate.get("recurring", false)):
+			recurring_order = candidate
+			break
+	_ok(not recurring_order.is_empty(), "the backup fixture has a recurring order")
+	var recurring_id := str(recurring_order.get("id", ""))
+	var recurring_key := str(recurring_order.get("completion_transaction_key", recurring_id))
+	SaveManager.data["farm_orders"]["counts"][recurring_id] = 2
+	SaveManager.data["farm_orders"]["recurring_paid"] = [
+		"%s:1" % recurring_key, "%s:2" % recurring_key,
+	]
 	SaveManager.data["inventory"] = {"seed_rare": 2}
 	SaveManager.save_game()
 	var travelled := SaveManager.export_progress()
@@ -157,6 +170,27 @@ func _ready() -> void:
 	_ok(Barn.count("strawberry") == 5, "...and what was in the barn")
 	_ok("bear_carrots" in SaveManager.data["farm_orders"]["delivered"],
 		"...and which orders were already paid for, so none can be paid twice")
+	var imported_orders: Dictionary = SaveManager.data["farm_orders"]
+	_ok(int(imported_orders.get("counts", {}).get(recurring_id, 0)) == 2,
+		"a recurring order's delivery high-water mark travels to a new tablet")
+	_ok("%s:1" % recurring_key in imported_orders.get("recurring_paid", [])
+			and "%s:2" % recurring_key in imported_orders.get("recurring_paid", []),
+		"the recurring once-key ledger travels with its delivery count")
+	var recurring_wants: Dictionary = recurring_order.get("requirements", {})
+	for item_id in recurring_wants.keys():
+		Barn.put(str(item_id), int(recurring_wants[item_id]))
+	var third_delivery := OrderDelivery.settle(recurring_order, imported_orders)
+	_ok(bool(third_delivery.get("settled", false))
+			and int(imported_orders.get("counts", {}).get(recurring_id, 0)) == 3,
+		"the imported counter continues at delivery three")
+	_ok("%s:3" % recurring_key in imported_orders.get("recurring_paid", []),
+		"the continued delivery receives a distinct third receipt key")
+	SaveManager.save_game()
+	SaveManager.load_game()
+	imported_orders = SaveManager.data["farm_orders"]
+	_ok(int(imported_orders.get("counts", {}).get(recurring_id, 0)) == 3
+			and "%s:3" % recurring_key in imported_orders.get("recurring_paid", []),
+		"the continued recurring receipt survives a disk reload")
 	_ok(int(SaveManager.data["inventory"].get("seed_rare", 0)) == 2,
 		"...and the seeds")
 	_ok(bool(SaveManager.data["shop"]["free_gift_taken"]),
@@ -168,6 +202,11 @@ func _ready() -> void:
 	SaveManager.data["shop"]["worn"] = {"tiga": {"head": "cap_cloud"}}
 	SaveManager.data["farm"]["plots"][0]["state"] = Farm.TILLED
 	SaveManager.data["farm"]["plots"][0]["crop_id"] = "tomato"
+	SaveManager.data["farm_orders"]["counts"][recurring_id] = 4
+	SaveManager.data["farm_orders"]["recurring_paid"] = [
+		"%s:3" % recurring_key, "%s:4" % recurring_key,
+		"local_only_receipt",
+	]
 	SaveManager.import_progress(travelled)
 	_ok(str(SaveManager.data["rewards"]["creations"]["base"][0]) == "local_thing",
 		"an import never paints over something he made on THIS device")
@@ -177,6 +216,16 @@ func _ready() -> void:
 		"...nor over a garden with something growing in it")
 	_ok(SaveManager.data["shop"]["owned"].size() == 2,
 		"but the clothes still travel")
+	var merged_orders: Dictionary = SaveManager.data["farm_orders"]
+	var merged_paid: Array = merged_orders.get("recurring_paid", [])
+	_ok(int(merged_orders.get("counts", {}).get(recurring_id, 0)) == 4,
+		"merging a backup keeps the larger local recurring count")
+	_ok("%s:1" % recurring_key in merged_paid
+			and "%s:2" % recurring_key in merged_paid
+			and "%s:3" % recurring_key in merged_paid
+			and "%s:4" % recurring_key in merged_paid
+			and "local_only_receipt" in merged_paid,
+		"merging recurring receipts unions both devices without dropping local keys")
 	DirAccess.remove_absolute(travelled)
 
 	# --- what an import must not quietly undo ---

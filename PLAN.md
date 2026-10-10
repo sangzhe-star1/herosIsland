@@ -797,6 +797,16 @@ These are yours to make. Nothing below has been changed without asking.
   cannot silently stop running. The full suite passed 30/30 after adding the
   disk-path fixture. This is stronger historical-fixture coverage, but it
   does not replace the actual iPad backup check requested above.
+- **Recurring-order cross-device merge (10 October):** recurring order counts
+  now merge by per-order high-water mark and receipt keys merge by union. The
+  delivery controller checks the next receipt key before taking anything from
+  the barn, so a restored counter that points at an already-paid receipt keeps
+  its basket instead of consuming goods without a reward. `SaveProbe` covers
+  export/import, continuing at delivery three, disk reload, local high-water
+  preservation, and receipt union. `GardenProbe` covers the stale-counter
+  guard and passed 1,201 checks. `tools_check.py` reports 0 errors and 208
+  existing warnings; the full isolated `./tests/run_smoke.sh` passed all 30
+  probes with 0 skipped.
 - **Real-save migration audit is ready:**
   `python3 tests/audit_garden_save.py --save /absolute/path/to/save_game.json`
   copies a supplied file into a uniquely named QA project's `user://`, runs

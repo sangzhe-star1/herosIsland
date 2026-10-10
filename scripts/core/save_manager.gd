@@ -1412,12 +1412,39 @@ func _merge_farm(theirs: Dictionary) -> void:
 	# on either device is paid for; dropping one would let it be filled a
 	# second time, which is the one thing the whole order system promises
 	# cannot happen.
-	var orders: Dictionary = data.get("farm_orders", Farm.default_orders())
+	var local_orders_value: Variant = data.get("farm_orders", Farm.default_orders())
+	var orders: Dictionary = local_orders_value if local_orders_value is Dictionary \
+		else Farm.default_orders()
+	var theirs_orders_value: Variant = theirs.get("farm_orders", Farm.default_orders())
+	var theirs_orders: Dictionary = theirs_orders_value \
+		if theirs_orders_value is Dictionary else Farm.default_orders()
 	var delivered: Array = orders.get("delivered", [])
-	for order_id in theirs.get("farm_orders", {}).get("delivered", []):
+	for order_id in theirs_orders.get("delivered", []):
 		if not order_id in delivered:
 			delivered.append(order_id)
 	orders["delivered"] = delivered
+
+	# Routine baskets are not in `delivered`, because the same card can be
+	# earned again. Their count is instead a high-water mark, and the paid-key
+	# list is unioned so importing a second tablet cannot roll the next receipt
+	# back onto a delivery already paid there.
+	var counts_value: Variant = orders.get("counts", {})
+	var counts: Dictionary = counts_value if counts_value is Dictionary else {}
+	var theirs_counts: Variant = theirs_orders.get("counts", {})
+	if theirs_counts is Dictionary:
+		for order_id in (theirs_counts as Dictionary).keys():
+			counts[order_id] = maxi(int(counts.get(order_id, 0)),
+				int(theirs_counts[order_id]))
+	orders["counts"] = counts
+	var recurring_paid_value: Variant = orders.get("recurring_paid", [])
+	var recurring_paid: Array = recurring_paid_value \
+		if recurring_paid_value is Array else []
+	var theirs_recurring_paid: Variant = theirs_orders.get("recurring_paid", [])
+	if theirs_recurring_paid is Array:
+		for once_key in (theirs_recurring_paid as Array):
+			if not once_key in recurring_paid:
+				recurring_paid.append(once_key)
+	orders["recurring_paid"] = recurring_paid
 	data["farm_orders"] = orders
 
 	# farm_visitors and farm_unlocks were built in _default_data() and then
