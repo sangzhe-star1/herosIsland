@@ -264,8 +264,9 @@ These are yours to make. Nothing below has been changed without asking.
   30 passed and 0 skipped after the care, planting, and tilling controller
   extractions and touch fix.
 - **Latest harvest-controller branch verification:** GardenProbe passed 927
-  checks, GardenTouchProbe passed 1,862, and FarmShot passed 78 overflow checks
-  at each of 16:9 and 4:3, including the complete seed rack. `tools_check.py`
+  checks, GardenTouchProbe passed 1,865, including 65 actual screen transactions,
+  and FarmShot passed 78 overflow checks at each of 16:9 and 4:3, including the
+  complete seed rack. `tools_check.py`
   reports 0 errors and 208 warnings.
 - **3D pipeline follow-through:** Blender 5.2.2 rendered all 74 recipes into a
   temporary review directory; all 74 passed the generated-output audit. The

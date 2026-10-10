@@ -59,6 +59,7 @@ func _ready() -> void:
 	for shape in SHAPES:
 		_shape = "%dx%d" % [shape.x, shape.y]
 		await _run_on_a(shape)
+	await _the_live_screen_keeps_the_harvest_ledger_bounded()
 
 	if _asked < CHECKS_EXPECTED:
 		_failures.append(
@@ -908,6 +909,42 @@ func _a_harvest_is_paid_for_once() -> void:
 	_garden.call("_harvest", next_cycle)
 	_ok(int(SaveManager.data["farm"]["warehouse"].get("carrot", 0)) == first + expected,
 		"but planting again in the same bed pays again -- once per planting")
+
+
+## Exercise the real screen transaction repeatedly, so a helper-only test cannot
+## miss a caller that mutates the persistent array before applying its bound.
+func _the_live_screen_keeps_the_harvest_ledger_bounded() -> void:
+	_fresh_garden()
+	_open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var harvest_amount := int(GameData.get_crop("carrot").get("harvest_amount", 1))
+	var accepted := 0
+	for cycle in range(1, Farm.PAID_LEDGER_KEPT + 2):
+		var plot := Farm.fresh_plot(0)
+		plot["state"] = Farm.READY
+		plot["crop_id"] = "carrot"
+		plot["growth_stage"] = 4
+		plot["plant_cycle_id"] = cycle
+		var plots: Array = _plots()
+		plots[0] = plot
+		SaveManager.data["farm"]["plots"] = plots
+		var receipt: Dictionary = _garden.call("_harvest_core", plot)
+		if not receipt.is_empty():
+			accepted += 1
+	var paid: Array = SaveManager.data["farm"].get("paid_harvests", [])
+	_ok(accepted == Farm.PAID_LEDGER_KEPT + 1,
+		"the live harvest transaction accepts every new planting cycle")
+	_ok(paid.size() == Farm.PAID_LEDGER_KEPT
+			and paid[0] == "farm_harvest_plot_1_2"
+			and paid[paid.size() - 1] == "farm_harvest_plot_1_%d"
+			% (Farm.PAID_LEDGER_KEPT + 1),
+		"the screen's real transaction keeps only the newest 64 paid ids")
+	_ok(Barn.count("carrot") + Barn.count("carrot", Barn.BASKET)
+			== harvest_amount * (Farm.PAID_LEDGER_KEPT + 1),
+		"ledger trimming never drops the crops already paid into storage")
+	_close()
+	await get_tree().process_frame
 
 
 ## 二期阶段 2：凑齐配料小熊教一次，教过的写进存档，菜谱本亮对行。

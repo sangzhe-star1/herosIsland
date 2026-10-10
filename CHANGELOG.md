@@ -4,7 +4,7 @@
 
 - 新增 `farm_harvest_ledger_controller.gd`，用账本快照询问 `RewardManager` 是否已付，再通过 `Farm.remember_paid()` 写回存档并执行 64 条上限。
 - 修复实际收菜路径绕过上限的问题：此前 `RewardManager.record()` 先直接改写存档数组，导致 `remember_paid()` 误判为已记录而跳过裁剪。
-- GardenProbe 增至 927 项，加入 65 个种植周期的生产调用顺序回归；GardenTouchProbe 1,862 项通过；FarmShot 在 16:9 和 4:3 各通过 78 项。
+- GardenProbe 增至 927 项，加入 65 个种植周期的生产调用顺序回归；GardenTouchProbe 增至 1,865 项，并通过真实屏幕交易流程连续收取 65 个周期，确认账本仍有界且作物没有丢失；FarmShot 在 16:9 和 4:3 各通过 78 项。
 
 ## 收菜交易状态控制器抽离 — 10 October 2026
 
