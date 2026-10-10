@@ -483,6 +483,26 @@ These are yours to make. Nothing below has been changed without asking.
   still commits one complete save. SaveProbe passed, GardenProbe passed 1,057,
   both garden ratios were rendered and reviewed, and `tools_check.py` reports
   0 errors and 208 existing warnings.
+- **Plan follow-through check (10 October):** fetched
+  `origin/claude/stoic-bell-a41pfu` at `69892a9`; it is already an ancestor of
+  `main`, which has 47 later commits, so the planned integration is complete
+  and there is no second merge to make. On current `main` (`9f74ede`),
+  `./tests/run_smoke.sh` completed with 30 passed and 0 skipped. This includes
+  GardenProbe (1,057 checks), GardenTouchProbe (1,911 across 16:9 and 4:3),
+  FarmWorldProbe, HarvestTouchProbe, and SaveProbe. `python3 tools_check.py`
+  reports 0 errors and 208 existing warnings. The synthetic legacy-save
+  coverage verifies a gardenless save gains the garden without losing game
+  progress, and a four-bed save preserves crop, growth, water, planting-cycle,
+  and barn contents as it grows to six beds. This still needs the planned
+  iPad play session and a migration run against the actual iPad save before
+  calling device migration verified.
+- **Next play-test pass:** on iPad, time the coop (120 seconds), mill (90),
+  cow shed (150), and beehive (90); note whether each feels like waiting or
+  play. Check whether the visitor and market-day cues are found unaided, and
+  whether fetch or farming holds attention longer. Record the real old-save
+  migration result and replace generated voice lines when a recording is
+  ready. Repository cleanup remains open because the listed scratch files,
+  third-party skill bundle, and merge remnants need your keep/delete decision.
 
 ---
 
