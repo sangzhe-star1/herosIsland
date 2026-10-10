@@ -1347,9 +1347,11 @@ func _merge_farm(theirs: Dictionary) -> void:
 			npc_block[npc_id]["last_share_cycle"] = maxi(
 				int(npc_block[npc_id]["last_share_cycle"]),
 				int(theirs_npc[npc_id]["last_share_cycle"]))
-			npc_block[npc_id]["last_visit_at"] = maxi(
-				int(npc_block[npc_id]["last_visit_at"]),
-				int(theirs_npc[npc_id]["last_visit_at"]))
+			if npc_block[npc_id].has("last_visit_at") \
+					or theirs_npc[npc_id].has("last_visit_at"):
+				npc_block[npc_id]["last_visit_at"] = maxi(
+					int(npc_block[npc_id].get("last_visit_at", 0)),
+					int(theirs_npc[npc_id].get("last_visit_at", 0)))
 			npc_block[npc_id]["help_owed"] = bool(npc_block[npc_id]["help_owed"]) \
 				or bool(theirs_npc[npc_id]["help_owed"])
 		farm["npc"] = npc_block

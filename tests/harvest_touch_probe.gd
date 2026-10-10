@@ -343,15 +343,18 @@ func _glass(at: Vector2) -> Vector2:
 
 
 ## One press, a path, one release -- the whole of a gesture, as a thumb.
-func _stroke(points: Array) -> void:
+func _stroke(points: Array, trace: Dictionary = {}) -> void:
 	var down := InputEventScreenTouch.new()
 	down.index = 0
 	down.pressed = true
 	down.position = _glass(points[0])
 	Input.parse_input_event(down)
+	if not trace.is_empty():
+		trace["down"] = _gesture_state_snapshot()
 	await get_tree().process_frame
 
 	var last: Vector2 = points[0]
+	var move_states: Array = []
 	for i in range(1, points.size()):
 		var drag := InputEventScreenDrag.new()
 		drag.index = 0
@@ -359,15 +362,35 @@ func _stroke(points: Array) -> void:
 		drag.relative = _glass(points[i]) - _glass(last)
 		last = points[i]
 		Input.parse_input_event(drag)
+		if not trace.is_empty():
+			move_states.append(_gesture_state_snapshot())
 		await get_tree().process_frame
+	if not trace.is_empty():
+		trace["moves"] = move_states
 
 	var up := InputEventScreenTouch.new()
 	up.index = 0
 	up.pressed = false
 	up.position = _glass(points[points.size() - 1])
 	Input.parse_input_event(up)
+	if not trace.is_empty():
+		trace["up"] = _gesture_state_snapshot()
 	for i in range(4):
 		await get_tree().process_frame
+	if not trace.is_empty():
+		trace["settled"] = _gesture_state_snapshot()
+
+
+func _gesture_state_snapshot() -> Dictionary:
+	if not is_instance_valid(_level):
+		return {"frame": Engine.get_process_frames(), "level": "gone"}
+	var holding: Node = _level.get("_holding") as Node
+	var in_hand: Node = _level.get("_in_hand") as Node
+	return {"frame": Engine.get_process_frames(), "pointer": _level.get("_pointer"),
+		"track_size": (_level.get("_track") as PackedVector2Array).size(),
+		"holding": str(holding.name) if is_instance_valid(holding) else "",
+		"in_hand": str(in_hand.name) if is_instance_valid(in_hand) else "",
+		"picked": _level.get("_picked"), "order_done": _level.get("_order_done")}
 
 
 ## Desktop equivalent of `_stroke()`. Send actual mouse events through the
@@ -871,7 +894,17 @@ func _one_basket_needs_one_move() -> void:
 	var carrot := _find(Gesture.DRAG, "carrot")
 	_ok(carrot != null, "there is a carrot to pull")
 	if carrot != null:
-		await _stroke(_move_for(carrot))
+		var before := _picked_total()
+		var path := _move_for(carrot)
+		var trace := {"gesture": "first carrot pull", "frame": Engine.get_process_frames()}
+		await _stroke(path, trace)
+		if _picked_total() == before:
+			print("DBG failed first carrot pull: ", trace,
+				" path=", path, " target=", carrot.name,
+				" at=", carrot.global_position, " visible=", carrot.visible,
+				" taken=", carrot.get("taken"), " params=", carrot.crop.get("gesture_params", {}),
+				" available=", _level.call("_target_is_available_now", carrot),
+				" radius=", carrot.get("radius"))
 		_ok(_picked_total() >= 1,
 			"one pull, let go where he pulled it, and it is in the basket")
 	await _close()

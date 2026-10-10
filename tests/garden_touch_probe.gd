@@ -4416,8 +4416,14 @@ func _friends_have_purposes_and_say_thanks(view: Vector2) -> void:
 	var first: Node = _find_named(_garden, "OrderCard_rabbit_picnic")
 	var before := Coins.balance()
 	var plot_snapshot := JSON.stringify(_plots())
+	var touch_trace := {"gesture": "rabbit request card", "frame": Engine.get_process_frames()}
 	if first is Control:
-		await _tap((first as Control).get_global_rect().get_center())
+		await _tap((first as Control).get_global_rect().get_center(), touch_trace)
+	if Coins.balance() != before + int(rabbit.get("rewards", {}).get("coins", 0)):
+		print("DBG failed friend request touch: ", touch_trace,
+			" card=", first.get_global_rect() if first is Control else "missing",
+			" barn=", SaveManager.data["farm"].get("warehouse", {}),
+			" orders=", SaveManager.data.get("farm_orders", {}))
 	_ok(Coins.balance() == before + int(rabbit.get("rewards", {}).get("coins", 0)),
 		"a real touch on the rabbit request pays its promised reward")
 	_ok(Barn.count("carrot") == 0 and Barn.count("strawberry") == 0,

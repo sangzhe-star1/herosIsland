@@ -1,5 +1,12 @@
 # Changelog
 
+## 多设备农场存档合并修复与全套回归 — 10 October 2026
+
+- 修复两台设备合并 NPC 状态时把 `last_visit_at` 当作所有 NPC 都有的字段；当前只有小熊定义了该时间戳，兔兔和小狗缺少该键时不再触发脚本错误。
+- GardenProbe 原有的双设备合并用例覆盖了兔兔和小狗缺失字段的形状，修复后通过 900 项检查。
+- 新增按失败触发的 GardenTouch 与 HarvestTouch 手势快照，记录卡片遮挡、输入手指、手势轨迹和农场订单状态，正常运行不增加输出。
+- `./tests/run_smoke.sh`：30 passed, 0 skipped；`python3 tools_check.py`：0 errors, 208 warnings；`git diff --check` 通过。
+
 ## Plot gesture controller and repository cleanup — 10 October 2026
 
 - Extracted the plot care/harvest gesture rules, eligibility check, and
