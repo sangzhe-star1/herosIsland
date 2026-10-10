@@ -167,9 +167,12 @@ These are yours to make. Nothing below has been changed without asking.
    tutorial timing and golden decision and saves the returned plot. Tilling
    now lives in `scripts/garden/farm_plot_tilling_controller.gd`, shared by
    taps, the shovel brush, and the hint director. The stroke controller now
-   returns a one-shot completion summary and clears its per-stroke bed set;
-   the screen persists once only when that summary says work occurred. The
-   screen still owns XP/daily/recipe events and visual side effects.
+   applies a bed through one callback boundary that owns once-per-stroke
+   eligibility, the actual-change check, the work count, and the plot-array
+   update. It also returns a one-shot completion summary and clears the stroke
+   state; the screen persists once only when that summary says work occurred.
+   The screen still owns tool-specific context, XP/daily/recipe events, and
+   visual side effects.
    On 10 October, transaction-ID creation, post-harvest soil reset, and
    paid-duplicate recovery were extracted to
    `scripts/garden/farm_plot_harvest_controller.gd`; once-only harvest claims
@@ -733,6 +736,17 @@ These are yours to make. Nothing below has been changed without asking.
   passed 1,993 across 16:9 and 4:3. `tools_check.py` reports 0 errors and 208
   warnings; the full smoke suite was not rerun for this presentation extraction.
   `garden_screen.gd` is 2,462 lines.
+- **Brush transition settlement (10 October):**
+  `ContinuousActionController.apply_once()` now keeps per-stroke eligibility,
+  the deep state-change check, applied-bed count, and plot-array update in one
+  transaction; `garden_screen.gd` supplies the shovel/seed/care/harvest
+  transition and still saves once when the finger lifts. Its pure probe now
+  covers no-op, changed, and duplicate beds. FarmWorldProbe passed 892 checks
+  across 16:9 and 4:3, including real brush strokes; GardenTouchProbe passed
+  1,993 checks across both layouts; `tools_check.py` reports 0 errors and 208
+  warnings. The full smoke suite was not rerun. The market teaching finger's
+  original screen-root parent is preserved so it survives the expected layer
+  lifetime and probe lookup. `garden_screen.gd` is 2,473 lines.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

@@ -93,3 +93,26 @@ func record_applied(index: int) -> bool:
 	_applied_beds[index] = true
 	applied += 1
 	return true
+
+
+## Apply one eligible bed as a single in-memory stroke transaction.
+##
+## The caller supplies the action-specific transition; this controller keeps
+## the once-per-bed gate, unchanged-state check, work count, and plot-array
+## update together. Disk persistence still belongs to the finger-up commit.
+func apply_once(tools: Tools, plots: Array, index: int,
+		transition: Callable) -> Dictionary:
+	if not may_apply(tools, plots, index):
+		return {}
+	var selected := selected_tool(tools.selected)
+	var before: Dictionary = plots[index].duplicate(true)
+	var outcome: Dictionary = transition.call(selected, plots[index])
+	if outcome.is_empty():
+		return {}
+	var plot: Dictionary = outcome.get("plot", plots[index])
+	if plot == before or not record_applied(index):
+		return {}
+	plots[index] = plot
+	outcome["plot"] = plot
+	outcome["tool_id"] = selected
+	return outcome

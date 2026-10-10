@@ -6,11 +6,13 @@ const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Rest := preload("res://scripts/shared/rest_director.gd")
 
 
-func point_to(look_at: Vector2, act_at: Vector2, hold: float) -> void:
-	if play == null or not is_instance_valid(play):
+func point_to(look_at: Vector2, act_at: Vector2, hold: float,
+		host: Node = null) -> void:
+	var parent := play if host == null else host
+	if parent == null or not is_instance_valid(parent):
 		return
 	var hand := Tutorial.new()
-	play.add_child(hand)
+	parent.add_child(hand)
 	hand.add_step(look_at, act_at, hold)
 	hand.play()
 

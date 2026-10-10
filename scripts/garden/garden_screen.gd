@@ -1518,52 +1518,63 @@ func _auto_return() -> void:
 ## that need it) live in the stroke bookkeeping; this is what happens to a bed
 ## that passes them.
 func _on_stroke_swept(index: int) -> void:
-	if not _stroke.may_apply(_tools, _plots(), index):
-		return
-	var tool_id: String = _stroke.selected_tool(_tools.selected)
 	var plots := _plots()
-	var plot: Dictionary = plots[index]
-	var before: Dictionary = plot.duplicate(true)
-	match tool_id:
-		"shovel":
-			var till_result: Dictionary = _tools.apply_to_plot("shovel", plot)
-			if till_result.is_empty():
-				return
-			plot = till_result.get("plot", plot)
+	var transition := func(tool_id: String, plot: Dictionary) -> Dictionary:
+		return _resolve_brush_transition(tool_id, index, plot, plots)
+	var outcome: Dictionary = _stroke.apply_once(_tools, plots, index, transition)
+	if outcome.is_empty():
+		return
+	var action := str(outcome.get("action", ""))
+	match action:
+		"till", "plant":
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
-		"seed":
-			if not _plant_in(index,
-					_tools.crop_to_plant(_farm().get("unlocked_crops", []))):
-				return
-			plot = plots[index]
-			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
-		"water", "weed", "bug":
-			var care_result: Dictionary = _tools.apply_to_plot(tool_id,
-				plot, GameClock.now_unix())
-			if care_result.is_empty():
-				return
-			plot = care_result.get("plot", plot)
-			_respond_to_plot_care(str(care_result.get("action", "")), index)
-		"basket":
-			var receipt: Dictionary = _harvest_core(plot)
+		PlotCare.WATER, PlotCare.WEED, PlotCare.SHOO:
+			_respond_to_plot_care(action, index)
+		"harvest":
+			var receipt: Dictionary = outcome.get("receipt", {})
 			if not receipt.is_empty():
 				_combo += int(receipt.get("amount", 0))
 				_show_combo(index, receipt)
 				AudioManager.play_sfx("res://assets/audio/pop.ogg")
 				if bool(receipt.get("golden", false)):
 					_celebrate_golden(index)
-	# Eligibility reserves this bed for the current stroke, but the gesture only
-	# earns a save when its transition actually changed the plot. This catches a
-	# stale state or an empty seed choice without writing or redrawing a no-op.
-	if plot == before:
-		return
-	_stroke.record_applied(index)
-	plots[index] = plot
 	SaveManager.data["farm"]["plots"] = plots
 	# The bed changes under the brush as it passes -- that is the whole show --
 	# but nothing is SAVED yet: one stroke is one write, at the end.
 	_world.refresh(plots)
 	_sync_tool_target_halos()
+
+
+## Resolve the action for one bed. Shared eligibility and changed-state
+## bookkeeping live in ContinuousActionController; the screen supplies its
+## lesson context and the harvest transaction that cannot be a plot-only edit.
+func _resolve_brush_transition(tool_id: String, index: int, plot: Dictionary,
+		plots: Array) -> Dictionary:
+	match tool_id:
+		"shovel":
+			var till_result: Dictionary = _tools.apply_to_plot(tool_id, plot)
+			if till_result.is_empty():
+				return {}
+			return {"plot": till_result.get("plot", plot),
+				"action": str(till_result.get("action", "till"))}
+		"seed":
+			if not _plant_in(index,
+					_tools.crop_to_plant(_farm().get("unlocked_crops", []))):
+				return {}
+			return {"plot": plots[index], "action": "plant"}
+		"water", "weed", "bug":
+			var care_result: Dictionary = _tools.apply_to_plot(tool_id,
+				plot, GameClock.now_unix())
+			if care_result.is_empty():
+				return {}
+			return {"plot": care_result.get("plot", plot),
+				"action": str(care_result.get("action", ""))}
+		"basket":
+			var receipt: Dictionary = _harvest_core(plot)
+			# Duplicate recovery can change the bed without paying a second time,
+			# so return the possibly-reset plot even when there is no receipt.
+			return {"plot": plot, "action": "harvest", "receipt": receipt}
+	return {}
 
 
 ## The finger lifted. Now the stroke is a fact: write it down once, praise it
@@ -2040,7 +2051,7 @@ func _point_at_market() -> void:
 	if not _world.camera.inside(at):
 		_world.look_at_facility("market")
 		at = _world.facility_screen_position("market")
-	FarmLessonView.new(self).point_to(at, at, 1.4)
+	FarmLessonView.new(self).point_to(at, at, 1.4, self)
 
 
 ## The regret window, drawn while it is open. One small card, one button, and

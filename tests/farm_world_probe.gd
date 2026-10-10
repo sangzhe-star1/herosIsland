@@ -595,6 +595,29 @@ func _the_stroke_bookkeeping_refuses_seconds() -> void:
 	_ok(not bool(empty_finish.get("did_work", true))
 			and int(empty_finish.get("applied", -1)) == 0,
 		"an empty stroke closes without asking the save layer to write")
+	var brush_plots: Array = [Farm.fresh_plot(0), Farm.fresh_plot(1)]
+	tools.selected = "shovel"
+	var unchanged := func(_tool_id: String, plot: Dictionary) -> Dictionary:
+		return {"plot": plot, "action": "till"}
+	var no_op: Dictionary = stroke.apply_once(tools, brush_plots, 0, unchanged)
+	_ok(no_op.is_empty() and stroke.applied == 0,
+		"a brush transition that returns the same plot does not count as work")
+	var till := func(_tool_id: String, plot: Dictionary) -> Dictionary:
+		var changed: Dictionary = plot.duplicate(true)
+		changed["state"] = Farm.TILLED
+		return {"plot": changed, "action": "till"}
+	var applied: Dictionary = stroke.apply_once(tools, brush_plots, 1, till)
+	_ok(str(applied.get("tool_id", "")) == "shovel"
+			and str(brush_plots[1].get("state", "")) == Farm.TILLED
+			and stroke.applied == 1,
+		"one changed brush transition updates the plot and counts once")
+	var called_again := {"count": 0}
+	var repeated := func(_tool_id: String, plot: Dictionary) -> Dictionary:
+		called_again["count"] = int(called_again["count"]) + 1
+		return {"plot": plot, "action": "till"}
+	var duplicate: Dictionary = stroke.apply_once(tools, brush_plots, 1, repeated)
+	_ok(duplicate.is_empty() and int(called_again["count"]) == 0,
+		"a bed already committed in this stroke never runs its transition twice")
 
 
 ## The toolbar is the shared rule for a tool's state change. The page supplies
