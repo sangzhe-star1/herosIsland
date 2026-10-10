@@ -683,7 +683,8 @@ These are yours to make. Nothing below has been changed without asking.
   reversal state, sounds, and rebuilding remain on their existing paths.
   GardenTouchProbe and FarmWorldProbe both passed at 16:9 and 4:3, including
   real purchase, cancel, and undo touches; they asked 1,993 and 889 checks.
-  `tools_check.py` reports 0 errors and 208 warnings.
+  `tools_check.py` reports 0 errors and 208 warnings. The integrated head at
+  `4831e32` also passed `./tests/run_smoke.sh`: 30 passed, 0 skipped.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
