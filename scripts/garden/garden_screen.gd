@@ -55,6 +55,7 @@ const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
+const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
@@ -1900,15 +1901,11 @@ func _celebrate_golden(index: int) -> void:
 func _free_a_bed_paid_twice(plot: Dictionary, paid: Array) -> void:
 	var plot_id := str(plot.get("plot_id", ""))
 	var cycle := int(plot.get("plant_cycle_id", 0))
-	var next := cycle + 1
-	while ("farm_harvest_%s_%d" % [plot_id, next]) in paid:
-		next += 1
+	var fresh: Dictionary = PlotHarvest.recover_paid_duplicate(plot, paid)
+	if fresh.is_empty():
+		return
 	push_warning("garden: bed %s cycle %d was already paid for; freed without pay"
 		% [plot_id, cycle])
-	var fresh: Dictionary = Farm.fresh_plot(0)
-	fresh["plot_id"] = plot_id
-	fresh["state"] = Farm.TILLED
-	fresh["plant_cycle_id"] = next - 1
 	for k in fresh.keys():
 		plot[k] = fresh[k]
 	AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
@@ -1918,8 +1915,7 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	var farm := _farm()
 	var plot_id := str(plot.get("plot_id", ""))
 	var crop_id := str(plot.get("crop_id", ""))
-	var cycle := int(plot.get("plant_cycle_id", 0))
-	var key := "farm_harvest_%s_%d" % [plot_id, cycle]
+	var key := PlotHarvest.transaction_id(plot)
 
 	var paid: Array = farm.get("paid_harvests", [])
 	if not paid is Array:
@@ -1975,10 +1971,7 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	# has to: reset it and the next planting in this bed would reuse a
 	# transaction id that has already been paid for, and the harvest after that
 	# would pay nothing at all.
-	var fresh: Dictionary = Farm.fresh_plot(0)
-	fresh["plot_id"] = plot_id
-	fresh["state"] = Farm.TILLED
-	fresh["plant_cycle_id"] = cycle
+	var fresh: Dictionary = PlotHarvest.after_harvest(plot)
 	for k in fresh.keys():
 		plot[k] = fresh[k]
 

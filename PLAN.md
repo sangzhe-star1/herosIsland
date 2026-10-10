@@ -166,10 +166,13 @@ These are yours to make. Nothing below has been changed without asking.
    `scripts/garden/farm_plot_planting_controller.gd`; the screen supplies the
    tutorial timing and golden decision and saves the returned plot. Tilling
    now lives in `scripts/garden/farm_plot_tilling_controller.gd`, shared by
-   taps, the shovel brush, and the hint director. The screen still owns harvest
-   transactions, multi-bed stroke commits, and their visual side effects.
-   Continue one cohesive boundary at a time, with the touch probe guarding
-   both 16:9 and 4:3 behavior.
+   taps, the shovel brush, and the hint director. The screen still owns reward-
+   ledger commits, barn storage, multi-bed stroke commits, and visual side
+   effects. On 10 October, transaction-ID creation, post-harvest soil reset,
+   and paid-duplicate recovery were extracted to
+   `scripts/garden/farm_plot_harvest_controller.gd`; the screen still
+   coordinates the reward transaction. Continue one cohesive boundary at a
+   time, with the touch probe guarding both 16:9 and 4:3 behavior.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -239,18 +242,25 @@ These are yours to make. Nothing below has been changed without asking.
   `tools/art/`. Disposable screenshot/debug scripts and duplicate scene
   builders were removed. The relevant project skills remain in
   `.agents/skills/`, and no `.ours`/`.theirs` conflict residue was present.
+- **Core-loop iteration in progress:** branch
+  `codex/garden-harvest-transaction-controller` extracts pay-once harvest IDs
+  and plot reset/recovery state from `garden_screen.gd`. Focused probes and
+  16:9/4:3 overflow shots pass; the branch is not merged yet.
 - **Needs the player's device/save:** test hen and mill timers, cloud discovery,
   dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
   genuine older iPad save before changing save-version fields. These need
   hands-on play and the player's actual save file.
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
-- **Latest local verification:** GardenTouchProbe passed 1,862 checks,
+- **Latest integrated-main verification:** GardenTouchProbe passed 1,862 checks,
   GardenProbe 917, FarmWorldProbe 781, and HarvestTouchProbe 2,316 across
   16:9 and 4:3; FarmShot rendered at 16:9 and 4:3. The complete suite reports
   30 passed and 0 skipped after the care, planting, and tilling controller
-  extractions and touch fix;
-  `tools_check.py` reports 0 errors and 208 warnings.
+  extractions and touch fix.
+- **Latest harvest-controller branch verification:** GardenProbe passed 924
+  checks, GardenTouchProbe passed 1,862, and FarmShot passed 78 overflow checks
+  at each of 16:9 and 4:3, including the complete seed rack. `tools_check.py`
+  reports 0 errors and 208 warnings.
 - **3D pipeline follow-through:** Blender 5.2.2 rendered all 74 recipes into a
   temporary review directory; all 74 passed the generated-output audit. The
   robot now has a source model and complete antenna in both world and UI art.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 收菜交易状态控制器抽离 — 10 October 2026
+
+- 新增 `farm_plot_harvest_controller.gd`，集中生成稳定的收菜交易 ID，并处理收菜后的翻土复位和已支付重复地块的无奖励恢复。
+- `garden_screen.gd` 继续协调奖励账本、仓库存储、经验、每日进度、配方和视觉反馈；点收与刷收共用相同的地块状态规则。
+- GardenProbe 通过 924 项，GardenTouchProbe 通过 1,862 项；FarmShot 在 16:9 与 4:3 各通过 78 项 overflow 检查，包含完整种子栏布局。`tools_check.py`：0 errors，208 warnings。
+
 ## 机器人素材补全与旧道具审计归零 — 10 October 2026
 
 - 为机器人新增 Blender 模型和配方，重新生成世界层与 3D 图标贴图；完整天线留在 512×512 画布内。
