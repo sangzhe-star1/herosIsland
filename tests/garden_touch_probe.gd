@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1897
+const CHECKS_EXPECTED := 1903
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -3306,12 +3306,31 @@ func _the_garden_moves_while_he_watches() -> void:
 
 	# The same beat does the housekeeping: whatever has been waiting by the
 	# barn's door goes in when there is room, and the shelf count follows --
-	# even though not one bed has moved.
+	# even though not one bed has moved. Keep the clock on the same second as the
+	# last settlement so only the basket transfer can justify a disk write.
+	SaveManager.data["farm"]["warehouse"] = {}
+	SaveManager.data["farm"]["harvest_basket"] = {}
+	SaveManager.settle_farm()
 	var before_count := int(Barn.count("carrot"))
 	Barn.put("carrot", 2, Barn.BASKET)
+	_ok(Barn.count("carrot", Barn.BASKET) == 2,
+		"the quiet-tick fixture saves two carrots in the overflow basket")
+	SaveManager.save_game()
 	scene.call("_garden_tick_once")
 	_ok(int(Barn.count("carrot")) == before_count + 2,
 		"produce waiting by the door slips into the barn on the quiet tick")
+	var saved: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var saved_farm: Dictionary = saved.get("farm", {}) if saved is Dictionary else {}
+	_ok(int(saved_farm.get("warehouse", {}).get("carrot", 0)) == before_count + 2
+			and int(saved_farm.get("harvest_basket", {}).get("carrot", 0)) == 0,
+		"the same-second quiet tick persists its basket refill")
+	var backup: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP))
+	var backup_farm: Dictionary = backup.get("farm", {}) if backup is Dictionary else {}
+	_ok(int(backup_farm.get("warehouse", {}).get("carrot", 0)) == before_count
+			and int(backup_farm.get("harvest_basket", {}).get("carrot", 0)) == 2,
+		"the refill uses one save and keeps the complete prior generation as backup")
 	_ok(bool(scene.get("_rebuild_queued")),
 		"and the shelf count on screen hears about it")
 	await get_tree().process_frame

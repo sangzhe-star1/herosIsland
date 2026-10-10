@@ -460,6 +460,14 @@ These are yours to make. Nothing below has been changed without asking.
   writes the settled timestamp. SaveProbe passed; GardenProbe passed 1,057,
   GardenTouchProbe passed 1,897 across 16:9 and 4:3, and `tools_check.py`
   reports 0 errors and 208 existing warnings.
+- **Quiet-tick basket settlement:** the live clock no longer empties the
+  overflow basket before `settle_farm()` snapshots it. The same settlement now
+  owns the refill and save; the screen measures the basket count around that
+  call to decide whether the shelf needs rebuilding. GardenTouchProbe passed
+  1,903 checks across both ratios, including a same-second main/backup roundtrip
+  proving the refill persists in one save. GardenProbe passed 1,057, rendered
+  garden shots were reviewed at 16:9 and 4:3, and `tools_check.py` reports
+  0 errors and 208 existing warnings.
 
 ---
 

@@ -3585,13 +3585,13 @@ func _garden_tick() -> void:
 ## to have room for it at last. The celebration is for him: a bed that ripened
 ## while he stood there says so, once, and then leaves the choice to him.
 func _garden_tick_once() -> void:
-	# The basket's overflow goes in when there is room, on the same beat. Asked
-	# here rather than read out of settle_farm's work, because settle runs it
-	# too and the second call finds an empty basket -- this way the screen
-	# learns whether anything MOVED, which is what the shelf count shows.
-	var tipped := Barn.tip_basket_in()
 	var before := FarmTick.capture(_plots())
+	# settle_farm owns both the refill and its save. Measure the basket around it
+	# so the screen can refresh the shelf without moving produce ahead of the
+	# transaction that persists it.
+	var basket_before := Barn.total(Barn.BASKET)
 	SaveManager.settle_farm()
+	var tipped := maxi(basket_before - Barn.total(Barn.BASKET), 0)
 	if _world != null and is_instance_valid(_world):
 		_world.refresh(_plots())
 	var result := FarmTick.resolve(before, _plots(), tipped)
