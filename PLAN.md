@@ -645,6 +645,11 @@ These are yours to make. Nothing below has been changed without asking.
   JSON, runs the real `SaveManager.load_game()` path, and confirms the farm and
   daily task still match. The probe passed 1,989 checks across 16:9 and 4:3;
   `tools_check.py` reports 0 errors and 208 warnings.
+- **Friend-farm plan verification (10 October):** the rabbit and puppy farm
+  loop described in `docs/FARM_FRIENDS_AND_LEVELS_PLAN.md` is already present
+  in the current branch, including data-authored six-bed layouts and distinct
+  character models. Its focused seven-probe suite passed 7/7 with no skips;
+  the real FarmWorld touch probe and both 16:9/4:3 GardenTouch flows passed.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
