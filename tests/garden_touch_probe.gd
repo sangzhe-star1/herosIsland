@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1780
+const CHECKS_EXPECTED := 1784
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -135,6 +135,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _inventory_keeps_its_rendered_food_and_readable_slots(view)
 	await _touch_and_mouse_keep_their_own_gestures()
 	await _undo_button_returns_a_seed_on_the_live_screen()
+	await _the_wishing_well_pays_once_per_day()
 
 	_close()
 
@@ -2423,6 +2424,32 @@ func _the_data_led_pens_share_the_facility_press_path() -> void:
 	_garden.call("_rebuild")
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+## At level eight the real well hit target pays once; a repeat only gives the
+## quiet done response and cannot grow the purse again.
+func _the_wishing_well_pays_once_per_day() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["farm_xp"] = 560
+	farm.erase("last_well_wish_date")
+	GameClock.set_test_now(NOON, 0)
+	var balance_before := Coins.balance()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var world: Node = _garden.get("_world")
+	world.call("look_at_facility", "well")
+	world.call("press_at", world.call("facility_screen_position", "well"))
+	await get_tree().process_frame
+	_ok(Coins.balance() == balance_before + 2
+			and str(SaveManager.data["farm"].get("last_well_wish_date", ""))
+			== GameClock.now_date(),
+		"a real well press pays two coins and records the active date")
+	world.call("press_at", world.call("facility_screen_position", "well"))
+	await get_tree().process_frame
+	_ok(Coins.balance() == balance_before + 2,
+		"a repeated real well press on the same date pays no extra coins")
 
 
 ## A press on the dog is a pat; a drag from him is a throw: a stick lands

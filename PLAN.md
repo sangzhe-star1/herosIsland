@@ -217,6 +217,9 @@ These are yours to make. Nothing below has been changed without asking.
    before/after plot signatures, furniture-rebuild decision, and newly ripe
    bed indices now live in `scripts/garden/farm_tick_controller.gd`; the
    screen keeps the timer, world refresh, celebration, and visual effects.
+   The level-eight wishing well's date key and two-coin once gate now live in
+   `scripts/garden/farm_well_wish_controller.gd`; the screen keeps the clock,
+   coin award call, save, and sparkle.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -379,6 +382,14 @@ These are yours to make. Nothing below has been changed without asking.
   indices. GardenProbe passed 1,050 checks; GardenTouchProbe passed 1,883
   checks across 16:9 and 4:3; `tools_check.py` reports 0 errors and 208
   existing warnings. The full smoke suite was not rerun for this extraction.
+- **PR #14 integrated:** the farm clock-beat boundary merged to `main` as
+  `f782ac7`; local `main` was fast-forwarded to the same `origin/main` commit.
+- **Wishing-well claim boundary:** the date-key gate now lives in
+  `farm_well_wish_controller.gd`, while the screen keeps the coin award and
+  feedback. GardenProbe passed 1,055 checks; GardenTouchProbe passed 1,887
+  checks across 16:9 and 4:3, including real well presses and a same-day retry.
+  `tools_check.py` reports 0 errors and 208 existing warnings. The full smoke
+  suite was not rerun for this extraction.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

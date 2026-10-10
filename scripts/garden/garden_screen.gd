@@ -52,6 +52,7 @@ const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
 const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
+const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
 const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
@@ -1160,12 +1161,12 @@ func _on_scarecrow_tapped() -> void:
 func _tap_wishing_well() -> void:
 	var farm: Dictionary = _farm()
 	var today: String = GameClock.now_date()
-	if str(farm.get("last_well_wish_date", "")) == today:
+	var result := WellWish.claim(farm, today)
+	if not bool(result.get("claimed", false)):
 		AudioManager.play_sfx("res://assets/audio/water.ogg")
 		_show_toast_message(I18n.t("farm.well_wish_done"), "star")
 		return
-	farm["last_well_wish_date"] = today
-	Coins.earn(2, "farm:well_wish")
+	Coins.earn(int(result.get("coins", 0)), "farm:well_wish")
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/water.ogg")
 	AudioManager.play_sfx("res://assets/audio/sparkle.ogg")

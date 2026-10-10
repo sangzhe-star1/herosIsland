@@ -42,6 +42,7 @@ const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
+const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
 
 ## The fewest questions this probe is allowed to have asked by the time it
 ## prints its verdict.
@@ -58,7 +59,7 @@ const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 765
+const CHECKS_EXPECTED := 770
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -89,6 +90,7 @@ func _ready() -> void:
 	_harvest_transaction_settles_storage_and_plot_together()
 	_the_next_task_controller_keeps_garden_priorities()
 	_the_farm_tick_controller_only_reports_meaningful_changes()
+	_the_wishing_well_claim_is_once_per_day()
 	_the_lesson_controller_tracks_the_bed_and_action()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
@@ -2127,6 +2129,28 @@ func _the_farm_tick_controller_only_reports_meaningful_changes() -> void:
 	care["care_event"] = Growth.CARE_WEEDS
 	_ok(bool(FarmTick.resolve(before, [care]).get("needs_rebuild", false)),
 		"a new care request changes the garden's meaning")
+
+
+## The level-eight well gives two coins on the first visit of a date, then
+## quietly refuses repeats until the next date.
+func _the_wishing_well_claim_is_once_per_day() -> void:
+	var farm: Dictionary = {}
+	var today := "2026-10-10"
+	var first := WellWish.claim(farm, today)
+	_ok(bool(first.get("claimed", false)) and int(first.get("coins", 0)) == 2,
+		"the first wishing-well press claims two coins")
+	_ok(str(farm.get("last_well_wish_date", "")) == today,
+		"the successful wish records today's once key")
+
+	var repeat := WellWish.claim(farm, today)
+	_ok(not bool(repeat.get("claimed", true)) and int(repeat.get("coins", -1)) == 0,
+		"a second wish on the same date grants nothing")
+	_ok(str(farm.get("last_well_wish_date", "")) == today,
+		"a refused repeat preserves the original wish date")
+
+	var tomorrow := WellWish.claim(farm, "2026-10-11")
+	_ok(bool(tomorrow.get("claimed", false)) and int(tomorrow.get("coins", 0)) == 2,
+		"the next date opens one new wish")
 
 
 ## The lesson follows the bed he actually planted, says only an available
