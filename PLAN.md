@@ -433,6 +433,10 @@ These are yours to make. Nothing below has been changed without asking.
   success feedback. FarmWorldProbe passed 823 checks across 16:9 and 4:3;
   GardenTouchProbe passed 1,887 checks across both shapes. `tools_check.py`
   reports 0 errors and 208 existing warnings.
+- **Rain-cloud care commit:** cloud watering now relies on the shared plot
+  commit for its single save and redraw. GardenTouchProbe passed 1,887 checks
+  across 16:9 and 4:3, including dragging the cloud onto a thirsty bed;
+  `tools_check.py` reports 0 errors and 208 existing warnings.
 
 ---
 

@@ -1115,8 +1115,6 @@ func _on_cloud_rained(index: int) -> void:
 		return
 	plots[index] = _care_for(plot, index)
 	_commit_plot(plots, index)
-	SaveManager.save_game()
-	_queue_rebuild()
 
 
 func _on_fish_caught(info: Dictionary) -> void:
