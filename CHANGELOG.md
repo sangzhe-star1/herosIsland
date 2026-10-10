@@ -1,5 +1,12 @@
 # Changelog
 
+## 25ecd52 菜园存档的 Phase 8 兼容回归 — 10 October 2026
+
+- GardenProbe 固定了用户先前给出的 `25ecd52` 历史菜园键集：经 JSON 写回/读取，再走 `SaveManager._migrate()` 与 `Farm.normalise_farm()`。
+- 逐项验证旧存档中的 26 个农场字段、六块地、收成/销售账本、小熊状态、每日任务和库存仍保留；新增农场字段按默认值补齐，兔兔和小狗加入默认伙伴状态，孩子的经验和星星币不变。
+- GardenProbe 通过 1,129 项；检查数门槛从 772 提到 1,100，防止整段迁移检查被跳过后仍显示通过。`./tests/run_smoke.sh`：30 passed、0 skipped；`python3 tools_check.py`：0 errors、208 warnings。
+- 这覆盖了历史版本字段结构，仍需在真实 iPad 备份上做最终迁移核对；没有改动存档版本字段。
+
 ## 刷子存档只认实际地块变化 — 10 October 2026
 
 - 连续动作控制器现在分开记录“本笔划尝试过”和“地块确实变了”；只有后者进入抬手时的一次存档决策。

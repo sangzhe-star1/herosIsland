@@ -44,6 +44,18 @@ const FacilityAction := preload("res://scripts/garden/farm_facility_action_contr
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
 
+## Exact farm keys present in the user's earlier 25ecd52 build. Keep this
+## historical allowlist explicit: a newer Farm.default_farm() must not
+## accidentally make a legacy migration probe look current.
+const PHASE_SEVEN_FARM_KEYS := [
+	"farm_level", "farm_xp", "plot_count", "plots", "warehouse",
+	"warehouse_cap", "harvest_basket", "unlocked_crops", "unlocked_recipes",
+	"completed_missions", "npc_friendship", "last_seen_at", "clock_high_water",
+	"opened", "tutorial_completed", "market_taught", "last_farm_visit_at",
+	"paid_harvests", "coop", "mill", "sale_receipt_id", "paid_sales", "npc",
+	"visit_log", "visit_log_unread", "dailies",
+]
+
 ## The fewest questions this probe is allowed to have asked by the time it
 ## prints its verdict.
 ##
@@ -59,7 +71,7 @@ const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 772
+const CHECKS_EXPECTED := 1100
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -94,6 +106,7 @@ func _ready() -> void:
 	_the_lesson_controller_tracks_the_bed_and_action()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
+	_a_phase_seven_save_gains_later_defaults_without_losing_farm_state()
 	# --- stage two: growing ---
 	_a_carrot_goes_through_five_stages()
 	_it_grows_while_he_is_playing_a_level()
@@ -399,6 +412,131 @@ func _an_old_save_keeps_the_beds_it_already_had() -> void:
 	_ok(int(SaveManager.data.get("save_version", 0))
 			== SaveManager.FARM_SAVE_VERSION,
 		"the save is stamped with the version that has six beds in it")
+
+
+## The Phase 7 farm at 25ecd52 had all of its progress but none of the fields
+## added by Phase 8. Round-trip that exact key set as JSON, then migrate it
+## through SaveManager and Farm.normalise_farm: every old value must survive,
+## and every newer field must arrive at its current default.
+func _a_phase_seven_save_gains_later_defaults_without_losing_farm_state() -> void:
+	var current_defaults: Dictionary = Farm.default_farm()
+	var legacy_farm := current_defaults.duplicate(true)
+	for key in current_defaults.keys():
+		if not PHASE_SEVEN_FARM_KEYS.has(key):
+			legacy_farm.erase(key)
+	for key in PHASE_SEVEN_FARM_KEYS:
+		_ok(legacy_farm.has(key), "the historical farm fixture contains %s" % key)
+
+	legacy_farm["farm_level"] = 5
+	legacy_farm["farm_xp"] = 430
+	legacy_farm["plot_count"] = Farm.PLOT_COUNT
+	legacy_farm["plots"] = []
+	for i in range(Farm.PLOT_COUNT):
+		legacy_farm["plots"].append(Farm.fresh_plot(i))
+	var growing: Dictionary = legacy_farm["plots"][0]
+	growing["state"] = Farm.GROWING
+	growing["crop_id"] = "carrot"
+	growing["plant_cycle_id"] = 12
+	growing["planted_at"] = 1_760_000_000
+	growing["last_updated_at"] = 1_760_000_000
+	growing["growth_stage"] = 3
+	growing["growth_progress"] = 0.6
+	growing["water_level"] = 0.5
+	growing["golden"] = true
+	var ready: Dictionary = legacy_farm["plots"][1]
+	ready["state"] = Farm.READY
+	ready["crop_id"] = "strawberry"
+	ready["plant_cycle_id"] = 27
+	ready["planted_at"] = 1_759_999_000
+	ready["last_updated_at"] = 1_759_999_000
+	ready["growth_stage"] = Farm.STAGES - 1
+	legacy_farm["warehouse"] = {"carrot": 8, "flour": 2}
+	legacy_farm["warehouse_cap"] = Farm.WAREHOUSE_UPGRADED
+	legacy_farm["harvest_basket"] = {"tomato": 3}
+	legacy_farm["unlocked_crops"] = ["carrot", "corn", "strawberry"]
+	legacy_farm["unlocked_recipes"] = ["carrot_soup", "berry_tart"]
+	legacy_farm["completed_missions"] = ["first_harvest", "market_day"]
+	legacy_farm["npc_friendship"] = {"bear": 4, "rabbit": 2}
+	legacy_farm["last_seen_at"] = 1_760_000_000
+	legacy_farm["clock_high_water"] = 1_760_000_100
+	legacy_farm["opened"] = true
+	legacy_farm["tutorial_completed"] = true
+	legacy_farm["market_taught"] = true
+	legacy_farm["last_farm_visit_at"] = 1_760_000_050
+	legacy_farm["paid_harvests"] = ["plot_1_11", "plot_2_26"]
+	legacy_farm["coop"] = {"fed_at": 1_760_000_000, "eggs": 3}
+	legacy_farm["mill"] = {"started_at": 1_760_000_010, "done": 2}
+	legacy_farm["sale_receipt_id"] = 18
+	legacy_farm["paid_sales"] = ["market_16", "market_17"]
+	legacy_farm["npc"] = {"bear": {
+		"last_share_cycle": 6,
+		"help_owed": true,
+		"last_visit_at": 1_759_990_000,
+		"last_sneak_cycle": 3,
+		"sneak_owed": true,
+	}}
+	legacy_farm["visit_log"] = [{"who": "rabbit", "gift": "berry_tart",
+		"date": "2026-10-09"}]
+	legacy_farm["visit_log_unread"] = true
+	legacy_farm["dailies"] = {"date": "2026-10-10",
+		"progress": {"harvest": 4, "water": 2}, "claimed": ["harvest"]}
+
+	var old_save := SaveManager._default_data()
+	old_save["version"] = SaveManager.SAVE_VERSION
+	old_save["save_version"] = SaveManager.FARM_SAVE_VERSION
+	old_save["profile"]["xp"] = 359
+	old_save["rewards"]["coins"] = 214
+	old_save["farm"] = legacy_farm
+	var disk_save: Dictionary = JSON.parse_string(JSON.stringify(old_save))
+
+	SaveManager.data = SaveManager._migrate(disk_save)
+	SaveManager._settle_after_load()
+	var migrated: Dictionary = SaveManager.data["farm"]
+	for key in PHASE_SEVEN_FARM_KEYS:
+		if key == "npc":
+			continue # normalise_npc adds the later rabbit and puppy entries
+		_ok(_same_json_value(migrated.get(key), legacy_farm.get(key)),
+			"the 25ecd52 farm keeps its %s value across migration" % key)
+	for key in legacy_farm["npc"]["bear"].keys():
+		_ok(_same_json_value(migrated["npc"]["bear"].get(key),
+			legacy_farm["npc"]["bear"][key]),
+			"the 25ecd52 farm keeps the bear's %s state" % key)
+	for npc_id in ["rabbit", "puppy"]:
+		_ok(_same_json_value(migrated["npc"].get(npc_id),
+			current_defaults["npc"][npc_id]),
+			"the older farm receives default %s state" % npc_id)
+	for key in current_defaults.keys():
+		if PHASE_SEVEN_FARM_KEYS.has(key):
+			continue
+		_ok(_same_json_value(migrated.get(key), current_defaults[key]),
+			"the older farm receives the current default for %s" % key)
+	_ok(int(SaveManager.data["profile"].get("xp", 0)) == 359,
+		"a Phase 7 save keeps the child's experience")
+	_ok(int(SaveManager.data["rewards"].get("coins", 0)) == 214,
+		"a Phase 7 save keeps the child's star coins")
+
+
+## Compare values after a JSON save/load without treating an integer written to
+## disk and its floating-point JSON representation as different progress.
+func _same_json_value(actual: Variant, expected: Variant) -> bool:
+	if actual is Dictionary and expected is Dictionary:
+		if actual.size() != expected.size():
+			return false
+		for key in expected.keys():
+			if not actual.has(key) or not _same_json_value(actual[key], expected[key]):
+				return false
+		return true
+	if actual is Array and expected is Array:
+		if actual.size() != expected.size():
+			return false
+		for index in range(expected.size()):
+			if not _same_json_value(actual[index], expected[index]):
+				return false
+		return true
+	if typeof(actual) in [TYPE_INT, TYPE_FLOAT] \
+			and typeof(expected) in [TYPE_INT, TYPE_FLOAT]:
+		return is_equal_approx(float(actual), float(expected))
+	return actual == expected
 
 
 ## Migrations are re-run every launch. One that is not idempotent pays out

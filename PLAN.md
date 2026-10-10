@@ -496,6 +496,16 @@ These are yours to make. Nothing below has been changed without asking.
   and barn contents as it grows to six beds. This still needs the planned
   iPad play session and a migration run against the actual iPad save before
   calling device migration verified.
+- **Phase 7 save compatibility regression:** GardenProbe now builds the exact
+  farm-key set present in historical commit `25ecd52`, serializes it through
+  JSON, and loads it through `_migrate()` / `normalise_farm()`. It checks that
+  all 26 old farm keys and the bear's saved state survive, later farm fields
+  receive defaults, rabbit and puppy receive their new default state, and the
+  child's XP and coins remain intact. The probe passed 1,129 checks; its
+  minimum-count guard is now 1,100 so this section cannot silently stop
+  running. The full suite passed 30/30 after the migration fixture was added.
+  This is stronger historical-fixture coverage, but it does not replace the
+  actual iPad backup check requested above.
 - **Next play-test pass:** on iPad, time the coop (120 seconds), mill (90),
   cow shed (150), and beehive (90); note whether each feels like waiting or
   play. Check whether the visitor and market-day cues are found unaided, and
