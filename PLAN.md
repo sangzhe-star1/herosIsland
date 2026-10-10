@@ -388,6 +388,8 @@ These are yours to make. Nothing below has been changed without asking.
   existing warnings. The full smoke suite was not rerun for this extraction.
 - **PR #14 integrated:** the farm clock-beat boundary merged to `main` as
   `f782ac7`; local `main` was fast-forwarded to the same `origin/main` commit.
+- **PR #15 integrated:** the daily wishing-well claim merged to `main` as
+  `ebcb4d5`; local `main` was fast-forwarded to the same `origin/main` commit.
 - **Wishing-well claim boundary:** the date-key gate now lives in
   `farm_well_wish_controller.gd`, while the screen keeps the coin award and
   feedback. GardenProbe passed 1,055 checks; GardenTouchProbe passed 1,887
@@ -400,6 +402,8 @@ These are yours to make. Nothing below has been changed without asking.
   FarmWorldProbe passed 809 checks across 16:9 and 4:3, including real brush
   strokes and direct transition cases. `tools_check.py` reports 0 errors and
   208 existing warnings. The full smoke suite was not rerun for this extraction.
+- **Tool-action boundary integrated:** `16def87` is now on `main` and
+  `origin/main`; the worktree is clean.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.
