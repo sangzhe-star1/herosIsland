@@ -1860,7 +1860,8 @@ func _on_seed_dropped(item: Dictionary, slot: Variant, correct: bool) -> void:
 	# turned AND empty, so a planted bed is not a target at all. The child
 	# never sees a ring light up over his carrot, which is a better answer than
 	# refusing him after he has already let go.
-	_plant_in(index, str(item.get("key", "")))
+	if not _plant_in(index, str(item.get("key", ""))):
+		return
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 	_queue_rebuild()
@@ -1874,13 +1875,13 @@ func _on_seed_dropped(item: Dictionary, slot: Variant, correct: bool) -> void:
 ## per stroke. Guards on TILLED itself -- the drop path cannot reach it any
 ## other way, but the brush asks needs() first and a second door should not
 ## trust the first one's lock.
-func _plant_in(index: int, crop_id: String) -> void:
+func _plant_in(index: int, crop_id: String) -> bool:
 	var plots := _plots()
 	if index < 0 or index >= plots.size() or crop_id == "":
-		return
+		return false
 	var plot: Dictionary = plots[index]
 	if str(plot.get("state", "")) != Farm.TILLED:
-		return
+		return false
 	# The lesson's carrot, and nothing else ever, runs on its own clock: six
 	# seconds from seed to ripe so the child sees the end of what he started
 	# while he is still crouched over it. Cleared by the harvest, because a
@@ -1903,9 +1904,10 @@ func _plant_in(index: int, crop_id: String) -> void:
 		GameClock.now_unix(), crop_id,
 		_tutorial_growth if lesson_seed else 0, golden)
 	if result.is_empty():
-		return
+		return false
 	plots[index] = result.get("plot", plot)
 	SaveManager.data["farm"]["plots"] = plots
+	return true
 
 
 ## Where bed `index` is ON THE GLASS right now.
@@ -2092,7 +2094,9 @@ func _on_stroke_swept(index: int) -> void:
 			plot = till_result.get("plot", plot)
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		"seed":
-			_plant_in(index, _tools.crop_to_plant(_farm().get("unlocked_crops", [])))
+			if not _plant_in(index,
+					_tools.crop_to_plant(_farm().get("unlocked_crops", []))):
+				return
 			plot = plots[index]
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		"water", "weed", "bug":

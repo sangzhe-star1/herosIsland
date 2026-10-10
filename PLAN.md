@@ -427,6 +427,12 @@ These are yours to make. Nothing below has been changed without asking.
   per asset, so the test keeps rejecting unapproved alpha fringes and bad
   anchors. The generated trowel and watering can remain uninstalled because
   they are plainer than the shipped painted versions.
+- **Seed-drop stale-target guard:** if a bed changes after its drop target was
+  drawn, the release now leaves the crop, save, sound, and redraw untouched.
+  Brush planting uses the same success result, so a rejected stroke has no
+  success feedback. FarmWorldProbe passed 823 checks across 16:9 and 4:3;
+  GardenTouchProbe passed 1,887 checks across both shapes. `tools_check.py`
+  reports 0 errors and 208 existing warnings.
 
 ---
 

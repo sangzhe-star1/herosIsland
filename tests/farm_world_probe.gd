@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 807
+const CHECKS_EXPECTED := 817
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -160,6 +160,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _landmark_scenery_stays_passive()
 	await _the_furniture_is_not_a_hole_in_the_farm(view)
 	await _the_drop_targets_follow_the_beds()
+	await _a_stale_seed_target_does_not_commit()
 	await _a_seed_still_lands_where_he_aimed_after_panning()
 	await _the_farm_holds_still_while_a_seed_is_in_the_air()
 	# --- 阶段 2: the tool rack and the brushes ---
@@ -1043,6 +1044,51 @@ func _the_drop_targets_follow_the_beds() -> void:
 			"and it is still on the bed after the farm has been dragged")
 	_world().go_home()
 	await get_tree().process_frame
+
+
+## A target can go stale after it was drawn. Refusing the planting must also
+## refuse the drop's save, snap sound, and rebuild; a stale target is a shrug,
+## not a successful seed transaction.
+func _a_stale_seed_target_does_not_commit() -> void:
+	for i in range(_plots().size()):
+		_set_bed(i, {"state": Farm.GROWING, "crop_id": "carrot",
+			"growth_stage": 1})
+	_set_bed(0, {"state": Farm.TILLED})
+	await _redraw()
+	var target: Node2D = null
+	for pair in _garden.get("_drop_targets") as Array:
+		if int(pair[0]) == 0:
+			target = pair[1]
+			break
+	_ok(target != null, "the turned bed has a real seed drop target")
+	if target == null:
+		return
+
+	_set_bed(0, {"state": Farm.GROWING, "crop_id": "carrot",
+		"growth_stage": 1})
+	SaveManager.save_game()
+	# A marker in the backup tells us whether the rejected event tried to write:
+	# save_game rotates the current save into this path before replacing it.
+	var marker := "stale-seed-drop-must-not-save"
+	var backup := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	_ok(backup != null, "the stale-drop check can observe the isolated save")
+	if backup == null:
+		return
+	backup.store_string(marker)
+	backup.close()
+	_garden.set("_rebuild_queued", false)
+	var before := JSON.stringify(_plots()[0])
+	_ok(not bool(_garden.call("_plant_in", 0, "corn")),
+		"the shared planting path refuses a bed that grew after the target was drawn")
+	_garden.call("_on_seed_dropped", {"key": "corn"}, {"node": target}, true)
+	_ok(JSON.stringify(_plots()[0]) == before,
+		"a stale release leaves the growing crop untouched")
+	_ok(not bool(_garden.get("_rebuild_queued")),
+		"a refused drop does not schedule a success redraw")
+	var preserved := FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP)
+	_ok(preserved == marker,
+		"a refused drop does not rotate or rewrite the save")
+	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 
 
 ## The regression this whole stage risks: pan, then plant.
