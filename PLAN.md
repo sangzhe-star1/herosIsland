@@ -163,8 +163,11 @@ These are yours to make. Nothing below has been changed without asking.
    weed, and bug state transition now lives in
    `scripts/garden/farm_plot_care_controller.gd` and serves taps and brush
    strokes. Planting's plot-state transition now lives in
-   `scripts/garden/farm_plot_planting_controller.gd`; the screen supplies the
-   tutorial timing and golden decision and saves the returned plot. Tilling
+   `scripts/garden/farm_plot_planting_controller.gd`; the new
+   `farm_planting_transaction_controller.gd` resolves lesson and golden
+   context, advances the cycle, and updates the saved plot array for both seed
+   drops and the brush. The screen supplies live lesson state, time, and the
+   rare-crop roll, then handles saving and feedback. Tilling
    now lives in `scripts/garden/farm_plot_tilling_controller.gd`, shared by
    taps, the shovel brush, and the hint director. The stroke controller now
    applies a bed through one callback boundary that owns once-per-stroke
@@ -771,6 +774,14 @@ These are yours to make. Nothing below has been changed without asking.
   passed 907 across both layouts, and `tools_check.py` reports 0 errors and
   208 warnings. The full 30-probe smoke suite was not rerun for this focused
   undo-state extraction.
+- **Planting transaction (10 October):** `farm_planting_transaction_controller.gd`
+  now resolves the supplied lesson/daily context, starts exactly one planting
+  cycle, and updates the saved farm plot array as one transaction. Seed drops
+  and brush planting share `_plant_in`; the screen keeps input context, disk
+  save timing, and feedback. GardenProbe passed 1,186 checks, GardenTouchProbe
+  passed 1,993 across 16:9 and 4:3, FarmWorldProbe passed 907 across both
+  layouts, and `tools_check.py` reports 0 errors and 208 warnings. The full
+  30-probe smoke suite was not rerun for this focused transaction extraction.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

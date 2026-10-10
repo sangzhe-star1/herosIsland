@@ -63,6 +63,7 @@ const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const PendingUndo := preload("res://scripts/garden/farm_pending_undo_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const PlantingContext := preload("res://scripts/garden/farm_planting_context_controller.gd")
+const PlantingTransaction := preload("res://scripts/garden/farm_planting_transaction_controller.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
 const FarmMarketPanel := preload("res://scripts/garden/panels/farm_market_panel.gd")
@@ -1399,19 +1400,11 @@ func _plant_in(index: int, crop_id: String) -> bool:
 	var lesson_target := _lesson_plot_after_planting(index) \
 		if _lesson_running else -1
 	var golden_roll := randf() if not _lesson_running else -1.0
-	var context: Dictionary = PlantingContext.resolve(
-		_farm().get("dailies", {}), _lesson_running, index, lesson_target,
-		crop_id, str(GameData.garden_tutorial.get("crop_id", "carrot")),
+	var transaction: Dictionary = PlantingTransaction.settle(_farm(), index,
+		crop_id, GameClock.now_unix(), _lesson_running, lesson_target,
+		str(GameData.garden_tutorial.get("crop_id", "carrot")),
 		_tutorial_growth, golden_roll)
-	var result: Dictionary = _tools.apply_to_plot("seed", plot,
-		GameClock.now_unix(), crop_id,
-		int(context.get("growth_override_seconds", 0)),
-		bool(context.get("golden", false)))
-	if result.is_empty():
-		return false
-	plots[index] = result.get("plot", plot)
-	SaveManager.data["farm"]["plots"] = plots
-	return true
+	return bool(transaction.get("planted", false))
 
 
 ## Where bed `index` is ON THE GLASS right now.

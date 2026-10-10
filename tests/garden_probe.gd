@@ -38,6 +38,7 @@ const FarmBarnPanel := preload("res://scripts/garden/panels/farm_barn_panel.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const PendingUndo := preload("res://scripts/garden/farm_pending_undo_controller.gd")
+const PlantingTransaction := preload("res://scripts/garden/farm_planting_transaction_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const PlantingContext := preload("res://scripts/garden/farm_planting_context_controller.gd")
@@ -77,7 +78,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1136
+const CHECKS_EXPECTED := 1142
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -149,6 +150,7 @@ func _ready() -> void:
 	_the_shop_grows_with_the_farm()
 	_the_undo_controller_keeps_its_window_and_reverses_safe_purchases()
 	_the_pending_undo_state_expires_and_consumes_once()
+	_the_planting_transaction_commits_one_shared_cycle()
 	_the_barn_upgrade_controller_settles_costs_overflow_and_undo()
 	_the_market_pays_once_and_only_for_what_is_there()
 	_the_market_retries_refused_sales_and_bounds_its_receipt_ledger()
@@ -1756,6 +1758,57 @@ func _the_pending_undo_state_expires_and_consumes_once() -> void:
 		and SeedShop.owns("potato")
 		and Coins.balance() == 60,
 		"expiry clears the toast without undoing or refunding the purchase")
+
+
+## Seed drops and brush planting share one farm-array transaction. The lesson
+## and rare-crop context is resolved before the saved plot array is replaced.
+func _the_planting_transaction_commits_one_shared_cycle() -> void:
+	var untilled := Farm.fresh_plot(0)
+	var farm := {"plots": [untilled], "dailies": {}}
+	var original: Dictionary = untilled.duplicate(true)
+	_ok(PlantingTransaction.settle(farm, 1, "carrot", NOON, false,
+		-1, "carrot", 6, 0.0).is_empty()
+		and farm["plots"][0] == original,
+		"planting refuses a bed index outside the saved array")
+	_ok(PlantingTransaction.settle(farm, 0, "carrot", NOON, false,
+		-1, "carrot", 6, 0.0).is_empty()
+		and farm["plots"][0] == original,
+		"planting refuses untilled ground without changing its save")
+
+	var tilled := Farm.fresh_plot(0)
+	tilled["state"] = Farm.TILLED
+	tilled["plant_cycle_id"] = 4
+	farm["plots"] = [tilled]
+	var planted: Dictionary = PlantingTransaction.settle(farm, 0, "carrot",
+		NOON + 9, false, -1, "carrot", 6, 0.039)
+	var saved: Dictionary = farm["plots"][0]
+	var context: Dictionary = planted.get("context", {})
+	_ok(bool(planted.get("planted", false))
+		and str(saved.get("state", "")) == Farm.SEEDED
+		and str(saved.get("crop_id", "")) == "carrot"
+		and int(saved.get("plant_cycle_id", 0)) == 5
+		and bool(saved.get("golden", false))
+		and bool(context.get("golden", false)),
+		"a valid planting commits one new cycle and its resolved gold context")
+	_ok(int(saved.get("planted_at", 0)) == NOON + 9
+		and int(saved.get("last_updated_at", 0)) == NOON + 9
+		and int(saved.get("growth_override_seconds", -1)) == 0,
+		"the planting transaction stores one timestamp and ordinary growth")
+	_ok(PlantingTransaction.settle(farm, 0, "corn", NOON + 10,
+		false, -1, "carrot", 6, 0.0).is_empty()
+		and int(farm["plots"][0].get("plant_cycle_id", 0)) == 5,
+		"a second planting cannot replace or advance a live saved cycle")
+
+	var lesson_plot := Farm.fresh_plot(0)
+	lesson_plot["state"] = Farm.TILLED
+	var lesson_farm := {"plots": [lesson_plot], "dailies": {}}
+	var lesson_result: Dictionary = PlantingTransaction.settle(lesson_farm, 0,
+		"carrot", NOON + 20, true, 0, "carrot", 6, -1.0)
+	var lesson_saved: Dictionary = lesson_farm["plots"][0]
+	_ok(bool(lesson_result.get("planted", false))
+		and int(lesson_saved.get("growth_override_seconds", 0)) == 6
+		and not bool(lesson_saved.get("golden", true)),
+		"the target lesson carrot receives its fast cycle without a gold roll")
 
 
 ## The barn's single roof purchase accepts all of its costs or none, moves the
