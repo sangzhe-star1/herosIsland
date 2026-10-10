@@ -34,6 +34,7 @@ const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
+const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 
@@ -52,7 +53,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 729
+const CHECKS_EXPECTED := 734
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -3105,42 +3106,67 @@ func _friend_requests_get_a_turn_and_routines_rotate() -> void:
 			rabbit_requests += 1
 	_ok(seen_ids.size() == 6, "six new friend requests are present")
 	_ok(rabbit_requests == 2, "rabbit has two distinct reasons to visit")
-	var fresh := GardenScreen.select_orders_for_board(catalogue, [], {}, 1)
+	var fresh := OrderBoard.select_orders_for_board(catalogue, [], {}, 1)
 	_ok(_board_ids(fresh) == ["bear_carrots", "robot_supply", "puppy_berries"],
 		"the original three introductory baskets keep their order")
 	# Mark every story except a formerly starved egg request paid: routine
 	# rows earlier in the JSON may not hide a newly eligible one-time request.
 	var paid := all_story.duplicate()
 	paid.erase("puppy_breakfast")
-	var eligible := GardenScreen.select_orders_for_board(catalogue, paid, {}, 2)
+	var eligible := OrderBoard.select_orders_for_board(catalogue, paid, {}, 2)
 	_ok(_board_ids(eligible)[0] == "puppy_breakfast",
 		"the egg breakfast is first even though routines precede it in JSON")
 	paid = all_story.duplicate()
 	paid.erase("robot_bakery")
-	eligible = GardenScreen.select_orders_for_board(catalogue, paid, {}, 3)
+	eligible = OrderBoard.select_orders_for_board(catalogue, paid, {}, 3)
 	_ok(_board_ids(eligible)[0] == "robot_bakery", "the flour story is never starved by routines")
-	_ok(not "robot_bakery" in _board_ids(GardenScreen.select_orders_for_board(catalogue, paid, {}, 2)),
+	_ok(not "robot_bakery" in _board_ids(OrderBoard.select_orders_for_board(catalogue, paid, {}, 2)),
 		"flour requests wait for the level-three windmill")
 	paid.erase("puppy_breakfast")
-	_ok(not "puppy_breakfast" in _board_ids(GardenScreen.select_orders_for_board(catalogue, paid, {}, 1)),
+	_ok(not "puppy_breakfast" in _board_ids(OrderBoard.select_orders_for_board(catalogue, paid, {}, 1)),
 		"egg requests wait for the level-two coop")
 	# Deliver the head repeatedly: the least-served rule must visit every
 	# routine before any routine can get a second visit.
 	var counts: Dictionary = {}
 	var visited: Array = []
 	for delivery in range(recurring_ids.size()):
-		var board := GardenScreen.select_orders_for_board(catalogue, all_story, counts, 5)
+		var board := OrderBoard.select_orders_for_board(catalogue, all_story, counts, 5)
 		_ok(board.size() == 3, "rotation keeps three baskets available")
 		var oid := str(board[0].get("id", ""))
 		_ok(not oid in visited, "rotation serves each routine before repeating: %s" % oid)
 		visited.append(oid)
 		counts[oid] = int(counts.get(oid, 0)) + 1
 	_ok(visited == recurring_ids, "equal-count ties preserve the catalogue's order")
-	_ok(_board_ids(GardenScreen.select_orders_for_board(catalogue, all_story, {}, 5)) == recurring_ids.slice(0, 3),
+	_ok(_board_ids(OrderBoard.select_orders_for_board(catalogue, all_story, {}, 5)) == recurring_ids.slice(0, 3),
 		"a legacy save with no counts starts deterministically")
 	var snapshot := JSON.stringify(counts)
-	GardenScreen.select_orders_for_board(catalogue, all_story, counts, 5)
+	OrderBoard.select_orders_for_board(catalogue, all_story, counts, 5)
 	_ok(JSON.stringify(counts) == snapshot, "displaying the board never changes the payment ledger")
+
+	var pending_board := [
+		{"id": "already_thanked"}, {"id": "first_open"}, {"id": "next_open"},
+	]
+	_ok(str(OrderBoard.first_pending(pending_board, ["already_thanked"])
+			.get("id", "")) == "first_open",
+		"the pending query follows the visible board and skips thanked friends")
+	_ok(OrderBoard.first_pending(pending_board,
+		["already_thanked", "first_open", "next_open"]).is_empty(),
+		"a board with only receipts has no pending friend request")
+	_fresh_save()
+	Barn.put("carrot", 3)
+	var fillable_board := [
+		{"id": "already_paid", "requirements": {"carrot": 3}},
+		{"id": "too_many", "requirements": {"carrot": 4}},
+		{"id": "can_fill", "requirements": {"carrot": 3}},
+	]
+	_ok(str(OrderBoard.first_fillable(fillable_board, ["already_paid"])
+			.get("id", "")) == "can_fill",
+		"the fillable query skips paid and understocked cards in board order")
+	_ok(Barn.count("carrot") == 3,
+		"asking which card is fillable never pays for the basket")
+	_ok(OrderBoard.first_fillable(fillable_board,
+		["already_paid", "too_many", "can_fill"]).is_empty(),
+		"the fillable query hides cards already completed")
 
 
 func _board_ids(board: Array) -> Array:
