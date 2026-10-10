@@ -199,7 +199,10 @@ These are yours to make. Nothing below has been changed without asking.
    `scripts/garden/farm_lesson_controller.gd`; the screen keeps the voice,
    pointing finger, clock, and completion save. The daily-job claim transaction
    now lives in `scripts/garden/farm_daily_claim_controller.gd`; the screen
-   still owns the tap's date, persistence, sound, and redraw.
+   still owns the tap's date, persistence, sound, and redraw. Daily progress
+   updates and newly crossed completion events now live in
+   `scripts/garden/farm_daily_progress_controller.gd`; it snapshots today's
+   tally before mutation and rolls yesterday's state before comparing events.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -327,6 +330,11 @@ These are yours to make. Nothing below has been changed without asking.
   GardenTouchProbe passed 1,871 checks across 16:9 and 4:3, including claiming
   from the task board and refusing a second press. `tools_check.py` reports
   0 errors and 208 existing warnings.
+- **Daily progress controller verification:** GardenProbe passed 1,008 checks,
+  including an already-completed yesterday rolling to a fresh day, same-day
+  snapshot isolation, once-only task completion, and the once-only full-day
+  celebration event. GardenTouchProbe passed 1,871 checks across 16:9 and 4:3.
+  `tools_check.py` reports 0 errors and 208 existing warnings.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.
