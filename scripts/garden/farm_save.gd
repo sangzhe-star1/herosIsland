@@ -42,8 +42,8 @@ const PLOT_COUNT := 6
 ## ceiling it starts at, and the field on the farm that remembers it.
 const WAREHOUSE_START := 40
 ## What the one upgrade raises it to. Bought once with coins and the three
-## planks the three friends left; garden_screen owns the price, this owns the
-## roof.
+## planks the three friends left; farm_undo_controller owns the purchase and
+## refund, this owns the roof.
 const WAREHOUSE_UPGRADED := 60
 
 ## Five stages, from seed to ripe. The child watches a shape change four times;

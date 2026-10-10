@@ -189,7 +189,11 @@ These are yours to make. Nothing below has been changed without asking.
    daily progress, the lesson, and presentation effects. Board rotation,
    level gating, and the pending/fillable-card queries now live in
    `scripts/garden/farm_order_board_controller.gd`; the screen supplies the
-   live save and draws the selected cards.
+   live save and draws the selected cards. The regret window and the safe
+   reversals for seed purchases, barn upgrades, and new beds now live in
+   `scripts/garden/farm_undo_controller.gd`; the screen keeps the toast,
+   sounds, and rebuild. Its probe checks the deadline, once-only refunds,
+   retained barn goods, and the rule that tilled land cannot be taken away.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -301,6 +305,11 @@ These are yours to make. Nothing below has been changed without asking.
   fillable-card queries. GardenTouchProbe passed 1,865 checks across 16:9 and
   4:3; `tools_check.py` reports 0 errors and 208 warnings. The full suite was
   not rerun for this controller split.
+- **Undo controller verification:** GardenProbe passed 984 checks covering the
+  shared deadline, seed and barn refunds, safe bed recovery, expiry, and
+  duplicate receipts. GardenTouchProbe passed 1,871 checks across 16:9 and
+  4:3, including a live purchase-and-undo tap in both shapes.
+  `tools_check.py` reports 0 errors and 208 existing warnings.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

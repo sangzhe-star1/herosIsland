@@ -59,6 +59,7 @@ const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transacti
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
+const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
@@ -142,16 +143,6 @@ const WELCOME_BEAT := 2.0
 ## the crops flying into the barn, short enough that a child who taps twice on
 ## purpose is not left wondering why the second one did nothing.
 const HARVEST_LOCK_SECONDS := 0.45
-
-## The barn's one upgrade: sixty coins and the three planks the three friends
-## left as thanks. Numbers a child can hold: he has SEEN each plank arrive.
-const UPGRADE_COINS := 60
-const UPGRADE_PLANKS := 3
-
-## How long the regret window stays open after money moves. Long enough to
-## change a six-year-old's mind, short enough that the toast is gone before it
-## becomes furniture.
-const UNDO_WINDOW_MS := 5000
 
 ## The chance a planting comes up golden: the whole plant glows for its whole
 ## life, and picking it gets a celebration of its own. One bed in twenty-five:
@@ -2939,8 +2930,7 @@ func _buy_confirmed() -> void:
 		# taken, so nothing needs saying beyond the rows redrawing honestly.
 		_queue_rebuild()
 		return
-	_pending_undo = {"kind": "seed", "id": crop_id,
-		"until": GameClock.ticks_ms() + UNDO_WINDOW_MS}
+	_pending_undo = Undo.offer("seed", crop_id, GameClock.ticks_ms())
 	AudioManager.play_sfx("res://assets/audio/coin.ogg")
 	AudioManager.say("farm_shop_bought")
 	_queue_rebuild()
@@ -3148,18 +3138,17 @@ func _upgrade_confirmed() -> void:
 	# Three ways to be refused, and all three used to return without a
 	# redraw: the confirm card stayed up over a button that did nothing.
 	if Barn.cap() >= Farm.WAREHOUSE_UPGRADED \
-			or not Barn.has("plank", UPGRADE_PLANKS, "inventory") \
-			or not Coins.spend(UPGRADE_COINS):
+			or not Barn.has("plank", Undo.UPGRADE_PLANKS, "inventory") \
+			or not Coins.spend(Undo.UPGRADE_COINS):
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		_queue_rebuild()
 		return
-	Barn.take("plank", UPGRADE_PLANKS, "inventory")
+	Barn.take("plank", Undo.UPGRADE_PLANKS, "inventory")
 	farm["warehouse_cap"] = Farm.WAREHOUSE_UPGRADED
 	# Room just appeared out of thin air; anything waiting outside comes in.
 	Barn.tip_basket_in()
 	SaveManager.save_game()
-	_pending_undo = {"kind": "cap", "id": "",
-		"until": GameClock.ticks_ms() + UNDO_WINDOW_MS}
+	_pending_undo = Undo.offer("cap", "", GameClock.ticks_ms())
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
 	AudioManager.say("farm_barn_bigger")
 	_queue_rebuild()
@@ -3258,8 +3247,7 @@ func _expand_confirmed(index: int) -> void:
 		_world.celebrate_new_bed(index)
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
 	AudioManager.say("farm_new_plot")
-	_pending_undo = {"kind": "plot", "id": str(index),
-		"until": GameClock.ticks_ms() + UNDO_WINDOW_MS}
+	_pending_undo = Undo.offer("plot", str(index), GameClock.ticks_ms())
 	_queue_rebuild()
 
 
@@ -3459,7 +3447,7 @@ func _gift_panel(view: Vector2) -> void:
 func _undo_toast(view: Vector2) -> void:
 	if _pending_undo.is_empty():
 		return
-	if GameClock.ticks_ms() > int(_pending_undo.get("until", 0)):
+	if not Undo.is_open(_pending_undo, GameClock.ticks_ms()):
 		_pending_undo = {}
 		return
 	var card := Panel.new()
@@ -3480,35 +3468,17 @@ func _undo_toast(view: Vector2) -> void:
 
 
 func _undo_pressed() -> void:
-	if GameClock.ticks_ms() > int(_pending_undo.get("until", 0)):
+	var result: Dictionary = Undo.settle(_pending_undo, GameClock.ticks_ms())
+	_pending_undo = {}
+	if bool(result.get("expired", false)):
 		# Pressed after the window shut, on a toast the clock had not yet
 		# swept away. Too late is too late; say so quietly.
-		_pending_undo = {}
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		_queue_rebuild()
 		return
-	var kind := str(_pending_undo.get("kind", ""))
-	var id := str(_pending_undo.get("id", ""))
-	_pending_undo = {}
-	match kind:
-		"seed":
-			SeedShop.undo(id)
-		"cap":
-			# The roof back off: coins and planks returned whole. Crops that
-			# came in over 40 while it was big STAY -- the ceiling refuses new
-			# things, it never ejects old ones -- so nothing is lost here either.
-			var farm := _farm()
-			if int(farm.get("warehouse_cap", 0)) >= Farm.WAREHOUSE_UPGRADED:
-				farm["warehouse_cap"] = Farm.WAREHOUSE_START
-				Coins.refund(UPGRADE_COINS)
-				Barn.put("plank", UPGRADE_PLANKS, "inventory")
-				SaveManager.save_game()
-		"plot":
-			# The stones back on -- but only while the new bed is still
-			# untouched grass. Earth he has already turned is his earth;
-			# Expand.undo() checks and quietly does nothing rather than
-			# reach into the farm and take a bed with something in it.
-			Expand.undo(int(id))
+	if not bool(result.get("accepted", false)):
+		_queue_rebuild()
+		return
 	AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
 	_queue_rebuild()
 
