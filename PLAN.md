@@ -263,6 +263,10 @@ These are yours to make. Nothing below has been changed without asking.
   16:9 and 4:3; FarmShot rendered at 16:9 and 4:3. The complete suite reports
   30 passed and 0 skipped after the care, planting, and tilling controller
   extractions and touch fix.
+- **Latest feature-branch full verification:** `./tests/run_smoke.sh` passed
+  30 probes with 0 skipped in the isolated QA project after the harvest-ledger
+  fix. GardenProbe asked 927 questions, GardenTouchProbe 1,865, FarmWorldProbe
+  781, and SaveProbe passed.
 - **Latest harvest-controller branch verification:** GardenProbe passed 927
   checks, GardenTouchProbe passed 1,865, including 65 actual screen transactions,
   and FarmShot passed 78 overflow checks at each of 16:9 and 4:3, including the
