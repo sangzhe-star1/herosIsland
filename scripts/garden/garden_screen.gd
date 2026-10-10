@@ -76,19 +76,9 @@ const FarmRecipesPanel := preload("res://scripts/garden/panels/farm_recipes_pane
 const FarmKitchenPanel := preload("res://scripts/garden/panels/farm_kitchen_panel.gd")
 const FarmChallengePanel := preload("res://scripts/garden/panels/farm_challenge_panel.gd")
 const FarmGiftPanel := preload("res://scripts/garden/panels/farm_gift_panel.gd")
+const FarmSeedRackPanel := preload("res://scripts/garden/panels/farm_seed_rack_panel.gd")
 
-## WHERE THE BEDS ARE IS NO LONGER THIS FILE'S BUSINESS
-##
-## The four-bed garden laid its beds out here, from a gap derived from
-## DragField.SNAP. The farm lays them out in world coordinates, in
-## data/farm_world_layout.json, and the rules about that layout live in
-## scripts/garden/farm_layout.gd where the probe and tools_check.py can run the
-## same arithmetic against the same numbers.
-##
-## The rule itself did not go away, it got harder: SNAP is measured on the
-## GLASS and the farm can be zoomed out, so the same world distance buys fewer
-## screen pixels at 0.8 than at 1.0. See Layout.world_gap_needed().
-const SEED_TILE := Vector2(64, 60)
+const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
 ## tablet for the island. These are compact *lanes*, not smaller touch targets:
 ## the buttons inside keep their child-friendly hit boxes.
@@ -121,7 +111,6 @@ const ORDER_GAP := 102.0          # card to card
 ## Paged surfaces: six rows on the shop sheet, fourteen seed slots on the
 ## dense possession row. The usual whole seed collection fits at once.
 const PANEL_PAGE := 6
-const RACK_PAGE := 14
 
 ## How often the garden re-settles itself while the first lesson is running --
 ## twice a second, because the lesson's carrot is done in six seconds, and a
@@ -1391,199 +1380,13 @@ func _view_buttons(view: Vector2) -> void:
 		_panel_buttons["zoom_in" if step > 0 else "zoom_out"] = button
 
 
-## Where the first seed tile sits, and how far apart the tiles are.
-##
-## Read by the layout below AND by the finger that points at the rack, which is
-## the whole reason they are up here. The pointer used to aim at the middle of
-## the shelf -- view.x * 0.5 -- which is the empty gap between the last seed and
-## the barn: the lesson said "pick a seed and drag it into the earth" while a
-## spotlight sat on nothing at all.
-const RACK_X := 16.0 + SEED_TILE.x * 0.5
-const RACK_STEP := SEED_TILE.x + 4.0
-
-
-## The whole lower possession row moves together: seeds, its page arrows,
-## and barn. Keeping a named answer gives a held seed enough bottom margin
-## to rise to full size without falling outside the glass.
+## Y coordinate shared by the seed pouch and its lesson pointer.
 func _seed_lane_y(view: Vector2) -> float:
 	return view.y - 38.0
 
 
-## The seed pouch hugs the actual collection: fourteen crops fit one row,
-## and a younger farm with four keeps a shorter pouch.
-func _seed_deck_width(slots: int) -> float:
-	var last := RACK_X + RACK_STEP * float(maxi(slots, 1) - 1)
-	return last + SEED_TILE.x * 0.5 - 12.0 + 2.0
-
-
-## The paging chevron is part of the seed collection.  It reuses UiKit's
-## compact button behaviour rather than the roomy sheet chip, then adopts the
-## dock's quiet paint so a one-letter arrow does not become another card.
-func _seed_page_button(direction: String) -> Button:
-	var button := UiKit.compact_button(direction, Color(0.98, 0.94, 0.83),
-		Vector2(60, 60), 26)
-	# Paging is a detail of the seed collection, not a second raised button in
-	# the dock.  Preserve UiKit's existing size, sound and press behaviour while
-	# letting the warm seed lane carry the grouping.
-	button.add_theme_stylebox_override("normal", _quiet_surface_style(
-		Color(0.98, 0.94, 0.83), 16, Color(0.68, 0.49, 0.23, 0.28), 1, 8))
-	button.add_theme_stylebox_override("hover", _quiet_surface_style(
-		Color(1.0, 0.97, 0.89), 16, Color(0.68, 0.49, 0.23, 0.48), 1, 8))
-	button.add_theme_stylebox_override("pressed", _quiet_surface_style(
-		Color(0.94, 0.86, 0.69), 16, Color(0.60, 0.42, 0.19, 0.48), 1, 8))
-	for slot in ["font_color", "font_hover_color", "font_pressed_color",
-			"font_focus_color"]:
-		button.add_theme_color_override(slot, Palette.INK)
-	button.size = Vector2(60, 60)
-	return button
-
-
 func _seed_rack(view: Vector2) -> void:
-	var shelf_h := SHELF
-	var shelf := Panel.new()
-	# A honey-coloured tray packs the two existing rows into 140px. Tools
-	# and seeds keep separate 60px targets and their actual capture bounds.
-	var shelf_style := _quiet_surface_style(Color(0.97, 0.93, 0.83), 0,
-		Color(0.68, 0.49, 0.23, 0.50))
-	shelf_style.border_width_top = 2
-	shelf.add_theme_stylebox_override("panel", shelf_style)
-	shelf.position = Vector2(0, view.y - shelf_h)
-	shelf.custom_minimum_size = Vector2(view.x, shelf_h)
-	shelf.size = Vector2(view.x, shelf_h)
-	shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(shelf)
-	_shelf = shelf
-
-	# These low-contrast lanes are passive backers under the existing controls,
-	# not a new toolbar or input path.  Their colour is enough to orient a child
-	# without carving the dock into a second dashboard.
-	var tool_deck := Panel.new()
-	tool_deck.name = "GardenToolDeck"
-	tool_deck.add_theme_stylebox_override("panel", _quiet_surface_style(
-		Color(0.87, 0.77, 0.57, 0.30), 20, Color(0.65, 0.46, 0.21, 0.25), 1))
-	tool_deck.position = Vector2(12.0, view.y - SHELF + 2.0)
-	tool_deck.custom_minimum_size = Vector2(minf(560.0, view.x - 24.0), 64.0)
-	tool_deck.size = tool_deck.custom_minimum_size
-	tool_deck.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(tool_deck)
-
-	# The tool row and the seed row each have sixty-pixel targets, with six
-	# pixels between rows. Seed-only capture bounds protect the upper tools.
-	var unlocked: Array = _farm().get("unlocked_crops", [])
-	var chosen := _tools.crop_to_plant(unlocked)
-	# All fourteen familiar crops fit one row. A future larger catalogue
-	# still uses the same pager and real drag targets.
-	var rack_pages := int(ceil(unlocked.size() / float(RACK_PAGE)))
-	_rack_page = clampi(_rack_page, 0, maxi(rack_pages - 1, 0))
-	var on_page: Array = unlocked.slice(_rack_page * RACK_PAGE,
-		(_rack_page + 1) * RACK_PAGE)
-	var seed_deck := Panel.new()
-	seed_deck.name = "GardenSeedDeck"
-	seed_deck.add_theme_stylebox_override("panel", _quiet_surface_style(
-		Color(0.87, 0.77, 0.57, 0.30), 20, Color(0.65, 0.46, 0.21, 0.25), 1))
-	seed_deck.position = Vector2(12.0, _seed_lane_y(view) - 32.0)
-	seed_deck.custom_minimum_size = Vector2(
-		minf(_seed_deck_width(on_page.size()), view.x - 24.0), 64.0)
-	seed_deck.size = seed_deck.custom_minimum_size
-	seed_deck.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(seed_deck)
-	for i in range(on_page.size()):
-		var crop_id := str(on_page[i])
-		var crop: Dictionary = GameData.get_crop(crop_id)
-		if crop.is_empty():
-			continue
-		var at := _rack_tile_centre(i)
-		var tile := Node2D.new()
-		tile.name = "GardenSeedArt_%s" % crop_id
-		tile.position = at
-		tile.set_meta("grab_rect", Rect2(-SEED_TILE * 0.5, SEED_TILE))
-		_play.add_child(tile)
-		var slot := Panel.new()
-		slot.name = "SeedSlot_%s" % crop_id
-		slot.position = -SEED_TILE * 0.5
-		slot.size = SEED_TILE
-		slot.add_theme_stylebox_override("panel", _inventory_surface(true, crop_id == chosen))
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		tile.add_child(slot)
-		var art := _crop_picture(crop_id, 46.0, "SeedPicture_%s" % crop_id)
-		if art != null:
-			art.position = Vector2(-23.0, -23.0)
-			tile.add_child(art)
-		if crop_id == chosen:
-			var selected := Panel.new()
-			selected.name = "SeedSelectedMark"
-			selected.position = Vector2(SEED_TILE.x * 0.5 - 23.0, -SEED_TILE.y * 0.5 + 4.0)
-			selected.size = Vector2(19.0, 19.0)
-			selected.add_theme_stylebox_override("panel", _quiet_surface_style(
-				Color(0.36, 0.42, 0.19), 8, Color(0.36, 0.42, 0.19), 0, 0))
-			selected.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			tile.add_child(selected)
-			var tick := UiKit.picture("check", 15.0)
-			if tick != null:
-				tick.position = Vector2(2.0, 2.0)
-				tick.modulate = Color(1.0, 0.98, 0.83)
-				tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				selected.add_child(tick)
-		_field.add_item(tile, at, crop_id)
-
-		# A TAP on the tile arms the seed brush with this crop; a DRAG from it
-		# is the classic single planting, untouched. The two do not fight: the
-		# button only fires when the finger comes up still inside it, and a
-		# drag has left by then -- so the same tile answers both, and which one
-		# the child meant is decided by what his finger actually did.
-		var pick := Button.new()
-		pick.name = "GardenSeed_%s" % crop_id
-		pick.flat = true
-		pick.focus_mode = Control.FOCUS_NONE
-		pick.position = at - SEED_TILE * 0.5
-		pick.custom_minimum_size = SEED_TILE
-		pick.size = SEED_TILE
-		var this_crop := crop_id
-		pick.pressed.connect(func(): _choose_seed(this_crop))
-		_play.add_child(pick)
-
-	# The rack's page arrows stand directly after the last visible tile whenever
-	# there is only one direction to go.  The old next arrow reserved a second,
-	# invisible direction slot on page one, so it floated in a strip of cream
-	# and read like a stray button instead of part of the seed collection.  A
-	# middle page still gets two separate, finger-sized directions.
-	if rack_pages > 1:
-		var arrow_y: float = _seed_lane_y(view) - 30.0
-		var pager_x: float = RACK_X + RACK_STEP * float(on_page.size()) - SEED_TILE.x * 0.5
-		var has_back := _rack_page > 0
-		var has_next := _rack_page < rack_pages - 1
-		# A passive warm backer gives the pale arrow a clear home in
-		# the seed family.  On the future middle page it grows to hold both
-		# directions; it never takes input away from the existing buttons.
-		var pager_deck := Panel.new()
-		pager_deck.name = "GardenSeedPagerDeck"
-		pager_deck.add_theme_stylebox_override("panel", _quiet_surface_style(
-			Color(0.87, 0.77, 0.57, 0.30), 18, Color(0.65, 0.46, 0.21, 0.25), 1))
-		pager_deck.position = Vector2(pager_x - 2.0, _seed_lane_y(view) - 32.0)
-		pager_deck.custom_minimum_size = Vector2(132.0 if has_back and has_next else 64.0,
-			64.0)
-		pager_deck.size = pager_deck.custom_minimum_size
-		pager_deck.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play.add_child(pager_deck)
-		if _rack_page > 0:
-			var back := _seed_page_button("<")
-			back.position = Vector2(pager_x, arrow_y)
-			back.pressed.connect(func():
-				AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
-				_rack_page -= 1
-				_queue_rebuild())
-			_play.add_child(back)
-			_panel_buttons["rack_back"] = back
-		if _rack_page < rack_pages - 1:
-			var next := _seed_page_button(">")
-			next.position = Vector2(
-				pager_x + (68.0 if has_back and has_next else 0.0), arrow_y)
-			next.pressed.connect(func():
-				AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
-				_rack_page += 1
-				_queue_rebuild())
-			_play.add_child(next)
-			_panel_buttons["rack_next"] = next
+	FarmSeedRackPanel.new(self).build(view, SHELF)
 
 
 # --- what a tap does ----------------------------------------------------
@@ -3665,7 +3468,7 @@ func _seed_rack_centre() -> Vector2:
 ## and had to be kept in step by hand every time the rack moved.
 func _rack_tile_centre(index: int) -> Vector2:
 	var view := get_viewport_rect().size
-	return Vector2(RACK_X + RACK_STEP * float(index), _seed_lane_y(view))
+	return FarmSeedRackPanel.tile_centre(index, _seed_lane_y(view))
 
 
 ## The one plot that most wants attention, or -1 if the garden is content.

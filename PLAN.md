@@ -226,7 +226,12 @@ These are yours to make. Nothing below has been changed without asking.
    storage transaction. Crop, pen, pond, and dog collection flights plus the
    harvest combo label now live in `farm_collection_feedback_controller.gd`;
    the screen supplies truthful destination positions and the shared image
-   builder.
+   builder. On 10 October, the bottom seed rack moved into
+   `scripts/garden/panels/farm_seed_rack_panel.gd`. The panel owns its slots,
+   art, selected mark, drag items and pager; the screen retains the live drag
+   field, selection callbacks, current page and lesson pointer. The rack
+   centre used by the lesson and probes delegates to the panel's geometry, so
+   there is one layout source. `garden_screen.gd` is now 3,729 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -289,6 +294,12 @@ These are yours to make. Nothing below has been changed without asking.
   documented 400-second budget but timed
   out before finishing its first shape; it printed no assertion or script
   error, so it is not counted as a pass. `tools_check.py` reports 0 errors
+  and 208 warnings.
+- **Seed-rack presentation boundary:** the seed tray and its tile/pager
+  drawing now live in `farm_seed_rack_panel.gd`; `garden_screen.gd` delegates
+  the shared tile centre used by the lesson and probes. The screen is 3,729
+  lines, down from 3,926. GardenTouchProbe passed 1,941 checks across 16:9
+  and 4:3, including real seed dragging; `tools_check.py` reports 0 errors
   and 208 warnings.
 - **Integration complete:** branch `claude/stoic-bell-a41pfu` was 51 commits
   ahead of `main` at `deb168e`; it was fast-forwarded and pushed through
