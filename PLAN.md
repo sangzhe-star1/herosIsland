@@ -476,6 +476,13 @@ These are yours to make. Nothing below has been changed without asking.
   real load that catches the carrot up to its thirsty state. GardenProbe passed
   1,057, garden renders were reviewed at both ratios, and `tools_check.py`
   reports 0 errors and 208 existing warnings.
+- **Regular garden clock persistence:** twenty-second beats now settle growth
+  in memory and save only when they refill the warehouse from the overflow
+  basket. GardenTouchProbe passed 1,911 checks across both ratios, proving
+  no-op and stage-changing beats leave disk untouched while a basket transfer
+  still commits one complete save. SaveProbe passed, GardenProbe passed 1,057,
+  both garden ratios were rendered and reviewed, and `tools_check.py` reports
+  0 errors and 208 existing warnings.
 
 ---
 

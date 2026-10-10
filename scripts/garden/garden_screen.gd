@@ -3589,12 +3589,14 @@ func _garden_tick() -> void:
 ## while he stood there says so, once, and then leaves the choice to him.
 func _garden_tick_once() -> void:
 	var before := FarmTick.capture(_plots())
-	# settle_farm owns both the refill and its save. Measure the basket around it
-	# so the screen can refresh the shelf without moving produce ahead of the
-	# transaction that persists it.
+	# Plot growth and care are derived from persisted time anchors, so a clock
+	# beat only updates them in memory. Basket movement changes stored goods and
+	# is the one quiet-beat result that needs an immediate save.
 	var basket_before := Barn.total(Barn.BASKET)
-	SaveManager.settle_farm()
+	SaveManager.settle_farm(false)
 	var tipped := maxi(basket_before - Barn.total(Barn.BASKET), 0)
+	if tipped > 0:
+		SaveManager.save_game()
 	if _world != null and is_instance_valid(_world):
 		_world.refresh(_plots())
 	var result := FarmTick.resolve(before, _plots(), tipped)

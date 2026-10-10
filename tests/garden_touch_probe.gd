@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1907
+const CHECKS_EXPECTED := 1911
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -3266,19 +3266,27 @@ func _the_garden_moves_while_he_watches() -> void:
 	SaveManager.save_game()
 
 	# A beat with no time in it: nothing grows, and nothing is asked of the
-	# ribbon, the dog or the hints.
+	# ribbon, the dog or the hints. Settlement may advance in memory, but the
+	# timestamp and derived growth do not need another whole-save rewrite.
+	var save_before_quiet_tick := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 	scene.call("_garden_tick_once")
 	_ok(int(_plots()[1].get("growth_stage", 0)) == 1,
 		"a quiet tick with no time in it grows nothing")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_PATH) == save_before_quiet_tick
+			and int(_plots()[1].get("last_updated_at", 0)) == NOON,
+		"a quiet no-op beat updates its in-memory anchor without writing the save")
 	_ok(not bool(scene.get("_rebuild_queued")),
 		"and asks nothing of the furniture")
 
 	# The stage boundary crosses mid-visit: the bed moves, and the furniture
 	# moves with it -- "the corn is taller" is also a fact the ribbon says.
 	GameClock.set_test_now(NOON + int(float(stages[1]) * 0.6), 0)
+	var save_before_stage_tick := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 	scene.call("_garden_tick_once")
 	_ok(int(_plots()[1].get("growth_stage", 0)) == 2,
 		"a stage boundary that passes mid-visit crosses in front of him")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_PATH) == save_before_stage_tick,
+		"a visible stage change stays recoverable from time without a tick save")
 	_ok(bool(scene.get("_rebuild_queued")),
 		"and the furniture rebuilds to say what it means")
 	await get_tree().process_frame
