@@ -452,6 +452,14 @@ These are yours to make. Nothing below has been changed without asking.
   checks, GardenTouchProbe passed 1,897 (including a backup comparison proving
   harvest plus recipe unlock is one save), and FarmWorldProbe passed 829 across
   16:9 and 4:3. `tools_check.py` reports 0 errors and 208 existing warnings.
+- **Garden-entry save boundary:** `setup_level()` now settles offline growth in
+  memory, then commits it together with morning dew, daily rollover, and friend
+  visit bookkeeping in its existing arrival save. Other `settle_farm()` callers
+  retain immediate persistence by default. SaveProbe checks that a deferred
+  settlement updates memory without rotating the backup and that the owner save
+  writes the settled timestamp. SaveProbe passed; GardenProbe passed 1,057,
+  GardenTouchProbe passed 1,897 across 16:9 and 4:3, and `tools_check.py`
+  reports 0 errors and 208 existing warnings.
 
 ---
 

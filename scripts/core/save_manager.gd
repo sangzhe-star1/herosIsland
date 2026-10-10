@@ -408,8 +408,9 @@ func _grow_the_garden_into_a_farm() -> bool:
 ## whether or not anybody asked.
 ##
 ## Writes are guarded because this runs on every launch and every resume, and
-## save_game() is a full rewrite of the file.
-func settle_farm() -> bool:
+## save_game() is a full rewrite of the file. A caller that owns a larger save
+## transaction can defer persistence until its other changes are ready too.
+func settle_farm(persist: bool = true) -> bool:
 	if not data.has("farm"):
 		return false
 	var before := JSON.stringify(data["farm"])
@@ -420,7 +421,8 @@ func settle_farm() -> bool:
 	Barn.tip_basket_in()
 	if JSON.stringify(data["farm"]) == before:
 		return false
-	save_game()
+	if persist:
+		save_game()
 	return true
 
 

@@ -298,7 +298,9 @@ func setup_level() -> void:
 	# is worked out from timestamps; this is where it catches up on arrival,
 	# and the garden's quiet clock (GARDEN_TICK) keeps it caught up from here
 	# on -- nothing accumulates frame by frame, the clock is only re-asked.
-	SaveManager.settle_farm()
+	# The arrival save below commits growth together with dew, daily rollover,
+	# and visit bookkeeping; do not rotate the backup once per settlement.
+	SaveManager.settle_farm(false)
 	var dew: Dictionary = DayCycle.check_morning_dew(SaveManager.data.get("farm", {}))
 	# Today's little jobs, rolled against today's date. A list from yesterday
 	# rolls over silently here -- nothing is lost, nothing nags; see

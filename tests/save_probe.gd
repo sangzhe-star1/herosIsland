@@ -8,6 +8,8 @@ const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
+const SETTLEMENT_TIME := 1_800_000_000
+
 var _failures: Array[String] = []
 
 
@@ -33,6 +35,34 @@ func _ready() -> void:
 	_ok(FileAccess.file_exists(SaveManager.SAVE_PATH), "main save should exist")
 	_ok(FileAccess.file_exists(SaveManager.SAVE_BACKUP), "backup save should exist")
 	_ok(not FileAccess.file_exists(SaveManager.SAVE_TMP), "no temp file left behind")
+
+	# Garden entry owns a larger transaction (growth, dew, dailies, and visit
+	# stamps). Settling may update memory without rotating the backup; the owner
+	# then writes the combined state exactly once.
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["last_seen_at"] = 0
+	farm["clock_high_water"] = 0
+	SaveManager.data["farm"] = farm
+	var marker := "deferred farm settlement must not rotate this backup"
+	var marker_file := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	_ok(marker_file != null, "settlement write boundary can be observed")
+	if marker_file != null:
+		marker_file.store_string(marker)
+		marker_file.close()
+	GameClock.set_test_now(SETTLEMENT_TIME)
+	var settled := SaveManager.settle_farm(false)
+	_ok(settled, "deferred settlement reports its in-memory change")
+	_ok(int(SaveManager.data["farm"].get("last_seen_at", 0)) == SETTLEMENT_TIME,
+		"deferred settlement updates the farm in memory")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == marker,
+		"deferred settlement leaves backup rotation to its transaction owner")
+	SaveManager.save_game()
+	var settled_save: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	_ok(settled_save is Dictionary
+		and int(settled_save.get("farm", {}).get("last_seen_at", 0)) == SETTLEMENT_TIME,
+		"the owner save commits the deferred farm settlement")
+	GameClock.clear_test_now()
 
 	# Tear the main file mid-thought, the force-close way.
 	var f := FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
