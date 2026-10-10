@@ -19,8 +19,8 @@ behind. `CHANGELOG.md` is the record, one section per round.
 | Levels | 14 | 59 |
 | Templates with levels | 4 | 14 |
 | Home screen doors | 2, and a disabled Hero House button | 5 |
-| Smoke checkpoints | 1 script | 29, all green |
-| `tools_check.py` | new | 0 errors, 188 warnings |
+| Smoke checkpoints | 1 script | 30, all green |
+| `tools_check.py` | new | 0 errors, 208 warnings |
 
 ---
 
@@ -251,32 +251,31 @@ These are yours to make. Nothing below has been changed without asking.
   `tools/art/`. Disposable screenshot/debug scripts and duplicate scene
   builders were removed. The relevant project skills remain in
   `.agents/skills/`, and no `.ours`/`.theirs` conflict residue was present.
-- **Core-loop iteration in progress:** branch
-  `codex/garden-harvest-transaction-controller` extracts pay-once harvest IDs
-  and plot reset/recovery state from `garden_screen.gd`; its ledger controller
-  owns the duplicate gate and bounded append, and its transaction controller
-  settles inventory plus the plot together. The claim path no longer mutates
-  the persistent list before the 64-entry retention helper can run. Stroke
-  completion now returns one explicit save decision and starts the next stroke
-  with clean bookkeeping. Eligibility and committed work are now separate: a
+- **Core-loop extraction merged:** PR [#2](https://github.com/sangzhe-star1/herosIsland/pull/2)
+  merged as `da58b80`. The harvest transaction controller extracts pay-once
+  harvest IDs and plot reset/recovery state from `garden_screen.gd`; the ledger
+  owns the duplicate gate and bounded append, and the transaction settles
+  inventory plus the plot together. The claim path no longer mutates the
+  persistent list before the 64-entry retention helper can run. Stroke
+  completion returns one explicit save decision and starts the next stroke
+  with clean bookkeeping. Eligibility and committed work are separate: a
   brush bed is counted only after its plot state changes, so an empty seed
-  choice cannot cause a no-op save or redraw. FarmWorldProbe passes 792 checks
-  across 16:9 and 4:3; the branch is not merged yet.
+  choice cannot cause a no-op save or redraw. FarmWorldProbe passed 792 checks
+  across 16:9 and 4:3.
 - **Needs the player's device/save:** test hen and mill timers, cloud discovery,
-  dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
-  genuine older iPad save before changing save-version fields. These need
-  hands-on play and the player's actual save file.
+  and dog-versus-farming preference on the iPad. `GardenProbe` and `SaveProbe`
+  already cover synthetic old-save shapes, including the earlier plot booleans,
+  four-to-six-bed expansion, missing defaults, save-version fallback, and
+  repeat-load behavior. Still exercise `normalise_farm()` with a genuine older
+  iPad save before changing save-version fields; that confirms the real save's
+  shape, and needs the player's actual backup.
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
-- **Latest integrated-main verification:** GardenTouchProbe passed 1,862 checks,
-  GardenProbe 917, FarmWorldProbe 781, and HarvestTouchProbe 2,316 across
-  16:9 and 4:3; FarmShot rendered at 16:9 and 4:3. The complete suite reports
-  30 passed and 0 skipped after the care, planting, and tilling controller
-  extractions and touch fix.
-- **Latest feature-branch full verification:** `./tests/run_smoke.sh` passed
-  30 probes with 0 skipped in the isolated QA project after the no-op brush
-  commit guard. GardenProbe asked 934 questions, GardenTouchProbe 1,865,
-  FarmWorldProbe 792, and SaveProbe passed.
+- **Latest merged-tree verification:** immediately before PR #2 was merged,
+  `./tests/run_smoke.sh` passed 30 probes with 0 skipped in the isolated QA
+  project. GardenProbe asked 934 questions, GardenTouchProbe 1,865,
+  FarmWorldProbe 792, and SaveProbe passed. The merged tree is the same tested
+  tree; the merge commit adds no file changes.
 - **Latest stroke-lifecycle verification:** FarmWorldProbe asked 792 questions
   across both screen shapes, including an empty-seed no-op through the live
   garden screen; `tools_check.py` reports 0 errors and 208 warnings.
