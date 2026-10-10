@@ -265,7 +265,11 @@ These are yours to make. Nothing below has been changed without asking.
    point now live in `FarmBarnPanel`; the screen supplies the current viewport
    and keeps collection settlement. The saved-decoration door, world placement,
    and poke response now live in `FarmDecorationsView`; the screen keeps room
-   selection and the rebuild stamp. `garden_screen.gd` is 2,623 lines.
+   selection and the rebuild stamp.
+   Teaching fingers, hint highlights, and the break card now live in
+   `scripts/garden/farm_lesson_view.gd`; the screen keeps lesson state, voice,
+   timing, completion saves, hint choices, and the shovel action.
+   `garden_screen.gd` is 2,578 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -710,6 +714,15 @@ These are yours to make. Nothing below has been changed without asking.
   stamp so unchanged arrangements keep their animation. GardenTouchProbe passed
   1,993 checks across 16:9 and 4:3 with no script errors; `tools_check.py`
   reports 0 errors and 208 warnings. `garden_screen.gd` is 2,623 lines.
+- **Lesson presentation boundary (10 October):** `FarmLessonView` now draws
+  the tutorial finger, hint highlights, and once-per-visit break card. The
+  screen still owns lesson state, voice, clock, save completion, hint choices,
+  and the shovel action. GardenTouchProbe passed 1,993 checks across 16:9 and
+  4:3, including the full six-step lesson and break-card touch flow. The small
+  harvest-challenge tally is now 12px and leaves a safe inset while its card
+  breathes. `garden_screen.gd` is 2,578 lines; `tools_check.py` reports 0 errors
+  and 208 warnings. The full smoke suite was not rerun for this presentation
+  extraction.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

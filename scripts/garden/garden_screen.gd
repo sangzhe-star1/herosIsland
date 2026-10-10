@@ -31,9 +31,7 @@ const Growth := preload("res://scripts/garden/offline_growth.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
-const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const Hints := preload("res://scripts/shared/hint_director.gd")
-const Rest := preload("res://scripts/shared/rest_director.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
@@ -82,6 +80,7 @@ const FarmExpansionPanel := preload("res://scripts/garden/panels/farm_expansion_
 const FarmUndoPanel := preload("res://scripts/garden/panels/farm_undo_panel.gd")
 const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_panel.gd")
 const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
+const FarmLessonView := preload("res://scripts/garden/farm_lesson_view.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -2040,10 +2039,7 @@ func _point_at_market() -> void:
 	if not _world.camera.inside(at):
 		_world.look_at_facility("market")
 		at = _world.facility_screen_position("market")
-	var hand := Tutorial.new()
-	add_child(hand)
-	hand.add_step(at, at, 1.4)
-	hand.play()
+	FarmLessonView.new(self).point_to(at, at, 1.4)
 
 
 ## The regret window, drawn while it is open. One small card, one button, and
@@ -2358,13 +2354,13 @@ func _point_at(what: String) -> void:
 	if _play == null or not is_instance_valid(_play):
 		return
 	var bed := _bed_centre(maxi(_lesson_plot(), 0))
-	var hand := Tutorial.new()
-	_play.add_child(hand)
+	var look_at := bed
+	var act_at := bed
 	match what:
 		"seed":
 			# The one action in the garden that is a drag, shown as one: the
 			# finger travels from the rack into the earth.
-			hand.add_step(_seed_rack_centre(), bed, 1.4)
+			look_at = _seed_rack_centre()
 		"order":
 			# Shut board: point at the BOARD, which is a building on the farm,
 			# and let him open it. A finger on a card that is not on the screen
@@ -2373,10 +2369,10 @@ func _point_at(what: String) -> void:
 			# seed rack's spotlight had before it was aimed properly.
 			var card: Vector2 = _order_card_centre(_an_order_he_can_fill()) \
 				if _orders_open else _world.facility_screen_position("orders")
-			hand.add_step(card, card, 1.3)
-		_:
-			hand.add_step(bed, bed, 1.2)
-	hand.play()
+			look_at = card
+			act_at = card
+	FarmLessonView.new(self).point_to(look_at, act_at,
+		1.4 if what == "seed" else (1.3 if what == "order" else 1.2))
 
 
 ## Grow the garden while he is watching -- for the length of the lesson only.
@@ -2495,8 +2491,8 @@ func _nudge() -> void:
 		# board, not be sent looking for another patch of dirt.
 		AudioManager.say("garden_tut_order")
 		if _world != null and is_instance_valid(_world):
-			Juice.shockwave(_play, _world.facility_screen_position("orders"),
-				140.0, Color(1.0, 0.94, 0.62, 0.5))
+			FarmLessonView.new(self).highlight(
+				_world.facility_screen_position("orders"))
 		return
 	var index := _the_plot_that_wants_something()
 	if index < 0:
@@ -2513,8 +2509,7 @@ func _nudge() -> void:
 				_: AudioManager.say("garden_tut_water")
 		Farm.EMPTY: AudioManager.say("garden_tut_till")
 		_: AudioManager.say("garden_tut_plant")
-	Juice.shockwave(_play, _bed_centre(index), 140.0,
-		Color(1.0, 0.94, 0.62, 0.5))
+	FarmLessonView.new(self).highlight(_bed_centre(index))
 
 
 ## Help, step two: show the finger doing it.
@@ -2527,22 +2522,9 @@ func _show_the_move() -> void:
 	var index := _the_plot_that_wants_something()
 	if index < 0:
 		return
-	var hand := Tutorial.new()
-	_play.add_child(hand)
 	var bed := _bed_centre(index)
 	var state := str(_plots()[index].get("state", ""))
-	if state == Farm.READY:
-		# Ripe: show the PULL, not a tap -- press on the bed, glide up. It is
-		# the same move 丰收行动 teaches for the same crop, so one lesson
-		# serves both screens, and a child who taps instead still picks.
-		hand.add_step(bed, bed + Vector2(0.0, -90.0), 1.3)
-	elif state == Farm.NEEDS_CARE:
-		hand.add_step(bed, bed, 1.3)
-	elif state == Farm.TILLED:
-		hand.add_step(_seed_rack_centre(), bed, 1.3)
-	else:
-		hand.add_step(bed, bed, 1.3)
-	hand.play()
+	FarmLessonView.new(self).show_move(state, bed, _seed_rack_centre())
 
 
 ## Help, step three: do the hard part, and leave the last move to him.
@@ -2586,35 +2568,8 @@ func _offer_a_break() -> void:
 	if _rest_offered or not _harvested_something:
 		return
 	_rest_offered = true
-
-	var view := get_viewport_rect().size
-	var card := UiKit.card(Color(1.0, 0.99, 0.93))
-	card.custom_minimum_size = Vector2(560, 190)
-	card.position = Vector2(view.x * 0.5 - 280.0, view.y * 0.5 - 95.0)
-	_play.add_child(card)
-	if _world != null and is_instance_valid(_world):
-		_world.add_blocker(card)
-
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 16)
-	card.add_child(column)
-	var line := UiKit.title(I18n.t(Rest.line()), 30)
-	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(line)
-
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 22)
-	column.add_child(row)
-	# Staying is the first and largest button on purpose. The break is offered,
-	# not pushed -- a child who is happily gardening should not have to hunt for
-	# the way to carry on.
-	var stay := UiKit.big_button(I18n.t("garden.keep_planting"), Palette.GREEN)
-	stay.pressed.connect(func(): card.queue_free())
-	row.add_child(stay)
-	var leave := UiKit.big_button(I18n.t("garden.go_exploring"), Palette.BLUE)
-	leave.pressed.connect(func(): quit_level())
-	row.add_child(leave)
+	FarmLessonView.new(self).offer_break(get_viewport_rect().size,
+		func(): quit_level())
 
 ## The same harvest levels, replayable from the same farm door. Four roomy
 ## rows and the existing sheet pager fit both screen shapes without a scroll
