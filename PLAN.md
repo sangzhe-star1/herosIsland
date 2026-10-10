@@ -194,6 +194,10 @@ These are yours to make. Nothing below has been changed without asking.
    `scripts/garden/farm_undo_controller.gd`; the screen keeps the toast,
    sounds, and rebuild. Its probe checks the deadline, once-only refunds,
    retained barn goods, and the rule that tilled land cannot be taken away.
+   The six first-planting lesson decisions—next action, target bed, and the
+   pre-plant target used for the fast carrot—now live in
+   `scripts/garden/farm_lesson_controller.gd`; the screen keeps the voice,
+   pointing finger, clock, and completion save.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -309,6 +313,11 @@ These are yours to make. Nothing below has been changed without asking.
   shared deadline, seed and barn refunds, safe bed recovery, expiry, and
   duplicate receipts. GardenTouchProbe passed 1,871 checks across 16:9 and
   4:3, including a live purchase-and-undo tap in both shapes.
+  `tools_check.py` reports 0 errors and 208 existing warnings.
+- **Lesson controller verification:** GardenProbe passed 996 checks for step
+  priority, target-bed selection, quiet growth, care instructions, and the
+  pre-plant fast-growth target. GardenTouchProbe passed 1,871 checks across
+  both screen shapes while walking the whole six-step tutorial.
   `tools_check.py` reports 0 errors and 208 existing warnings.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
