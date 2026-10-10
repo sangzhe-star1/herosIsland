@@ -82,6 +82,7 @@ const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_p
 const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
 const FarmLessonView := preload("res://scripts/garden/farm_lesson_view.gd")
 const FarmProgressNoticeView := preload("res://scripts/garden/farm_progress_notice_view.gd")
+const FarmPanelState := preload("res://scripts/garden/farm_panel_state_controller.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -145,22 +146,41 @@ var _world: FarmWorld
 ## against node.position and the release is a point on the glass; they are
 ## moved to follow the beds whenever the camera does (see _follow_the_camera).
 var _drop_targets: Array = []
-## Whether the order board is open on top of the farm.
-var _orders_open := false
-var _challenges_open := false
+## Only one paper panel can cover the farm. These read-only views preserve the
+## screen seam used by panel presenters and touch probes while the controller
+## owns the actual route and its aliases.
+var _panel_state := FarmPanelState.new()
+var _orders_open: bool:
+	get:
+		return _panel_state.is_open("orders")
+var _challenges_open: bool:
+	get:
+		return _panel_state.is_open("challenges")
 var _challenge_page := 0
-## The other three doors: the seed shop, the market box, the barn. At most one
-## of the four stands open -- _open_panel() is the only writer, so the "close
-## everything else" rule cannot be forgotten at one call site.
-var _shop_open := false
-var _market_open := false
-var _barn_open := false
-var _barn_show_overflow := false
-## Whether the visitor board is open: who has dropped by and what they left.
-var _visit_open := false
-var _recipes_open := false
-var _kitchen_open := false
-var _gift_open := false
+var _shop_open: bool:
+	get:
+		return _panel_state.is_open("shop")
+var _market_open: bool:
+	get:
+		return _panel_state.is_open("market")
+var _barn_open: bool:
+	get:
+		return _panel_state.is_open("barn")
+var _barn_show_overflow: bool:
+	get:
+		return _panel_state.barn_show_overflow
+var _visit_open: bool:
+	get:
+		return _panel_state.is_open("visits")
+var _recipes_open: bool:
+	get:
+		return _panel_state.is_open("recipes")
+var _kitchen_open: bool:
+	get:
+		return _panel_state.is_open("kitchen")
+var _gift_open: bool:
+	get:
+		return _panel_state.is_open("gift")
 var _gift_basket: Dictionary = {}
 var _confirm_cook := ""
 ## Shop, recipe and kitchen sheets show six rows at a time. The rack holds
@@ -909,21 +929,11 @@ func _float_want(at: Vector2, icon: String) -> void:
 	t.tween_callback(want.queue_free)
 
 
-## Open one door and shut the rest. The ONLY writer of these four flags: two
-## sheets stacked over each other is a screen nobody can read, and a rule
-## enforced at one call site is a rule.
+## Open one door and shut the rest. The panel-state controller owns route
+## exclusivity; this screen resets route-specific data and handles feedback.
 func _open_panel(which: String) -> void:
-	_challenges_open = which == "challenges"
+	_panel_state.open(which)
 	_challenge_page = 0
-	_orders_open = which == "orders"
-	_shop_open = which == "shop"
-	_market_open = which == "market"
-	_barn_open = which in ["barn", "basket"]
-	_barn_show_overflow = which == "basket"
-	_visit_open = which == "visits"
-	_recipes_open = which == "recipes"
-	_kitchen_open = which == "kitchen"
-	_gift_open = which in ["gift", "bear_door"]
 	# A door always opens on its first page -- a shop remembered mid-flip
 	# reads as a shop with rows missing.
 	_shop_page = 0
@@ -944,15 +954,7 @@ func _open_panel(which: String) -> void:
 
 
 func _close_panels() -> void:
-	_challenges_open = false
-	_orders_open = false
-	_shop_open = false
-	_market_open = false
-	_barn_open = false
-	_visit_open = false
-	_recipes_open = false
-	_kitchen_open = false
-	_gift_open = false
+	_panel_state.close()
 	_gift_basket = {}
 	_confirm_cook = ""
 	_confirm_crop = ""
@@ -970,9 +972,7 @@ func _close_panels() -> void:
 ## that one is drawn OUTSIDE the elif chain, so it can be the only thing on
 ## top of the farm and would otherwise not count as "something is open".
 func _something_is_open() -> bool:
-	return _challenges_open or _orders_open or _shop_open or _market_open or _barn_open \
-		or _visit_open or _recipes_open or _kitchen_open or _gift_open \
-		or _confirm_expand >= 0
+	return _panel_state.any_open() or _confirm_expand >= 0
 
 
 ## The back button, one step at a time.
@@ -1739,7 +1739,7 @@ func _claim_daily(task: Dictionary) -> void:
 
 
 func _close_orders() -> void:
-	_orders_open = false
+	_panel_state.close("orders")
 	_queue_rebuild()
 
 

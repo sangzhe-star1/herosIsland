@@ -37,6 +37,7 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
+const PanelState := preload("res://scripts/garden/farm_panel_state_controller.gd")
 const PlotAction := preload("res://scripts/garden/farm_plot_action_controller.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
@@ -55,7 +56,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 896
+const CHECKS_EXPECTED := 904
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -93,6 +94,7 @@ func _ready() -> void:
 		_the_stroke_bookkeeping_refuses_seconds()
 		_tool_action_controller_owns_plot_transitions()
 		_tool_selection_is_owned_by_its_controller()
+		_panel_routes_remain_exclusive()
 		_building_action_routes_and_unlocks_are_shared()
 		_golden_state_is_a_visual_input()
 		for shape in SHAPES:
@@ -747,6 +749,33 @@ func _tool_selection_is_owned_by_its_controller() -> void:
 	var kept := tools.return_to_hand_if_idle([Farm.fresh_plot(1)])
 	_ok(not kept and tools.selected == "shovel",
 		"the brush stays selected while a matching bed remains")
+
+
+func _panel_routes_remain_exclusive() -> void:
+	_shape = "farm panel routes"
+	var panels = PanelState.new()
+	_ok(panels.open("market") == "market" and panels.is_open("market")
+			and panels.any_open(),
+		"opening a market makes it the farm's one active panel")
+	_ok(panels.open("basket") == "barn" and panels.is_open("barn")
+			and panels.barn_show_overflow and not panels.is_open("market"),
+		"the waiting-basket route selects the barn's overflow view exclusively")
+	_ok(not panels.close("orders") and panels.is_open("barn")
+			and panels.barn_show_overflow,
+		"a stale close callback cannot dismiss a different active panel")
+	_ok(panels.close("basket") and not panels.any_open()
+			and not panels.barn_show_overflow,
+		"closing through the basket alias clears the active barn view")
+	_ok(panels.open("barn") == "barn" and not panels.barn_show_overflow,
+		"the ordinary barn route does not inherit the waiting-basket view")
+	_ok(panels.open("bear_door") == "gift" and panels.is_open("gift"),
+		"the bear-door alias resolves to the gift panel")
+	_ok(panels.close("gift") and not panels.any_open(),
+		"the active gift panel closes without a remaining route")
+	panels.open("market")
+	_ok(panels.open("unknown") == "" and not panels.any_open()
+			and not panels.barn_show_overflow,
+		"an invalid route clears stale sheet state instead of stacking panels")
 
 
 ## Building presses resolve to one progression decision before the screen

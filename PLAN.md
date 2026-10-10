@@ -756,6 +756,13 @@ These are yours to make. Nothing below has been changed without asking.
   second-finger toolbar and seed touches. `tools_check.py` reports 0 errors and
   208 warnings. The latest isolated `./tests/run_smoke.sh` passed all 30 probes
   with 0 skipped. `garden_screen.gd` is 2,466 lines.
+- **Farm panel route state (10 October):** nine mutually exclusive panel flags
+  now resolve through `farm_panel_state_controller.gd`, including the basket's
+  waiting-food view and the bear-door alias. Read-only screen properties keep
+  existing panel presenters and input probes compatible. FarmWorldProbe passed
+  907 checks, GardenTouchProbe passed 1,993 across 16:9 and 4:3, and
+  `tools_check.py` reports 0 errors and 208 warnings. The full smoke suite was
+  not rerun after this focused state extraction.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
