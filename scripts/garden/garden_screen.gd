@@ -46,8 +46,6 @@ const Market := preload("res://scripts/garden/farm_market_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
 const ArrivalSettlement := preload("res://scripts/garden/farm_arrival_settlement_controller.gd")
-const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
-const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
@@ -799,14 +797,8 @@ func _tap_building(id: String) -> void:
 				_tap_wishing_well()
 			else:
 				AudioManager.play_sfx("res://assets/audio/water.ogg")
-		"coop":
-			_tap_coop()
-		"mill":
-			_tap_mill()
-		"cow_shed":
-			_tap_pen("cow_shed")
-		"beehive":
-			_tap_pen("beehive")
+		"coop", "mill", "cow_shed", "beehive":
+			_tap_facility(id)
 		"workshop":
 			# 5 级前它画成圈好的地，点了轻响就够——没有锁，只有还没长到。
 			if Level.level() >= int(Layout.facility("workshop").get("level", 5)):
@@ -826,102 +818,50 @@ func _tap_building(id: String) -> void:
 			AudioManager.play_sfx("res://assets/audio/pop.ogg")
 
 
-## The hens. Three answers to one press, read off the save: hungry hens eat a
-## corn from the barn (or show the corn they want), laying hens show how long
-## is left, and waiting eggs go to the barn by the harvest's own door, flying
-## the way every harvest flies. No lock, no scolding, no timer he has to beat.
-func _tap_coop() -> void:
-	var farm := _farm()
-	if Level.level() < int(Layout.facility("coop").get("level", 2)):
+## A timed facility answers a press in the same four ways whatever it makes.
+## The action controller supplies the manager and spec; this screen maps that
+## result to sound, save, ring, want bubble, and the truthful produce flight.
+func _tap_facility(facility_id: String) -> void:
+	var facility := Layout.facility(facility_id)
+	if facility.is_empty():
+		return
+	var fallback_level := 1
+	if facility_id == "coop":
+		fallback_level = 2
+	elif facility_id == "mill":
+		fallback_level = 3
+	if Level.level() < int(facility.get("level", fallback_level)):
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		return
-	var now := GameClock.now_unix()
-	var at: Vector2 = _world.facility_screen_position("coop") \
-		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
-	var result := FacilityAction.press_pen(farm, Pen.COOP, now)
-	match str(result.get("action", "")):
-		FacilityAction.COLLECTED:
-			var receipt: Dictionary = result.get("receipt", {})
-			_collect_facility_produce("coop", receipt, "farm_coop_eggs")
-		FacilityAction.WAITING:
-			# How long is left, the way a bed answers: a ring, for a moment.
-			AudioManager.play_sfx("res://assets/audio/correct.ogg")
-			_show_coop_ring(at, float(result.get("progress", 0.0)))
-		FacilityAction.STARTED:
-			SaveManager.save_game()
-			AudioManager.play_sfx("res://assets/audio/rustle.ogg")
-			AudioManager.say("farm_coop_feed")
-			if _world != null and is_instance_valid(_world):
-				_world.poke_scenery_kind("chicken")
-			_queue_rebuild()
-		FacilityAction.MISSING:
-			# No corn: show the corn. The picture IS the sentence.
-			AudioManager.play_sfx("res://assets/audio/pop.ogg")
-			_float_want(at, str(GameData.get_crop(str(result.get("input_crop", "")))
-				.get("icon", "seed")))
-
-
-## The windmill: two wheat in, a minute and a half of turning sails, one
-## sack of flour out. Same three answers as the coop, same doors.
-func _tap_mill() -> void:
-	var farm := _farm()
-	if Level.level() < int(Layout.facility("mill").get("level", 3)):
-		AudioManager.play_sfx("res://assets/audio/pop.ogg")
+	var result := FacilityAction.press(_farm(), facility_id,
+		GameClock.now_unix())
+	if result.is_empty():
 		return
-	var now := GameClock.now_unix()
-	var at: Vector2 = _world.facility_screen_position("mill") \
-		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
-	var result := FacilityAction.press_maker(farm, Maker.MILL, now)
-	match str(result.get("action", "")):
-		FacilityAction.COLLECTED:
-			var receipt: Dictionary = result.get("receipt", {})
-			_collect_facility_produce("mill", receipt, "farm_mill_flour")
-		FacilityAction.WAITING:
-			AudioManager.play_sfx("res://assets/audio/correct.ogg")
-			_show_coop_ring(at, float(result.get("progress", 0.0)))
-		FacilityAction.STARTED:
-			SaveManager.save_game()
-			AudioManager.play_sfx("res://assets/audio/machine.ogg")
-			AudioManager.say("farm_mill_start")
-			_queue_rebuild()
-		FacilityAction.MISSING:
-			AudioManager.play_sfx("res://assets/audio/pop.ogg")
-			_float_want(at, str(GameData.get_crop(str(result.get("input_crop", "wheat")))
-				.get("icon", "seed")))
-
-
-## Data-driven pen taps: cow shed (wheat -> milk), beehive (strawberry -> honey),
-## and any future facilities following the pen protocol.
-func _tap_pen(facility_id: String) -> void:
-	var spec := Pen.spec_for(facility_id)
-	if spec.is_empty():
-		return
-	var farm := _farm()
-	var needed_level := int(Layout.facility(facility_id).get("level", 1))
-	if Level.level() < needed_level:
-		AudioManager.play_sfx("res://assets/audio/pop.ogg")
-		return
-	var now := GameClock.now_unix()
+	var spec: Dictionary = result.get("spec", {})
 	var at: Vector2 = _world.facility_screen_position(facility_id) \
 		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
-	var result := FacilityAction.press_pen(farm, spec, now)
 	match str(result.get("action", "")):
 		FacilityAction.COLLECTED:
 			var receipt: Dictionary = result.get("receipt", {})
-			_collect_facility_produce(facility_id, receipt,
+			_collect_facility_produce(facility_id,
+				receipt,
 				str(spec.get("voice_collect", "farm_coop_eggs")))
 		FacilityAction.WAITING:
 			AudioManager.play_sfx("res://assets/audio/correct.ogg")
 			_show_coop_ring(at, float(result.get("progress", 0.0)))
 		FacilityAction.STARTED:
 			SaveManager.save_game()
-			AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+			AudioManager.play_sfx("res://assets/audio/%s.ogg"
+				% str(spec.get("start_sfx", "rustle")))
 			AudioManager.say(str(spec.get("voice_feed", "farm_coop_feed")))
+			if facility_id == "coop" and _world != null \
+					and is_instance_valid(_world):
+				_world.poke_scenery_kind("chicken")
 			_queue_rebuild()
 		FacilityAction.MISSING:
 			AudioManager.play_sfx("res://assets/audio/pop.ogg")
-			_float_want(at, str(GameData.get_crop(str(result.get("input_crop", "")))
-				.get("icon", "seed")))
+			var input_crop := str(result.get("input_crop", ""))
+			_float_want(at, str(GameData.get_crop(input_crop).get("icon", "seed")))
 
 
 ## All timed facilities collect through the barn's ordinary flight and spill

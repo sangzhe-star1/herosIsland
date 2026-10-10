@@ -39,3 +39,26 @@ static func press_maker(farm: Dictionary, spec: Dictionary, now: int) -> Diction
 				return {"action": STARTED}
 			return {"action": MISSING,
 				"input_crop": str(spec.get("input", ""))}
+
+
+## Resolve a building ID to its data spec and run the matching production rule.
+## Presentation callers get the same spec back with the action, so they do not
+## need a second facility-to-manager table for voices or collection feedback.
+static func press(farm: Dictionary, facility_id: String, now: int) -> Dictionary:
+	var spec: Dictionary
+	var result: Dictionary
+	var kind := ""
+	if facility_id == str(Maker.MILL.get("key", "")):
+		spec = Maker.MILL
+		result = press_maker(farm, spec, now)
+		kind = "maker"
+	else:
+		spec = Pen.spec_for(facility_id)
+		if spec.is_empty():
+			return {}
+		result = press_pen(farm, spec, now)
+		kind = "pen"
+	result["facility_id"] = facility_id
+	result["kind"] = kind
+	result["spec"] = spec
+	return result

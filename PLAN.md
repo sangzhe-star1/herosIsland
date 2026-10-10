@@ -568,10 +568,8 @@ These are yours to make. Nothing below has been changed without asking.
   and 208 warnings.
 - **Latest remote plan check (10 October):** fetched
   `origin/claude/stoic-bell-a41pfu` at `69892a9` and `origin/main` at
-  `f8ee4ce`. The feature branch is an ancestor of `main`, which has 63 commits
-  beyond it; the planned merge is complete and there are no feature-only
-  commits to integrate. The earlier notes with 47, 60, and 62 later commits
-  record prior fetches, not the current tip.
+  `a6fcc94`. The feature branch is an ancestor of `main`; the planned merge is
+  complete and there are no feature-only commits to integrate.
 - **Harvest-progress boundary (10 October):** the claimed receipt now gates
   XP, daily harvest progress, recipe unlocks, and the first-market hint in
   `farm_harvest_progress_controller.gd`. It mutates the live save in memory;
@@ -596,6 +594,14 @@ These are yours to make. Nothing below has been changed without asking.
   the full suite passed 30/30 before the final scheduled-visit assertion was
   added, and that strengthened GardenProbe passed separately. GardenTouchProbe
   passed 1,959, FarmWorldProbe 858, HarvestTouchProbe 1,959, and
+  `tools_check.py` reports 0 errors and 208 warnings.
+- **Timed-facility dispatch boundary (10 October):** one
+  `FacilityAction.press()` resolves coop, cow shed, beehive, and mill IDs to
+  their rule manager and returns the action with its feedback spec. The screen
+  keeps one response path for save, sound, progress ring, missing-input icon,
+  and collection flight; the chicken's start animation remains specific to its
+  building. GardenProbe passed 1,173 and GardenTouchProbe passed 1,959 at 16:9
+  and 4:3 through real facility touches. `garden_screen.gd` is 3,330 lines;
   `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated

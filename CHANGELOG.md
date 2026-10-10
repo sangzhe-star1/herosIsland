@@ -1,5 +1,11 @@
 # Changelog
 
+## 定时设施触发链统一到一个入口 — 10 October 2026
+
+- `FacilityAction.press()` 按设施 ID 统一分派鸡舍、牛棚、蜂箱和风车，并把规则规格与动作结果一起返回；`garden_screen.gd` 以一个 `_tap_facility()` 处理开始、等待、缺料和收取，规格数据提供反馈语音和风车启动音效。
+- 保留各设施的升级门槛、投料扣除、计时、收获飞行和鸡舍拍翅效果。`GardenProbe` 通过 1,173 项；`GardenTouchProbe` 两比例通过 1,959 项，覆盖世界触控与设施各状态。
+- `garden_screen.gd` 从 3,390 行降到 3,330 行；`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
+
 ## 农场到访状态收进单次保存事务 — 10 October 2026
 
 - 新增 `farm_arrival_settlement_controller.gd`，统一结算离线生长、晨露、每日任务轮换、熊回访和实际到访时间；`garden_screen.gd` 只读取结算结果播放反馈，完成一次 `save_game()` 后再构建画面。

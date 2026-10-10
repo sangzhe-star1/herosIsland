@@ -76,7 +76,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1126
+const CHECKS_EXPECTED := 1131
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -3067,6 +3067,35 @@ func _the_facility_action_controller_unifies_timed_production() -> void:
 	var Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 	var farm: Dictionary = SaveManager.data["farm"]
 	var now := 1000
+	for item in [
+		{"id": "coop", "kind": "pen", "input": "corn", "output": "egg",
+			"voice_feed": "farm_coop_feed", "voice_collect": "farm_coop_eggs",
+			"start_sfx": "rustle"},
+		{"id": "cow_shed", "kind": "pen", "input": "wheat", "output": "milk",
+			"voice_feed": "farm_coop_feed", "voice_collect": "farm_coop_eggs",
+			"start_sfx": "rustle"},
+		{"id": "beehive", "kind": "pen", "input": "strawberry", "output": "honey",
+			"voice_feed": "farm_coop_feed", "voice_collect": "farm_coop_eggs",
+			"start_sfx": "rustle"},
+		{"id": "mill", "kind": "maker", "input": "wheat", "output": "flour",
+			"voice_feed": "farm_mill_start", "voice_collect": "farm_mill_flour",
+			"start_sfx": "machine"},
+	]:
+		var dispatched: Dictionary = FacilityAction.press(farm,
+			str(item["id"]), now)
+		var spec: Dictionary = dispatched.get("spec", {})
+		_ok(str(dispatched.get("facility_id", "")) == str(item["id"])
+			and str(dispatched.get("kind", "")) == str(item["kind"])
+			and str(spec.get("key", "")) == str(item["id"])
+			and str(dispatched.get("input_crop", "")) == str(item["input"])
+			and str(spec.get("output", "")) == str(item["output"])
+			and str(spec.get("voice_feed", "")) == str(item["voice_feed"])
+			and str(spec.get("voice_collect", "")) == str(item["voice_collect"])
+			and str(spec.get("start_sfx", "rustle")) == str(item["start_sfx"]),
+			"%s dispatches to its matching production rule and feedback spec"
+			% str(item["id"]))
+	_ok(FacilityAction.press(farm, "unknown_facility", now).is_empty(),
+		"an unknown facility cannot accidentally start production")
 
 	var missing_pen := FacilityAction.press_pen(farm, Pen.COW_SHED, now)
 	_ok(str(missing_pen.get("action", "")) == FacilityAction.MISSING

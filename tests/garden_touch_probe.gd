@@ -2357,7 +2357,7 @@ func _the_hens_turn_corn_into_eggs() -> void:
 		"...and starts the laying clock on the game clock")
 
 	# Laying hens: a second press is a ring, not a second corn.
-	_garden.call("_tap_coop")
+	_garden.call("_tap_facility", "coop")
 	await get_tree().process_frame
 	_ok(int(SaveManager.data["farm"]["warehouse"].get("corn", 0)) == 1,
 		"pressing laying hens takes no more corn")
@@ -2378,7 +2378,7 @@ func _the_hens_turn_corn_into_eggs() -> void:
 	_ok(eggs_drawn == 2, "...drawn beside the coop (%d)" % eggs_drawn)
 	if _garden.has_meta("last_harvest_flight"):
 		_garden.remove_meta("last_harvest_flight")
-	_garden.call("_tap_coop")
+	_garden.call("_tap_facility", "coop")
 	await get_tree().process_frame
 	_ok(Barn.count("egg") == 2, "collecting puts both eggs in the barn")
 	var stamp: Dictionary = _garden.get_meta("last_harvest_flight", {})
@@ -2390,7 +2390,7 @@ func _the_hens_turn_corn_into_eggs() -> void:
 
 	# Hungry, no corn: the corn is shown, nothing is taken, nothing breaks.
 	SaveManager.data["farm"]["warehouse"] = {}
-	_garden.call("_tap_coop")
+	_garden.call("_tap_facility", "coop")
 	await get_tree().process_frame
 	_ok(_find_named(fx, "CoopWant") != null,
 		"a press with no corn shows the corn the hens want")
@@ -2426,7 +2426,7 @@ func _the_mill_turns_wheat_into_flour() -> void:
 		"pressing the mill with wheat in the barn takes two wheat")
 	_ok(int(SaveManager.data["farm"]["mill"].get("started_at", 0)) == NOON,
 		"...and starts the grinding clock")
-	_garden.call("_tap_mill")
+	_garden.call("_tap_facility", "mill")
 	await get_tree().process_frame
 	_ok(int(SaveManager.data["farm"]["warehouse"].get("wheat", 0)) == 2
 		and _find_named(fx, "CoopRing") != null,
@@ -2442,13 +2442,13 @@ func _the_mill_turns_wheat_into_flour() -> void:
 	_ok(sacks == 1, "a hundred seconds later one sack waits at the mill door (%d)" % sacks)
 	if _garden.has_meta("last_harvest_flight"):
 		_garden.remove_meta("last_harvest_flight")
-	_garden.call("_tap_mill")
+	_garden.call("_tap_facility", "mill")
 	await get_tree().process_frame
 	_ok(Barn.count("flour") == 1, "collecting puts the flour in the barn")
 	_ok(str(_garden.get_meta("last_harvest_flight", {}).get("crop_id", "")) == "flour",
 		"...flying there like a harvest")
 	SaveManager.data["farm"]["warehouse"] = {}
-	_garden.call("_tap_mill")
+	_garden.call("_tap_facility", "mill")
 	await get_tree().process_frame
 	_ok(_find_named(fx, "CoopWant") != null
 		and int(SaveManager.data["farm"]["mill"].get("started_at", 0)) == 0,
@@ -2482,12 +2482,12 @@ func _the_data_led_pens_share_the_facility_press_path() -> void:
 	_ok(Barn.count("wheat") == 0
 		and int(SaveManager.data["farm"]["cow_shed"].get("fed_at", 0)) == NOON,
 		"touching the cow shed consumes its data-defined feed")
-	_garden.call("_tap_pen", "cow_shed")
+	_garden.call("_tap_facility", "cow_shed")
 	await get_tree().process_frame
 	_ok(Barn.count("wheat") == 0 and _find_named(fx, "CoopRing") != null,
 		"a second cow-shed touch shows progress without charging again")
 	GameClock.set_test_now(NOON + 150, 0)
-	_garden.call("_tap_pen", "cow_shed")
+	_garden.call("_tap_facility", "cow_shed")
 	await get_tree().process_frame
 	_ok(Barn.count("milk") == 1
 		and int(SaveManager.data["farm"]["cow_shed"].get("ready", 0)) == 0,
@@ -2498,12 +2498,12 @@ func _the_data_led_pens_share_the_facility_press_path() -> void:
 	_ok(Barn.count("strawberry") == 0
 		and int(SaveManager.data["farm"]["beehive"].get("fed_at", 0)) == NOON + 150,
 		"touching the beehive consumes its data-defined feed")
-	_garden.call("_tap_pen", "beehive")
+	_garden.call("_tap_facility", "beehive")
 	await get_tree().process_frame
 	_ok(Barn.count("strawberry") == 0 and _find_named(fx, "CoopRing") != null,
 		"a second beehive touch shows progress without charging again")
 	GameClock.set_test_now(NOON + 240, 0)
-	_garden.call("_tap_pen", "beehive")
+	_garden.call("_tap_facility", "beehive")
 	await get_tree().process_frame
 	_ok(Barn.count("honey") == 1
 		and int(SaveManager.data["farm"]["beehive"].get("ready", 0)) == 0,

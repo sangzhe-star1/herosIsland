@@ -9,7 +9,9 @@ extends RefCounted
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
 const MILL := {"key": "mill", "input": "wheat", "input_count": 2,
-	"seconds": 90, "output": "flour", "output_count": 1}
+	"seconds": 90, "output": "flour", "output_count": 1,
+	"voice_feed": "farm_mill_start", "voice_collect": "farm_mill_flour",
+	"start_sfx": "machine"}
 
 const IDLE := "idle"          # press puts the input in, if there is enough
 const WORKING := "working"    # press shows how long is left
