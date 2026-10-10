@@ -1,5 +1,11 @@
 # Changelog
 
+## 收菜结算集中到交易控制器 — 10 October 2026
+
+- 新增 `farm_harvest_transaction_controller.gd`，把一次性领取、仓库/篮子分流、地块复位与合并冲突释放收进同一结算入口；页面继续负责经验、每日进度、菜谱提示和动画反馈。
+- GardenProbe 增至 934 项；GardenTouchProbe 1,865 项通过；FarmShot 在 16:9、4:3 各通过 78 项；`tools_check.py` 为 0 errors、208 warnings。
+- 当前分支的隔离完整烟测通过：30 passed，0 skipped，包含 FarmWorldProbe 与 SaveProbe。
+
 ## 收菜账本有界写入修复 — 10 October 2026
 
 - 新增 `farm_harvest_ledger_controller.gd`，用账本快照询问 `RewardManager` 是否已付，再通过 `Farm.remember_paid()` 写回存档并执行 64 条上限。

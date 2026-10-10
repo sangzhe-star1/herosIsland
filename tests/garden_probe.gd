@@ -20,6 +20,7 @@ const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controlle
 const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.gd")
 const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
 const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
+const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -48,7 +49,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 695
+const CHECKS_EXPECTED := 702
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -76,6 +77,7 @@ func _ready() -> void:
 	_the_planting_controller_starts_one_cycle()
 	_the_harvest_controller_keeps_paid_cycles_unique()
 	_the_harvest_ledger_claim_keeps_its_bound()
+	_harvest_transaction_settles_storage_and_plot_together()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
 	# --- stage two: growing ---
@@ -1645,6 +1647,66 @@ func _the_harvest_ledger_claim_keeps_its_bound() -> void:
 			and paid[paid.size() - 1] == "farm_harvest_plot_1_%d"
 			% (Farm.PAID_LEDGER_KEPT + 1),
 		"real claim ordering keeps the ledger bounded and the newest id")
+
+
+## The transaction boundary must claim first, store the complete yield, reset
+## the plot, and recover merged duplicates without granting a second yield.
+func _harvest_transaction_settles_storage_and_plot_together() -> void:
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["warehouse"] = {}
+	farm["harvest_basket"] = {}
+	var ripe := Farm.fresh_plot(0)
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	ripe["plant_cycle_id"] = 5
+	ripe["golden"] = true
+	var amount := int(GameData.get_crop("carrot").get("harvest_amount", 1))
+	var receipt: Dictionary = HarvestTransaction.settle(ripe, farm)
+	_ok(bool(receipt.get("claimed", false))
+			and str(receipt.get("transaction_id", "")) == "farm_harvest_plot_1_5",
+		"a ripe planting claims its own stable transaction before storage")
+	_ok(str(ripe.get("state", "")) == Farm.TILLED
+			and int(ripe.get("plant_cycle_id", -1)) == 5
+			and str(ripe.get("crop_id", "")) == ""
+			and not bool(ripe.get("golden", true)),
+		"a successful transaction resets crop-only fields but preserves its cycle")
+	_ok(int(receipt.get("amount", 0)) == amount
+			and int(receipt.get("stored", 0)) + int(receipt.get("spilled", 0)) == amount
+			and Barn.count("carrot") + Barn.count("carrot", Barn.BASKET) == amount,
+		"storage plus overflow equals the full yield of one claimed harvest")
+
+	farm["paid_harvests"] = ["farm_harvest_plot_1_5",
+		"farm_harvest_plot_1_6", "farm_harvest_plot_1_7"]
+	var duplicate := Farm.fresh_plot(0)
+	duplicate["state"] = Farm.READY
+	duplicate["crop_id"] = "carrot"
+	duplicate["plant_cycle_id"] = 5
+	var before := Barn.count("carrot") + Barn.count("carrot", Barn.BASKET)
+	var repeat: Dictionary = HarvestTransaction.settle(duplicate, farm)
+	_ok(not bool(repeat.get("claimed", true))
+			and bool(repeat.get("duplicate_freed", false)),
+		"a merged already-paid crop is freed without a second claim")
+	_ok(str(duplicate.get("state", "")) == Farm.TILLED
+			and int(duplicate.get("plant_cycle_id", -1)) == 7,
+		"duplicate recovery advances past every already-paid cycle")
+	_ok(Barn.count("carrot") + Barn.count("carrot", Barn.BASKET) == before,
+		"freeing a merged duplicate adds no crop yield")
+
+	farm["warehouse"] = {"corn": Barn.cap()}
+	farm["harvest_basket"] = {}
+	farm["paid_harvests"] = []
+	var full_barn := Farm.fresh_plot(1)
+	full_barn["state"] = Farm.READY
+	full_barn["crop_id"] = "strawberry"
+	full_barn["plant_cycle_id"] = 1
+	var strawberry_amount := int(GameData.get_crop("strawberry")
+		.get("harvest_amount", 1))
+	var overflow: Dictionary = HarvestTransaction.settle(full_barn, farm)
+	_ok(int(overflow.get("stored", -1)) == 0
+			and int(overflow.get("spilled", 0)) == strawberry_amount
+			and Barn.count("strawberry", Barn.BASKET) == strawberry_amount,
+		"a full barn routes the entire new yield to its visible overflow basket")
 
 
 # --- 阶段 4: the bear ------------------------------------------------------

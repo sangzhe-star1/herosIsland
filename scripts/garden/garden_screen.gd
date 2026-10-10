@@ -55,8 +55,7 @@ const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
-const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
-const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
+const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
@@ -1883,45 +1882,19 @@ func _celebrate_golden(index: int) -> void:
 		t.tween_callback(star.queue_free)
 
 
-## The transactional half of picking: pay once, store everything, reset the
-## bed. Shared by the tap and by the basket brush, because the promise "one
-## planting is paid for exactly once" must not have two implementations that
-## can drift. Returns an immutable crop/amount receipt, or {} for a repeat.
-##
-## THE TRANSACTION ID
-##
-## `farm_harvest_<plot_id>_<plant_cycle_id>` -- the patch of earth, and which
-## planting in it. plant_cycle_id rises by one every time a seed goes in and
-## never resets, so no two harvests in the history of a save can ever produce
-## the same id, and the same id presented twice is always a repeat.
-## A ripe bed the ledger says was already paid for, turned back into earth.
-## Nothing is stored and nothing is paid: the ledger is the truth about
-## money, and this is the truth about the earth. Walks plant_cycle_id past
-## every id the ledger knows so the NEXT planting in this bed is a planting
-## that pays.
-func _free_a_bed_paid_twice(plot: Dictionary, paid: Array) -> void:
-	var plot_id := str(plot.get("plot_id", ""))
-	var cycle := int(plot.get("plant_cycle_id", 0))
-	var fresh: Dictionary = PlotHarvest.recover_paid_duplicate(plot, paid)
-	if fresh.is_empty():
-		return
+## Tell the player that a merged, already-paid crop was released without yield.
+## The transaction controller has already updated the bed; this screen owns
+## the warning and the quiet correction sound.
+func _report_a_paid_duplicate(plot_id: String, cycle: int) -> void:
 	push_warning("garden: bed %s cycle %d was already paid for; freed without pay"
 		% [plot_id, cycle])
-	for k in fresh.keys():
-		plot[k] = fresh[k]
 	AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
 
 
 func _harvest_core(plot: Dictionary) -> Dictionary:
 	var farm := _farm()
-	var plot_id := str(plot.get("plot_id", ""))
-	var crop_id := str(plot.get("crop_id", ""))
-	# Ask first, take second. The ledger controller checks against a snapshot,
-	# then writes through Farm.remember_paid() so the save's bound is preserved.
-	# If this is a repeat nothing at all happens -- including no crops into the
-	# barn, which is the half that would otherwise have kept paying out silently.
-	var claim: Dictionary = HarvestLedger.claim(plot, farm, crop_id)
-	if not bool(claim.get("claimed", false)):
+	var transaction: Dictionary = HarvestTransaction.settle(plot, farm)
+	if not bool(transaction.get("claimed", false)):
 		# A repeat. The tap-while-animating and restart-after-save repeats
 		# arrive on a bed that is already reset; nothing to do. But a READY
 		# bed whose id is in the ledger is a bed that can never be picked:
@@ -1929,51 +1902,23 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 		# their ledgers can make one (paid_harvests is unioned while the
 		# beds are kept from one side). Free the bed -- no crops, no coins,
 		# and an id the ledger has not seen for its next planting.
-		if bool(claim.get("duplicate", false)) and Farm.is_ready(plot):
-			var paid_value: Variant = farm.get("paid_harvests", [])
-			var paid: Array = paid_value if paid_value is Array else []
-			_free_a_bed_paid_twice(plot, paid)
+		if bool(transaction.get("duplicate_freed", false)):
+			_report_a_paid_duplicate(str(transaction.get("plot_id", "")),
+				int(transaction.get("cycle", 0)))
 		return {}
-	var key := str(claim.get("key", ""))
+	var plot_id := str(transaction.get("plot_id", ""))
+	var crop_id := str(transaction.get("crop_id", ""))
+	var picked := int(transaction.get("amount", 0))
 	# The farm grows up a little. INSIDE the gate on purpose: a repeat that
 	# was refused above pays no xp either, so the level inherits the same
 	# once-per-planting promise as the crops.
 	_earn_xp("harvest")
 
 	_harvesting[plot_id] = true
-
-	var crop: Dictionary = GameData.get_crop(crop_id)
-	var picked := maxi(int(crop.get("harvest_amount", 1)), 1)
-	# Was THIS planting golden? Read before the reset below wipes the field:
-	# the receipt is the only place the celebration can learn it from, and
-	# gold changes how the harvest FELT, never what it paid.
-	var was_golden := bool(plot.get("golden", false))
-	# Into the barn, and whatever does not fit into the basket by its door.
-	# NOT Barn.put(): put() now answers "how many actually went in", and a
-	# harvest that ignores that answer is a harvest that silently eats crops
-	# the moment the barn is full. store_harvest() is the only call that
-	# guarantees stored + spilled == picked.
-	var learned: Array = []
-	var landed := Barn.store_harvest(crop_id, picked)
 	_daily_progress("harvest", picked)
-	learned = Recipes.check_barn()
+	var learned: Array = Recipes.check_barn()
 	if not learned.is_empty():
 		_recipe_learned_card(learned[0])
-
-	# The plot goes back to TURNED EARTH rather than to grass.
-	#
-	# A deviation from the brief, which says EMPTY, and a deliberate one: going
-	# back to grass means three swipes of tilling between every harvest and the
-	# next seed, forever, for a six-year-old who has already learned what
-	# tilling is. The lesson is worth teaching once, not once per carrot.
-	#
-	# plant_cycle_id survives the reset. It is the only field that does, and it
-	# has to: reset it and the next planting in this bed would reuse a
-	# transaction id that has already been paid for, and the harvest after that
-	# would pay nothing at all.
-	var fresh: Dictionary = PlotHarvest.after_harvest(plot)
-	for k in fresh.keys():
-		plot[k] = fresh[k]
 
 	# The one other thing this garden ever teaches: the first time the barn
 	# gets close to full, say the market's name once and point at its box.
@@ -1988,9 +1933,9 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	return {
 		"crop_id": crop_id,
 		"amount": picked,
-		"stored": int(landed.get("stored", 0)),
-		"spilled": int(landed.get("spilled", 0)),
-		"golden": was_golden,
+		"stored": int(transaction.get("stored", 0)),
+		"spilled": int(transaction.get("spilled", 0)),
+		"golden": bool(transaction.get("golden", false)),
 	}
 
 
