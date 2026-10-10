@@ -131,6 +131,28 @@ func show_wanted_icon(layer: CanvasLayer, at: Vector2, icon: String) -> void:
 	tween.tween_callback(want.queue_free)
 
 
+## Gold changes the celebration, never the crop yield or the purse.
+func show_golden_harvest(host: Node, layer: CanvasLayer, at: Vector2) -> void:
+	Juice.burst(host, at, 30)
+	if not Juice.motion_enabled() or host == null or not is_instance_valid(host):
+		return
+	for i in range(6):
+		var star := UiKit.picture("star_coin", 26.0)
+		if star == null:
+			continue
+		star.name = "GoldenHarvestSparkle_%d" % i
+		star.position = at + Vector2(float(i - 3) * 16.0, -10.0)
+		star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(star)
+		var tween := star.create_tween()
+		tween.tween_interval(0.06 * float(i))
+		tween.tween_property(star, "position",
+			star.position + Vector2(0.0, -90.0 - float(i) * 8.0), 0.6)\
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(star, "modulate:a", 0.0, 0.6)
+		tween.tween_callback(star.queue_free)
+
+
 func end_combo() -> void:
 	if _combo_label == null or not is_instance_valid(_combo_label):
 		return

@@ -4240,6 +4240,9 @@ func _gold_shines_and_the_dog_says_hello() -> void:
 		"a golden carrot yields exactly what an ordinary one does -- gold is never a bonus")
 	_ok(Coins.balance() == purse_before,
 		"and the purse did not move either -- gold buys a celebration, not coins")
+	if Juice.motion_enabled():
+		_ok(_find_named(scene, "GoldenHarvestSparkle_0") != null,
+			"a golden harvest gets its star shower in the shared feedback layer")
 	var flight: Node = _find_named(scene, "HarvestFlight_carrot")
 	_ok(flight != null and bool(flight.get_meta("golden", false)),
 		"the flight remembers it flew gold")

@@ -1234,24 +1234,8 @@ func _celebrate_golden(index: int) -> void:
 	if index < 0 or index >= _plots().size():
 		return
 	AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
-	Juice.burst(_play, _bed_centre(index), 30)
-	if not Juice.motion_enabled() or _play == null:
-		return
-	for i in range(6):
-		var star := UiKit.picture("star_coin", 26.0)
-		if star == null:
-			continue
-		star.position = _bed_centre(index) \
-			+ Vector2(float(i - 3) * 16.0, -10.0)
-		star.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_harvest_feedback_layer().add_child(star)
-		var t := star.create_tween()
-		t.tween_interval(0.06 * float(i))
-		t.tween_property(star, "position",
-			star.position + Vector2(0.0, -90.0 - float(i) * 8.0), 0.6)\
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		t.parallel().tween_property(star, "modulate:a", 0.0, 0.6)
-		t.tween_callback(star.queue_free)
+	_collection_feedback.show_golden_harvest(_play,
+		_harvest_feedback_layer(), _bed_centre(index))
 
 
 ## Tell the player that a merged, already-paid crop was released without yield.
