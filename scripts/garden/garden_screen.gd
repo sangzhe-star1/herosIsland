@@ -61,6 +61,7 @@ const DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd
 const DailyProgress := preload("res://scripts/garden/farm_daily_progress_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
+const HarvestProgress := preload("res://scripts/garden/farm_harvest_progress_controller.gd")
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
@@ -346,6 +347,10 @@ func _plots() -> Array:
 ## the claim on the board is the child's own act.
 func _daily_progress(verb: String, by: int = 1) -> void:
 	var receipt := DailyProgress.record(_farm(), GameClock.now_date(), verb, by)
+	_respond_to_daily_progress(receipt)
+
+
+func _respond_to_daily_progress(receipt: Dictionary) -> void:
 	if bool(receipt.get("task_completed", false)):
 		AudioManager.play_sfx("res://assets/audio/found.ogg")
 	# The third little star is a small happy discovery, not a countdown alarm:
@@ -1508,23 +1513,23 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	var plot_id := str(transaction.get("plot_id", ""))
 	var crop_id := str(transaction.get("crop_id", ""))
 	var picked := int(transaction.get("amount", 0))
-	# The farm grows up a little. INSIDE the gate on purpose: a repeat that
-	# was refused above pays no xp either, so the level inherits the same
-	# once-per-planting promise as the crops.
-	_earn_xp("harvest")
+	# The receipt already passed the once-only gate. Settle every durable harvest
+	# follow-up together so the final screen save includes them with the goods.
+	var progress := HarvestProgress.settle(transaction, GameClock.now_date())
+	var level_event: Array = progress.get("levels", [])
+	_respond_to_level_award(level_event)
 
 	_harvesting[plot_id] = true
-	_daily_progress("harvest", picked)
-	var learned: Array = Recipes.check_barn(false)
+	var daily_event: Dictionary = progress.get("daily", {})
+	_respond_to_daily_progress(daily_event)
+	var learned: Array = progress.get("learned_recipes", [])
 	if not learned.is_empty():
 		_recipe_learned_card(learned[0])
 
 	# The one other thing this garden ever teaches: the first time the barn
 	# gets close to full, say the market's name once and point at its box.
 	# A flag, not a schedule -- taught is taught, exactly like the lesson.
-	if not bool(farm.get("market_taught", false)) \
-			and Barn.total() >= Barn.cap() - 6:
-		farm["market_taught"] = true
+	if bool(progress.get("market_taught", false)):
 		AudioManager.say("farm_market_hint")
 		_market_finger_queued = true
 
@@ -2795,7 +2800,12 @@ func _expand_confirmed(index: int) -> void:
 ## Callers are all INSIDE their own once-only gates, which is the whole of
 ## why the xp cannot be farmed; see farm_level_manager.gd.
 func _earn_xp(kind: String) -> void:
-	var levels: Array = Level.award(kind)
+	_respond_to_level_award(Level.award(kind))
+
+
+func _respond_to_level_award(levels: Array) -> void:
+	if levels.size() < 2:
+		return
 	if int(levels[1]) <= int(levels[0]):
 		return
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")

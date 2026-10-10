@@ -1,5 +1,10 @@
 # Changelog
 
+## 收菜后续进度由交易凭证统一门控 — 10 October 2026
+
+- 新增 `farm_harvest_progress_controller.gd`，把收菜经验、每日收成进度、食谱解锁和首次市场提示标记放到收成交易之后统一结算；拒绝或重复凭证不会产生这些进度，控制器不提前写盘，仍由点收/刷收的最终提交统一保存。
+- GardenProbe 通过 1,150 项；GardenTouchProbe 双比例通过 1,959 项；`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
+
 ## 裸手点地复用动作与状态迁移控制器 — 10 October 2026
 
 - 裸手点地现在通过 `FarmToolController.apply_hand_tap()` 读取共享动作表，并复用铲地、浇水与异常照料修复的状态迁移；屏幕仍处理种植提示、收菜交易、音效、视觉反馈和存档。

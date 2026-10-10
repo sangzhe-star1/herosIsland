@@ -21,6 +21,7 @@ const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.
 const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
 const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
+const HarvestProgress := preload("res://scripts/garden/farm_harvest_progress_controller.gd")
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const FarmTools := preload("res://scripts/garden/farm_tool_controller.gd")
@@ -73,7 +74,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1100
+const CHECKS_EXPECTED := 1108
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -102,6 +103,7 @@ func _ready() -> void:
 	_the_harvest_controller_keeps_paid_cycles_unique()
 	_the_harvest_ledger_claim_keeps_its_bound()
 	_harvest_transaction_settles_storage_and_plot_together()
+	_harvest_progress_controller_settles_claimed_followups_once()
 	_the_next_task_controller_keeps_garden_priorities()
 	_the_farm_tick_controller_only_reports_meaningful_changes()
 	_the_wishing_well_claim_is_once_per_day()
@@ -2186,6 +2188,66 @@ func _harvest_transaction_settles_storage_and_plot_together() -> void:
 			and int(overflow.get("spilled", 0)) == strawberry_amount
 			and Barn.count("strawberry", Barn.BASKET) == strawberry_amount,
 		"a full barn routes the entire new yield to its visible overflow basket")
+
+
+## A claimed harvest is the single gate for XP, daily progress, recipe
+## knowledge, and the first market lesson; the caller still owns persistence.
+func _harvest_progress_controller_settles_claimed_followups_once() -> void:
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	var before_xp := Level.xp()
+	var before_dailies: Dictionary = farm.get("dailies", {}).duplicate(true)
+	var refused := HarvestProgress.settle({"claimed": false, "amount": 2},
+		"2026-10-10")
+	_ok(refused.is_empty() and Level.xp() == before_xp
+			and farm.get("dailies", {}) == before_dailies
+			and not bool(farm.get("market_taught", false)),
+		"a refused receipt grants no durable harvest follow-up")
+
+	farm["warehouse_cap"] = 100
+	farm["warehouse"] = {}
+	farm["harvest_basket"] = {}
+	farm["unlocked_recipes"] = []
+	Barn.put("tomato", 3)
+	Barn.put("corn", Barn.cap() - 10)
+	Barn.put("carrot", 2)
+	var backup_marker := "harvest-progress-must-not-save-ahead"
+	var backup := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	_ok(backup != null, "harvest progress persistence can be observed")
+	if backup != null:
+		backup.store_string(backup_marker)
+		backup.close()
+	var level_before := Level.level()
+	var xp_before := Level.xp()
+	var expected_daily := mini(2, Dailies.target("harvest"))
+	var settled := HarvestProgress.settle({"claimed": true, "amount": 2},
+		"2026-10-10")
+	var levels: Array = settled.get("levels", [])
+	_ok(Level.xp() == xp_before + GameData.farm_xp_for("harvest"),
+		"the claimed harvest awards its listed farm XP")
+	_ok(levels.size() == 2 and int(levels[0]) == level_before
+			and int(levels[1]) == Level.level(),
+		"the controller returns the exact level-change event for presentation")
+	var daily: Dictionary = settled.get("daily", {})
+	_ok(str(daily.get("dailies", {}).get("date", "")) == "2026-10-10"
+			and int(daily.get("dailies", {}).get("progress", {}).get("harvest", 0))
+			== expected_daily,
+		"the harvest amount advances today's daily tally, clamped to its target")
+	var learned_ids: Array = farm.get("unlocked_recipes", [])
+	var learned: Array = settled.get("learned_recipes", [])
+	var learned_tomato_stew := false
+	for recipe in learned:
+		if str(recipe.get("id", "")) == "tomato_stew":
+			learned_tomato_stew = true
+	_ok(learned_tomato_stew and "tomato_stew" in learned_ids,
+		"new barn ingredients unlock and return the recipe in this transaction")
+	_ok(bool(settled.get("market_taught", false))
+			and bool(farm.get("market_taught", false)),
+		"the first near-full barn marks its market lesson exactly at settlement")
+	if backup != null:
+		_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == backup_marker,
+			"the harvest follow-up leaves the transaction's single save to its caller")
+		DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 
 
 ## The ribbon gets one answer from live state: a full order beats the next

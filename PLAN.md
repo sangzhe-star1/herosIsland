@@ -237,8 +237,9 @@ These are yours to make. Nothing below has been changed without asking.
    viewport and top-bar height. The 16 world signal and gesture callbacks now
    bind through `FarmWorldController.connect_screen_callbacks()` before the
    first world build, so synchronous reduced-motion bear settlement is not
-   missed. `garden_screen.gd` was 3,419 lines at that point; the latest
-   bare-hand action pass leaves it at 3,420 lines. On 10 October, plot verbs moved to
+   missed. `garden_screen.gd` was 3,419 lines at that point; the bare-hand
+   action pass left it at 3,420, and the harvest-progress boundary brings it
+   to 3,430. On 10 October, plot verbs moved to
    `scripts/garden/farm_plot_action_controller.gd`; bare-hand taps and the
    next-task resolver now use the same state-first action table, while the
    screen retains presentation and persistence effects.
@@ -567,9 +568,18 @@ These are yours to make. Nothing below has been changed without asking.
   and 208 warnings.
 - **Latest remote plan check (10 October):** fetched
   `origin/claude/stoic-bell-a41pfu` at `69892a9` and `origin/main` at
-  `6e34b19`. The feature branch is an ancestor of `main`, which has 59 later
-  commits; the planned merge is already complete. The previous note naming
+  `6e34b19`; the bare-hand boundary was subsequently pushed as `afea575`.
+  At that point, the feature branch was an ancestor and `main` had 60 commits
+  beyond it; the planned merge was already complete. The previous note naming
   `9f74ede` and 47 later commits records an earlier check, not the current tip.
+- **Harvest-progress boundary (10 October):** the claimed receipt now gates
+  XP, daily harvest progress, recipe unlocks, and the first-market hint in
+  `farm_harvest_progress_controller.gd`. It mutates the live save in memory;
+  tap/stroke commit remains the sole persistence owner. A refused receipt is
+  checked to leave every follow-up untouched, while a real farm touch probe
+  exercises the harvest path at both aspect ratios. GardenProbe passed 1,150,
+  GardenTouchProbe passed 1,959, and `tools_check.py` reports 0 errors and
+  208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
