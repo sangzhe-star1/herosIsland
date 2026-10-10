@@ -1628,10 +1628,11 @@ func _auto_return() -> void:
 func _on_stroke_swept(index: int) -> void:
 	if not _stroke.may_apply(_tools, _plots(), index):
 		return
+	var tool_id: String = _stroke.selected_tool(_tools.selected)
 	var plots := _plots()
 	var plot: Dictionary = plots[index]
 	var before: Dictionary = plot.duplicate(true)
-	match _tools.selected:
+	match tool_id:
 		"shovel":
 			var till_result: Dictionary = _tools.apply_to_plot("shovel", plot)
 			if till_result.is_empty():
@@ -1645,7 +1646,7 @@ func _on_stroke_swept(index: int) -> void:
 			plot = plots[index]
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		"water", "weed", "bug":
-			var care_result: Dictionary = _tools.apply_to_plot(_tools.selected,
+			var care_result: Dictionary = _tools.apply_to_plot(tool_id,
 				plot, GameClock.now_unix())
 			if care_result.is_empty():
 				return
@@ -1681,7 +1682,7 @@ func _on_stroke_ended() -> void:
 		# Swept, but over nothing that needed this tool. Not an error and not
 		# silence either: the tool itself shrugs, so the answer is "nothing to
 		# do HERE" rather than "nothing happened", which reads as broken.
-		var button: Variant = _tool_buttons.get(_tools.selected)
+		var button: Variant = _tool_buttons.get(str(completion.get("tool_id", "")))
 		if button is Button and is_instance_valid(button):
 			Juice.nudge(button, 8.0)
 		_end_combo()

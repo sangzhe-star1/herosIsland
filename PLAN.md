@@ -625,11 +625,12 @@ These are yours to make. Nothing below has been changed without asking.
   `tools_check.py` reports 0 errors and 208 warnings.
 - **Brush selection stays fixed through release (10 October):** tool buttons
   and seed-choice callbacks now ignore selection changes while a farm brush
-  stroke is active, so a second touch cannot change the action under the first
-  finger. GardenTouchProbe confirms the second finger reaches the tool button,
-  then verifies the original shovel stroke commits while the thirsty bed and
-  selected seed stay untouched. It passed 1,979 checks at 16:9 and 4:3;
-  `tools_check.py` reports 0 errors and 208 warnings.
+  stroke is active, and the stroke controller snapshots its tool on the first
+  bed so an unrelated state change cannot retarget it. GardenTouchProbe
+  confirms the second finger reaches the tool button, then verifies the
+  original shovel stroke commits while the thirsty bed and selected seed stay
+  untouched. It passed 1,979 checks at 16:9 and 4:3; FarmWorldProbe passed
+  859 checks; `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

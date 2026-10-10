@@ -54,7 +54,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 858
+const CHECKS_EXPECTED := 859
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -556,7 +556,8 @@ func _the_stroke_bookkeeping_refuses_seconds() -> void:
 	var ripe: Dictionary = Farm.fresh_plot(0)
 	ripe["state"] = Farm.READY
 	ripe["crop_id"] = "carrot"
-	var plots := [ripe]
+	var thirsty := {"state": Farm.NEEDS_CARE, "care_event": Growth.CARE_THIRSTY}
+	var plots := [ripe, thirsty]
 
 	stroke.begin()
 	_ok(stroke.may_apply(tools, plots, 0), "a ripe bed may be worked once")
@@ -565,11 +566,17 @@ func _the_stroke_bookkeeping_refuses_seconds() -> void:
 		+ "reads as ripe, so nothing else here could have said no")
 	_ok(stroke.applied == 0,
 		"eligibility reserves the bed but does not claim work before a transition")
+	tools.selected = "water"
+	_ok(stroke.selected_tool(tools.selected) == "basket"
+			and not stroke.may_apply(tools, plots, 1),
+		"the first bed fixes the stroke tool even if toolbar state changes later")
 	var first_finish: Dictionary = stroke.finish()
 	_ok(int(first_finish.get("applied", -1)) == 0
 			and not bool(first_finish.get("did_work", true))
-			and stroke.applied == 0,
-		"an attempted no-op closes without saving and clears the old stroke")
+			and stroke.applied == 0
+			and str(first_finish.get("tool_id", "")) == "basket",
+		"an attempted no-op closes with its tool identity and clears the old stroke")
+	tools.selected = "basket"
 	_ok(stroke.may_apply(tools, plots, 0),
 		"a NEW stroke may work the same bed again -- once per stroke, not "
 		+ "once per childhood")

@@ -30,16 +30,21 @@ const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 
 var _done: Dictionary = {}
 var _applied_beds: Dictionary = {}
+## The tool that owned the first bed in this stroke. The UI also ignores
+## selection taps until lift; this snapshot keeps the world transaction stable
+## if another caller changes the toolbar state anyway.
+var _tool_id := ""
 ## How many beds this stroke actually worked on. The combo counter reads it,
 ## and "did anything happen at all" at stroke end reads it -- a stroke that
 ## did nothing has nothing to save.
 var applied := 0
 
 
-func begin() -> void:
+func begin(tool_id: String = "") -> void:
 	_done.clear()
 	_applied_beds.clear()
 	applied = 0
+	_tool_id = tool_id
 
 
 ## Close one stroke and hand its single commit decision to the page.
@@ -51,9 +56,16 @@ func finish() -> Dictionary:
 	var result := {
 		"applied": applied,
 		"did_work": applied > 0,
+		"tool_id": _tool_id,
 	}
 	begin()
 	return result
+
+
+## Which tool this stroke began with. Before the first bed, the toolbar value
+## is still the only source of truth; the first eligibility check captures it.
+func selected_tool(fallback: String = Tools.HAND) -> String:
+	return _tool_id if _tool_id != "" else fallback
 
 
 ## May the brush work on this bed? Marks the bed as done ONLY when the answer
@@ -64,7 +76,9 @@ func may_apply(tools: Tools, plots: Array, index: int) -> bool:
 		return false
 	if _done.has(index):
 		return false
-	if not tools.needs(tools.selected, plots[index]):
+	if _tool_id == "":
+		_tool_id = tools.selected
+	if not tools.needs(_tool_id, plots[index]):
 		return false
 	_done[index] = true
 	return true
