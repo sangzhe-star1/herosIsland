@@ -520,9 +520,11 @@ These are yours to make. Nothing below has been changed without asking.
   cow shed (150), and beehive (90); note whether each feels like waiting or
   play. Check whether the visitor and market-day cues are found unaided, and
   whether fetch or farming holds attention longer. Record the real old-save
-  migration result and replace generated voice lines when a recording is
-  ready. Repository cleanup remains open because the listed scratch files,
-  third-party skill bundle, and merge remnants need your keep/delete decision.
+  migration result with the [play-test sheet](docs/GARDEN_PLAYTEST_SHEET.md)
+  and [isolated save audit](docs/SAVE_MIGRATION_AUDIT.md), and replace generated
+  voice lines when a recording is ready. Repository cleanup remains open
+  because the listed scratch files, third-party skill bundle, and merge
+  remnants need your keep/delete decision.
 
 ---
 
