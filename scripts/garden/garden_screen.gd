@@ -55,6 +55,7 @@ const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
+const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
@@ -1881,53 +1882,19 @@ func _celebrate_golden(index: int) -> void:
 		t.tween_callback(star.queue_free)
 
 
-## The transactional half of picking: pay once, store everything, reset the
-## bed. Shared by the tap and by the basket brush, because the promise "one
-## planting is paid for exactly once" must not have two implementations that
-## can drift. Returns an immutable crop/amount receipt, or {} for a repeat.
-##
-## THE TRANSACTION ID
-##
-## `farm_harvest_<plot_id>_<plant_cycle_id>` -- the patch of earth, and which
-## planting in it. plant_cycle_id rises by one every time a seed goes in and
-## never resets, so no two harvests in the history of a save can ever produce
-## the same id, and the same id presented twice is always a repeat.
-## A ripe bed the ledger says was already paid for, turned back into earth.
-## Nothing is stored and nothing is paid: the ledger is the truth about
-## money, and this is the truth about the earth. Walks plant_cycle_id past
-## every id the ledger knows so the NEXT planting in this bed is a planting
-## that pays.
-func _free_a_bed_paid_twice(plot: Dictionary, paid: Array) -> void:
-	var plot_id := str(plot.get("plot_id", ""))
-	var cycle := int(plot.get("plant_cycle_id", 0))
-	var next := cycle + 1
-	while ("farm_harvest_%s_%d" % [plot_id, next]) in paid:
-		next += 1
+## Tell the player that a merged, already-paid crop was released without yield.
+## The transaction controller has already updated the bed; this screen owns
+## the warning and the quiet correction sound.
+func _report_a_paid_duplicate(plot_id: String, cycle: int) -> void:
 	push_warning("garden: bed %s cycle %d was already paid for; freed without pay"
 		% [plot_id, cycle])
-	var fresh: Dictionary = Farm.fresh_plot(0)
-	fresh["plot_id"] = plot_id
-	fresh["state"] = Farm.TILLED
-	fresh["plant_cycle_id"] = next - 1
-	for k in fresh.keys():
-		plot[k] = fresh[k]
 	AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
 
 
 func _harvest_core(plot: Dictionary) -> Dictionary:
 	var farm := _farm()
-	var plot_id := str(plot.get("plot_id", ""))
-	var crop_id := str(plot.get("crop_id", ""))
-	var cycle := int(plot.get("plant_cycle_id", 0))
-	var key := "farm_harvest_%s_%d" % [plot_id, cycle]
-
-	var paid: Array = farm.get("paid_harvests", [])
-	if not paid is Array:
-		paid = []
-	# Ask first, take second. If this is a repeat nothing at all happens --
-	# including no crops into the barn, which is the half that would otherwise
-	# have kept paying out silently.
-	if not RewardManager.record("garden:harvest:%s" % crop_id, key, paid):
+	var transaction: Dictionary = HarvestTransaction.settle(plot, farm)
+	if not bool(transaction.get("claimed", false)):
 		# A repeat. The tap-while-animating and restart-after-save repeats
 		# arrive on a bed that is already reset; nothing to do. But a READY
 		# bed whose id is in the ledger is a bed that can never be picked:
@@ -1935,52 +1902,23 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 		# their ledgers can make one (paid_harvests is unioned while the
 		# beds are kept from one side). Free the bed -- no crops, no coins,
 		# and an id the ledger has not seen for its next planting.
-		if str(plot.get("state", "")) == Farm.READY:
-			_free_a_bed_paid_twice(plot, paid)
+		if bool(transaction.get("duplicate_freed", false)):
+			_report_a_paid_duplicate(str(transaction.get("plot_id", "")),
+				int(transaction.get("cycle", 0)))
 		return {}
-	Farm.remember_paid(farm, key)
+	var plot_id := str(transaction.get("plot_id", ""))
+	var crop_id := str(transaction.get("crop_id", ""))
+	var picked := int(transaction.get("amount", 0))
 	# The farm grows up a little. INSIDE the gate on purpose: a repeat that
 	# was refused above pays no xp either, so the level inherits the same
 	# once-per-planting promise as the crops.
 	_earn_xp("harvest")
 
 	_harvesting[plot_id] = true
-
-	var crop: Dictionary = GameData.get_crop(crop_id)
-	var picked := maxi(int(crop.get("harvest_amount", 1)), 1)
-	# Was THIS planting golden? Read before the reset below wipes the field:
-	# the receipt is the only place the celebration can learn it from, and
-	# gold changes how the harvest FELT, never what it paid.
-	var was_golden := bool(plot.get("golden", false))
-	# Into the barn, and whatever does not fit into the basket by its door.
-	# NOT Barn.put(): put() now answers "how many actually went in", and a
-	# harvest that ignores that answer is a harvest that silently eats crops
-	# the moment the barn is full. store_harvest() is the only call that
-	# guarantees stored + spilled == picked.
-	var learned: Array = []
-	var landed := Barn.store_harvest(crop_id, picked)
 	_daily_progress("harvest", picked)
-	learned = Recipes.check_barn()
+	var learned: Array = Recipes.check_barn()
 	if not learned.is_empty():
 		_recipe_learned_card(learned[0])
-
-	# The plot goes back to TURNED EARTH rather than to grass.
-	#
-	# A deviation from the brief, which says EMPTY, and a deliberate one: going
-	# back to grass means three swipes of tilling between every harvest and the
-	# next seed, forever, for a six-year-old who has already learned what
-	# tilling is. The lesson is worth teaching once, not once per carrot.
-	#
-	# plant_cycle_id survives the reset. It is the only field that does, and it
-	# has to: reset it and the next planting in this bed would reuse a
-	# transaction id that has already been paid for, and the harvest after that
-	# would pay nothing at all.
-	var fresh: Dictionary = Farm.fresh_plot(0)
-	fresh["plot_id"] = plot_id
-	fresh["state"] = Farm.TILLED
-	fresh["plant_cycle_id"] = cycle
-	for k in fresh.keys():
-		plot[k] = fresh[k]
 
 	# The one other thing this garden ever teaches: the first time the barn
 	# gets close to full, say the market's name once and point at its box.
@@ -1995,9 +1933,9 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	return {
 		"crop_id": crop_id,
 		"amount": picked,
-		"stored": int(landed.get("stored", 0)),
-		"spilled": int(landed.get("spilled", 0)),
-		"golden": was_golden,
+		"stored": int(transaction.get("stored", 0)),
+		"spilled": int(transaction.get("spilled", 0)),
+		"golden": bool(transaction.get("golden", false)),
 	}
 
 
@@ -2252,6 +2190,7 @@ func _on_stroke_swept(index: int) -> void:
 		return
 	var plots := _plots()
 	var plot: Dictionary = plots[index]
+	var before: Dictionary = plot.duplicate(true)
 	match _tools.selected:
 		"shovel":
 			plot = PlotTilling.till(plot)
@@ -2274,6 +2213,12 @@ func _on_stroke_swept(index: int) -> void:
 				AudioManager.play_sfx("res://assets/audio/pop.ogg")
 				if bool(receipt.get("golden", false)):
 					_celebrate_golden(index)
+	# Eligibility reserves this bed for the current stroke, but the gesture only
+	# earns a save when its transition actually changed the plot. This catches a
+	# stale state or an empty seed choice without writing or redrawing a no-op.
+	if plot == before:
+		return
+	_stroke.record_applied(index)
 	plots[index] = plot
 	SaveManager.data["farm"]["plots"] = plots
 	# The bed changes under the brush as it passes -- that is the whole show --
@@ -2285,9 +2230,8 @@ func _on_stroke_swept(index: int) -> void:
 ## The finger lifted. Now the stroke is a fact: write it down once, praise it
 ## once, and put the hand back if the tool has nothing left to do.
 func _on_stroke_ended() -> void:
-	var did := _stroke.applied
-	_stroke.begin()
-	if did == 0:
+	var completion: Dictionary = _stroke.finish()
+	if not bool(completion.get("did_work", false)):
 		# Swept, but over nothing that needed this tool. Not an error and not
 		# silence either: the tool itself shrugs, so the answer is "nothing to
 		# do HERE" rather than "nothing happened", which reads as broken.

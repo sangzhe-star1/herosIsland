@@ -166,10 +166,22 @@ These are yours to make. Nothing below has been changed without asking.
    `scripts/garden/farm_plot_planting_controller.gd`; the screen supplies the
    tutorial timing and golden decision and saves the returned plot. Tilling
    now lives in `scripts/garden/farm_plot_tilling_controller.gd`, shared by
-   taps, the shovel brush, and the hint director. The screen still owns harvest
-   transactions, multi-bed stroke commits, and their visual side effects.
-   Continue one cohesive boundary at a time, with the touch probe guarding
-   both 16:9 and 4:3 behavior.
+   taps, the shovel brush, and the hint director. The stroke controller now
+   returns a one-shot completion summary and clears its per-stroke bed set;
+   the screen persists once only when that summary says work occurred. The
+   screen still owns XP/daily/recipe events and visual side effects.
+   On 10 October, transaction-ID creation, post-harvest soil reset, and
+   paid-duplicate recovery were extracted to
+   `scripts/garden/farm_plot_harvest_controller.gd`; once-only harvest claims
+   and bounded ledger writes now live in
+   `scripts/garden/farm_harvest_ledger_controller.gd`. The new
+   `scripts/garden/farm_harvest_transaction_controller.gd` composes those
+   rules with Barn's stored-plus-spilled result, so claim, storage, and plot
+   reset happen through one settlement boundary. The extraction fixed a real-
+   path bug where `RewardManager.record()` pre-appended to the save array and
+   caused the 64-entry retention helper to skip trimming. Continue one
+   cohesive boundary at a time, with touch and overflow probes guarding both
+   16:9 and 4:3 behavior.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -239,18 +251,38 @@ These are yours to make. Nothing below has been changed without asking.
   `tools/art/`. Disposable screenshot/debug scripts and duplicate scene
   builders were removed. The relevant project skills remain in
   `.agents/skills/`, and no `.ours`/`.theirs` conflict residue was present.
+- **Core-loop iteration in progress:** branch
+  `codex/garden-harvest-transaction-controller` extracts pay-once harvest IDs
+  and plot reset/recovery state from `garden_screen.gd`; its ledger controller
+  owns the duplicate gate and bounded append, and its transaction controller
+  settles inventory plus the plot together. The claim path no longer mutates
+  the persistent list before the 64-entry retention helper can run. Stroke
+  completion now returns one explicit save decision and starts the next stroke
+  with clean bookkeeping. Eligibility and committed work are now separate: a
+  brush bed is counted only after its plot state changes, so an empty seed
+  choice cannot cause a no-op save or redraw. FarmWorldProbe passes 792 checks
+  across 16:9 and 4:3; the branch is not merged yet.
 - **Needs the player's device/save:** test hen and mill timers, cloud discovery,
   dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
   genuine older iPad save before changing save-version fields. These need
   hands-on play and the player's actual save file.
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
-- **Latest local verification:** GardenTouchProbe passed 1,862 checks,
+- **Latest integrated-main verification:** GardenTouchProbe passed 1,862 checks,
   GardenProbe 917, FarmWorldProbe 781, and HarvestTouchProbe 2,316 across
   16:9 and 4:3; FarmShot rendered at 16:9 and 4:3. The complete suite reports
   30 passed and 0 skipped after the care, planting, and tilling controller
-  extractions and touch fix;
-  `tools_check.py` reports 0 errors and 208 warnings.
+  extractions and touch fix.
+- **Latest feature-branch full verification:** `./tests/run_smoke.sh` passed
+  30 probes with 0 skipped in the isolated QA project after the no-op brush
+  commit guard. GardenProbe asked 934 questions, GardenTouchProbe 1,865,
+  FarmWorldProbe 792, and SaveProbe passed.
+- **Latest stroke-lifecycle verification:** FarmWorldProbe asked 792 questions
+  across both screen shapes, including an empty-seed no-op through the live
+  garden screen; `tools_check.py` reports 0 errors and 208 warnings.
+- **Latest focused harvest verification:** FarmShot passed 78 overflow checks
+  at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
+  reports 0 errors and 208 warnings.
 - **3D pipeline follow-through:** Blender 5.2.2 rendered all 74 recipes into a
   temporary review directory; all 74 passed the generated-output audit. The
   robot now has a source model and complete antenna in both world and UI art.

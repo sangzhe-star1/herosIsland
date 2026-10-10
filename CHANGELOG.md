@@ -1,5 +1,37 @@
 # Changelog
 
+## 刷子存档只认实际地块变化 — 10 October 2026
+
+- 连续动作控制器现在分开记录“本笔划尝试过”和“地块确实变了”；只有后者进入抬手时的一次存档决策。
+- 菜园刷种遇到没有可用种子的异常/迁移存档时，不再制造空操作存档或重绘。
+- FarmWorldProbe 在 16:9、4:3 下共通过 792 项，包含菜园场景的空种子刷种回归；`tools_check.py`：0 errors、208 warnings。
+- 隔离完整烟测通过：30 passed、0 skipped；GardenProbe 934 项、GardenTouchProbe 1,865 项、FarmWorldProbe 792 项，SaveProbe 通过。
+
+## 批量笔划完成与一次存档决策 — 10 October 2026
+
+- `continuous_action_controller.gd` 增加 `finish()`，一次返回已处理地块数和是否需要提交，并清空该笔的去重集合；`garden_screen.gd` 只在有实际工作时保存一次。
+- FarmWorldProbe 增至 784 项，覆盖连续新笔划、无效地块不计数、空笔划不触发存档；两种屏幕比例的工具刷地/收菜流程通过。
+- `tools_check.py`：0 errors，208 warnings。完整烟测仍以此前交易控制器版本 `840ea39` 的 30 passed、0 skipped 为最近全量结果。
+
+## 收菜结算集中到交易控制器 — 10 October 2026
+
+- 新增 `farm_harvest_transaction_controller.gd`，把一次性领取、仓库/篮子分流、地块复位与合并冲突释放收进同一结算入口；页面继续负责经验、每日进度、菜谱提示和动画反馈。
+- GardenProbe 增至 934 项；GardenTouchProbe 1,865 项通过；FarmShot 在 16:9、4:3 各通过 78 项；`tools_check.py` 为 0 errors、208 warnings。
+- 当前分支的隔离完整烟测通过：30 passed，0 skipped，包含 FarmWorldProbe 与 SaveProbe。
+
+## 收菜账本有界写入修复 — 10 October 2026
+
+- 新增 `farm_harvest_ledger_controller.gd`，用账本快照询问 `RewardManager` 是否已付，再通过 `Farm.remember_paid()` 写回存档并执行 64 条上限。
+- 修复实际收菜路径绕过上限的问题：此前 `RewardManager.record()` 先直接改写存档数组，导致 `remember_paid()` 误判为已记录而跳过裁剪。
+- GardenProbe 增至 927 项，加入 65 个种植周期的生产调用顺序回归；GardenTouchProbe 增至 1,865 项，并通过真实屏幕交易流程连续收取 65 个周期，确认账本仍有界且作物没有丢失；FarmShot 在 16:9 和 4:3 各通过 78 项。
+- `./tests/run_smoke.sh` 在隔离存档项目中通过：30 passed，0 skipped；GardenProbe、GardenTouchProbe、FarmWorldProbe 和 SaveProbe 均通过。
+
+## 收菜交易状态控制器抽离 — 10 October 2026
+
+- 新增 `farm_plot_harvest_controller.gd`，集中生成稳定的收菜交易 ID，并处理收菜后的翻土复位和已支付重复地块的无奖励恢复。
+- `garden_screen.gd` 继续协调奖励账本、仓库存储、经验、每日进度、配方和视觉反馈；点收与刷收共用相同的地块状态规则。
+- GardenProbe 通过 924 项，GardenTouchProbe 通过 1,862 项；FarmShot 在 16:9 与 4:3 各通过 78 项 overflow 检查，包含完整种子栏布局。`tools_check.py`：0 errors，208 warnings。
+
 ## 机器人素材补全与旧道具审计归零 — 10 October 2026
 
 - 为机器人新增 Blender 模型和配方，重新生成世界层与 3D 图标贴图；完整天线留在 512×512 画布内。

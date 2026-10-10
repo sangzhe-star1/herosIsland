@@ -29,6 +29,7 @@ extends RefCounted
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 
 var _done: Dictionary = {}
+var _applied_beds: Dictionary = {}
 ## How many beds this stroke actually worked on. The combo counter reads it,
 ## and "did anything happen at all" at stroke end reads it -- a stroke that
 ## did nothing has nothing to save.
@@ -37,7 +38,22 @@ var applied := 0
 
 func begin() -> void:
 	_done.clear()
+	_applied_beds.clear()
 	applied = 0
+
+
+## Close one stroke and hand its single commit decision to the page.
+##
+## `did_work` is the only reason the save layer should write at finger-up;
+## reset the gesture here so a later stroke can never inherit its old count or
+## once-per-bed set. The page still owns persistence and feedback.
+func finish() -> Dictionary:
+	var result := {
+		"applied": applied,
+		"did_work": applied > 0,
+	}
+	begin()
+	return result
 
 
 ## May the brush work on this bed? Marks the bed as done ONLY when the answer
@@ -51,5 +67,15 @@ func may_apply(tools: Tools, plots: Array, index: int) -> bool:
 	if not tools.needs(tools.selected, plots[index]):
 		return false
 	_done[index] = true
+	return true
+
+
+## Eligibility reserves this bed for the current stroke, but it only counts as
+## work after its state actually changes. A stale or malformed state must not
+## turn a no-op gesture into a save.
+func record_applied(index: int) -> bool:
+	if not _done.has(index) or _applied_beds.has(index):
+		return false
+	_applied_beds[index] = true
 	applied += 1
 	return true

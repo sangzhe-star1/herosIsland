@@ -18,6 +18,9 @@ const Growth := preload("res://scripts/garden/offline_growth.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controller.gd")
 const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.gd")
+const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
+const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
+const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -46,7 +49,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 685
+const CHECKS_EXPECTED := 702
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -72,6 +75,9 @@ func _ready() -> void:
 	_a_save_from_before_the_state_machine_still_knows_what_it_was_doing()
 	_the_tilling_controller_turns_only_empty_earth()
 	_the_planting_controller_starts_one_cycle()
+	_the_harvest_controller_keeps_paid_cycles_unique()
+	_the_harvest_ledger_claim_keeps_its_bound()
+	_harvest_transaction_settles_storage_and_plot_together()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
 	# --- stage two: growing ---
@@ -1573,6 +1579,134 @@ func _the_planting_controller_starts_one_cycle() -> void:
 		"a second seed cannot overwrite a growing cycle")
 	_ok(PlotPlanting.plant(tilled, "", NOON + 10, 0, false).is_empty(),
 		"an empty crop id cannot start a cycle")
+
+
+## A paid harvest resets the field without reusing its transaction id; a
+## merged duplicate frees the bed and advances past every paid following id.
+func _the_harvest_controller_keeps_paid_cycles_unique() -> void:
+	var ripe := Farm.fresh_plot(0)
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	ripe["plant_cycle_id"] = 12
+	ripe["golden"] = true
+	var original := ripe.duplicate(true)
+	var key := PlotHarvest.transaction_id(ripe)
+	_ok(key == "farm_harvest_plot_1_12",
+		"the planting cycle and bed identity form the stable harvest id")
+
+	var reset: Dictionary = PlotHarvest.after_harvest(ripe)
+	_ok(str(reset.get("state", "")) == Farm.TILLED
+			and str(reset.get("crop_id", "")) == "",
+		"a paid harvest clears the crop into a ready seed bed")
+	_ok(int(reset.get("plant_cycle_id", -1)) == 12
+			and str(reset.get("plot_id", "")) == "plot_1"
+			and not bool(reset.get("golden", true)),
+		"the reset keeps identity and cycle while clearing crop-only state")
+	_ok(ripe == original,
+		"harvest state transitions leave the screen's source snapshot unchanged")
+
+	var paid := [key, "farm_harvest_plot_1_13", "farm_harvest_plot_1_14"]
+	var recovered: Dictionary = PlotHarvest.recover_paid_duplicate(ripe, paid)
+	_ok(str(recovered.get("state", "")) == Farm.TILLED
+			and int(recovered.get("plant_cycle_id", -1)) == 14,
+		"a merged paid bed skips the consecutive ids already in its ledger")
+	var next: Dictionary = PlotPlanting.plant(recovered, "carrot", NOON, 0, false)
+	_ok(int(next.get("plant_cycle_id", -1)) == 15
+			and not (PlotHarvest.transaction_id(next) in paid),
+		"the next seed after recovery still has an unpaid harvest id")
+	_ok(PlotHarvest.after_harvest(Farm.fresh_plot(0)).is_empty()
+			and PlotHarvest.recover_paid_duplicate(Farm.fresh_plot(0), paid).is_empty(),
+		"unripe soil cannot enter either harvest reset path")
+
+
+## RewardManager.record() mutates its argument, so it must receive a snapshot;
+## otherwise remember_paid() sees a pre-appended id and skips its size bound.
+func _the_harvest_ledger_claim_keeps_its_bound() -> void:
+	var farm := {"paid_harvests": []}
+	var ripe := Farm.fresh_plot(0)
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	ripe["plant_cycle_id"] = 1
+	var first: Dictionary = HarvestLedger.claim(ripe, farm, "carrot")
+	var first_key := "farm_harvest_plot_1_1"
+	_ok(bool(first.get("claimed", false))
+			and first_key in (farm["paid_harvests"] as Array),
+		"the first ripe planting claims and stores its stable ledger id")
+	var duplicate: Dictionary = HarvestLedger.claim(ripe, farm, "carrot")
+	_ok(not bool(duplicate.get("claimed", true))
+			and bool(duplicate.get("duplicate", false))
+			and (farm["paid_harvests"] as Array).size() == 1,
+		"the same planting is refused without appending another ledger id")
+
+	for cycle in range(2, Farm.PAID_LEDGER_KEPT + 2):
+		ripe["plant_cycle_id"] = cycle
+		HarvestLedger.claim(ripe, farm, "carrot")
+	var paid: Array = farm["paid_harvests"]
+	_ok(paid.size() == Farm.PAID_LEDGER_KEPT
+			and paid[0] == "farm_harvest_plot_1_2"
+			and paid[paid.size() - 1] == "farm_harvest_plot_1_%d"
+			% (Farm.PAID_LEDGER_KEPT + 1),
+		"real claim ordering keeps the ledger bounded and the newest id")
+
+
+## The transaction boundary must claim first, store the complete yield, reset
+## the plot, and recover merged duplicates without granting a second yield.
+func _harvest_transaction_settles_storage_and_plot_together() -> void:
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["warehouse"] = {}
+	farm["harvest_basket"] = {}
+	var ripe := Farm.fresh_plot(0)
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	ripe["plant_cycle_id"] = 5
+	ripe["golden"] = true
+	var amount := int(GameData.get_crop("carrot").get("harvest_amount", 1))
+	var receipt: Dictionary = HarvestTransaction.settle(ripe, farm)
+	_ok(bool(receipt.get("claimed", false))
+			and str(receipt.get("transaction_id", "")) == "farm_harvest_plot_1_5",
+		"a ripe planting claims its own stable transaction before storage")
+	_ok(str(ripe.get("state", "")) == Farm.TILLED
+			and int(ripe.get("plant_cycle_id", -1)) == 5
+			and str(ripe.get("crop_id", "")) == ""
+			and not bool(ripe.get("golden", true)),
+		"a successful transaction resets crop-only fields but preserves its cycle")
+	_ok(int(receipt.get("amount", 0)) == amount
+			and int(receipt.get("stored", 0)) + int(receipt.get("spilled", 0)) == amount
+			and Barn.count("carrot") + Barn.count("carrot", Barn.BASKET) == amount,
+		"storage plus overflow equals the full yield of one claimed harvest")
+
+	farm["paid_harvests"] = ["farm_harvest_plot_1_5",
+		"farm_harvest_plot_1_6", "farm_harvest_plot_1_7"]
+	var duplicate := Farm.fresh_plot(0)
+	duplicate["state"] = Farm.READY
+	duplicate["crop_id"] = "carrot"
+	duplicate["plant_cycle_id"] = 5
+	var before := Barn.count("carrot") + Barn.count("carrot", Barn.BASKET)
+	var repeat: Dictionary = HarvestTransaction.settle(duplicate, farm)
+	_ok(not bool(repeat.get("claimed", true))
+			and bool(repeat.get("duplicate_freed", false)),
+		"a merged already-paid crop is freed without a second claim")
+	_ok(str(duplicate.get("state", "")) == Farm.TILLED
+			and int(duplicate.get("plant_cycle_id", -1)) == 7,
+		"duplicate recovery advances past every already-paid cycle")
+	_ok(Barn.count("carrot") + Barn.count("carrot", Barn.BASKET) == before,
+		"freeing a merged duplicate adds no crop yield")
+
+	farm["warehouse"] = {"corn": Barn.cap()}
+	farm["harvest_basket"] = {}
+	farm["paid_harvests"] = []
+	var full_barn := Farm.fresh_plot(1)
+	full_barn["state"] = Farm.READY
+	full_barn["crop_id"] = "strawberry"
+	full_barn["plant_cycle_id"] = 1
+	var strawberry_amount := int(GameData.get_crop("strawberry")
+		.get("harvest_amount", 1))
+	var overflow: Dictionary = HarvestTransaction.settle(full_barn, farm)
+	_ok(int(overflow.get("stored", -1)) == 0
+			and int(overflow.get("spilled", 0)) == strawberry_amount
+			and Barn.count("strawberry", Barn.BASKET) == strawberry_amount,
+		"a full barn routes the entire new yield to its visible overflow basket")
 
 
 # --- 阶段 4: the bear ------------------------------------------------------
