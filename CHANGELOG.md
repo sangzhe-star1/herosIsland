@@ -1,5 +1,13 @@
 # Changelog
 
+## 菜园照料与收菜触控修复 — 10 October 2026
+
+- 新增 `farm_plot_care_controller.gd`，把浇水、除草、驱虫和未知照料状态修复集中成一个纯状态迁移；手指点击与工具笔刷共用它，屏幕保留音效、每日任务与水滴反馈。
+- 修复收菜场在触摸/鼠标模拟同时开启时的指针竞态：触摸是标准事件，模拟鼠标不再抢先开始或结束收菜手势。
+- GardenProbe 通过 905 项规则检查；GardenTouchProbe 在 16:9 与 4:3 通过 1,862 项触控检查；HarvestTouchProbe 通过 2,316 项触控和鼠标检查；FarmShot 两种屏形均成功渲染。
+- `./tests/run_smoke.sh`：30 passed, 0 skipped。
+- `python3 tools_check.py`：0 errors, 208 warnings；`git diff --check` 通过。
+
 ## 多设备农场存档合并修复与全套回归 — 10 October 2026
 
 - 修复两台设备合并 NPC 状态时把 `last_visit_at` 当作所有 NPC 都有的字段；当前只有小熊定义了该时间戳，兔兔和小狗缺少该键时不再触发脚本错误。

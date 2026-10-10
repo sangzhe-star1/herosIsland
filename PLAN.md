@@ -159,10 +159,13 @@ These are yours to make. Nothing below has been changed without asking.
 3. **`scripts/garden/garden_screen.gd` still carries too many jobs.** The
    panel layer was rebuilt on the current branch and completed on 7 October.
    On 10 October, the plot gesture table, eligibility check, and verdict were
-   extracted to `scripts/garden/plot_gesture_controller.gd`; the screen still
-   owns plot mutations, tool strokes, and their visual side effects. Continue
-   with one cohesive boundary at a time, with the touch probe guarding both
-   16:9 and 4:3 behavior.
+   extracted to `scripts/garden/plot_gesture_controller.gd`. The shared water,
+   weed, and bug state transition now lives in
+   `scripts/garden/farm_plot_care_controller.gd` and serves taps and brush
+   strokes. The screen still owns tilling, planting, harvest transactions,
+   multi-bed stroke commits, and their visual side effects. Continue one
+   cohesive boundary at a time, with the touch probe guarding both 16:9 and
+   4:3 behavior.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -205,33 +208,37 @@ These are yours to make. Nothing below has been changed without asking.
 ## Current follow-through — 10 October 2026
 
 - **Ready for review:** branch `claude/stoic-bell-a41pfu` includes the pushed
-  save-merge fix `b597418`; with this plan update it is 44 commits ahead of
-  `main`. PR
+  save-merge fix `b597418`; the plan and care-controller updates bring it to
+  46 commits ahead of `main`. PR
   [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is open against
   `main`. The PR has no reviews or automated checks, and `main` remains at
-  `deb168e` while this branch is 44 commits ahead.
+  `deb168e` while this branch is 46 commits ahead.
 - **Integration verification:** `./tests/run_smoke.sh` finished cleanly with
-  30 passed and 0 skipped. During the first full run, GardenProbe exposed a
-  real save-merge bug: only the bear has `last_visit_at`, but the merge read
-  that key from every NPC. The merge now checks the NPC schema before taking
-  the timestamp high-water mark; GardenProbe's two-device case and the full
-  suite both pass. One earlier HarvestTouch tap assertion did not reproduce
-  in the subsequent clean runs. Failure-only gesture snapshots now make both
-  touch probes leave the relevant input state in their logs if it recurs.
+  30 passed and 0 skipped after the plot-care extraction and touch fix. During
+  earlier runs, GardenProbe exposed a save-merge bug: only the bear has
+  `last_visit_at`, but the merge read that key from every NPC. The merge now
+  checks the NPC schema before taking the timestamp high-water mark. The
+  intermittent HarvestTouch failure also had a concrete cause: Godot delivered
+  an emulated mouse press before the screen-touch press, so the mouse release
+  could cancel the touch gesture. HarvestAction now treats touch as canonical
+  whenever either emulation is enabled. The probe covers that ordering in
+  both display shapes and retains failure-only input traces.
 - **Completed locally:** rabbit and puppy friend farms; the plot gesture
-  controller; repository cleanup. Blender source generators now live under
-  `tools/art/`. Disposable screenshot/debug scripts and duplicate scene
-  builders were removed. The relevant project skills remain in
-  `.agents/skills/`, and no `.ours`/`.theirs` conflict residue was present.
+  controller; shared plot-care transitions; HarvestTouch input fix; repository cleanup. Blender
+  source generators now live under `tools/art/`. Disposable screenshot/debug
+  scripts and duplicate scene builders were removed. The relevant project
+  skills remain in `.agents/skills/`, and no `.ours`/`.theirs` conflict residue
+  was present.
 - **Needs the player's device/save:** test hen and mill timers, cloud discovery,
   dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
   genuine older iPad save before changing save-version fields.
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
 - **Latest local verification:** GardenTouchProbe passed 1,862 checks,
-  FarmWorldProbe 781, and HarvestTouchProbe 2,314 across 16:9 and 4:3;
-  the complete suite reports 30 passed and 0 skipped; `tools_check.py`
-  reports 0 errors and 208 warnings.
+  GardenProbe 905, FarmWorldProbe 781, and HarvestTouchProbe 2,316 across
+  16:9 and 4:3; FarmShot rendered at 16:9 and 4:3. The complete suite reports
+  30 passed and 0 skipped after the care-controller extraction and touch fix;
+  `tools_check.py` reports 0 errors and 208 warnings.
 
 ---
 
