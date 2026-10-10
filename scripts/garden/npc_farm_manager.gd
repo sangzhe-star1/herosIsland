@@ -118,6 +118,9 @@ static func record_help() -> bool:
 	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
 	if not bool(npc["bear"]["help_owed"]):
 		return false
+	npc["bear"]["help_completed_cycle"] = maxi(
+		int(npc["bear"].get("help_completed_cycle", -1)),
+		int(npc["bear"].get("last_share_cycle", -1)))
 	npc["bear"]["help_owed"] = false
 	farm["npc"] = npc
 	var friends: Dictionary = farm.get("npc_friendship", {})
@@ -177,6 +180,9 @@ static func record_friend_help(npc_id: String) -> bool:
 	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
 	if not npc.has(npc_id) or not bool(npc[npc_id].get("help_owed", false)):
 		return false
+	npc[npc_id]["help_completed_cycle"] = maxi(
+		int(npc[npc_id].get("help_completed_cycle", -1)),
+		int(npc[npc_id].get("last_share_cycle", -1)))
 	npc[npc_id]["help_owed"] = false
 	farm["npc"] = npc
 	var friends: Dictionary = farm.get("npc_friendship", {})
@@ -354,6 +360,9 @@ static func maybe_visit(now: int) -> Dictionary:
 	# that runs twice winks once. The berry takes the harvest door like the
 	# shared one; a full barn keeps it exactly as store_harvest decides.
 	if bool(npc["bear"].get("sneak_owed", false)):
+		npc["bear"]["sneak_completed_cycle"] = maxi(
+			int(npc["bear"].get("sneak_completed_cycle", -1)),
+			int(npc["bear"].get("last_sneak_cycle", -1)))
 		npc["bear"]["sneak_owed"] = false
 		var farm_def: Dictionary = GameData.get_npc_farm("bear")
 		Barn.store_harvest(str(farm_def.get("share_crop", "strawberry")), 1)

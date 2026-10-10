@@ -118,7 +118,9 @@ static func collect(farm: Dictionary, spec: Dictionary) -> Dictionary:
 	if amount <= 0:
 		return {}
 	p[rkey] = 0
-	p["fed_at"] = 0
+	# A cross-device merge can carry finished output beside a newer active
+	# cycle. Normal READY production already clears fed_at in state(); leaving a
+	# nonzero stamp here lets collection keep both parts of that merged history.
 	var out_crop := str(spec.get("output", ""))
 	var receipt := Barn.store_harvest(out_crop, amount)
 	receipt["crop_id"] = out_crop

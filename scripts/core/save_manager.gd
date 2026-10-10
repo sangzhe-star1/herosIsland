@@ -1175,7 +1175,24 @@ func _merge_progress(theirs: Dictionary) -> void:
 		data["rewards"]["items"][item_id] = maxi(item_count(str(item_id)),
 			int(tr["items"][item_id]))
 	var tp: Dictionary = theirs.get("profile", {})
-	data["profile"]["xp"] = maxi(int(data["profile"].get("xp", 0)), int(tp.get("xp", 0)))
+	var profile: Dictionary = data.get("profile", {})
+	profile["xp"] = maxi(int(profile.get("xp", 0)), int(tp.get("xp", 0)))
+	# Name and chosen hero identify the child, so carry them to an unconfigured
+	# tablet while leaving a name or a non-default hero already chosen here alone.
+	if str(profile.get("name", "")).strip_edges() == "" \
+			and str(tp.get("name", "")).strip_edges() != "":
+		profile["name"] = str(tp["name"])
+	var default_character := str(GameData.characters.get("default", "light_hero"))
+	var local_character := str(profile.get("character_id", default_character))
+	var remote_character := str(tp.get("character_id", ""))
+	if local_character in ["", default_character] \
+			and GameData.characters.get("characters", {}).has(remote_character):
+		profile["character_id"] = remote_character
+	var local_created := int(profile.get("created_at", 0))
+	var remote_created := int(tp.get("created_at", 0))
+	if remote_created > 0 and (local_created <= 0 or remote_created < local_created):
+		profile["created_at"] = remote_created
+	data["profile"] = profile
 	for attribute in theirs.get("growth", {}).keys():
 		if data["growth"].has(attribute):
 			data["growth"][attribute] = maxi(int(data["growth"][attribute]),
@@ -1198,8 +1215,92 @@ func _merge_progress(theirs: Dictionary) -> void:
 		if not data["rewards"]["creations"].has(key):
 			data["rewards"]["creations"][key] = tr["creations"][key]
 
+	_merge_harvest_checkpoint(theirs.get("harvest_checkpoint", {}))
 	_merge_shop(theirs.get("shop", {}))
 	_merge_farm(theirs)
+	_merge_saved_ledger(theirs, "farm_visitors")
+	_merge_saved_ledger(theirs, "farm_unlocks")
+
+
+## Keep the furthest resumable multi-order challenge. A finished level always
+## outranks a stale checkpoint; for the same level, order index is progress and
+## delivered crop counts are high-water values. If both devices are in
+## different unfinished levels, this device's active choice stays in front.
+func _merge_harvest_checkpoint(remote_value: Variant) -> void:
+	var local_value: Variant = data.get("harvest_checkpoint", {})
+	var local: Dictionary = local_value if local_value is Dictionary else {}
+	var remote: Dictionary = remote_value if remote_value is Dictionary else {}
+	var local_ok := _checkpoint_is_resumable(local)
+	var remote_ok := _checkpoint_is_resumable(remote)
+	if not local_ok:
+		local = {}
+	if not remote_ok:
+		remote = {}
+	var merged := local.duplicate(true)
+	if local.is_empty() and not remote.is_empty():
+		merged = remote.duplicate(true)
+	elif not local.is_empty() and not remote.is_empty() \
+			and str(local.get("level_id", "")) == str(remote.get("level_id", "")):
+		var local_order := int(local.get("order_index", 0))
+		var remote_order := int(remote.get("order_index", 0))
+		if remote_order > local_order:
+			merged = remote.duplicate(true)
+		elif remote_order == local_order:
+			var delivered: Dictionary = merged.get("delivered", {})
+			var remote_delivered: Variant = remote.get("delivered", {})
+			if remote_delivered is Dictionary:
+				for crop_id in (remote_delivered as Dictionary).keys():
+					delivered[crop_id] = maxi(int(delivered.get(crop_id, 0)),
+						int(remote_delivered[crop_id]))
+			merged["delivered"] = delivered
+	data["harvest_checkpoint"] = merged
+
+
+func _checkpoint_is_resumable(mark: Dictionary) -> bool:
+	var level_id := str(mark.get("level_id", ""))
+	return not mark.is_empty() and not level_id.is_empty() \
+		and not GameData.get_level(level_id).is_empty() \
+		and not bool(get_level_progress(level_id).get("completed", false))
+
+
+## Visitor and unlock ledgers have nested records, not bare integers (for
+## example {"bear": {"visits": 3, "claimed": ["visits_3"]}}). Merge each
+## number by high-water mark, arrays by union, dictionaries recursively, and
+## one-way boolean unlocks by OR.
+func _merge_saved_ledger(theirs: Dictionary, key: String) -> void:
+	var local_value: Variant = data.get(key, {})
+	var remote_value: Variant = theirs.get(key, {})
+	var local: Dictionary = local_value if local_value is Dictionary else {}
+	if not remote_value is Dictionary:
+		return
+	data[key] = _merge_ledger_dictionary(local.duplicate(true),
+		remote_value as Dictionary)
+
+
+func _merge_ledger_dictionary(local: Dictionary, remote: Dictionary) -> Dictionary:
+	for key in remote.keys():
+		var theirs_value: Variant = remote[key]
+		if not local.has(key):
+			local[key] = theirs_value.duplicate(true) \
+				if theirs_value is Dictionary or theirs_value is Array else theirs_value
+			continue
+		var mine_value: Variant = local[key]
+		if mine_value is Dictionary and theirs_value is Dictionary:
+			local[key] = _merge_ledger_dictionary(mine_value,
+				theirs_value as Dictionary)
+		elif mine_value is Array and theirs_value is Array:
+			var merged_array: Array = mine_value
+			for item in theirs_value:
+				if not item in merged_array:
+					merged_array.append(item)
+			local[key] = merged_array
+		elif mine_value is bool and theirs_value is bool:
+			local[key] = bool(mine_value) or bool(theirs_value)
+		elif (typeof(mine_value) == TYPE_INT or typeof(mine_value) == TYPE_FLOAT) \
+				and (typeof(theirs_value) == TYPE_INT \
+				or typeof(theirs_value) == TYPE_FLOAT):
+			local[key] = maxi(int(mine_value), int(theirs_value))
+	return local
 
 
 ## Union two lists of things he has earned. Order follows this device's, so a
@@ -1308,6 +1409,35 @@ func _merge_farm(theirs: Dictionary) -> void:
 			or bool(tf.get("market_taught", false))
 		farm["last_farm_visit_at"] = maxi(int(farm.get("last_farm_visit_at", 0)),
 			int(tf.get("last_farm_visit_at", 0)))
+
+		# Facility output and running work both survive an import. Output counts
+		# take the higher value so importing the same harvest twice never mints
+		# more; when both devices were working, keep the earliest start stamp,
+		# which is the cycle furthest along.
+		_merge_timed_facility(farm, tf, "coop", "fed_at", "eggs")
+		_merge_timed_facility(farm, tf, "cow_shed", "fed_at", "ready")
+		_merge_timed_facility(farm, tf, "beehive", "fed_at", "ready")
+		_merge_timed_facility(farm, tf, "mill", "started_at", "done")
+
+		for counter_key in ["fish_caught_total", "dog_fetches"]:
+			farm[counter_key] = maxi(int(farm.get(counter_key, 0)),
+				int(tf.get(counter_key, 0)))
+		farm["last_fish_at"] = maxi(int(farm.get("last_fish_at", 0)),
+			int(tf.get("last_fish_at", 0)))
+		for date_key in ["last_dew_date", "fed_visitor_date",
+				"last_dog_dig_date", "last_well_wish_date"]:
+			farm[date_key] = _later_iso_date(str(farm.get(date_key, "")),
+				str(tf.get(date_key, "")))
+		var dog_tricks: Array = farm.get("dog_tricks", [])
+		for trick in tf.get("dog_tricks", []):
+			if not trick in dog_tricks:
+				dog_tricks.append(trick)
+		farm["dog_tricks"] = dog_tricks
+		farm["master_farmer_achieved"] = bool(farm.get(
+			"master_farmer_achieved", false)) or bool(tf.get(
+			"master_farmer_achieved", false))
+		farm["dailies"] = _merge_farm_dailies(
+			farm.get("dailies", {}), tf.get("dailies", {}))
 		# Paid harvests are a union, for the same reason delivered orders are:
 		# a harvest paid for on either device has been paid for, and losing one
 		# means the same crop can be picked and paid for a second time.
@@ -1340,22 +1470,37 @@ func _merge_farm(theirs: Dictionary) -> void:
 			sales.pop_front()
 		farm["paid_sales"] = sales
 
-		# The bear's three facts. The cycle and the visit stamp are high-water
-		# marks; the owed watering is an OR, because a promise made on either
-		# tablet was made.
+		# The friend cycles are high-water marks. An owed help promise is a
+		# derived edge: it remains owed only when the latest shared cycle is newer
+		# than the latest cycle whose help was completed. A stale true flag from a
+		# second tablet must not recreate an already-fulfilled visit.
 		var npc_block: Dictionary = Farm.normalise_npc(farm.get("npc"))
 		var theirs_npc: Dictionary = Farm.normalise_npc(tf.get("npc"))
 		for npc_id in npc_block.keys():
-			npc_block[npc_id]["last_share_cycle"] = maxi(
+			var share_cycle := maxi(
 				int(npc_block[npc_id]["last_share_cycle"]),
 				int(theirs_npc[npc_id]["last_share_cycle"]))
+			var help_completed := maxi(
+				int(npc_block[npc_id]["help_completed_cycle"]),
+				int(theirs_npc[npc_id]["help_completed_cycle"]))
+			npc_block[npc_id]["last_share_cycle"] = share_cycle
+			npc_block[npc_id]["help_completed_cycle"] = help_completed
+			npc_block[npc_id]["help_owed"] = share_cycle > help_completed
 			if npc_block[npc_id].has("last_visit_at") \
 					or theirs_npc[npc_id].has("last_visit_at"):
 				npc_block[npc_id]["last_visit_at"] = maxi(
 					int(npc_block[npc_id].get("last_visit_at", 0)),
 					int(theirs_npc[npc_id].get("last_visit_at", 0)))
-			npc_block[npc_id]["help_owed"] = bool(npc_block[npc_id]["help_owed"]) \
-				or bool(theirs_npc[npc_id]["help_owed"])
+		if npc_block["bear"].has("last_sneak_cycle"):
+			var sneak_cycle := maxi(
+				int(npc_block["bear"]["last_sneak_cycle"]),
+				int(theirs_npc["bear"]["last_sneak_cycle"]))
+			var sneak_completed := maxi(
+				int(npc_block["bear"]["sneak_completed_cycle"]),
+				int(theirs_npc["bear"]["sneak_completed_cycle"]))
+			npc_block["bear"]["last_sneak_cycle"] = sneak_cycle
+			npc_block["bear"]["sneak_completed_cycle"] = sneak_completed
+			npc_block["bear"]["sneak_owed"] = sneak_cycle > sneak_completed
 		farm["npc"] = npc_block
 
 		# Visitor entries are a union by (who, when), newest first, trimmed to
@@ -1379,6 +1524,28 @@ func _merge_farm(theirs: Dictionary) -> void:
 		farm["visit_log"] = tales
 		farm["visit_log_unread"] = bool(farm.get("visit_log_unread", false)) \
 			or bool(tf.get("visit_log_unread", false))
+		# The return visit is a request followed by a completion, not a monotone
+		# boolean. New entries carry an explicit kind; `shared`/`watered` also
+		# identifies entries written before that label existed.
+		var requested_at := 0
+		var completed_at := 0
+		for entry in tales:
+			if str(entry.get("who", "")) != "bear":
+				continue
+			var at := int(entry.get("at", 0))
+			if int(entry.get("shared", 0)) > 0:
+				requested_at = maxi(requested_at, at)
+			elif str(entry.get("kind", "")) == "return_visit" \
+					or int(entry.get("watered", 0)) > 0:
+				completed_at = maxi(completed_at, at)
+		if requested_at > completed_at:
+			farm["bear_return_visit_pending"] = true
+		elif completed_at > 0 and completed_at >= requested_at:
+			farm["bear_return_visit_pending"] = false
+		else:
+			farm["bear_return_visit_pending"] = bool(farm.get(
+				"bear_return_visit_pending", false)) or bool(tf.get(
+				"bear_return_visit_pending", false))
 
 		# The barn and the basket outside it, both counted the same way.
 		for store_key in ["warehouse", "harvest_basket"]:
@@ -1447,30 +1614,67 @@ func _merge_farm(theirs: Dictionary) -> void:
 	orders["recurring_paid"] = recurring_paid
 	data["farm_orders"] = orders
 
-	# farm_visitors and farm_unlocks were built in _default_data() and then
-	# merged by nothing at all -- so importing a backup would have wiped both
-	# the moment anything started writing to them. Nothing does yet, which is
-	# exactly why it was invisible and exactly why it is fixed now rather than
-	# on the day the visitor log ships.
-	#
-	# Both are "has this ever happened" ledgers keyed by id, so the merge is a
-	# union that keeps the higher of any two numbers. Never a replacement: a
-	# visitor who came on the other tablet still came.
-	for ledger_key in ["farm_visitors", "farm_unlocks"]:
-		var mine: Dictionary = data.get(ledger_key, {})
-		if not mine is Dictionary:
-			mine = {}
-		var theirs_ledger: Variant = theirs.get(ledger_key, {})
-		if theirs_ledger is Dictionary:
-			for id in (theirs_ledger as Dictionary).keys():
-				var a: Variant = mine.get(id, null)
-				var b: Variant = theirs_ledger[id]
-				if a == null:
-					mine[id] = b
-				elif same_shape(a, b) and (typeof(a) == TYPE_INT
-						or typeof(a) == TYPE_FLOAT):
-					mine[id] = maxi(int(a), int(b))
-		data[ledger_key] = mine
+
+func _merge_timed_facility(farm: Dictionary, theirs: Dictionary,
+		key: String, timer_key: String, output_key: String) -> void:
+	var local_value: Variant = farm.get(key, {})
+	var remote_value: Variant = theirs.get(key, {})
+	var merged: Dictionary = local_value.duplicate(true) \
+		if local_value is Dictionary else {}
+	if remote_value is Dictionary:
+		var remote: Dictionary = remote_value
+		merged[output_key] = maxi(maxi(0, int(merged.get(output_key, 0))),
+			maxi(0, int(remote.get(output_key, 0))))
+		var local_at := int(merged.get(timer_key, 0))
+		var remote_at := int(remote.get(timer_key, 0))
+		if local_at <= 0:
+			merged[timer_key] = maxi(0, remote_at)
+		elif remote_at > 0:
+			# The facility has one active slot. Preserve the cycle nearest to
+			# completion while keeping any already-finished output above.
+			merged[timer_key] = mini(local_at, remote_at)
+	farm[key] = merged
+
+
+func _later_iso_date(local_date: String, remote_date: String) -> String:
+	# GameClock writes fixed-width YYYY-MM-DD strings, whose lexical order is
+	# chronological. Empty dates naturally lose to a recorded day.
+	return local_date if local_date >= remote_date else remote_date
+
+
+func _merge_farm_dailies(local_value: Variant,
+		remote_value: Variant) -> Dictionary:
+	var local: Dictionary = local_value if local_value is Dictionary else {
+		"date": "", "progress": {}, "claimed": [],
+	}
+	var remote: Dictionary = remote_value if remote_value is Dictionary else {
+		"date": "", "progress": {}, "claimed": [],
+	}
+	var local_date := str(local.get("date", ""))
+	var remote_date := str(remote.get("date", ""))
+	if remote_date > local_date:
+		return remote.duplicate(true)
+	if remote_date < local_date:
+		return local.duplicate(true)
+	var merged := local.duplicate(true)
+	var progress_value: Variant = merged.get("progress", {})
+	var progress: Dictionary = progress_value \
+		if progress_value is Dictionary else {}
+	var remote_progress: Variant = remote.get("progress", {})
+	if remote_progress is Dictionary:
+		for verb in (remote_progress as Dictionary).keys():
+			progress[verb] = maxi(0, maxi(int(progress.get(verb, 0)),
+				int(remote_progress[verb])))
+	merged["progress"] = progress
+	var claimed_value: Variant = merged.get("claimed", [])
+	var claimed: Array = claimed_value if claimed_value is Array else []
+	var remote_claimed: Variant = remote.get("claimed", [])
+	if remote_claimed is Array:
+		for claim_key in remote_claimed:
+			if not claim_key in claimed:
+				claimed.append(claim_key)
+	merged["claimed"] = claimed
+	return merged
 
 
 # --- playtime, for the Parent Center ---

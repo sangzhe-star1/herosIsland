@@ -78,7 +78,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1156
+const CHECKS_EXPECTED := 1162
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -3060,19 +3060,28 @@ func _two_tablets_agree_about_the_bear() -> void:
 	var npc: Dictionary = Farm.normalise_npc(null)
 	npc["bear"]["last_share_cycle"] = 3
 	npc["bear"]["help_owed"] = true
+	npc["bear"]["last_sneak_cycle"] = 7
+	npc["bear"]["sneak_owed"] = true
+	npc["rabbit"]["last_share_cycle"] = 2
+	npc["rabbit"]["help_owed"] = true
 	npc["bear"]["last_visit_at"] = 1000
 	farm["npc"] = npc
 	farm["npc_friendship"] = {"bear": 1}
-	farm["visit_log"] = [{"who": "bear", "watered": 1, "star": 1, "at": 1000}]
+	farm["visit_log"] = [{"who": "bear", "kind": "return_visit",
+		"watered": 1, "star": 1, "at": 1000}]
 	farm["visit_log_unread"] = false
 
 	var theirs := {"farm": {
 		"npc": {"bear": {"last_share_cycle": 5, "help_owed": false,
-			"last_visit_at": 900}},
+			"last_visit_at": 900, "last_sneak_cycle": 8,
+			"sneak_owed": false},
+			"rabbit": {"last_share_cycle": 3, "help_owed": true}},
 		"npc_friendship": {"bear": 4},
 		"visit_log": [
 			{"who": "bear", "watered": 1, "star": 1, "at": 1000},
-			{"who": "bear", "watered": 0, "star": 1, "at": 2000},
+			{"who": "bear", "shared": 1, "star": 1, "at": 1500},
+			{"who": "bear", "kind": "return_visit", "watered": 1,
+				"star": 1, "at": 2000},
 		],
 		"visit_log_unread": true,
 	}}
@@ -3082,18 +3091,29 @@ func _two_tablets_agree_about_the_bear() -> void:
 		SaveManager.data["farm"].get("npc")).get("bear", {})
 	_ok(int(merged.get("last_share_cycle", -1)) == 5,
 		"a cycle picked on either tablet stays picked -- high water")
-	_ok(bool(merged.get("help_owed", false)),
-		"a promise made on either tablet was made -- OR")
+	_ok(not bool(merged.get("help_owed", true))
+			and int(merged.get("help_completed_cycle", -1)) == 5,
+		"a later completed share cycle cannot be reopened by an older promise")
+	_ok(int(merged.get("last_sneak_cycle", -1)) == 8
+			and not bool(merged.get("sneak_owed", true)),
+		"the newest completed quiet-pick cycle stays completed after import")
+	var merged_rabbit: Dictionary = Farm.normalise_npc(
+		SaveManager.data["farm"].get("npc")).get("rabbit", {})
+	_ok(int(merged_rabbit.get("last_share_cycle", -1)) == 3
+			and bool(merged_rabbit.get("help_owed", false)),
+		"a newer rabbit share keeps its still-owed watering promise")
 	_ok(int(merged.get("last_visit_at", 0)) == 1000,
 		"the visit clock keeps the later stamp")
 	_ok(int(SaveManager.data["farm"]["npc_friendship"].get("bear", 0)) == 4,
 		"friendship takes the higher count, never the sum")
 	var log: Array = SaveManager.data["farm"]["visit_log"]
-	_ok(log.size() == 2, "the same visit on both tablets lands once")
+	_ok(log.size() == 3, "the same visit on both tablets lands once")
 	_ok(int((log[0] as Dictionary).get("at", 0)) == 2000,
 		"...and the union reads newest first")
 	_ok(bool(SaveManager.data["farm"]["visit_log_unread"]),
 		"news on either tablet is still news")
+	_ok(not bool(SaveManager.data["farm"].get("bear_return_visit_pending", true)),
+		"a completed return visit on either tablet clears the older request")
 
 
 # --- 阶段 5: the ladder and the land ---------------------------------------
@@ -3407,6 +3427,23 @@ func _the_facility_action_controller_unifies_timed_production() -> void:
 	_ok(str(repeated_maker.get("action", "")) == FacilityAction.MISSING
 		and Barn.count("flour") == 1,
 		"collecting a maker twice cannot duplicate its produce")
+
+	# A merged save can hold ready output from one tablet alongside a running
+	# cycle from the other. Collecting the first output must leave that timer.
+	_fresh_save()
+	farm = SaveManager.data["farm"]
+	farm["coop"] = {"fed_at": now + 200, "eggs": 2}
+	var overlap_eggs := Pen.collect(farm, Pen.COOP)
+	_ok(int(overlap_eggs.get("amount", 0)) == 2
+			and int(farm["coop"].get("fed_at", 0)) == now + 200
+			and Pen.state(farm, Pen.COOP, now + 210) == Pen.PRODUCING,
+		"collecting merged eggs keeps the other tablet's active coop cycle")
+	farm["mill"] = {"started_at": now + 200, "done": 1}
+	var overlap_flour := Maker.collect(farm, Maker.MILL)
+	_ok(int(overlap_flour.get("amount", 0)) == 1
+			and int(farm["mill"].get("started_at", 0)) == now + 200
+			and Maker.state(farm, Maker.MILL, now + 210) == Maker.WORKING,
+		"collecting merged flour keeps the other tablet's active mill cycle")
 
 
 ## Candidate 2: visitors who want a dish from the kitchen (schedule, want bubble, and gifting).

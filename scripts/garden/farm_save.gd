@@ -204,12 +204,10 @@ static func default_farm() -> Dictionary:
 		# button must present an id that has already been seen.
 		"sale_receipt_id": 0,
 		"paid_sales": [],
-		# The neighbours, as the child's save knows them. Three facts per bear
-		# and not one more: which share-cycle he picked in, whether he still
-		# owes the watering he promised, and when the bear last dropped by his
-		# farm. Everything else about the bear's farm is COMPUTED from the
-		# clock -- storing a state that can be computed is storing a thing
-		# that can disagree.
+		# The neighbours, as the child's save knows them: share and completion
+		# cycle stamps, any help still owed, and the bear's last visit time.
+		# Everything else about a friend's farm is COMPUTED from the clock --
+		# storing a state that can be computed is storing a thing that can disagree.
 		"npc": default_npc(),
 		# What the visitors did, newest first, at most VISIT_LOG_KEPT entries.
 		# Every entry is something GIVEN -- nothing in this list can be a
@@ -286,12 +284,16 @@ const VISIT_LOG_KEPT := 10
 
 static func default_npc() -> Dictionary:
 	return {"bear": {"last_share_cycle": -1, "help_owed": false,
+		"help_completed_cycle": -1,
 		"last_visit_at": 0,
 		# 悄悄摘一颗：摘过哪个生长周期、小熊还欠着哪一次"什么都没说，
 		# 多分你一颗"。normalise_npc 会给旧存档补上这两个默认值。
-		"last_sneak_cycle": -1, "sneak_owed": false},
-		"rabbit": {"last_share_cycle": -1, "help_owed": false},
-		"puppy": {"last_share_cycle": -1, "help_owed": false}}
+		"last_sneak_cycle": -1, "sneak_owed": false,
+		"sneak_completed_cycle": -1},
+		"rabbit": {"last_share_cycle": -1, "help_owed": false,
+			"help_completed_cycle": -1},
+		"puppy": {"last_share_cycle": -1, "help_owed": false,
+			"help_completed_cycle": -1}}
 
 
 ## The npc block sits three levels deep, which is one past what _migrate can
@@ -308,6 +310,25 @@ static func normalise_npc(raw: Variant) -> Dictionary:
 		for key in out[npc_id].keys():
 			if given.has(key) and SaveManager.same_shape(given[key], out[npc_id][key]):
 				out[npc_id][key] = given[key]
+		# Older saves have only a boolean. A false flag alongside a recorded share
+		# cycle means help for that cycle was completed; a true flag means the
+		# completion high-water has not caught up yet.
+		if not given.has("help_completed_cycle") \
+				and not bool(given.get("help_owed", false)):
+			out[npc_id]["help_completed_cycle"] = int(
+				out[npc_id].get("last_share_cycle", -1))
+		var share_cycle := int(out[npc_id].get("last_share_cycle", -1))
+		var help_completed := int(out[npc_id].get("help_completed_cycle", -1))
+		out[npc_id]["help_owed"] = share_cycle > help_completed
+	var bear_given: Variant = raw.get("bear")
+	if bear_given is Dictionary:
+		if not bear_given.has("sneak_completed_cycle") \
+				and not bool(bear_given.get("sneak_owed", false)):
+			out["bear"]["sneak_completed_cycle"] = int(
+				out["bear"].get("last_sneak_cycle", -1))
+		out["bear"]["sneak_owed"] = int(
+			out["bear"].get("last_sneak_cycle", -1)) > int(
+				out["bear"].get("sneak_completed_cycle", -1))
 	return out
 
 

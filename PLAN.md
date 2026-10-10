@@ -827,6 +827,21 @@ These are yours to make. Nothing below has been changed without asking.
   reusable Blender generators are under `tools/art/`, disposable `scratch/`
   scripts were removed, project skills remain under `.agents/skills/`, and no
   `.ours`/`.theirs` conflict remnants are present.
+- **Cross-device save merge audit (10 October):** rechecked the remote before
+  continuing. `origin/claude/stoic-bell-a41pfu` at `69892a9` is an ancestor of
+  `main`, which had 97 later commits at the start of this pass; the planned
+  integration is complete. Save import now carries a child's name, selected
+  hero and unfinished harvest-order checkpoint, and merges farm facility
+  output/timers, daily progress and claims, date guards, fish and dog progress,
+  friend promises, the bear's return request, and nested visitor/unlock
+  ledgers. Completion-cycle markers keep an already-fulfilled promise from
+  being reopened by a stale tablet. `SaveProbe` passed its blank-device,
+  reload and two-device merge cases; `GardenProbe` passed 1,206 checks,
+  including stale/new friend promises and facilities with output plus an active
+  cycle. The full isolated smoke suite passed 30/30 with 0 skipped, and
+  `tools_check.py` reported 0 errors and 208 existing warnings. This synthetic
+  coverage still does not replace the real iPad-backup migration or the planned
+  iPad pacing/playability session.
 
 ---
 

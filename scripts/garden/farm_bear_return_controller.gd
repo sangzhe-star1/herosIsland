@@ -32,6 +32,7 @@ static func settle_water(farm: Dictionary, index: int, now: int) -> Dictionary:
 	farm["bear_return_visit_pending"] = false
 	Farm.remember_visit(farm, {
 		"who": "bear",
+		"kind": "return_visit",
 		"watered": 1,
 		"star": 1,
 		"at": now,

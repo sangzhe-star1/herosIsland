@@ -66,7 +66,8 @@ static func collect(farm: Dictionary, spec: Dictionary) -> Dictionary:
 	if done <= 0:
 		return {}
 	c["done"] = 0
-	c["started_at"] = 0
+	# Keep an in-progress cycle from the other device if this save also carried
+	# finished flour. state() clears started_at when that same cycle completes.
 	var receipt := Barn.store_harvest(str(spec["output"]), done)
 	receipt["crop_id"] = str(spec["output"])
 	receipt["amount"] = done
