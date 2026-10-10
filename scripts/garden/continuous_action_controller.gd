@@ -40,6 +40,20 @@ func begin() -> void:
 	applied = 0
 
 
+## Close one stroke and hand its single commit decision to the page.
+##
+## `did_work` is the only reason the save layer should write at finger-up;
+## reset the gesture here so a later stroke can never inherit its old count or
+## once-per-bed set. The page still owns persistence and feedback.
+func finish() -> Dictionary:
+	var result := {
+		"applied": applied,
+		"did_work": applied > 0,
+	}
+	begin()
+	return result
+
+
 ## May the brush work on this bed? Marks the bed as done ONLY when the answer
 ## is yes -- a bed that did not need the job when the stroke first crossed it
 ## stays askable, which costs nothing because the answer will still be no.

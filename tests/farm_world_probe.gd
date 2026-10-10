@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 781
+const CHECKS_EXPECTED := 784
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -359,14 +359,25 @@ func _the_stroke_bookkeeping_refuses_seconds() -> void:
 		"and the done list alone refuses the second visit -- the bed still "
 		+ "reads as ripe, so nothing else here could have said no")
 	_ok(stroke.applied == 1, "one bed worked, whatever the finger did")
-
-	stroke.begin()
+	var first_finish: Dictionary = stroke.finish()
+	_ok(int(first_finish.get("applied", 0)) == 1
+			and bool(first_finish.get("did_work", false))
+			and stroke.applied == 0,
+		"finishing returns one save decision and clears the old stroke")
 	_ok(stroke.may_apply(tools, plots, 0),
 		"a NEW stroke may work the same bed again -- once per stroke, not "
 		+ "once per childhood")
 	_ok(not stroke.may_apply(tools, plots, -1)
 			and not stroke.may_apply(tools, plots, 9),
 		"and a bed that does not exist is never worked")
+	var second_finish: Dictionary = stroke.finish()
+	_ok(int(second_finish.get("applied", 0)) == 1
+			and stroke.applied == 0,
+		"bad bed indexes never add to the next stroke's commit count")
+	var empty_finish: Dictionary = stroke.finish()
+	_ok(not bool(empty_finish.get("did_work", true))
+			and int(empty_finish.get("applied", -1)) == 0,
+		"an empty stroke closes without asking the save layer to write")
 
 
 ## The promise the whole opening view rests on.

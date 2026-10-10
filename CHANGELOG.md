@@ -1,5 +1,11 @@
 # Changelog
 
+## 批量笔划完成与一次存档决策 — 10 October 2026
+
+- `continuous_action_controller.gd` 增加 `finish()`，一次返回已处理地块数和是否需要提交，并清空该笔的去重集合；`garden_screen.gd` 只在有实际工作时保存一次。
+- FarmWorldProbe 增至 784 项，覆盖连续新笔划、无效地块不计数、空笔划不触发存档；两种屏幕比例的工具刷地/收菜流程通过。
+- `tools_check.py`：0 errors，208 warnings。完整烟测仍以此前交易控制器版本 `840ea39` 的 30 passed、0 skipped 为最近全量结果。
+
 ## 收菜结算集中到交易控制器 — 10 October 2026
 
 - 新增 `farm_harvest_transaction_controller.gd`，把一次性领取、仓库/篮子分流、地块复位与合并冲突释放收进同一结算入口；页面继续负责经验、每日进度、菜谱提示和动画反馈。

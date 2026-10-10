@@ -2223,9 +2223,8 @@ func _on_stroke_swept(index: int) -> void:
 ## The finger lifted. Now the stroke is a fact: write it down once, praise it
 ## once, and put the hand back if the tool has nothing left to do.
 func _on_stroke_ended() -> void:
-	var did := _stroke.applied
-	_stroke.begin()
-	if did == 0:
+	var completion: Dictionary = _stroke.finish()
+	if not bool(completion.get("did_work", false)):
 		# Swept, but over nothing that needed this tool. Not an error and not
 		# silence either: the tool itself shrugs, so the answer is "nothing to
 		# do HERE" rather than "nothing happened", which reads as broken.

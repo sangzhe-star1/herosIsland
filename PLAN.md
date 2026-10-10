@@ -166,8 +166,10 @@ These are yours to make. Nothing below has been changed without asking.
    `scripts/garden/farm_plot_planting_controller.gd`; the screen supplies the
    tutorial timing and golden decision and saves the returned plot. Tilling
    now lives in `scripts/garden/farm_plot_tilling_controller.gd`, shared by
-   taps, the shovel brush, and the hint director. The screen still owns
-   multi-bed stroke commits, XP/daily/recipe events, and visual side effects.
+   taps, the shovel brush, and the hint director. The stroke controller now
+   returns a one-shot completion summary and clears its per-stroke bed set;
+   the screen persists once only when that summary says work occurred. The
+   screen still owns XP/daily/recipe events and visual side effects.
    On 10 October, transaction-ID creation, post-harvest soil reset, and
    paid-duplicate recovery were extracted to
    `scripts/garden/farm_plot_harvest_controller.gd`; once-only harvest claims
@@ -254,8 +256,10 @@ These are yours to make. Nothing below has been changed without asking.
   and plot reset/recovery state from `garden_screen.gd`; its ledger controller
   owns the duplicate gate and bounded append, and its transaction controller
   settles inventory plus the plot together. The claim path no longer mutates
-  the persistent list before the 64-entry retention helper can run. Focused
-  probes and 16:9/4:3 overflow shots pass; the branch is not merged yet.
+  the persistent list before the 64-entry retention helper can run. Stroke
+  completion now returns one explicit save decision and starts the next stroke
+  with clean bookkeeping. Focused probes and 16:9/4:3 overflow shots pass; the
+  branch is not merged yet.
 - **Needs the player's device/save:** test hen and mill timers, cloud discovery,
   dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
   genuine older iPad save before changing save-version fields. These need
@@ -268,9 +272,12 @@ These are yours to make. Nothing below has been changed without asking.
   30 passed and 0 skipped after the care, planting, and tilling controller
   extractions and touch fix.
 - **Latest feature-branch full verification:** `./tests/run_smoke.sh` passed
-  30 probes with 0 skipped in the isolated QA project after the harvest
-  transaction extraction. GardenProbe asked 934 questions, GardenTouchProbe
-  1,865, FarmWorldProbe 781, and SaveProbe passed.
+  30 probes with 0 skipped in the isolated QA project at `840ea39`, after the
+  harvest transaction extraction. GardenProbe asked 934 questions,
+  GardenTouchProbe 1,865, FarmWorldProbe 781, and SaveProbe passed.
+- **Latest stroke-lifecycle verification:** FarmWorldProbe asked 784 questions
+  across both screen shapes and passed after the explicit finish summary was
+  added; `tools_check.py` reports 0 errors and 208 warnings.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.
