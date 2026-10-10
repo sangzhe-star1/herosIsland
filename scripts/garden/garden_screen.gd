@@ -2560,14 +2560,16 @@ func _deliver(order: Dictionary) -> void:
 		_earn_xp("order")
 		_daily_progress("deliver")
 	SaveManager.data["farm_orders"] = orders
+	# Completion belongs to this delivery transaction. Set the lesson flag
+	# before the single save so an interrupted entry cannot leave the order paid
+	# while the first-planting lesson is still marked unfinished.
+	_the_lesson_is_over()
 	SaveManager.save_game()
 
 	# Handing the first basket over is the end of the lesson, and the only end
 	# it has. Written down here rather than on a timer, because "he has been
 	# taught" should mean he did the whole thing once -- turned the earth, put
 	# a seed in, watered it, picked it, and gave it to somebody who wanted it.
-	_the_lesson_is_over()
-
 	if paid > 0:
 		AudioManager.play_sfx("res://assets/audio/coin.ogg")
 		AudioManager.say("praise_2")
@@ -3612,7 +3614,6 @@ func _the_lesson_is_over() -> void:
 	_lesson_running = false
 	var farm := _farm()
 	farm["tutorial_completed"] = true
-	SaveManager.save_game()
 
 
 ## The first seed on the rack -- the one the finger points at.

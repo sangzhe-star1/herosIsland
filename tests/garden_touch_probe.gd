@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1784
+const CHECKS_EXPECTED := 1891
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -2901,8 +2901,19 @@ func _the_lesson_happens_once_in_a_childhood() -> void:
 	_ok(not bool(_garden.get("_lesson_running")),
 		"and the lesson stops running the moment it is finished")
 
-	# Second visit: nothing.
+	# Reload without an extra save from the test. The delivery must have written
+	# both its once-key and the lesson completion flag in the same transaction.
 	_close()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	GameClock.set_test_now(NOON, 0)
+	SaveManager.load_game()
+	_ok(bool(SaveManager.data["farm"].get("tutorial_completed", false)),
+		"the delivery's single save includes the lesson completion flag")
+	_ok("bear_carrots" in SaveManager.data["farm_orders"].get("delivered", []),
+		"the same save includes the order receipt")
+
+	# Second visit: nothing.
 	_open()
 	for i in range(4):
 		await get_tree().process_frame
