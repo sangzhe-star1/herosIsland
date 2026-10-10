@@ -1,5 +1,11 @@
 # Changelog
 
+## 菜园顶栏迁入独立面板 — 10 October 2026
+
+- 新增 `farm_header_panel.gd`，收拢返回、等级、丰收挑战入口与星币栏的 HUD 绘制和布局尺寸；`garden_screen.gd` 只提供当前视口和顶栏高度，面板/关卡切换仍由屏幕拥有。
+- 保留挑战卡片整块触控命中、呼吸缩放与作物预览；`garden_screen.gd` 从 3,666 行降到 3,436 行。
+- GardenTouchProbe 双比例通过 1,959 项，FarmWorldProbe 双比例通过 850 项；FarmWorld 的 16:9 与 4:3 截图已检查，`tools_check.py` 为 0 errors、208 warnings。
+
 ## 菜地动作提示共用一张状态表 — 10 October 2026
 
 - 新增 `farm_plot_action_controller.gd`，统一草地翻土、翻土播种、需照料、成熟收获、等待和动画锁定这六种地块动作。点地、任务条和狗狗提示都复用同一状态与优先级；收菜动画期间会跳过暂不可点的地块。

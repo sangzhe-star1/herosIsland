@@ -60,7 +60,6 @@ const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd")
 const DailyProgress := preload("res://scripts/garden/farm_daily_progress_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
-const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
@@ -76,6 +75,7 @@ const FarmVisitPanel := preload("res://scripts/garden/panels/farm_visit_panel.gd
 const FarmRecipesPanel := preload("res://scripts/garden/panels/farm_recipes_panel.gd")
 const FarmKitchenPanel := preload("res://scripts/garden/panels/farm_kitchen_panel.gd")
 const FarmChallengePanel := preload("res://scripts/garden/panels/farm_challenge_panel.gd")
+const FarmHeaderPanel := preload("res://scripts/garden/panels/farm_header_panel.gd")
 const FarmGiftPanel := preload("res://scripts/garden/panels/farm_gift_panel.gd")
 const FarmSeedRackPanel := preload("res://scripts/garden/panels/farm_seed_rack_panel.gd")
 const FarmToolRackPanel := preload("res://scripts/garden/panels/farm_tool_rack_panel.gd")
@@ -86,17 +86,6 @@ const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## the buttons inside keep their child-friendly hit boxes.
 const TOP_BAR := 68.0
 const SHELF := 140.0
-## One header rhythm, used by the five facts a child sees before touching the
-## farm. Keeping the measurements together prevents the title plaque, level
-## and challenge door from each growing toward one another on 4:3.
-const HUD_INSET := 20.0
-const HUD_GAP := 12.0
-const HUD_BACK_BOX := Vector2(64.0, 60.0)
-const HUD_LEVEL_BOX := Vector2(102.0, 54.0)
-const HUD_CHALLENGE_BOX := Vector2(88.0, 48.0)
-const HUD_CHOOSER_BOX := Vector2(48.0, 48.0)
-const HUD_PURSE_BOX := Vector2(126.0, 54.0)
-const HUD_CARD_Y := 4.0
 ## The barn card and its overflow basket share this one shelf measurement.
 ## A flight should land on the same place the rebuilt shelf will draw.
 const BARN_CARD := Vector2(152.0, SEED_TILE.y)
@@ -448,7 +437,7 @@ func _rebuild() -> void:
 
 	_play = UiKit.play_area(self, true)
 	_play.theme = UiKit.theme()
-	_top_bar(view)
+	FarmHeaderPanel.new(self).build(view, TOP_BAR)
 	_seed_drop_targets()
 	_panel_buttons.clear()
 	_market_field = null
@@ -548,18 +537,6 @@ func _queue_rebuild(release_frames: int = 1) -> void:
 		_rebuild()
 
 
-## The right two HUD slots are shared by the top strip and the challenge door.
-## Their geometry is a single answer, so a longer coin total cannot make the
-## challenge chip drift under it on a 4:3 tablet.
-func _header_purse_at(view: Vector2) -> Vector2:
-	return Vector2(view.x - HUD_INSET - HUD_PURSE_BOX.x, HUD_CARD_Y)
-
-
-func _header_challenge_at(view: Vector2) -> Vector2:
-	return _header_purse_at(view) - Vector2(
-		HUD_GAP * 2.0 + HUD_CHALLENGE_BOX.x + HUD_CHOOSER_BOX.x, -6.0)
-
-
 ## The garden needs surfaces to separate reading lanes, not a second row of
 ## cards.  Keep that low-relief material in one helper so the header and dock
 ## can share it without inventing another UI family for each little panel.
@@ -639,96 +616,6 @@ func _tool_tile_style(fill: Color, edge: Color, selected: bool,
 		style.shadow_offset = Vector2(0, 2)
 	return style
 
-
-func _top_bar(view: Vector2) -> void:
-	# A fixed, pale strip prevents the moving farm from reaching the text. It is
-	# deliberately flat: facts should read as one calm sentence above the farm,
-	# not five raised cards competing with the island below.
-	var strip := Panel.new()
-	strip.name = "GardenTopBar"
-	var strip_style := _quiet_surface_style(Color(0.99, 0.98, 0.93), 0,
-		Color(0.53, 0.70, 0.42, 0.42))
-	strip_style.border_width_bottom = 2
-	strip.add_theme_stylebox_override("panel", strip_style)
-	strip.position = Vector2.ZERO
-	strip.custom_minimum_size = Vector2(view.x, TOP_BAR)
-	strip.size = Vector2(view.x, TOP_BAR)
-	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(strip)
-
-	var back := UiKit.back_button(func(): _one_step_back(), HUD_BACK_BOX)
-	back.name = "GardenBack"
-	back.position = Vector2(HUD_INSET, HUD_CARD_Y)
-	_play.add_child(back)
-
-	# The farm is already recognisable from its map. Keep this compact lane
-	# for controls and progress instead of repeating its large screen title.
-
-	# The farm's level: a star, a number, and a sliver of progress. The bar
-	# filling is the number at the resolution a young player reads; it belongs
-	# in the same stable slot as the back door, not as a loose rail underneath.
-	var badge := Panel.new()
-	badge.name = "FarmLevelBadge"
-	badge.add_theme_stylebox_override("panel", _quiet_surface_style(
-		Color(0.99, 0.96, 0.86, 0.72), 18, Color(0.82, 0.68, 0.35, 0.38), 1))
-	badge.position = Vector2(HUD_INSET + HUD_BACK_BOX.x + HUD_GAP, 7.0)
-	badge.custom_minimum_size = HUD_LEVEL_BOX
-	badge.size = HUD_LEVEL_BOX
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var level_star := UiKit.picture("star", 28.0)
-	if level_star != null:
-		level_star.name = "FarmLevelIcon"
-		level_star.position = Vector2(12.0, 8.0)
-		badge.add_child(level_star)
-	var level_tag := UiKit.title(str(Level.level()), 24)
-	level_tag.name = "FarmLevelValue"
-	level_tag.position = Vector2(47.0, 3.0)
-	level_tag.size = Vector2(42.0, 32.0)
-	level_tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	level_tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.add_child(level_tag)
-	var rail := Panel.new()
-	rail.name = "FarmLevelRail"
-	rail.add_theme_stylebox_override("panel", UiKit.track_style())
-	rail.position = Vector2(11.0, 42.0)
-	rail.size = Vector2(80.0, 7.0)
-	rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.add_child(rail)
-	var fill := Panel.new()
-	fill.name = "FarmLevelFill"
-	fill.add_theme_stylebox_override("panel", UiKit.fill_style(Color(1.0, 0.78, 0.22)))
-	fill.position = rail.position + Vector2(2.0, 2.0)
-	fill.size = Vector2(76.0 * Level.progress(), 3.0)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.add_child(fill)
-	_play.add_child(badge)
-
-	_challenge_door(view)
-
-	# The purse stays read-only on this screen. A compact card keeps the number
-	# familiar without letting its empty white area compete with the challenge.
-	var purse := Panel.new()
-	purse.name = "FarmCoinPurse"
-	purse.add_theme_stylebox_override("panel", _quiet_surface_style(
-		Color(1.0, 0.98, 0.90, 0.72), 18, Color(0.83, 0.70, 0.39, 0.38), 1))
-	purse.position = _header_purse_at(view)
-	purse.custom_minimum_size = HUD_PURSE_BOX
-	purse.size = HUD_PURSE_BOX
-	purse.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var coin := UiKit.picture("star_coin", 28.0)
-	if coin != null:
-		coin.name = "FarmCoinIcon"
-		coin.position = Vector2(11.0, 13.0)
-		purse.add_child(coin)
-	var amount := UiKit.title(str(Coins.balance()), 24)
-	amount.name = "FarmCoinValue"
-	amount.position = Vector2(45.0, 8.0)
-	amount.size = Vector2(72.0, 36.0)
-	amount.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	amount.clip_text = true
-	amount.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	purse.add_child(amount)
-	_play.add_child(purse)
 
 ## A tiny, derived answer to "what now?". It deliberately has no save field:
 ## the farm, the order board and the tool controller already know every fact
@@ -3541,123 +3428,6 @@ func _offer_a_break() -> void:
 	var leave := UiKit.big_button(I18n.t("garden.go_exploring"), Palette.BLUE)
 	leave.pressed.connect(func(): quit_level())
 	row.add_child(leave)
-
-## The way into 丰收行动.
-##
-## The crop/play icon starts the next unfinished challenge; the adjacent grid
-## opens the same level picker. A completed set offers the last level again.
-func _challenge_door(view: Vector2) -> void:
-	var levels: Array = GameData.get_levels_for_mode("harvest")
-	if levels.is_empty():
-		return
-	var next: Dictionary = levels[levels.size() - 1]
-	var done := 0
-	for level in levels:
-		var id := str(level.get("id", ""))
-		if int(SaveManager.get_level_progress(id).get("stars", 0)) > 0:
-			done += 1
-		else:
-			next = level
-			break
-
-	# One warm side-quest chip, distinct from the tool dock and the gold
-	# next-step ribbon.  It shares the header's low-relief material so it reads
-	# as useful context, not a second primary action.
-	var door_box := HUD_CHALLENGE_BOX
-	var door := Panel.new()
-	door.name = "HarvestChallenge"
-	door.add_theme_stylebox_override("panel", _quiet_surface_style(
-		Color(0.98, 0.94, 0.78, 0.72), 18, Color(0.75, 0.58, 0.28, 0.38), 1))
-	door.custom_minimum_size = door_box
-	door.size = door_box
-	door.position = _header_challenge_at(view)
-	door.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(door)
-
-	var play := Control.new()
-	play.name = "ChallengePlayIcon"
-	play.position = Vector2(58.0, 8.0)
-	play.size = Vector2(12.0, 12.0)
-	play.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	Shapes.fill(play, PackedVector2Array([
-		Vector2.ZERO, Vector2(0.0, 12.0), Vector2(11.0, 6.0)]),
-		Color(0.42, 0.48, 0.24), 0.0)
-	door.add_child(play)
-	var count := UiKit.title("%d/%d" % [done, levels.size()], 13,
-		Color(0.34, 0.27, 0.17))
-	count.name = "ChallengeCount"
-	count.position = Vector2(44.0, 25.0)
-	count.size = Vector2(40.0, 18.0)
-	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	door.add_child(count)
-
-	var press := Button.new()
-	press.name = "HarvestChallengeShortcut"
-	press.flat = true
-	press.focus_mode = Control.FOCUS_NONE
-	press.position = Vector2.ZERO
-	press.size = door_box
-	press.custom_minimum_size = door_box
-	press.tooltip_text = I18n.t("garden.harvest_challenge")
-	var go := str(next.get("id", ""))
-	press.pressed.connect(func(): GameManager.start_level(go))
-	# Keep the hit target inside the animated card so its bounds follow every
-	# breathing-scale frame instead of drifting away from the visible surface.
-	door.add_child(press)
-	var choose := _chip_button("", Color(0.97, 0.91, 0.68), HUD_CHOOSER_BOX)
-	choose.name = "HarvestChallengeChooser"
-	choose.tooltip_text = I18n.t("garden.choose_challenge")
-	choose.position = door.position + Vector2(door_box.x + 12.0, 0.0)
-	var grid := Control.new()
-	grid.name = "ChallengeChooserIcon"
-	grid.position = Vector2(13.0, 13.0)
-	grid.size = Vector2(22.0, 22.0)
-	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for index in range(4):
-		var cell := Panel.new()
-		cell.position = Vector2((index % 2) * 13.0, (index / 2) * 13.0)
-		cell.size = Vector2(9.0, 9.0)
-		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cell.add_theme_stylebox_override("panel", _quiet_surface_style(
-			Color(0.48, 0.38, 0.22), 2, Color.TRANSPARENT, 0, 0))
-		grid.add_child(cell)
-	choose.add_child(grid)
-	choose.pressed.connect(func(): _open_panel("challenges"))
-	_play.add_child(choose)
-
-	# The next crop sits beside the challenge tally, inside the header on both
-	# shapes. It no longer needs a separate card over the player's map.
-	var preview_box := Vector2(32.0, 32.0)
-	var preview := Control.new()
-	preview.name = "ChallengeNext"
-	preview.position = Vector2(6.0, 8.0)
-	preview.custom_minimum_size = preview_box
-	preview.size = preview_box
-	# A look, not a button: the door above is the way in, and this card must
-	# never eat a tap meant for the bed underneath it.
-	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var shows := "star"
-	# Resolve the picture before constructing it. Replacing a newly drawn star
-	# would leave that unparented node (and its shapes) alive after every refresh.
-	var art_ref := "star"
-	if done < levels.size():
-		var tgts: Array = (next.get("config", {}) as Dictionary).get("targets", [])
-		if not tgts.is_empty():
-			var crop: Dictionary = HarvestCrops.get_crop(
-				str(tgts[0].get("crop_id", "")))
-			if not crop.is_empty():
-				art_ref = str(crop.get("asset", ""))
-				shows = str(crop.get("id", ""))
-	var art: Control = _crop_picture(shows, 32.0) if shows != "star" else UiKit.picture(art_ref, 32.0)
-	preview.set_meta("shows", shows)
-	if art != null:
-		preview.add_child(art)
-	door.add_child(preview)
-	var task := _next_task()
-	if not _lesson_running and not bool(task.get("actionable", false)):
-		UiKit.breathe(door, 0.018, 1.3)
-
 
 ## The same harvest levels, replayable from the same farm door. Four roomy
 ## rows and the existing sheet pager fit both screen shapes without a scroll

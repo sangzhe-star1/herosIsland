@@ -231,8 +231,10 @@ These are yours to make. Nothing below has been changed without asking.
    art, selected mark, drag items and pager; the screen retains the live drag
    field, selection callbacks, current page and lesson pointer. The rack
    centre used by the lesson and probes delegates to the panel's geometry, so
-   there is one layout source. `garden_screen.gd` is now 3,663 lines. On
-   10 October, plot verbs moved to
+   there is one layout source. `garden_screen.gd` is now 3,436 lines. The
+   back/level/challenge/coin header now lives in
+   `scripts/garden/panels/farm_header_panel.gd`, with the screen supplying its
+   viewport and top-bar height. On 10 October, plot verbs moved to
    `scripts/garden/farm_plot_action_controller.gd`; bare-hand taps and the
    next-task resolver now use the same state-first action table, while the
    screen retains presentation and persistence effects.
@@ -542,6 +544,12 @@ These are yours to make. Nothing below has been changed without asking.
   FarmWorldProbe passed 850 checks, GardenProbe 1,142, and GardenTouchProbe
   1,959 across 16:9 and 4:3. This still leaves the screen responsible for
   saves, sound, and visual feedback.
+- **Header presentation boundary (10 October):** the 68px top bar, level and
+  coin badges, challenge shortcut, and their shared layout measurements now
+  live in `farm_header_panel.gd`; `garden_screen.gd` fell from 3,666 to 3,436
+  lines. GardenTouchProbe passed 1,959 checks at both aspect ratios, and
+  FarmWorldProbe passed 850 with fresh screenshots visually checked at 16:9
+  and 4:3. The screen still owns navigation and gameplay state.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
