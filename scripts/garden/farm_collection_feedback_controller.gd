@@ -1,10 +1,10 @@
 extends RefCounted
-## Collection feedback shared by crop, facility, pond, and dog receipts.
+## Ephemeral world feedback shared by receipts and timed-facility actions.
 ##
-## GardenScreen supplies the common feedback layer, the truthful destination
-## positions, and its crop-picture builder. This controller owns only the
-## flying receipt and the short harvest combo label; transactions and saves
-## remain with their gameplay controllers.
+## GardenScreen supplies the common feedback layer, truthful positions, and
+## its crop-picture builder. This view owns receipt flights, harvest combos,
+## facility wait rings, and wordless missing-input hints; transactions and
+## saves remain with their gameplay controllers.
 
 var _combo_label: Label
 
@@ -94,6 +94,41 @@ func show_flight(layer: CanvasLayer, host: Node, receipt: Dictionary,
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.parallel().tween_property(art, "scale", Vector2(0.5, 0.5), 0.4)
 	tween.tween_callback(art.queue_free)
+
+
+## Show the same progress affordance for every timed facility.
+func show_waiting_ring(layer: CanvasLayer, at: Vector2, fraction: float) -> void:
+	var ring := UiKit.wait_ring(fraction, 64.0)
+	if ring == null:
+		return
+	ring.name = "FacilityWaitRing"
+	ring.position = at + Vector2(0, -70)
+	layer.add_child(ring)
+	var tween := ring.create_tween()
+	tween.tween_interval(2.2)
+	tween.tween_property(ring, "modulate:a", 0.0, 0.4)
+	tween.tween_callback(ring.queue_free)
+
+
+## Show the wanted ingredient without making reading necessary.
+func show_wanted_icon(layer: CanvasLayer, at: Vector2, icon: String) -> void:
+	var want := UiKit.picture(icon, 44.0)
+	if want == null:
+		return
+	want.name = "FacilityWant"
+	want.position = at + Vector2(-22, -90)
+	want.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(want)
+	if not Juice.motion_enabled():
+		var still := want.create_tween()
+		still.tween_interval(1.4)
+		still.tween_callback(want.queue_free)
+		return
+	var tween := want.create_tween()
+	tween.tween_property(want, "position:y", want.position.y - 40.0, 0.9)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(want, "modulate:a", 0.0, 0.9).set_delay(0.5)
+	tween.tween_callback(want.queue_free)
 
 
 func end_combo() -> void:

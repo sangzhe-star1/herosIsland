@@ -866,6 +866,13 @@ These are yours to make. Nothing below has been changed without asking.
   afterward. `tools_check.py` reports 0 errors and 208 existing warnings.
   This synthetic merge coverage still needs a real iPad backup and the planned
   iPad pacing/playability session.
+- **Facility feedback view (10 October):** the shared farm feedback controller
+  now owns the timed-facility wait ring and wordless missing-input icon alongside
+  receipt flights and harvest combos. Real coop, mill, cow-shed, and beehive
+  touches still produce the same cues; GardenTouchProbe passed 1,993 checks
+  across 16:9 and 4:3. `garden_screen.gd` fell from 2,464 to 2,431 lines, and
+  `tools_check.py` reports 0 errors and 208 existing warnings. The full smoke
+  suite was not rerun for this presentation-only extraction.
 
 ---
 

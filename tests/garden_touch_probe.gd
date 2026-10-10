@@ -2391,7 +2391,7 @@ func _the_hens_turn_corn_into_eggs() -> void:
 	await get_tree().process_frame
 	_ok(int(SaveManager.data["farm"]["warehouse"].get("corn", 0)) == 1,
 		"pressing laying hens takes no more corn")
-	_ok(_find_named(fx, "CoopRing") != null,
+	_ok(_find_named(fx, "FacilityWaitRing") != null,
 		"...and shows how long is left as a ring")
 
 	# Time passes with the game shut; the eggs are there on the next look.
@@ -2422,7 +2422,7 @@ func _the_hens_turn_corn_into_eggs() -> void:
 	SaveManager.data["farm"]["warehouse"] = {}
 	_garden.call("_tap_facility", "coop")
 	await get_tree().process_frame
-	_ok(_find_named(fx, "CoopWant") != null,
+	_ok(_find_named(fx, "FacilityWant") != null,
 		"a press with no corn shows the corn the hens want")
 	_ok(int(SaveManager.data["farm"]["coop"].get("fed_at", 0)) == 0,
 		"...and feeds nothing")
@@ -2459,7 +2459,7 @@ func _the_mill_turns_wheat_into_flour() -> void:
 	_garden.call("_tap_facility", "mill")
 	await get_tree().process_frame
 	_ok(int(SaveManager.data["farm"]["warehouse"].get("wheat", 0)) == 2
-		and _find_named(fx, "CoopRing") != null,
+		and _find_named(fx, "FacilityWaitRing") != null,
 		"a press while it grinds is a ring, not more wheat")
 	GameClock.set_test_now(NOON + 100, 0)
 	_garden.call("_rebuild")
@@ -2480,7 +2480,7 @@ func _the_mill_turns_wheat_into_flour() -> void:
 	SaveManager.data["farm"]["warehouse"] = {}
 	_garden.call("_tap_facility", "mill")
 	await get_tree().process_frame
-	_ok(_find_named(fx, "CoopWant") != null
+	_ok(_find_named(fx, "FacilityWant") != null
 		and int(SaveManager.data["farm"]["mill"].get("started_at", 0)) == 0,
 		"with no wheat the mill shows the wheat and starts nothing")
 	GameClock.set_test_now(NOON, 0)
@@ -2514,7 +2514,7 @@ func _the_data_led_pens_share_the_facility_press_path() -> void:
 		"touching the cow shed consumes its data-defined feed")
 	_garden.call("_tap_facility", "cow_shed")
 	await get_tree().process_frame
-	_ok(Barn.count("wheat") == 0 and _find_named(fx, "CoopRing") != null,
+	_ok(Barn.count("wheat") == 0 and _find_named(fx, "FacilityWaitRing") != null,
 		"a second cow-shed touch shows progress without charging again")
 	GameClock.set_test_now(NOON + 150, 0)
 	_garden.call("_tap_facility", "cow_shed")
@@ -2530,7 +2530,7 @@ func _the_data_led_pens_share_the_facility_press_path() -> void:
 		"touching the beehive consumes its data-defined feed")
 	_garden.call("_tap_facility", "beehive")
 	await get_tree().process_frame
-	_ok(Barn.count("strawberry") == 0 and _find_named(fx, "CoopRing") != null,
+	_ok(Barn.count("strawberry") == 0 and _find_named(fx, "FacilityWaitRing") != null,
 		"a second beehive touch shows progress without charging again")
 	GameClock.set_test_now(NOON + 240, 0)
 	_garden.call("_tap_facility", "beehive")

@@ -759,7 +759,8 @@ func _tap_facility(facility_id: String) -> void:
 				str(spec.get("voice_collect", "farm_coop_eggs")))
 		FacilityAction.WAITING:
 			AudioManager.play_sfx("res://assets/audio/correct.ogg")
-			_show_coop_ring(at, float(result.get("progress", 0.0)))
+			_collection_feedback.show_waiting_ring(_harvest_feedback_layer(), at,
+				float(result.get("progress", 0.0)))
 		FacilityAction.STARTED:
 			SaveManager.save_game()
 			AudioManager.play_sfx("res://assets/audio/%s.ogg"
@@ -772,7 +773,8 @@ func _tap_facility(facility_id: String) -> void:
 		FacilityAction.MISSING:
 			AudioManager.play_sfx("res://assets/audio/pop.ogg")
 			var input_crop := str(result.get("input_crop", ""))
-			_float_want(at, str(GameData.get_crop(input_crop).get("icon", "seed")))
+			_collection_feedback.show_wanted_icon(_harvest_feedback_layer(), at,
+				str(GameData.get_crop(input_crop).get("icon", "seed")))
 
 
 ## All timed facilities collect through the barn's ordinary flight and spill
@@ -898,41 +900,6 @@ func _tap_wishing_well() -> void:
 		Juice.burst(_harvest_feedback_layer(), well_pos, 16)
 	_show_toast_message(I18n.t("farm.well_wish_done"), "star")
 	_queue_rebuild()
-
-
-func _show_coop_ring(at: Vector2, fraction: float) -> void:
-	var ring := UiKit.wait_ring(fraction, 64.0)
-	if ring == null:
-		return
-	ring.name = "CoopRing"
-	ring.position = at + Vector2(0, -70)
-	_harvest_feedback_layer().add_child(ring)
-	var t := ring.create_tween()
-	t.tween_interval(2.2)
-	t.tween_property(ring, "modulate:a", 0.0, 0.4)
-	t.tween_callback(ring.queue_free)
-
-
-## A small picture of what is wanted, rising from the thing that wants it
-## and fading: the wordless "I need corn".
-func _float_want(at: Vector2, icon: String) -> void:
-	var want := UiKit.picture(icon, 44.0)
-	if want == null:
-		return
-	want.name = "CoopWant"
-	want.position = at + Vector2(-22, -90)
-	want.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_harvest_feedback_layer().add_child(want)
-	if not Juice.motion_enabled():
-		var still := want.create_tween()
-		still.tween_interval(1.4)
-		still.tween_callback(want.queue_free)
-		return
-	var t := want.create_tween()
-	t.tween_property(want, "position:y", want.position.y - 40.0, 0.9)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	t.parallel().tween_property(want, "modulate:a", 0.0, 0.9).set_delay(0.5)
-	t.tween_callback(want.queue_free)
 
 
 ## Open one door and shut the rest. The panel-state controller owns route
