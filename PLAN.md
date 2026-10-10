@@ -219,7 +219,11 @@ These are yours to make. Nothing below has been changed without asking.
    screen keeps the timer, world refresh, celebration, and visual effects.
    The level-eight wishing well's date key and two-coin once gate now live in
    `scripts/garden/farm_well_wish_controller.gd`; the screen keeps the clock,
-   coin award call, save, and sparkle.
+   coin award call, save, and sparkle. The following tool-action pass routes
+   shovel, seed, water, weed, and bug transitions through the existing
+   `farm_tool_controller.gd`; the screen still supplies lesson/golden context
+   and owns saving and feedback. Basket harvest remains with its receipt and
+   storage transaction.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -390,6 +394,12 @@ These are yours to make. Nothing below has been changed without asking.
   checks across 16:9 and 4:3, including real well presses and a same-day retry.
   `tools_check.py` reports 0 errors and 208 existing warnings. The full smoke
   suite was not rerun for this extraction.
+- **Tool-action boundary:** shovel, seed, water, weed, and bug now share
+  `FarmToolController.apply_to_plot()` with the existing plot-transition rules;
+  the screen keeps lesson timing, the golden roll, saves, sounds, and animation.
+  FarmWorldProbe passed 809 checks across 16:9 and 4:3, including real brush
+  strokes and direct transition cases. `tools_check.py` reports 0 errors and
+  208 existing warnings. The full smoke suite was not rerun for this extraction.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

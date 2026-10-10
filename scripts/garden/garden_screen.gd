@@ -29,8 +29,6 @@ extends LevelManager
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
-const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controller.gd")
-const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
@@ -1578,9 +1576,10 @@ func _tap_plot(index: int) -> void:
 
 	match str(plot.get("state", Farm.EMPTY)):
 		Farm.EMPTY:
-			plot = PlotTilling.till(plot)
-			if plot.is_empty():
+			var till_result: Dictionary = _tools.apply_to_plot("shovel", plot)
+			if till_result.is_empty():
 				return
+			plot = till_result.get("plot", plot)
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		Farm.READY:
 			_harvest(plot, index)
@@ -1684,7 +1683,11 @@ func _on_gesture_finished(index: int, track: PackedVector2Array,
 ## by the tap and by the care gestures, because "the same care from a
 ## different hand" must be the same care. Returns the plot in its new state.
 func _care_for(plot: Dictionary, index: int) -> Dictionary:
-	var result: Dictionary = PlotCare.apply(plot, GameClock.now_unix())
+	var tool_id := _tools.tool_for(plot)
+	var result: Dictionary = _tools.apply_to_plot(tool_id, plot,
+		GameClock.now_unix())
+	if result.is_empty():
+		return plot
 	_respond_to_plot_care(str(result.get("action", "")), index)
 	return result.get("plot", plot)
 
@@ -1888,11 +1891,12 @@ func _plant_in(index: int, crop_id: String) -> void:
 	# never the numbers).
 	var golden := not _lesson_running \
 		and randf() < _golden_chance()
-	var planted: Dictionary = PlotPlanting.plant(plot, crop_id,
-		GameClock.now_unix(), _tutorial_growth if lesson_seed else 0, golden)
-	if planted.is_empty():
+	var result: Dictionary = _tools.apply_to_plot("seed", plot,
+		GameClock.now_unix(), crop_id,
+		_tutorial_growth if lesson_seed else 0, golden)
+	if result.is_empty():
 		return
-	plots[index] = planted
+	plots[index] = result.get("plot", plot)
 	SaveManager.data["farm"]["plots"] = plots
 
 
@@ -2074,18 +2078,22 @@ func _on_stroke_swept(index: int) -> void:
 	var before: Dictionary = plot.duplicate(true)
 	match _tools.selected:
 		"shovel":
-			plot = PlotTilling.till(plot)
-			if plot.is_empty():
+			var till_result: Dictionary = _tools.apply_to_plot("shovel", plot)
+			if till_result.is_empty():
 				return
+			plot = till_result.get("plot", plot)
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		"seed":
 			_plant_in(index, _tools.crop_to_plant(_farm().get("unlocked_crops", [])))
 			plot = plots[index]
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		"water", "weed", "bug":
-			var result: Dictionary = PlotCare.apply(plot, GameClock.now_unix())
-			plot = result.get("plot", plot)
-			_respond_to_plot_care(str(result.get("action", "")), index)
+			var care_result: Dictionary = _tools.apply_to_plot(_tools.selected,
+				plot, GameClock.now_unix())
+			if care_result.is_empty():
+				return
+			plot = care_result.get("plot", plot)
+			_respond_to_plot_care(str(care_result.get("action", "")), index)
 		"basket":
 			var receipt: Dictionary = _harvest_core(plot)
 			if not receipt.is_empty():
@@ -3794,10 +3802,10 @@ func _do_the_hard_part() -> void:
 	if str(plots[index].get("state", "")) != Farm.EMPTY:
 		_show_the_move()
 		return
-	var tilled: Dictionary = PlotTilling.till(plots[index])
-	if tilled.is_empty():
+	var result: Dictionary = _tools.apply_to_plot("shovel", plots[index])
+	if result.is_empty():
 		return
-	plots[index] = tilled
+	plots[index] = result.get("plot", plots[index])
 	SaveManager.data["farm"]["plots"] = plots
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")

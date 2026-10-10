@@ -30,6 +30,9 @@ extends RefCounted
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
+const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controller.gd")
+const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.gd")
 
 const HAND := "hand"
 
@@ -107,6 +110,43 @@ func needs(tool_id: String, plot: Dictionary) -> bool:
 		"basket":
 			return state == Farm.READY
 	return false          # the hand is not a brush; it never "needs"
+
+
+## Apply one tool's plot-state transition and return its presentation event.
+##
+## The screen still decides when time or the lesson's rare-gold rule applies,
+## then owns the save and the sound or animation. This controller joins that
+## context with the existing till, plant, and care transitions so a tap, a
+## brush stroke, and the first-lesson hint cannot grow separate rule tables.
+## The basket deliberately stays with the harvest transaction controller:
+## picking also claims a receipt and settles storage, so it is not a plot-only
+## action.
+func apply_to_plot(tool_id: String, plot: Dictionary, now: int = 0,
+		crop_id: String = "", growth_override_seconds: int = 0,
+		golden: bool = false) -> Dictionary:
+	if tool_id == HAND:
+		# A damaged save can contain an unknown care marker. Preserve the old
+		# quiet repair path when the hand taps that bed; recognized jobs always
+		# resolve to their own tool via tool_for().
+		if str(plot.get("state", Farm.EMPTY)) == Farm.NEEDS_CARE:
+			var repaired: Dictionary = PlotCare.apply(plot, now)
+			if str(repaired.get("action", "")) == PlotCare.REPAIR:
+				return repaired
+		return {}
+	if not needs(tool_id, plot):
+		return {}
+	match tool_id:
+		"shovel":
+			var tilled := PlotTilling.till(plot)
+			return {"plot": tilled, "action": "till"} if not tilled.is_empty() else {}
+		"seed":
+			var planted := PlotPlanting.plant(plot, crop_id, now,
+				growth_override_seconds, golden)
+			return {"plot": planted, "action": "plant"} if not planted.is_empty() else {}
+		"water", "weed", "bug":
+			return PlotCare.apply(plot, now)
+		_:
+			return {}
 
 
 func work_exists(tool_id: String, plots: Array) -> bool:

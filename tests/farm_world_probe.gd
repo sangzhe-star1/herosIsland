@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 792
+const CHECKS_EXPECTED := 805
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -76,6 +76,7 @@ func _ready() -> void:
 		_an_old_npc_save_gains_friend_defaults()
 		_the_layout_is_legal()
 		_the_stroke_bookkeeping_refuses_seconds()
+		_tool_action_controller_owns_plot_transitions()
 		_golden_state_is_a_visual_input()
 		for shape in SHAPES:
 			_shape = "%dx%d" % [shape.x, shape.y]
@@ -434,6 +435,99 @@ func _the_stroke_bookkeeping_refuses_seconds() -> void:
 	_ok(not bool(empty_finish.get("did_work", true))
 			and int(empty_finish.get("applied", -1)) == 0,
 		"an empty stroke closes without asking the save layer to write")
+
+
+## The toolbar is the shared rule for a tool's state change. The page supplies
+## the clock and lesson/golden context; this controller joins that context to
+## the old plot transitions without mutating their input snapshots.
+func _tool_action_controller_owns_plot_transitions() -> void:
+	_shape = "tool action rules"
+	var tools: Tools = Tools.new()
+	var grass: Dictionary = Farm.fresh_plot(0)
+	var result := tools.apply_to_plot("shovel", grass)
+	_ok(str(result.get("action", "")) == "till"
+			and str(result.get("plot", {}).get("state", "")) == Farm.TILLED,
+		"the shovel returns one turned-plot transition")
+	_ok(str(grass.get("state", "")) == Farm.EMPTY,
+		"turning preserves the caller's pre-action snapshot")
+	var growing: Dictionary = Farm.fresh_plot(1)
+	growing["state"] = Farm.GROWING
+	_ok(tools.apply_to_plot("shovel", growing).is_empty(),
+		"the shovel refuses a bed that is already in use")
+
+	var tilled: Dictionary = Farm.fresh_plot(2)
+	tilled["state"] = Farm.TILLED
+	tilled["plant_cycle_id"] = 8
+	result = tools.apply_to_plot("seed", tilled, 1234, "corn", 90, true)
+	var planted: Dictionary = result.get("plot", {})
+	_ok(str(result.get("action", "")) == "plant"
+			and str(planted.get("crop_id", "")) == "corn"
+			and str(planted.get("state", "")) == Farm.SEEDED
+			and int(planted.get("plant_cycle_id", 0)) == 9
+			and int(planted.get("growth_override_seconds", 0)) == 90
+			and bool(planted.get("golden", false)),
+		"planting keeps the lesson clock, golden choice, and cycle together")
+	_ok(str(tilled.get("state", "")) == Farm.TILLED
+			and str(tilled.get("crop_id", "")) == "",
+		"planting preserves the turned-bed snapshot")
+	_ok(tools.apply_to_plot("seed", tilled, 1234, "").is_empty(),
+		"an empty seed selection is not recorded as a plot action")
+
+	var thirsty: Dictionary = Farm.fresh_plot(3)
+	thirsty["state"] = Farm.NEEDS_CARE
+	thirsty["crop_id"] = "carrot"
+	thirsty["care_event"] = Growth.CARE_THIRSTY
+	thirsty["water_level"] = 0.2
+	result = tools.apply_to_plot("water", thirsty, 5678)
+	var watered: Dictionary = result.get("plot", {})
+	_ok(str(result.get("action", "")) == "water"
+			and str(watered.get("state", "")) == Farm.GROWING
+			and str(watered.get("care_event", "")) == ""
+			and float(watered.get("water_level", 0.0)) == 1.0
+			and int(watered.get("last_updated_at", 0)) == 5678,
+		"watering returns the shared, time-anchored care transition")
+
+	var weeds: Dictionary = Farm.fresh_plot(4)
+	weeds["state"] = Farm.NEEDS_CARE
+	weeds["crop_id"] = "carrot"
+	weeds["care_event"] = Growth.CARE_WEEDS
+	result = tools.apply_to_plot("weed", weeds, 6789)
+	_ok(str(result.get("action", "")) == "weed"
+			and str(result.get("plot", {}).get("care_event", "")) == ""
+			and bool(result.get("plot", {}).get("care_completed", false)),
+		"the weed brush uses the same once-per-planting care transition")
+
+	var bugs: Dictionary = Farm.fresh_plot(5)
+	bugs["state"] = Farm.NEEDS_CARE
+	bugs["crop_id"] = "carrot"
+	bugs["care_event"] = Growth.CARE_BUG
+	result = tools.apply_to_plot("bug", bugs, 7890)
+	_ok(str(result.get("action", "")) == "shoo"
+			and str(result.get("plot", {}).get("care_event", "")) == ""
+			and bool(result.get("plot", {}).get("care_completed", false)),
+		"the bug fan keeps its distinct shoo response")
+	_ok(tools.apply_to_plot("water", weeds, 8000).is_empty()
+			and str(weeds.get("care_event", "")) == Growth.CARE_WEEDS,
+		"a mismatched brush cannot clear a different care job")
+
+	var damaged: Dictionary = Farm.fresh_plot(0)
+	damaged["state"] = Farm.NEEDS_CARE
+	damaged["crop_id"] = "carrot"
+	damaged["care_event"] = "unknown_old_job"
+	result = tools.apply_to_plot(Tools.HAND, damaged, 9000)
+	_ok(str(result.get("action", "")) == "repair"
+			and str(result.get("plot", {}).get("state", "")) == Farm.GROWING
+			and str(result.get("plot", {}).get("care_event", ""))
+			== "unknown_old_job",
+		"the hand retains the quiet recovery for an unfamiliar save marker")
+	_ok(tools.apply_to_plot(Tools.HAND, Farm.fresh_plot(1)).is_empty(),
+		"the hand does not invent work when a plot has nothing to do")
+	var ripe: Dictionary = Farm.fresh_plot(2)
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	_ok(tools.apply_to_plot("basket", ripe).is_empty()
+			and str(ripe.get("state", "")) == Farm.READY,
+		"harvest stays in the receipt-and-storage transaction boundary")
 
 
 ## The promise the whole opening view rests on.
