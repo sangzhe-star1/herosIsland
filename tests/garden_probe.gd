@@ -37,6 +37,7 @@ const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const FarmBarnPanel := preload("res://scripts/garden/panels/farm_barn_panel.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
+const PendingUndo := preload("res://scripts/garden/farm_pending_undo_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const PlantingContext := preload("res://scripts/garden/farm_planting_context_controller.gd")
@@ -76,7 +77,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1131
+const CHECKS_EXPECTED := 1136
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -147,6 +148,7 @@ func _ready() -> void:
 	_the_shop_sells_a_crop_exactly_once()
 	_the_shop_grows_with_the_farm()
 	_the_undo_controller_keeps_its_window_and_reverses_safe_purchases()
+	_the_pending_undo_state_expires_and_consumes_once()
 	_the_barn_upgrade_controller_settles_costs_overflow_and_undo()
 	_the_market_pays_once_and_only_for_what_is_there()
 	_the_market_retries_refused_sales_and_bounds_its_receipt_ledger()
@@ -1715,6 +1717,45 @@ func _the_undo_controller_keeps_its_window_and_reverses_safe_purchases() -> void
 		"a worked bed cannot be taken away by its old receipt")
 	_ok(Coins.balance() == coins_before,
 		"a refused plot return cannot print a refund")
+
+
+## The screen owns a single pending receipt, while its toast only reads it.
+## Expiry clears stale offers and a timely tap consumes before refunding.
+func _the_pending_undo_state_expires_and_consumes_once() -> void:
+	_fresh_save()
+	SaveManager.data["rewards"]["coins"] = 100
+	_ok(SeedShop.buy("potato") == "",
+		"the pending undo probe buys the potato first")
+	var flow = PendingUndo.new()
+	flow.offer("seed", "potato", 1000)
+	var snapshot: Dictionary = flow.current()
+	snapshot["until"] = 0
+	_ok(int(flow.current().get("until", 0)) == 6000
+		and flow.is_open(6000),
+		"reading a pending receipt gives an isolated snapshot and honors its deadline")
+	_ok(not flow.expire(6000) and not flow.current().is_empty(),
+		"the final deadline millisecond remains visible")
+	var returned: Dictionary = flow.consume(6000)
+	_ok(bool(returned.get("accepted", false))
+		and bool(returned.get("changed", false))
+		and flow.current().is_empty()
+		and not SeedShop.owns("potato")
+		and Coins.balance() == 100,
+		"a timely press consumes the receipt and returns the seed and payment")
+	var repeated: Dictionary = flow.consume(6000)
+	_ok(not bool(repeated.get("accepted", true))
+		and bool(repeated.get("expired", false))
+		and Coins.balance() == 100,
+		"a second press cannot reuse an already consumed receipt")
+
+	_ok(SeedShop.buy("potato") == "",
+		"the expiry probe buys the potato again")
+	flow.offer("seed", "potato", 2000)
+	_ok(flow.expire(7001)
+		and flow.current().is_empty()
+		and SeedShop.owns("potato")
+		and Coins.balance() == 60,
+		"expiry clears the toast without undoing or refunding the purchase")
 
 
 ## The barn's single roof purchase accepts all of its costs or none, moves the

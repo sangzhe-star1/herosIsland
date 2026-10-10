@@ -1,16 +1,12 @@
 extends "res://scripts/garden/panels/farm_panel_base.gd"
 ## The short regret window offered after a reversible farm purchase.
 
-const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const SHELF := 140.0
 
 
 func build(view: Vector2) -> void:
 	var pending: Dictionary = screen.get("_pending_undo")
 	if pending.is_empty():
-		return
-	if not Undo.is_open(pending, GameClock.ticks_ms()):
-		screen.set("_pending_undo", {})
 		return
 	var card := Panel.new()
 	card.name = "FarmUndoCard"

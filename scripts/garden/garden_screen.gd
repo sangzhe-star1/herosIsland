@@ -60,7 +60,7 @@ const HarvestProgress := preload("res://scripts/garden/farm_harvest_progress_con
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
-const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
+const PendingUndo := preload("res://scripts/garden/farm_pending_undo_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const PlantingContext := preload("res://scripts/garden/farm_planting_context_controller.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
@@ -215,9 +215,14 @@ var _market_ui: RefCounted
 ## same hands-feel as everything else. Separate from the rack's _field: each
 ## grabs only its own pieces.
 var _market_field: DragField
-## The regret window: {kind, id, until}. Drawn by _rebuild while ticks_ms is
-## short of `until`, so it survives the rebuild that follows its own purchase.
-var _pending_undo: Dictionary = {}
+## The regret receipt lives through a rebuild and is consumed once by its
+## controller. This property remains for the panel and existing probe seam.
+var _undo_flow := PendingUndo.new()
+var _pending_undo: Dictionary:
+	get:
+		return _undo_flow.current()
+	set(value):
+		_undo_flow.set_pending(value)
 ## Buttons the probes press by name instead of by hunting coordinates.
 var _panel_buttons: Dictionary = {}
 ## Which tool is in his hand and which crop the seed brush plants. Survives
@@ -1901,7 +1906,7 @@ func _buy_confirmed() -> void:
 		# taken, so nothing needs saying beyond the rows redrawing honestly.
 		_queue_rebuild()
 		return
-	_pending_undo = Undo.offer("seed", crop_id, GameClock.ticks_ms())
+	_undo_flow.offer("seed", crop_id, GameClock.ticks_ms())
 	AudioManager.play_sfx("res://assets/audio/coin.ogg")
 	AudioManager.say("farm_shop_bought")
 	_queue_rebuild()
@@ -1945,7 +1950,7 @@ func _upgrade_confirmed() -> void:
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		_queue_rebuild()
 		return
-	_pending_undo = receipt.get("undo", {})
+	_undo_flow.set_pending(receipt.get("undo", {}))
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
 	AudioManager.say("farm_barn_bigger")
 	_queue_rebuild()
@@ -2008,7 +2013,7 @@ func _expand_confirmed(index: int) -> void:
 		_world.celebrate_new_bed(index)
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
 	AudioManager.say("farm_new_plot")
-	_pending_undo = Undo.offer("plot", str(index), GameClock.ticks_ms())
+	_undo_flow.offer("plot", str(index), GameClock.ticks_ms())
 	_queue_rebuild()
 
 
@@ -2091,12 +2096,12 @@ func _gift_panel(view: Vector2) -> void:
 
 
 func _undo_toast(view: Vector2) -> void:
+	_undo_flow.expire(GameClock.ticks_ms())
 	FarmUndoPanel.new(self).build(view)
 
 
 func _undo_pressed() -> void:
-	var result: Dictionary = Undo.settle(_pending_undo, GameClock.ticks_ms())
-	_pending_undo = {}
+	var result: Dictionary = _undo_flow.consume(GameClock.ticks_ms())
 	if bool(result.get("expired", false)):
 		# Pressed after the window shut, on a toast the clock had not yet
 		# swept away. Too late is too late; say so quietly.
