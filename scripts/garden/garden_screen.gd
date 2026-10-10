@@ -48,9 +48,9 @@ const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
 const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
-const Coop := preload("res://scripts/garden/farm_coop_manager.gd")
 const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
 const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
+const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
@@ -991,38 +991,27 @@ func _tap_coop() -> void:
 	var now := GameClock.now_unix()
 	var at: Vector2 = _world.facility_screen_position("coop") \
 		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
-	match Coop.state(farm, now):
-		Coop.READY:
-			var receipt := Coop.collect(farm)
-			SaveManager.save_game()
-			AudioManager.play_sfx("res://assets/audio/found.ogg")
-			AudioManager.say("farm_coop_eggs")
-			var stored := int(receipt.get("stored", 0))
-			var spilled := int(receipt.get("spilled", 0))
-			if stored > 0:
-				_spawn_harvest_flight(-1, receipt, stored, _barn_button_at,
-					"warehouse", "HarvestFlight", at + Vector2(0, -20))
-			if spilled > 0:
-				_spawn_harvest_flight(-1, receipt, spilled, _spill_flight_destination(),
-					"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
-			_harvested_something = true
-			_queue_rebuild()
-		Coop.LAYING:
+	var result := FacilityAction.press_pen(farm, Pen.COOP, now)
+	match str(result.get("action", "")):
+		FacilityAction.COLLECTED:
+			var receipt: Dictionary = result.get("receipt", {})
+			_collect_facility_produce("coop", receipt, "farm_coop_eggs")
+		FacilityAction.WAITING:
 			# How long is left, the way a bed answers: a ring, for a moment.
 			AudioManager.play_sfx("res://assets/audio/correct.ogg")
-			_show_coop_ring(at, Coop.progress(farm, now))
-		_:
-			if Coop.feed(farm, now):
-				SaveManager.save_game()
-				AudioManager.play_sfx("res://assets/audio/rustle.ogg")
-				AudioManager.say("farm_coop_feed")
-				if _world != null and is_instance_valid(_world):
-					_world.poke_scenery_kind("chicken")
-				_queue_rebuild()
-			else:
-				# No corn: show the corn. The picture IS the sentence.
-				AudioManager.play_sfx("res://assets/audio/pop.ogg")
-				_float_want(at, str(GameData.get_crop(Coop.FEED_CROP).get("icon", "seed")))
+			_show_coop_ring(at, float(result.get("progress", 0.0)))
+		FacilityAction.STARTED:
+			SaveManager.save_game()
+			AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+			AudioManager.say("farm_coop_feed")
+			if _world != null and is_instance_valid(_world):
+				_world.poke_scenery_kind("chicken")
+			_queue_rebuild()
+		FacilityAction.MISSING:
+			# No corn: show the corn. The picture IS the sentence.
+			AudioManager.play_sfx("res://assets/audio/pop.ogg")
+			_float_want(at, str(GameData.get_crop(str(result.get("input_crop", "")))
+				.get("icon", "seed")))
 
 
 ## The windmill: two wheat in, a minute and a half of turning sails, one
@@ -1035,34 +1024,23 @@ func _tap_mill() -> void:
 	var now := GameClock.now_unix()
 	var at: Vector2 = _world.facility_screen_position("mill") \
 		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
-	match Maker.state(farm, Maker.MILL, now):
-		Maker.READY:
-			var receipt := Maker.collect(farm, Maker.MILL)
-			SaveManager.save_game()
-			AudioManager.play_sfx("res://assets/audio/found.ogg")
-			AudioManager.say("farm_mill_flour")
-			var stored := int(receipt.get("stored", 0))
-			var spilled := int(receipt.get("spilled", 0))
-			if stored > 0:
-				_spawn_harvest_flight(-1, receipt, stored, _barn_button_at,
-					"warehouse", "HarvestFlight", at + Vector2(0, -20))
-			if spilled > 0:
-				_spawn_harvest_flight(-1, receipt, spilled, _spill_flight_destination(),
-					"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
-			_harvested_something = true
-			_queue_rebuild()
-		Maker.WORKING:
+	var result := FacilityAction.press_maker(farm, Maker.MILL, now)
+	match str(result.get("action", "")):
+		FacilityAction.COLLECTED:
+			var receipt: Dictionary = result.get("receipt", {})
+			_collect_facility_produce("mill", receipt, "farm_mill_flour")
+		FacilityAction.WAITING:
 			AudioManager.play_sfx("res://assets/audio/correct.ogg")
-			_show_coop_ring(at, Maker.progress(farm, Maker.MILL, now))
-		_:
-			if Maker.start(farm, Maker.MILL, now):
-				SaveManager.save_game()
-				AudioManager.play_sfx("res://assets/audio/machine.ogg")
-				AudioManager.say("farm_mill_start")
-				_queue_rebuild()
-			else:
-				AudioManager.play_sfx("res://assets/audio/pop.ogg")
-				_float_want(at, str(GameData.get_crop(str(Maker.MILL["input"])).get("icon", "seed")))
+			_show_coop_ring(at, float(result.get("progress", 0.0)))
+		FacilityAction.STARTED:
+			SaveManager.save_game()
+			AudioManager.play_sfx("res://assets/audio/machine.ogg")
+			AudioManager.say("farm_mill_start")
+			_queue_rebuild()
+		FacilityAction.MISSING:
+			AudioManager.play_sfx("res://assets/audio/pop.ogg")
+			_float_want(at, str(GameData.get_crop(str(result.get("input_crop", "wheat")))
+				.get("icon", "seed")))
 
 
 ## Data-driven pen taps: cow shed (wheat -> milk), beehive (strawberry -> honey),
@@ -1079,34 +1057,47 @@ func _tap_pen(facility_id: String) -> void:
 	var now := GameClock.now_unix()
 	var at: Vector2 = _world.facility_screen_position(facility_id) \
 		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
-	match Pen.state(farm, spec, now):
-		Pen.READY:
-			var receipt := Pen.collect(farm, spec)
-			SaveManager.save_game()
-			AudioManager.play_sfx("res://assets/audio/found.ogg")
-			AudioManager.say(str(spec.get("voice_collect", "farm_coop_eggs")))
-			var stored := int(receipt.get("stored", 0))
-			var spilled := int(receipt.get("spilled", 0))
-			if stored > 0:
-				_spawn_harvest_flight(-1, receipt, stored, _barn_button_at,
-					"warehouse", "HarvestFlight", at + Vector2(0, -20))
-			if spilled > 0:
-				_spawn_harvest_flight(-1, receipt, spilled, _spill_flight_destination(),
-					"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
-			_harvested_something = true
-			_queue_rebuild()
-		Pen.PRODUCING:
+	var result := FacilityAction.press_pen(farm, spec, now)
+	match str(result.get("action", "")):
+		FacilityAction.COLLECTED:
+			var receipt: Dictionary = result.get("receipt", {})
+			_collect_facility_produce(facility_id, receipt,
+				str(spec.get("voice_collect", "farm_coop_eggs")))
+		FacilityAction.WAITING:
 			AudioManager.play_sfx("res://assets/audio/correct.ogg")
-			_show_coop_ring(at, Pen.progress(farm, spec, now))
-		_:
-			if Pen.feed(farm, spec, now):
-				SaveManager.save_game()
-				AudioManager.play_sfx("res://assets/audio/rustle.ogg")
-				AudioManager.say(str(spec.get("voice_feed", "farm_coop_feed")))
-				_queue_rebuild()
-			else:
-				AudioManager.play_sfx("res://assets/audio/pop.ogg")
-				_float_want(at, str(GameData.get_crop(str(spec.get("feed_crop", ""))).get("icon", "seed")))
+			_show_coop_ring(at, float(result.get("progress", 0.0)))
+		FacilityAction.STARTED:
+			SaveManager.save_game()
+			AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+			AudioManager.say(str(spec.get("voice_feed", "farm_coop_feed")))
+			_queue_rebuild()
+		FacilityAction.MISSING:
+			AudioManager.play_sfx("res://assets/audio/pop.ogg")
+			_float_want(at, str(GameData.get_crop(str(result.get("input_crop", "")))
+				.get("icon", "seed")))
+
+
+## All timed facilities collect through the barn's ordinary flight and spill
+## receipt. The action controller decides WHAT happened; this page presents it.
+func _collect_facility_produce(facility_id: String, receipt: Dictionary,
+		voice: String) -> void:
+	if receipt.is_empty():
+		return
+	var at: Vector2 = _world.facility_screen_position(facility_id) \
+		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
+	SaveManager.save_game()
+	AudioManager.play_sfx("res://assets/audio/found.ogg")
+	AudioManager.say(voice)
+	var stored := int(receipt.get("stored", 0))
+	var spilled := int(receipt.get("spilled", 0))
+	if stored > 0:
+		_spawn_harvest_flight(-1, receipt, stored, _barn_button_at,
+			"warehouse", "HarvestFlight", at + Vector2(0, -20))
+	if spilled > 0:
+		_spawn_harvest_flight(-1, receipt, spilled, _spill_flight_destination(),
+			"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
+	_harvested_something = true
+	_queue_rebuild()
 
 
 ## The rain cloud he dragged over a thirsty bed let go: the bed drinks by
