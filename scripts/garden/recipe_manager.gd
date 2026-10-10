@@ -45,8 +45,10 @@ static func barn_has_all(recipe: Dictionary) -> bool:
 ## an empty array means nothing new. Idempotent by construction: a recipe
 ## already in the ledger is never returned twice, so callers may check as
 ## often as they like -- after every harvest, after the basket tips in --
-## without a child ever being congratulated twice for the same dish.
-static func check_barn() -> Array:
+## without a child ever being congratulated twice for the same dish. Standalone
+## checks save by default; callers inside a larger transaction pass `false` and
+## include the unlock in their own single save.
+static func check_barn(persist: bool = true) -> Array:
 	var fresh: Array = []
 	var farm: Dictionary = SaveManager.data.get("farm", {})
 	var owned: Array = farm.get("unlocked_recipes", [])
@@ -59,7 +61,8 @@ static func check_barn() -> Array:
 			fresh.append(recipe)
 	if not fresh.is_empty():
 		farm["unlocked_recipes"] = owned
-		SaveManager.save_game()
+		if persist:
+			SaveManager.save_game()
 	return fresh
 
 

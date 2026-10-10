@@ -244,7 +244,7 @@ func _pick_share(index: int) -> void:
 	var farm_def: Dictionary = GameData.get_npc_farm(npc_id)
 	var crop_id := str(farm_def.get("share_crop", "carrot"))
 	Barn.store_harvest(crop_id, 1)
-	preload("res://scripts/garden/recipe_manager.gd").check_barn()
+	preload("res://scripts/garden/recipe_manager.gd").check_barn(false)
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/pop.ogg")
 	if _star != null and is_instance_valid(_star):

@@ -192,7 +192,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _friend_farm_buttons_are_available()
 	await _the_visitor_board_reads_and_clears(view)
 	await _the_dog_minds_his_own_business()
-		await _dog_seed_receipt_does_not_resave()
+	await _dog_seed_receipt_does_not_resave()
 	# --- 阶段 5: the stones, the ladder, and the market's one lesson ---
 	await _the_stones_ask_before_they_move()
 	await _the_barn_full_moment_points_at_the_market()

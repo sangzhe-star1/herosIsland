@@ -59,7 +59,7 @@ const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 770
+const CHECKS_EXPECTED := 772
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -3703,12 +3703,23 @@ func _the_level_8_master_farmer_milestone_and_celebration_work() -> void:
 	Barn.put("honey", 1)
 	Barn.put("strawberry", 2)
 	_ok(Recipes.barn_has_all(star_feast), "barn now has all ingredients for star_feast")
-	var newly_unlocked := Recipes.check_barn()
+	SaveManager.save_game()
+	var backup_marker := "recipe-check-must-not-save-inside-transaction"
+	var backup := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	_ok(backup != null, "recipe persistence can be observed in the isolated save")
+	if backup != null:
+		backup.store_string(backup_marker)
+		backup.close()
+	var newly_unlocked := Recipes.check_barn(false)
 	var found_unlocked := false
 	for u in newly_unlocked:
 		if str(u.get("id", "")) == "star_feast":
 			found_unlocked = true
 	_ok(found_unlocked, "check_barn unlocks star_feast when all ingredients present")
+	if backup != null:
+		_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == backup_marker,
+			"a transaction-scoped recipe unlock does not save ahead of its owner")
+		DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 	_ok(Recipes.is_unlocked("star_feast"), "star_feast is now unlocked")
 	_ok(Recipes.can_cook(star_feast), "can cook star_feast now")
 	var cooked := Recipes.cook("star_feast")

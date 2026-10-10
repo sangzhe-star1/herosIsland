@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1891
+const CHECKS_EXPECTED := 1897
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -645,14 +645,23 @@ func _one_bed_takes_one_crop() -> void:
 ## and goes back to bare earth -- which is what stops one planting ever paying
 ## out twice.
 func _tapping_a_ripe_bed_fills_the_barn() -> void:
+	# Keep the storage assertion isolated from lesson and idle-clock saves: the
+	# backup below distinguishes one complete harvest commit from a hidden save
+	# by recipe discovery followed by the screen's own commit.
+	_garden.set("_lesson_running", false)
+	_garden.set("_garden_tick_running", false)
 	var plots := _plots()
 	plots[3]["crop_id"] = "strawberry"
 	plots[3]["growth_stage"] = 4
 	plots[3]["plant_cycle_id"] = 7
 	plots[3]["state"] = Farm.READY
-	SaveManager.data["farm"]["paid_harvests"] = []
-	SaveManager.data["farm"]["warehouse"] = {}
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["paid_harvests"] = []
+	farm["unlocked_recipes"] = []
+	farm["harvest_basket"] = {}
+	farm["warehouse"] = {}
 	SaveManager.save_game()
+	var baseline_save := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 	_garden.call("_rebuild")
 	await get_tree().process_frame
 
@@ -667,6 +676,17 @@ func _tapping_a_ripe_bed_fills_the_barn() -> void:
 		"still turned over, so the next seed can go straight in")
 	_ok(not Farm.is_ready(_plots()[3]),
 		"and nothing left to pick")
+	_ok("strawberry_soup" in SaveManager.data["farm"].get("unlocked_recipes", []),
+		"the strawberry harvest unlocks its recipe inside the same action")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == baseline_save,
+		"recipe discovery does not rotate a second save during the harvest")
+	var persisted: Dictionary = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var persisted_farm: Dictionary = persisted.get("farm", {})
+	var persisted_plots: Array = persisted_farm.get("plots", [])
+	_ok("strawberry_soup" in persisted_farm.get("unlocked_recipes", [])
+		and str(persisted_plots[3].get("state", "")) == Farm.TILLED,
+		"the one harvest save contains both the recipe and the reset bed")
 	var flight: Node = _find_named(_garden, "HarvestFlight_strawberry")
 	_ok(flight != null, "tap harvesting keeps the strawberry visible while it flies")
 	if flight != null:

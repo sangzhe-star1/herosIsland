@@ -446,6 +446,12 @@ These are yours to make. Nothing below has been changed without asking.
   flight, avoiding a second disk write. FarmWorldProbe passed 829 checks across
   16:9 and 4:3, including a backup-marker check for the presentation callback;
   `tools_check.py` reports 0 errors and 208 existing warnings.
+- **Recipe-unlock save boundary:** `RecipeManager.check_barn()` can now defer
+  persistence when harvest or friend-farm transactions already own the save;
+  standalone rebuild discovery still saves by default. GardenProbe passed 1,057
+  checks, GardenTouchProbe passed 1,897 (including a backup comparison proving
+  harvest plus recipe unlock is one save), and FarmWorldProbe passed 829 across
+  16:9 and 4:3. `tools_check.py` reports 0 errors and 208 existing warnings.
 
 ---
 

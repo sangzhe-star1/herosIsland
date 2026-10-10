@@ -1807,7 +1807,7 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 
 	_harvesting[plot_id] = true
 	_daily_progress("harvest", picked)
-	var learned: Array = Recipes.check_barn()
+	var learned: Array = Recipes.check_barn(false)
 	if not learned.is_empty():
 		_recipe_learned_card(learned[0])
 

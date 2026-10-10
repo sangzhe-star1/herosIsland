@@ -359,7 +359,7 @@ func _pick_the_shared_one(index: int) -> void:
 	# The shared berry can be the last ingredient of something. Unlock the
 	# ledger quietly -- the celebration card belongs to the garden screen,
 	# and this screen is the bear's own moment.
-	preload("res://scripts/garden/recipe_manager.gd").check_barn()
+	preload("res://scripts/garden/recipe_manager.gd").check_barn(false)
 	SaveManager.save_game()
 
 	AudioManager.play_sfx("res://assets/audio/pop.ogg")
@@ -402,7 +402,7 @@ func _sneak_the_quiet_one(index: int) -> void:
 	NpcFarm.record_sneak(now)
 	var farm_def: Dictionary = GameData.get_npc_farm("bear")
 	Barn.store_harvest(str(farm_def.get("share_crop", "strawberry")), 1)
-	preload("res://scripts/garden/recipe_manager.gd").check_barn()
+	preload("res://scripts/garden/recipe_manager.gd").check_barn(false)
 	SaveManager.save_game()
 
 	# A rustle, not a fanfare. The berry flies to his basket like the shared
