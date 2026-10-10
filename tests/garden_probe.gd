@@ -103,6 +103,7 @@ func _ready() -> void:
 	_friend_requests_get_a_turn_and_routines_rotate()
 	_the_days_little_jobs_hold_water()
 	_daily_claim_controller_settles_completed_jobs_once()
+	_daily_progress_controller_rolls_before_comparing_milestones()
 	# --- stage four: the barn, the orders, and the money ---
 	_the_barn_never_goes_negative()
 	_made_produce_occupies_the_barn_and_survives_overflow()
@@ -3235,6 +3236,49 @@ func _daily_claim_controller_settles_completed_jobs_once() -> void:
 		and not Dailies.done(next_day, task)
 		and not Dailies.claimed(next_day, task),
 		"tomorrow's rolled task has no inherited completion or claim")
+
+
+## A completed list from yesterday must not hide today's first completion
+## event; each task and the full-day celebration should both fire once.
+func _daily_progress_controller_rolls_before_comparing_milestones() -> void:
+	_fresh_save()
+	var Progress := preload("res://scripts/garden/farm_daily_progress_controller.gd")
+	var farm: Dictionary = SaveManager.data["farm"]
+	var yesterday_progress: Dictionary = {}
+	for task in GameData.garden_dailies:
+		yesterday_progress[str(task.get("id", ""))] = int(task.get("target", 1))
+	farm["dailies"] = {
+		"date": "2098-04-30",
+		"progress": yesterday_progress,
+		"claimed": ["garden_daily_2098-04-30_water"],
+	}
+	var today := "2098-05-01"
+	var first: Dictionary = Progress.record(farm, today, "water",
+		Dailies.target("water"))
+	_ok(bool(first.get("task_completed", false))
+		and not bool(first.get("all_completed", false)),
+		"yesterday's completed water tally does not suppress today's first finish")
+	_ok(str(farm.get("dailies", {}).get("date", "")) == today
+		and Dailies.done(farm.get("dailies", {}), Dailies.task_by_id("water")),
+		"the progress action rolls the farm to today's tally")
+
+	var repeated: Dictionary = Progress.record(farm, today, "water", 4)
+	_ok(not bool(repeated.get("task_completed", false)),
+		"extra progress after the cap does not repeat the task chime")
+	var second: Dictionary = Progress.record(farm, today, "harvest",
+		Dailies.target("harvest"))
+	_ok(bool(second.get("task_completed", false))
+		and not bool(second.get("all_completed", false)),
+		"the second daily task has its own once-only crossing")
+	var final: Dictionary = Progress.record(farm, today, "deliver",
+		Dailies.target("deliver"))
+	_ok(bool(final.get("task_completed", false))
+		and bool(final.get("all_completed", false)),
+		"the final daily reports both task completion and the whole-day sparkle")
+	var after_full_day: Dictionary = Progress.record(farm, today, "deliver", 1)
+	_ok(not bool(after_full_day.get("task_completed", false))
+		and not bool(after_full_day.get("all_completed", false)),
+		"a finished day never repeats its celebration on later actions")
 
 
 ## Story requests appended after routines must still be seen, and old saves

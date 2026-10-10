@@ -55,6 +55,7 @@ const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd")
+const DailyProgress := preload("res://scripts/garden/farm_daily_progress_controller.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
@@ -356,22 +357,14 @@ func _plots() -> Array:
 ## little found-chime -- found, not won: the finding is the reward's knock,
 ## the claim on the board is the child's own act.
 func _daily_progress(verb: String, by: int = 1) -> void:
-	var before: Dictionary = _farm().get("dailies", {})
-	SaveManager.data["farm"]["dailies"] = Dailies.add(_farm(),
-		GameClock.now_date(), verb, by)
-	var after: Dictionary = SaveManager.data["farm"].get("dailies", {})
-	for task in GameData.garden_dailies:
-		if str(task.get("id", "")) != verb:
-			continue
-		if Dailies.done(after, task) \
-				and not Dailies.done(before, task):
-			AudioManager.play_sfx("res://assets/audio/found.ogg")
-		break
+	var receipt := DailyProgress.record(_farm(), GameClock.now_date(), verb, by)
+	if bool(receipt.get("task_completed", false)):
+		AudioManager.play_sfx("res://assets/audio/found.ogg")
 	# The third little star is a small happy discovery, not a countdown alarm:
 	# the same pure all_done() gate drives the visible ribbon and the doubled
 	# rare-crop chance.  Claims are intentionally irrelevant -- caring is what
 	# lit the luck, and a child may collect the coins whenever he finds the board.
-	if Dailies.all_done(after) and not Dailies.all_done(before):
+	if bool(receipt.get("all_completed", false)):
 		AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
 		AudioManager.say("praise_3")
 
