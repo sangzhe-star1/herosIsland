@@ -754,7 +754,8 @@ These are yours to make. Nothing below has been changed without asking.
   the drawer, brush arming, sound, and rebuild response. FarmWorldProbe passed
   899 checks; GardenTouchProbe passed 1,993 across 16:9 and 4:3, including
   second-finger toolbar and seed touches. `tools_check.py` reports 0 errors and
-  208 warnings; the full smoke suite was not rerun for this focused extraction.
+  208 warnings. The latest isolated `./tests/run_smoke.sh` passed all 30 probes
+  with 0 skipped. `garden_screen.gd` is 2,466 lines.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
