@@ -205,9 +205,12 @@ These are yours to make. Nothing below has been changed without asking.
 ## Current follow-through — 10 October 2026
 
 - **Ready for review:** branch `claude/stoic-bell-a41pfu` is pushed through
-  `defc45b`; PR [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is
+  `271c28b`; PR [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is
   open against `main`. The current PR page shows no reviews or automated
-  checks, so the merge remains a review step.
+  checks. Three full-suite attempts stopped at different GUI probes (one
+  intermittent HarvestTouch assertion, one FarmWorld timeout, and one
+  GardenTouch input cascade), so I left the merge pending review and a clean
+  full-suite run. Each affected probe passed when run alone.
 - **Completed locally:** rabbit and puppy friend farms; the plot gesture
   controller; repository cleanup. Blender source generators now live under
   `tools/art/`. Disposable screenshot/debug scripts and duplicate scene
@@ -218,8 +221,9 @@ These are yours to make. Nothing below has been changed without asking.
   genuine older iPad save before changing save-version fields.
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
-- **Latest local verification:** GardenTouchProbe passed 1,862 checks across
-  16:9 and 4:3; `tools_check.py` reports 0 errors and 208 warnings.
+- **Latest local verification:** GardenTouchProbe passed 1,862 checks,
+  FarmWorldProbe 781, and HarvestTouchProbe 2,314 across 16:9 and 4:3;
+  `tools_check.py` reports 0 errors and 208 warnings.
 
 ---
 
