@@ -35,6 +35,7 @@ const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
+const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 
@@ -114,6 +115,7 @@ func _ready() -> void:
 	# --- stage 3 (阶段 3 of the farm): the shop, the market, the roof ---
 	_the_shop_sells_a_crop_exactly_once()
 	_the_shop_grows_with_the_farm()
+	_the_undo_controller_keeps_its_window_and_reverses_safe_purchases()
 	_the_market_pays_once_and_only_for_what_is_there()
 	# --- 阶段 4: the bear, the shared strawberry, and the visitor board ---
 	_the_bears_farm_is_arithmetic_and_kindness()
@@ -1363,6 +1365,92 @@ func _the_caterpillar_is_weeds_wearing_a_different_face() -> void:
 
 const SeedShop := preload("res://scripts/garden/seed_shop_manager.gd")
 const Market := preload("res://scripts/garden/farm_market_manager.gd")
+
+
+## The regret window has one deadline and returns each kind of purchase only
+## while the thing being returned is still safe to take back.
+func _the_undo_controller_keeps_its_window_and_reverses_safe_purchases() -> void:
+	_fresh_save()
+	SaveManager.data["rewards"]["coins"] = 100
+	_ok(SeedShop.buy("potato") == "", "the undo probe buys the potato first")
+	var seed_receipt := Undo.offer("seed", "potato", 1000)
+	_ok(int(seed_receipt.get("until", 0)) == 1000 + Undo.WINDOW_MS,
+		"every purchase gets the same five-second regret window")
+	_ok(Undo.is_open(seed_receipt, 6000)
+		and not Undo.is_open(seed_receipt, 6001),
+		"the final millisecond is open and the next one is closed")
+	var returned_seed: Dictionary = Undo.settle(seed_receipt, 6000)
+	_ok(bool(returned_seed.get("accepted", false))
+		and bool(returned_seed.get("changed", false)),
+		"a timely undo accepts the press and returns an owned seed")
+	_ok(not SeedShop.owns("potato") and Coins.balance() == 100,
+		"the seed leaves the rack and its full price comes back")
+	var duplicate_seed: Dictionary = Undo.settle(seed_receipt, 6000)
+	_ok(bool(duplicate_seed.get("accepted", false))
+		and not bool(duplicate_seed.get("changed", true))
+		and Coins.balance() == 100,
+		"a repeated receipt cannot refund a second time")
+	_ok(bool(SeedShop.buy("potato") == ""),
+		"the seed can be bought again for the expiry case")
+	var late_seed: Dictionary = Undo.offer("seed", "potato", 2000)
+	var expired: Dictionary = Undo.settle(late_seed, 2001 + Undo.WINDOW_MS)
+	_ok(not bool(expired.get("accepted", true))
+		and bool(expired.get("expired", false)),
+		"a press after the deadline reports a quiet expiry")
+	_ok(SeedShop.owns("potato") and Coins.balance() == 60,
+		"expiry keeps the purchase and does not refund it")
+
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["warehouse_cap"] = Farm.WAREHOUSE_UPGRADED
+	SaveManager.data["rewards"]["coins"] = 7
+	Barn.put("plank", Undo.UPGRADE_PLANKS, "inventory")
+	Barn.take("plank", Undo.UPGRADE_PLANKS, "inventory")
+	Barn.put("carrot", 45)
+	var cap_receipt := Undo.offer("cap", "", 3000)
+	var returned_cap: Dictionary = Undo.settle(cap_receipt,
+		3000 + Undo.WINDOW_MS)
+	_ok(bool(returned_cap.get("changed", false))
+		and int(farm.get("warehouse_cap", 0)) == Farm.WAREHOUSE_START,
+		"undo puts the warehouse roof back")
+	_ok(Coins.balance() == 67
+		and Barn.count("plank", "inventory") == Undo.UPGRADE_PLANKS,
+		"the full coin and plank cost comes back")
+	_ok(Barn.count("carrot") == 45,
+		"goods gathered under the larger roof stay in the barn")
+
+	_fresh_save()
+	farm = SaveManager.data["farm"]
+	farm["farm_xp"] = 999
+	SaveManager.data["rewards"]["coins"] = 1000
+	_ok(Expand.buy(Farm.PLOT_COUNT) == "",
+		"the undo probe opens the seventh bed")
+	var plot_receipt := Undo.offer("plot", str(Farm.PLOT_COUNT), 4000)
+	var returned_plot: Dictionary = Undo.settle(plot_receipt,
+		4000 + Undo.WINDOW_MS)
+	_ok(bool(returned_plot.get("changed", false))
+		and int(farm.get("plot_count", 0)) == Farm.PLOT_COUNT,
+		"undo returns an untouched bed to the fence")
+	_ok(Coins.balance() == 1000,
+		"the whole expansion cost comes back with its stones")
+	_ok(Expand.buy(Farm.PLOT_COUNT) == "",
+		"the bed can be opened again after its return")
+	var plots: Array = farm.get("plots", [])
+	var bed: Dictionary = plots[Farm.PLOT_COUNT]
+	bed["state"] = Farm.TILLED
+	plots[Farm.PLOT_COUNT] = bed
+	farm["plots"] = plots
+	var coins_before := Coins.balance()
+	var worked_plot_receipt := Undo.offer("plot",
+		str(Farm.PLOT_COUNT), 5000)
+	var worked_plot: Dictionary = Undo.settle(worked_plot_receipt,
+		5000 + Undo.WINDOW_MS)
+	_ok(bool(worked_plot.get("accepted", false))
+		and not bool(worked_plot.get("changed", true))
+		and int(farm.get("plot_count", 0)) == Farm.PLOT_COUNT + 1,
+		"a worked bed cannot be taken away by its old receipt")
+	_ok(Coins.balance() == coins_before,
+		"a refused plot return cannot print a refund")
 
 
 ## The shop's whole contract, without a screen in the way: a crop is bought

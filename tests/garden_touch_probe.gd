@@ -132,6 +132,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _harvest_levels_can_be_chosen_and_replayed(view)
 	await _inventory_keeps_its_rendered_food_and_readable_slots(view)
 	await _touch_and_mouse_keep_their_own_gestures()
+	await _undo_button_returns_a_seed_on_the_live_screen()
 
 	_close()
 
@@ -334,6 +335,38 @@ func _fresh_garden() -> void:
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 	SaveManager.load_game()
 	SaveManager.data["farm"]["last_seen_at"] = NOON
+
+
+## The refund controller is called by a real button assembled by GardenScreen;
+## exercise the purchase and tap through that seam at both tablet shapes.
+func _undo_button_returns_a_seed_on_the_live_screen() -> void:
+	_fresh_garden()
+	SaveManager.data["rewards"]["coins"] = 100
+	_garden.set("_pending_undo", {})
+	_garden.call("_close_panels")
+	_garden.call("_rebuild")
+	for frame in range(3):
+		await get_tree().process_frame
+
+	_garden.set("_confirm_crop", "potato")
+	_garden.call("_buy_confirmed")
+	for frame in range(3):
+		await get_tree().process_frame
+	var undo_buttons: Dictionary = _garden.get("_panel_buttons")
+	var undo := undo_buttons.get("undo") as Button
+	var farm: Dictionary = SaveManager.data["farm"]
+	_ok("potato" in farm.get("unlocked_crops", [])
+		and Coins.balance() == 60 and str(_garden.get("_pending_undo").get(
+			"kind", "")) == "seed",
+		"a successful screen purchase creates its matching undo receipt")
+	_ok(is_instance_valid(undo),
+		"the screen shows an undo button during the regret window")
+	if is_instance_valid(undo):
+		await _tap(undo.get_global_rect().get_center())
+	_ok("potato" not in farm.get("unlocked_crops", [])
+		and Coins.balance() == 100
+		and (_garden.get("_pending_undo") as Dictionary).is_empty(),
+		"tapping undo returns the seed and its full price on the live screen")
 
 
 func _open() -> void:
