@@ -254,7 +254,9 @@ These are yours to make. Nothing below has been changed without asking.
    in `farm_panel_base.gd`; the screen retains thin adapters for extracted
    panels that still call its public seams. The seed purchase confirmation now
    belongs to `FarmShopPanel`; the screen keeps the purchase transaction and
-   undo receipt. `garden_screen.gd` is 3,003 lines.
+   undo receipt. The land-expansion confirmation now lives in
+   `FarmExpansionPanel`; the screen keeps the purchase and world animation.
+   `garden_screen.gd` is 2,968 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -667,6 +669,13 @@ These are yours to make. Nothing below has been changed without asking.
   the real buttons to prove cancel leaves coins and seeds unchanged, then buy
   enters the existing undo flow. It passed 1,993 checks across 16:9 and 4:3;
   `tools_check.py` reports 0 errors and 208 warnings.
+- **Land-expansion panel boundary (10 October):** `FarmExpansionPanel` now
+  owns the stones-to-purchase card and its cancel/confirm controls; expansion
+  state, payment, undo, and the world's stone-slide animation remain with
+  their existing owners. FarmWorldProbe touched the real card in both layouts,
+  cancelled without changing land or coins, reopened it, then purchased and
+  undid the bed. It passed 889 checks; `tools_check.py` reports 0 errors and
+  208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

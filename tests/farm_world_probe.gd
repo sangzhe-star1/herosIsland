@@ -55,7 +55,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 885
+const CHECKS_EXPECTED := 889
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -2608,8 +2608,17 @@ func _the_stones_ask_before_they_move() -> void:
 	_ok(int(_garden.get("_confirm_expand")) == 6,
 		"grown and funded, the stones ask the question")
 	var buttons: Dictionary = _garden.get("_panel_buttons")
-	_ok(buttons.has("confirm_expand") and buttons.has("cancel_expand"),
+	_ok(_find_named(_garden, "PlotExpansionCard") is Panel
+			and buttons.has("confirm_expand") and buttons.has("cancel_expand"),
 		"...with a yes and a no standing between the press and the money")
+	await _tap((buttons["cancel_expand"] as Button).get_global_rect().get_center())
+	_ok(int(_garden.get("_confirm_expand")) == -1
+			and int(farm["plot_count"]) == 6 and Coins.balance() == 200,
+		"cancel leaves the land and every coin in place")
+	await _tap(_camera().world_to_screen(Layout.plot_at(6)))
+	buttons = _garden.get("_panel_buttons")
+	_ok(int(_garden.get("_confirm_expand")) == 6,
+		"the stones can ask again after the child changes his mind")
 	await _tap((buttons["confirm_expand"] as Button).position + Vector2(85, 29))
 	_ok(int(farm["plot_count"]) == 7 and _world().bed_count() == 7,
 		"one confirm clears the land, on screen and in the save")

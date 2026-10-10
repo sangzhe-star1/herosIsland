@@ -80,6 +80,7 @@ const FarmGiftPanel := preload("res://scripts/garden/panels/farm_gift_panel.gd")
 const FarmSeedRackPanel := preload("res://scripts/garden/panels/farm_seed_rack_panel.gd")
 const FarmToolRackPanel := preload("res://scripts/garden/panels/farm_tool_rack_panel.gd")
 const FarmPanelBase := preload("res://scripts/garden/panels/farm_panel_base.gd")
+const FarmExpansionPanel := preload("res://scripts/garden/panels/farm_expansion_panel.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -2312,45 +2313,9 @@ func _tap_stones(index: int) -> void:
 ## every purchase on this farm -- three numbers were already visible on the
 ## badge, and no press lands money without this card in between.
 func _expand_card(view: Vector2) -> void:
-	if _confirm_expand < 0 or Expand.state_of(_confirm_expand) != "ready":
+	if _confirm_expand < 0:
 		return
-	var card := Panel.new()
-	card.add_theme_stylebox_override("panel",
-		UiKit.panel_style(Color(1.0, 0.99, 0.94), 24))
-	card.position = Vector2(view.x * 0.5 - 210.0, TOP_BAR + 60.0)
-	card.custom_minimum_size = Vector2(420, 170)
-	card.size = Vector2(420, 170)
-	_play.add_child(card)
-	if _world != null and is_instance_valid(_world):
-		_world.add_blocker(card)
-
-	var art := UiKit.picture("shovel", 52.0)
-	if art != null:
-		art.position = card.position + Vector2(28, 24)
-		_play.add_child(art)
-	var coin := UiKit.picture("star_coin", 40.0)
-	if coin != null:
-		coin.position = card.position + Vector2(110, 30)
-		_play.add_child(coin)
-	var cost := UiKit.title(str(Expand.cost_of(_confirm_expand)), 34)
-	cost.position = card.position + Vector2(162, 34)
-	cost.size = Vector2(90, 44)
-	_play.add_child(cost)
-
-	var yes := _chip_button(I18n.t("garden.expand"),
-		Color(0.72, 0.88, 0.60), Vector2(170, 58))
-	yes.position = card.position + Vector2(30, 94)
-	yes.pressed.connect(func(): _expand_confirmed(_confirm_expand))
-	_play.add_child(yes)
-	_panel_buttons["confirm_expand"] = yes
-	var no := _chip_button(I18n.t("garden.cancel"),
-		Color(0.78, 0.86, 0.97), Vector2(170, 58))
-	no.position = card.position + Vector2(220, 94)
-	no.pressed.connect(func():
-		_confirm_expand = -1
-		_queue_rebuild())
-	_play.add_child(no)
-	_panel_buttons["cancel_expand"] = no
+	FarmExpansionPanel.new(self).build(view)
 
 
 func _expand_confirmed(index: int) -> void:
