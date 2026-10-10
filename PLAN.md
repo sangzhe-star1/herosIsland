@@ -414,6 +414,8 @@ These are yours to make. Nothing below has been changed without asking.
   screenshots were rendered and visually checked at both ratios.
   `tools_check.py` reports 0 errors and 208 existing warnings. The full smoke
   suite was not rerun for this extraction.
+- **Collection-feedback boundary integrated:** `84fd42d` is on `main` and
+  `origin/main`.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.
