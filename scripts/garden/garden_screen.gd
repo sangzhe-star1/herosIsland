@@ -1502,10 +1502,7 @@ func _choose_seed(crop_id: String) -> void:
 ## about it -- and a line here would talk over the praise for the job he just
 ## finished.
 func _auto_return() -> void:
-	if _tools.selected == Tools.HAND:
-		return
-	if not _tools.work_exists(_tools.selected, _plots()):
-		_tools.selected = Tools.HAND
+	if _tools.return_to_hand_if_idle(_plots()):
 		if _world != null and is_instance_valid(_world):
 			_world.brush_armed = false
 

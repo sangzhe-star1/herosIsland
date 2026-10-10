@@ -749,12 +749,12 @@ These are yours to make. Nothing below has been changed without asking.
   lifetime and probe lookup. `garden_screen.gd` is 2,473 lines.
 - **Tool selection state boundary (10 October):**
   `FarmToolController` now owns selecting a tool and choosing its seed crop,
-  including refusing either change while a brush stroke is active. The screen
-  keeps the drawer, brush arming, sound, and rebuild response. FarmWorldProbe
-  passed 897 checks; GardenTouchProbe passed 1,993 across 16:9 and 4:3,
-  including second-finger toolbar and seed touches. `tools_check.py` reports
-  0 errors and 208 warnings; the full smoke suite was not rerun for this
-  focused state extraction.
+  refusing either change while a brush stroke is active, and returning to the
+  hand only when the selected tool has no matching work left. The screen keeps
+  the drawer, brush arming, sound, and rebuild response. FarmWorldProbe passed
+  899 checks; GardenTouchProbe passed 1,993 across 16:9 and 4:3, including
+  second-finger toolbar and seed touches. `tools_check.py` reports 0 errors and
+  208 warnings; the full smoke suite was not rerun for this focused extraction.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

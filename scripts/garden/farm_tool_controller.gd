@@ -102,6 +102,15 @@ func select_seed(crop_id: String, stroke_active: bool = false) -> Dictionary:
 		"tool_id": selected, "crop_id": seed_crop}
 
 
+## Hand the child back the always-usable hand after the selected brush finishes
+## its last job. Return true only when selection actually changed.
+func return_to_hand_if_idle(plots: Array) -> bool:
+	if selected == HAND or work_exists(selected, plots):
+		return false
+	selected = HAND
+	return true
+
+
 func tool_data(tool_id: String) -> Dictionary:
 	for tool in TOOLS:
 		if str(tool.get("id", "")) == tool_id:

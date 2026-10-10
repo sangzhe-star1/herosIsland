@@ -55,7 +55,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 894
+const CHECKS_EXPECTED := 896
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -739,6 +739,14 @@ func _tool_selection_is_owned_by_its_controller() -> void:
 	_ok(invalid.is_empty() and tools.selected == "seed"
 			and tools.seed_crop == "corn",
 		"an unknown tool leaves the current selection intact")
+	tools.select_tool("water")
+	var returned := tools.return_to_hand_if_idle([Farm.fresh_plot(0)])
+	_ok(returned and tools.selected == Tools.HAND,
+		"a brush with no matching work returns the always-usable hand")
+	tools.select_tool("shovel")
+	var kept := tools.return_to_hand_if_idle([Farm.fresh_plot(1)])
+	_ok(not kept and tools.selected == "shovel",
+		"the brush stays selected while a matching bed remains")
 
 
 ## Building presses resolve to one progression decision before the screen
