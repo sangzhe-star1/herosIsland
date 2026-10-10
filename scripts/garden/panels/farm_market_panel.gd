@@ -62,7 +62,7 @@ func build(view: Vector2) -> void:
 
 	var market_field := DragField.new()
 	play.add_child(market_field)
-	market_field.dropped.connect(Callable(screen, "_on_market_drop"))
+	market_field.dropped.connect(Callable(self, "on_market_drop"))
 	screen.set("_market_field", market_field)
 
 	var box_at := origin + Vector2(600.0, 166.0)
@@ -157,7 +157,7 @@ func build(view: Vector2) -> void:
 	screen.set("_market_rows_list", market_rows_list)
 
 	for crop_id in market_sell.keys():
-		screen.call("_ensure_market_row", str(crop_id))
+		ensure_market_row(str(crop_id))
 
 	market_rows_scroll.set_deferred("scroll_vertical", int(screen.get("_market_scroll_offset")))
 	var market_drop_hint := UiKit.title(I18n.t("garden.market.drop_hint"), 17, Color(0.53, 0.48, 0.38))
@@ -167,7 +167,7 @@ func build(view: Vector2) -> void:
 	market_drop_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	play.add_child(market_drop_hint)
 	screen.set("_market_drop_hint", market_drop_hint)
-	screen.call("_market_sync_rows_visibility")
+	sync_rows_visibility()
 
 	var coin := UiKit.picture("star_coin", 20.0)
 	if coin != null:
@@ -194,8 +194,188 @@ func build(view: Vector2) -> void:
 			style.content_margin_top = 6.0
 			style.content_margin_bottom = 6.0
 	sell.position = origin + Vector2(594.0, 382.0)
-	sell.pressed.connect(Callable(screen, "_sell_pressed"))
+	sell.pressed.connect(Callable(self, "_sell_pressed"))
 	play.add_child(sell)
 	sell.size = Vector2(152.0, 56.0)
 	var panel_buttons: Dictionary = screen.get("_panel_buttons")
 	panel_buttons["sell"] = sell
+
+
+## The drop is already in its slot when DragField emits. Keep the current
+## basket in the screen so a clock-driven furniture rebuild can restore it.
+func on_market_drop(item: Dictionary, slot: Variant, correct: bool) -> void:
+	if not bool(screen.get("_market_open")) or not correct or slot == null:
+		return
+	var crop_id := str(item.get("key", ""))
+	var market_sell: Dictionary = screen.get("_market_sell")
+	market_sell[crop_id] = Barn.count(crop_id)
+	if not (screen.get("_market_rows") as Dictionary).has(crop_id):
+		ensure_market_row(crop_id)
+	refresh_row(crop_id)
+	sync_rows_visibility()
+	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
+
+
+## Receipt rows and their thumb-sized steppers belong to this panel. The
+## screen retains the basket data; a new panel instance redraws it after ticks.
+func ensure_market_row(crop_id: String) -> void:
+	var rows: Dictionary = screen.get("_market_rows")
+	var rows_list := screen.get("_market_rows_list") as VBoxContainer
+	if rows.has(crop_id) or not is_instance_valid(rows_list):
+		return
+	var row := PanelContainer.new()
+	row.name = "MarketBoxRow_%s" % crop_id
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.custom_minimum_size = Vector2(274.0, 50.0)
+	row.add_theme_stylebox_override("panel", screen.call("_quiet_surface_style",
+		Color(1.0, 0.99, 0.93), 13, Color(0.67, 0.58, 0.39, 0.24), 1, 4))
+	rows_list.add_child(row)
+	var line := HBoxContainer.new()
+	line.name = "MarketReceiptLine"
+	line.mouse_filter = Control.MOUSE_FILTER_PASS
+	line.add_theme_constant_override("separation", 4)
+	row.add_child(line)
+	var art := UiKit.picture(
+		str(GameData.get_crop(crop_id).get("icon", "seed")), 32.0)
+	if art != null:
+		art.custom_minimum_size = Vector2(36.0, 40.0)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		line.add_child(art)
+	var market_sell: Dictionary = screen.get("_market_sell")
+	var count := UiKit.title("x%d" % int(market_sell.get(crop_id, 0)), 19)
+	count.name = "BoxCount_%s" % crop_id
+	count.custom_minimum_size = Vector2(54.0, 34.0)
+	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(count)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.add_child(spacer)
+	var minus := chip_button("−", Color(0.99, 0.86, 0.74), Vector2(44.0, 44.0))
+	minus.name = "BoxMinus_%s" % crop_id
+	minus.pressed.connect(func(): step_crop(crop_id, -1))
+	line.add_child(minus)
+	var plus := chip_button("+", Color(0.88, 0.95, 0.84), Vector2(44.0, 44.0))
+	plus.name = "BoxPlus_%s" % crop_id
+	plus.pressed.connect(func(): step_crop(crop_id, +1))
+	line.add_child(plus)
+	rows[crop_id] = {"row": row, "count": count}
+
+
+func sync_rows_visibility() -> void:
+	var has_boxed := not (screen.get("_market_sell") as Dictionary).is_empty()
+	var rows_scroll := screen.get("_market_rows_scroll") as ScrollContainer
+	var drop_hint := screen.get("_market_drop_hint") as Label
+	if is_instance_valid(rows_scroll):
+		rows_scroll.visible = has_boxed
+	if is_instance_valid(drop_hint):
+		drop_hint.visible = not has_boxed
+
+
+## The receipt total and shelf count answer one question together: how many
+## are selected, and how many remain available to keep.
+func refresh_row(crop_id: String) -> void:
+	var rows: Dictionary = screen.get("_market_rows")
+	var entry: Variant = rows.get(crop_id, null)
+	if entry is Dictionary and (entry as Dictionary).get("count") is Label:
+		var label: Label = (entry as Dictionary)["count"]
+		if is_instance_valid(label):
+			label.text = "x%d" % int((screen.get("_market_sell") as Dictionary).get(crop_id, 0))
+	refresh_shelf(crop_id)
+	var total := screen.get("_market_total") as Label
+	if is_instance_valid(total):
+		total.text = str(Market.quote(screen.get("_market_sell")))
+		Juice.pop(total, 0.12)
+
+
+func refresh_shelf(crop_id: String) -> void:
+	var chip_count := play.find_child("PileCount_%s" % crop_id, true, false)
+	if chip_count is Label and is_instance_valid(chip_count):
+		(chip_count as Label).text = "x%d" % (
+			Barn.count(crop_id) - int((screen.get("_market_sell") as Dictionary).get(crop_id, 0)))
+
+
+## Emptying a row returns its placed crop card to the original shelf position.
+func return_to_shelf(crop_id: String) -> void:
+	var market_field: Variant = screen.get("_market_field")
+	if not is_instance_valid(market_field):
+		return
+	for item in market_field.items():
+		if str(item.get("key", "")) != crop_id \
+				or not bool(item.get("placed", false)):
+			continue
+		var slot: Variant = item.get("slot", {})
+		if slot is Dictionary and not slot.is_empty():
+			slot["held"] = maxi(0, int(slot.get("held", 0)) - 1)
+		item["placed"] = false
+		item["slot"] = {}
+		var node_value: Variant = item.get("node")
+		if not is_instance_valid(node_value) or not (node_value is Node2D):
+			return
+		var card := node_value as Node2D
+		var home: Vector2 = item.get("home", item.get("at", Vector2.ZERO))
+		market_field.cancel_item_motion(item)
+		card.position = home
+		card.scale = Vector2.ONE
+		card.z_index = 0
+		return
+
+
+## One crop per press, bounded by the live barn count. A zero row hands its
+## card back to the shelf and disappears from the receipt.
+func step_crop(crop_id: String, delta: int) -> void:
+	var market_sell: Dictionary = screen.get("_market_sell")
+	var boxed := clampi(int(market_sell.get(crop_id, 0)) + delta,
+		0, Barn.count(crop_id))
+	if boxed == 0:
+		market_sell.erase(crop_id)
+	else:
+		market_sell[crop_id] = boxed
+	var rows: Dictionary = screen.get("_market_rows")
+	if boxed == 0:
+		if rows.has(crop_id):
+			var entry: Variant = rows[crop_id]
+			if entry is Dictionary and (entry as Dictionary).get("row") is Node:
+				var row: Node = (entry as Dictionary)["row"]
+				if is_instance_valid(row):
+					row.queue_free()
+			rows.erase(crop_id)
+		return_to_shelf(crop_id)
+	refresh_row(crop_id)
+	sync_rows_visibility()
+	AudioManager.play_sfx("res://assets/audio/%s"
+		% ("drag_snap.ogg" if delta > 0 else "drag_back.ogg"))
+
+
+## Keep a refused sale in place. Only a committed Market receipt clears the
+## basket, pays the coins, and plays the existing collection feedback.
+func _sell_pressed() -> void:
+	var market_sell: Dictionary = screen.get("_market_sell")
+	var paid := Market.sell(market_sell)
+	if paid <= 0:
+		var buttons: Dictionary = screen.get("_panel_buttons")
+		var button := buttons.get("sell") as Button
+		if is_instance_valid(button):
+			Juice.nudge(button, 8.0)
+		return
+	screen.set("_market_sell", {})
+	screen.set("_market_rows", {})
+	AudioManager.play_sfx("res://assets/audio/coin.ogg")
+	AudioManager.say("farm_market_sold")
+	if Juice.motion_enabled() and is_instance_valid(play):
+		var view: Vector2 = (screen as CanvasItem).get_viewport_rect().size
+		for i in range(5):
+			var fly := UiKit.picture("star_coin", 30.0)
+			if fly == null:
+				continue
+			fly.position = Vector2(view.x * 0.5, view.y * 0.45) \
+				+ Vector2(float(i - 2) * 22.0, 0)
+			play.add_child(fly)
+			var tween := fly.create_tween()
+			tween.tween_interval(0.05 * float(i))
+			tween.tween_property(fly, "position",
+				Vector2(view.x - 160.0, 40.0), 0.5) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			tween.tween_callback(fly.queue_free)
+	screen.call("_queue_rebuild")

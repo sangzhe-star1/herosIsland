@@ -197,6 +197,8 @@ var _market_scroll_offset := 0
 var _market_rows_list: VBoxContainer
 var _market_drop_hint: Label
 var _market_total: Label
+## The panel handles market events; the screen owns the basket across rebuilds.
+var _market_ui: RefCounted
 ## The market's own drag field, so crops can be dragged into the box with the
 ## same hands-feel as everything else. Separate from the rack's _field: each
 ## grabs only its own pieces.
@@ -1048,6 +1050,7 @@ func _open_panel(which: String) -> void:
 	_confirm_cook = ""
 	_confirm_expand = -1
 	_confirm_upgrade = false
+	_market_ui = null
 	if which != "market":
 		_market_sell = {}
 		_market_rows = {}
@@ -1074,6 +1077,7 @@ func _close_panels() -> void:
 	_confirm_upgrade = false
 	_market_sell = {}
 	_market_rows = {}
+	_market_ui = null
 	_queue_rebuild()
 
 
@@ -2388,191 +2392,24 @@ func _buy_confirmed() -> void:
 	_queue_rebuild()
 
 
-## The market box: what the barn holds on the left, the box on the right, and
-## the total climbing as crops are dragged in. NOTHING moves out of the barn
-## until 卖掉 is pressed -- shutting the panel forgets the box and loses
-## nothing, which is what makes dragging things in safe to play with.
+## The market sheet owns its live drop, quantity, and sale callbacks. The
+## screen retains only the visit basket, which must survive furniture rebuilds.
 func _market_panel(view: Vector2) -> void:
-	FarmMarketPanel.new(self).build(view)
+	var panel := FarmMarketPanel.new(self)
+	_market_ui = panel
+	panel.build(view)
 
 
-## A pile landed in the box: remember it, give it its stepper row, and move
-## the total. No rebuild -- DragField has already sat the chip in the box, and
-## rebuilding mid-gesture is forbidden anyway.
+## Probe seam for the real market panel's drop response.
 func _on_market_drop(item: Dictionary, slot: Variant, correct: bool) -> void:
-	if not _market_open or not correct or slot == null:
-		return
-	var crop_id := str(item.get("key", ""))
-	_market_sell[crop_id] = Barn.count(crop_id)
-	if not _market_rows.has(crop_id):
-		_ensure_market_row(crop_id)
-	_market_refresh_row(crop_id)
-	_market_sync_rows_visibility()
-	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
+	if _market_ui != null:
+		_market_ui.call("on_market_drop", item, slot, correct)
 
 
-## One receipt row: the crop, its boxed count, and two thumb-sized ways to
-## change it. The scroll area owns overflow; the total and commit button stay
-## fixed so every crop can be sold without covering the action.
-func _ensure_market_row(crop_id: String) -> void:
-	if _market_rows.has(crop_id) or _market_rows_list == null \
-			or not is_instance_valid(_market_rows_list):
-		return
-	var row := PanelContainer.new()
-	row.name = "MarketBoxRow_%s" % crop_id
-	row.mouse_filter = Control.MOUSE_FILTER_PASS
-	row.custom_minimum_size = Vector2(274.0, 50.0)
-	row.add_theme_stylebox_override("panel", _quiet_surface_style(
-		Color(1.0, 0.99, 0.93), 13, Color(0.67, 0.58, 0.39, 0.24), 1, 4))
-	_market_rows_list.add_child(row)
-	var line := HBoxContainer.new()
-	line.name = "MarketReceiptLine"
-	line.mouse_filter = Control.MOUSE_FILTER_PASS
-	line.add_theme_constant_override("separation", 4)
-	row.add_child(line)
-	var art := UiKit.picture(
-		str(GameData.get_crop(crop_id).get("icon", "seed")), 32.0)
-	if art != null:
-		art.custom_minimum_size = Vector2(36.0, 40.0)
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		line.add_child(art)
-	var count := UiKit.title("x%d" % int(_market_sell.get(crop_id, 0)), 19)
-	count.name = "BoxCount_%s" % crop_id
-	count.custom_minimum_size = Vector2(54.0, 34.0)
-	count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	line.add_child(count)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	line.add_child(spacer)
-	var minus := _chip_button("−", Color(0.99, 0.86, 0.74), Vector2(44.0, 44.0))
-	minus.name = "BoxMinus_%s" % crop_id
-	minus.pressed.connect(func(): _market_step(crop_id, -1))
-	line.add_child(minus)
-	var plus := _chip_button("+", Color(0.88, 0.95, 0.84), Vector2(44.0, 44.0))
-	plus.name = "BoxPlus_%s" % crop_id
-	plus.pressed.connect(func(): _market_step(crop_id, +1))
-	line.add_child(plus)
-	_market_rows[crop_id] = {"row": row, "count": count}
-
-
-func _market_sync_rows_visibility() -> void:
-	var has_boxed := not _market_sell.is_empty()
-	if _market_rows_scroll != null and is_instance_valid(_market_rows_scroll):
-		_market_rows_scroll.visible = has_boxed
-	if _market_drop_hint != null and is_instance_valid(_market_drop_hint):
-		_market_drop_hint.visible = not has_boxed
-
-
-## The box row redraws its number and the shelf chip answers with what is
-## still on the shelf -- the pair of numbers is the whole "sell some, keep
-## the rest" decision, and both move on every press.
-func _market_refresh_row(crop_id: String) -> void:
-	var entry: Variant = _market_rows.get(crop_id, null)
-	if entry is Dictionary and (entry as Dictionary).get("count") is Label:
-		var label: Label = (entry as Dictionary)["count"]
-		if is_instance_valid(label):
-			label.text = "x%d" % int(_market_sell.get(crop_id, 0))
-	_market_refresh_shelf(crop_id)
-	if _market_total != null and is_instance_valid(_market_total):
-		_market_total.text = str(Market.quote(_market_sell))
-		Juice.pop(_market_total, 0.12)
-
-
-## The shelf chip's half of the two numbers. Called on every step INCLUDING
-## the one that empties the box for a crop -- that is the step that hands the
-## whole pile back, and a shelf that still says "x0" after it is a lie.
-func _market_refresh_shelf(crop_id: String) -> void:
-	var chip_count := _play.find_child("PileCount_%s" % crop_id, true, false)
-	if chip_count is Label and is_instance_valid(chip_count):
-		(chip_count as Label).text = "x%d" % (
-			Barn.count(crop_id) - int(_market_sell.get(crop_id, 0)))
-
-
-## Put this crop card back on the barn shelf when its receipt count reaches
-## zero. The receipt is the basket's live contents; an empty row with a card
-## still parked in the crate would tell a different story.
-func _market_return_to_shelf(crop_id: String) -> void:
-	if _market_field == null or not is_instance_valid(_market_field):
-		return
-	for item in _market_field.items():
-		if str(item.get("key", "")) != crop_id \
-				or not bool(item.get("placed", false)):
-			continue
-		var slot: Variant = item.get("slot", {})
-		if slot is Dictionary and not slot.is_empty():
-			slot["held"] = maxi(0, int(slot.get("held", 0)) - 1)
-		item["placed"] = false
-		item["slot"] = {}
-		var node_value: Variant = item.get("node")
-		if not is_instance_valid(node_value) or not (node_value is Node2D):
-			return
-		var card := node_value as Node2D
-		var home: Vector2 = item.get("home", item.get("at", Vector2.ZERO))
-		_market_field.cancel_item_motion(item)
-		card.position = home
-		card.scale = Vector2.ONE
-		card.z_index = 0
-		return
-
-
-## One crop, one step. The floor is an empty box for that crop -- the row
-## leaves with it, and the shelf chip comes back whole. The ceiling is the
-## barn itself: boxed crops never left the barn, so "all of them" is always
-## one press away.
+## Probe seam for the real market panel's quantity stepper.
 func _market_step(crop_id: String, delta: int) -> void:
-	var boxed := clampi(int(_market_sell.get(crop_id, 0)) + delta,
-		0, Barn.count(crop_id))
-	if boxed == 0:
-		_market_sell.erase(crop_id)
-	else:
-		_market_sell[crop_id] = boxed
-	if boxed == 0:
-		if _market_rows.has(crop_id):
-			var entry: Variant = _market_rows[crop_id]
-			if entry is Dictionary and (entry as Dictionary).get("row") is Node:
-				var row: Node = (entry as Dictionary)["row"]
-				if is_instance_valid(row):
-					row.queue_free()
-			_market_rows.erase(crop_id)
-		_market_return_to_shelf(crop_id)
-	_market_refresh_row(crop_id)
-	_market_sync_rows_visibility()
-	AudioManager.play_sfx("res://assets/audio/%s"
-		% ("drag_snap.ogg" if delta > 0 else "drag_back.ogg"))
-
-
-func _sell_pressed() -> void:
-	var paid := Market.sell(_market_sell)
-	if paid <= 0:
-		# A refused sale keeps its receipt and card placement unchanged.
-		var button: Variant = _panel_buttons.get("sell")
-		if button is Button and is_instance_valid(button):
-			Juice.nudge(button, 8.0)
-		return
-	_market_sell = {}
-	_market_rows = {}
-	AudioManager.play_sfx("res://assets/audio/coin.ogg")
-	AudioManager.say("farm_market_sold")
-	# Coins fly to the purse: the one piece of theatre that says where the
-	# number went.
-	if Juice.motion_enabled() and _play != null:
-		var view := get_viewport_rect().size
-		for i in range(5):
-			var fly := UiKit.picture("star_coin", 30.0)
-			if fly == null:
-				continue
-			fly.position = Vector2(view.x * 0.5, view.y * 0.45) \
-				+ Vector2(float(i - 2) * 22.0, 0)
-			_play.add_child(fly)
-			var t := fly.create_tween()
-			t.tween_interval(0.05 * float(i))
-			t.tween_property(fly, "position",
-				Vector2(view.x - 160.0, 40.0), 0.5) \
-				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-			t.tween_callback(fly.queue_free)
-	_queue_rebuild()
+	if _market_ui != null:
+		_market_ui.call("step_crop", crop_id, delta)
 
 
 ## The barn's own door: how full it is, what is in it, and -- once, ever --
