@@ -197,7 +197,9 @@ These are yours to make. Nothing below has been changed without asking.
    The six first-planting lesson decisions—next action, target bed, and the
    pre-plant target used for the fast carrot—now live in
    `scripts/garden/farm_lesson_controller.gd`; the screen keeps the voice,
-   pointing finger, clock, and completion save.
+   pointing finger, clock, and completion save. The daily-job claim transaction
+   now lives in `scripts/garden/farm_daily_claim_controller.gd`; the screen
+   still owns the tap's date, persistence, sound, and redraw.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -319,6 +321,12 @@ These are yours to make. Nothing below has been changed without asking.
   pre-plant fast-growth target. GardenTouchProbe passed 1,871 checks across
   both screen shapes while walking the whole six-step tutorial.
   `tools_check.py` reports 0 errors and 208 existing warnings.
+- **Daily claim controller verification:** GardenProbe passed 1,002 checks,
+  including refusal before completion, the date-stamped once key, and a real
+  save/reload duplicate-claim refusal through the extracted transaction.
+  GardenTouchProbe passed 1,871 checks across 16:9 and 4:3, including claiming
+  from the task board and refusing a second press. `tools_check.py` reports
+  0 errors and 208 existing warnings.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

@@ -102,6 +102,7 @@ func _ready() -> void:
 	_recurring_orders_hold_up_the_endgame()
 	_friend_requests_get_a_turn_and_routines_rotate()
 	_the_days_little_jobs_hold_water()
+	_daily_claim_controller_settles_completed_jobs_once()
 	# --- stage four: the barn, the orders, and the money ---
 	_the_barn_never_goes_negative()
 	_made_produce_occupies_the_barn_and_survives_overflow()
@@ -3171,13 +3172,12 @@ func _the_days_little_jobs_hold_water() -> void:
 		str(water.get("id", "water")), Dailies.target(str(water.get("id", "water"))))
 	claim_farm["dailies"] = completed
 	SaveManager.data["farm"] = claim_farm
-	var first_claims: Array = completed.get("claimed", [])
 	var coin_reward := int(water.get("coins", 0))
 	var coins_before := Coins.balance()
-	var first_paid := RewardManager.grant("garden:daily", coin_reward,
-		Dailies.claim_key(completed, water), first_claims)
-	completed["claimed"] = first_claims
-	SaveManager.data["farm"]["dailies"] = completed
+	var DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd")
+	var claim_receipt: Dictionary = DailyClaim.claim(claim_farm, water, claim_day)
+	var first_paid := int(claim_receipt.get("paid", 0))
+	SaveManager.data["farm"] = claim_farm
 	SaveManager.save_game()
 	_ok(first_paid == coin_reward and Coins.balance() == coins_before + coin_reward,
 		"a completed daily pays once before the restart")
@@ -3192,12 +3192,49 @@ func _the_days_little_jobs_hold_water() -> void:
 		"a same-day restart keeps the completed tally")
 	_ok(Dailies.claimed(reloaded_dailies, water),
 		"a same-day restart keeps the collected claim")
-	var reloaded_claims: Array = reloaded_dailies.get("claimed", [])
 	var coins_after_reload := Coins.balance()
-	var paid_again := RewardManager.grant("garden:daily", coin_reward,
-		Dailies.claim_key(reloaded_dailies, water), reloaded_claims)
-	_ok(paid_again == 0 and Coins.balance() == coins_after_reload,
+	var duplicate_receipt: Dictionary = DailyClaim.claim(
+		reloaded_farm, water, claim_day)
+	_ok(int(duplicate_receipt.get("paid", 0)) == 0
+		and Coins.balance() == coins_after_reload,
 		"the reward gate refuses the same daily claim after a restart")
+
+
+## The screen owns when the claim button is tapped; this boundary owns the
+## date, completion and once-only coin transaction behind that tap.
+func _daily_claim_controller_settles_completed_jobs_once() -> void:
+	_fresh_save()
+	var DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd")
+	var task := Dailies.task_by_id("water")
+	var farm: Dictionary = SaveManager.data["farm"]
+	var today := "2098-04-12"
+	var coins_before := Coins.balance()
+	var incomplete: Dictionary = DailyClaim.claim(farm, task, today)
+	_ok(int(incomplete.get("paid", 0)) == 0
+		and not bool(incomplete.get("claimed", false)),
+		"an unfinished day has no claim to collect")
+	_ok(str(farm.get("dailies", {}).get("date", "")) == ""
+		and (farm.get("dailies", {}).get("claimed", []) as Array).is_empty(),
+		"refusing an unfinished claim leaves no phantom saved reward")
+
+	farm["dailies"] = Dailies.add(farm, today, "water", Dailies.target("water"))
+	var first: Dictionary = DailyClaim.claim(farm, task, today)
+	_ok(int(first.get("paid", 0)) == int(task.get("coins", 0))
+		and bool(first.get("claimed", false)),
+		"a completed job returns the coins and a settled receipt")
+	_ok(Dailies.claimed(farm.get("dailies", {}), task)
+		and Coins.balance() == coins_before + int(task.get("coins", 0)),
+		"the once key and payment are both recorded on the farm")
+	var duplicate: Dictionary = DailyClaim.claim(farm, task, today)
+	_ok(int(duplicate.get("paid", 0)) == 0
+		and Coins.balance() == coins_before + int(task.get("coins", 0)),
+		"the same completed daily pays only once")
+	var next_day: Dictionary = Dailies.roll(farm, "2098-04-13")
+	var next_claim: Dictionary = DailyClaim.claim(farm, task, "2098-04-13")
+	_ok(int(next_claim.get("paid", 0)) == 0
+		and not Dailies.done(next_day, task)
+		and not Dailies.claimed(next_day, task),
+		"tomorrow's rolled task has no inherited completion or claim")
 
 
 ## Story requests appended after routines must still be seen, and old saves

@@ -54,6 +54,7 @@ const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
+const DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
@@ -2614,16 +2615,9 @@ func _order_card_centre(order_id: String) -> Vector2:
 ## pays once today and once again tomorrow, and never twice in either.
 func _claim_daily(task: Dictionary) -> void:
 	var farm := _farm()
-	var dailies: Dictionary = Dailies.roll(farm, GameClock.now_date())
-	if Dailies.claimed(dailies, task) or not Dailies.done(dailies, task):
-		return
-	var claimed_list: Array = dailies.get("claimed", [])
-	var paid := RewardManager.grant("garden:daily",
-		int(task.get("coins", 0)), Dailies.claim_key(dailies, task),
-		claimed_list)
+	var receipt := DailyClaim.claim(farm, task, GameClock.now_date())
+	var paid := int(receipt.get("paid", 0))
 	if paid > 0:
-		dailies["claimed"] = claimed_list
-		SaveManager.data["farm"]["dailies"] = dailies
 		SaveManager.save_game()
 		AudioManager.play_sfx("res://assets/audio/coin.ogg")
 		AudioManager.say("praise_2")
