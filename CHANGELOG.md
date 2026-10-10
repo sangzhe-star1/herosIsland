@@ -2,10 +2,10 @@
 
 ## 菜地动作提示共用一张状态表 — 10 October 2026
 
-- 新增 `farm_plot_action_controller.gd`，统一草地翻土、翻土播种、需照料、成熟收获、等待和动画锁定这六种地块动作。点地与 `FarmNextTaskController` 都读取同一状态表；收菜动画期间任务条会跳过暂不可点的地块。
+- 新增 `farm_plot_action_controller.gd`，统一草地翻土、翻土播种、需照料、成熟收获、等待和动画锁定这六种地块动作。点地、任务条和狗狗提示都复用同一状态与优先级；收菜动画期间会跳过暂不可点的地块。
 - 状态字段优先于可能残留的旧照料标记；缺失状态沿用农场默认的空地语义，未知状态保持等待。保存、语音、动画和奖励仍由各自调用方处理。
 - 挑战卡片的透明点击区改为卡片子节点，呼吸缩放时可见表面与整块点击范围同步。
-- 农场专项套件 7 项全部通过（含双比例触控）；`FarmWorldProbe` 849 项。`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
+- 农场专项套件 7 项全部通过（含双比例触控）；`FarmWorldProbe` 850 项。`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
 
 ## 工具坞折叠为三项快捷栏 — 10 October 2026
 

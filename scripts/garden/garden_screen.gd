@@ -3410,7 +3410,7 @@ func _rack_tile_centre(index: int) -> Vector2:
 ## The ribbon and the dog read this exact priority from FarmToolController too:
 ## ripe food first, then care, then planting the soil he already turned.
 func _the_plot_that_wants_something() -> int:
-	return Tools.next_action_index(_plots())
+	return Tools.next_action_index(_plots(), _harvesting)
 
 
 ## Help, step one: say it again, and make the thing glow.

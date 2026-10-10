@@ -533,12 +533,13 @@ These are yours to make. Nothing below has been changed without asking.
   FarmWorldProbe passed 829 checks, and both drawer layouts were rendered and
   reviewed. See `docs/GARDEN_HARVEST_VISUAL_UPGRADE_PLAN.md`.
 - **Plot action contract unified (10 October):** bare-hand plot taps and the
-  next-task resolver now read `FarmPlotActionController.for_plot()`, so the
-  action promised by the ribbon comes from the same state mapping as the tap.
+  next-task resolver and dog hint focus now read the shared
+  `FarmPlotActionController`, so the action promised by the ribbon and the
+  action highlighted by a hint use the same state mapping as the tap.
   The query also skips a bed while its harvest animation lock is active and
   picks the next tappable bed. The harvest challenge card's hit area now shares
   its breathing transform with the visible surface. The focused farm suite passed 7 probes;
-  FarmWorldProbe passed 849 checks, GardenProbe 1,142, and GardenTouchProbe
+  FarmWorldProbe passed 850 checks, GardenProbe 1,142, and GardenTouchProbe
   1,959 across 16:9 and 4:3. This still leaves the screen responsible for
   saves, sound, and visual feedback.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact

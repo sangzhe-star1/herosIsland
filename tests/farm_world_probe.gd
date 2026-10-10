@@ -53,7 +53,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 849
+const CHECKS_EXPECTED := 850
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -458,6 +458,9 @@ func _the_plot_action_table_is_shared_and_state_first() -> void:
 	_ok(str(unlocked_task.get("kind", "")) == "till"
 		and int(unlocked_task.get("index", -1)) == 1,
 		"the task ribbon moves to the next tappable bed during harvest")
+	_ok(Tools.next_action_index([plot, next_plot],
+		{str(plot.get("plot_id", "")): true}) == 1,
+		"the dog hint uses the same priority and skips the same locked bed")
 	plot["state"] = Farm.NEEDS_CARE
 	_ok(PlotAction.for_plot(plot, true) == PlotAction.LOCKED,
 		"the short harvest lock applies before every plot action")
