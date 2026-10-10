@@ -34,5 +34,5 @@ static func feed(farm: Dictionary, now: int) -> bool:
 	return Pen.feed(farm, Pen.COOP, now)
 
 
-static func collect(farm: Dictionary) -> Dictionary:
-	return Pen.collect(farm, Pen.COOP)
+static func collect(farm: Dictionary, now: int) -> Dictionary:
+	return Pen.collect(farm, Pen.COOP, now)

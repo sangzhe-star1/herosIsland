@@ -18,7 +18,7 @@ const MISSING := "missing"
 static func press_pen(farm: Dictionary, spec: Dictionary, now: int) -> Dictionary:
 	match Pen.state(farm, spec, now):
 		Pen.READY:
-			return {"action": COLLECTED, "receipt": Pen.collect(farm, spec)}
+			return {"action": COLLECTED, "receipt": Pen.collect(farm, spec, now)}
 		Pen.PRODUCING:
 			return {"action": WAITING, "progress": Pen.progress(farm, spec, now)}
 		_:
@@ -31,7 +31,7 @@ static func press_pen(farm: Dictionary, spec: Dictionary, now: int) -> Dictionar
 static func press_maker(farm: Dictionary, spec: Dictionary, now: int) -> Dictionary:
 	match Maker.state(farm, spec, now):
 		Maker.READY:
-			return {"action": COLLECTED, "receipt": Maker.collect(farm, spec)}
+			return {"action": COLLECTED, "receipt": Maker.collect(farm, spec, now)}
 		Maker.WORKING:
 			return {"action": WAITING, "progress": Maker.progress(farm, spec, now)}
 		_:

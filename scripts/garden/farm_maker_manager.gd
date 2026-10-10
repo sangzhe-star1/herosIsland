@@ -34,6 +34,7 @@ static func state(farm: Dictionary, spec: Dictionary, now: int) -> String:
 		return IDLE
 	if now - started >= int(spec["seconds"]):
 		c["done"] = int(spec["output_count"])
+		c["ready_started_at"] = started
 		c["started_at"] = 0
 		return READY
 	return WORKING
@@ -56,18 +57,32 @@ static func start(farm: Dictionary, spec: Dictionary, now: int) -> bool:
 	var c := store(farm, spec)
 	c["started_at"] = now
 	c["done"] = 0
+	c["ready_started_at"] = 0
+	c["pending_started_at"] = 0
 	return true
 
 
 ## Out through the harvest's own door, so a full barn spills, never loses.
-static func collect(farm: Dictionary, spec: Dictionary) -> Dictionary:
+static func collect(farm: Dictionary, spec: Dictionary, now: int) -> Dictionary:
 	var c := store(farm, spec)
 	var done := int(c.get("done", 0))
 	if done <= 0:
 		return {}
 	c["done"] = 0
-	# Keep an in-progress cycle from the other device if this save also carried
-	# finished flour. state() clears started_at when that same cycle completes.
+	var ready_started_at := int(c.get("ready_started_at", 0))
+	if ready_started_at > 0:
+		c["completed_started_at"] = maxi(
+			int(c.get("completed_started_at", 0)), ready_started_at)
+	elif now > 0:
+		# The old save cannot identify this ready cycle. Mark collection time so
+		# an ambiguous timer from a second device cannot pay it a second time.
+		c["completed_started_at"] = maxi(
+			int(c.get("completed_started_at", 0)), now)
+	var pending_started_at := int(c.get("pending_started_at", 0))
+	c["started_at"] = pending_started_at \
+		if pending_started_at > int(c.get("completed_started_at", 0)) else 0
+	c["pending_started_at"] = 0
+	c["ready_started_at"] = 0
 	var receipt := Barn.store_harvest(str(spec["output"]), done)
 	receipt["crop_id"] = str(spec["output"])
 	receipt["amount"] = done

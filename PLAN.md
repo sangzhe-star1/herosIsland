@@ -852,6 +852,18 @@ These are yours to make. Nothing below has been changed without asking.
   `plots`, and `npc` as changed by bed expansion and ordinary arrival
   settlement, and listed the twelve newer farm fields added with defaults.
   This remains synthetic evidence; the actual iPad backup still needs review.
+- **Facility-cycle merge follow-up (10 October):** coop, mill, cow shed and
+  beehive saves now retain ready-cycle and completed-cycle timestamps. A merge
+  drops the same completed run from a stale tablet, queues a distinctly newer
+  run behind uncollected output, and resumes it once collected. For old saves
+  without cycle stamps, collection time becomes a conservative high-water mark;
+  an ambiguous old timer or output is discarded rather than paid twice. The
+  Phase 7 disk-migration fixture verifies the old coop and mill state survives
+  while new marker fields are filled with defaults. `GardenProbe` passed 1,212
+  checks, `SaveProbe` passed, and the isolated full smoke suite passed 30/30
+  with 0 skipped. `tools_check.py` reports 0 errors and 208 existing warnings.
+  This synthetic merge coverage still needs a real iPad backup and the planned
+  iPad pacing/playability session.
 
 ---
 

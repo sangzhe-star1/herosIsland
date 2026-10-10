@@ -539,14 +539,28 @@ func _a_phase_seven_save_gains_later_defaults_without_losing_farm_state() -> voi
 	GameClock.clear_test_now()
 	var migrated: Dictionary = SaveManager.data["farm"]
 	for key in PHASE_SEVEN_FARM_KEYS:
-		if key == "npc":
-			continue # normalise_npc adds the later rabbit and puppy entries
+		if key in ["npc", "coop", "mill"]:
+			continue # nested ledgers receive their own shape-aware checks below
 		_ok(_same_json_value(migrated.get(key), legacy_farm.get(key)),
 			"the 25ecd52 farm keeps its %s value across migration" % key)
 	for key in legacy_farm["npc"]["bear"].keys():
 		_ok(_same_json_value(migrated["npc"]["bear"].get(key),
 			legacy_farm["npc"]["bear"][key]),
 			"the 25ecd52 farm keeps the bear's %s state" % key)
+	var migrated_coop: Dictionary = migrated["coop"]
+	_ok(int(migrated_coop.get("fed_at", 0)) == 1_760_000_000
+			and int(migrated_coop.get("eggs", 0)) == 3
+			and int(migrated_coop.get("ready_started_at", -1)) == 0
+			and int(migrated_coop.get("completed_started_at", -1)) == 0
+			and int(migrated_coop.get("pending_fed_at", -1)) == 0,
+		"the Phase 7 coop keeps its work while receiving empty cycle markers")
+	var migrated_mill: Dictionary = migrated["mill"]
+	_ok(int(migrated_mill.get("started_at", 0)) == 1_760_000_010
+			and int(migrated_mill.get("done", 0)) == 2
+			and int(migrated_mill.get("ready_started_at", -1)) == 0
+			and int(migrated_mill.get("completed_started_at", -1)) == 0
+			and int(migrated_mill.get("pending_started_at", -1)) == 0,
+		"the Phase 7 mill keeps its work while receiving empty cycle markers")
 	for npc_id in ["rabbit", "puppy"]:
 		_ok(_same_json_value(migrated["npc"].get(npc_id),
 			current_defaults["npc"][npc_id]),
@@ -3310,7 +3324,7 @@ func _the_pens_and_new_recipes_work() -> void:
 	_ok(Barn.count("wheat") == 0, "wheat was taken from the barn")
 	_ok(Pen.state(farm, Pen.COW_SHED, now) == Pen.PRODUCING, "cow shed is producing right after feeding")
 	_ok(Pen.state(farm, Pen.COW_SHED, now + 150) == Pen.READY, "cow shed is ready after 150 seconds")
-	var milk_receipt := Pen.collect(farm, Pen.COW_SHED)
+	var milk_receipt := Pen.collect(farm, Pen.COW_SHED, now + 150)
 	_ok(milk_receipt.get("crop_id") == "milk" and int(milk_receipt.get("amount", 0)) == 1,
 		"collecting cow shed yields 1 milk")
 	_ok(Barn.count("milk") == 1, "milk is stored in barn")
@@ -3324,7 +3338,7 @@ func _the_pens_and_new_recipes_work() -> void:
 	_ok(Barn.count("strawberry") == 0, "strawberries were taken from the barn")
 	_ok(Pen.state(farm, Pen.BEEHIVE, now) == Pen.PRODUCING, "beehive is producing")
 	_ok(Pen.state(farm, Pen.BEEHIVE, now + 90) == Pen.READY, "beehive is ready after 90 seconds")
-	var honey_receipt := Pen.collect(farm, Pen.BEEHIVE)
+	var honey_receipt := Pen.collect(farm, Pen.BEEHIVE, now + 90)
 	_ok(honey_receipt.get("crop_id") == "honey" and int(honey_receipt.get("amount", 0)) == 1,
 		"collecting beehive yields 1 honey")
 	_ok(Barn.count("honey") == 1, "honey is stored in barn")
@@ -3448,22 +3462,89 @@ func _the_facility_action_controller_unifies_timed_production() -> void:
 		and Barn.count("flour") == 1,
 		"collecting a maker twice cannot duplicate its produce")
 
-	# A merged save can hold ready output from one tablet alongside a running
-	# cycle from the other. Collecting the first output must leave that timer.
+	# A stale timer from the same production cycle must not become a second
+	# output after the other tablet already made that output ready.
 	_fresh_save()
 	farm = SaveManager.data["farm"]
-	farm["coop"] = {"fed_at": now + 200, "eggs": 2}
-	var overlap_eggs := Pen.collect(farm, Pen.COOP)
-	_ok(int(overlap_eggs.get("amount", 0)) == 2
-			and int(farm["coop"].get("fed_at", 0)) == now + 200
-			and Pen.state(farm, Pen.COOP, now + 210) == Pen.PRODUCING,
-		"collecting merged eggs keeps the other tablet's active coop cycle")
-	farm["mill"] = {"started_at": now + 200, "done": 1}
-	var overlap_flour := Maker.collect(farm, Maker.MILL)
-	_ok(int(overlap_flour.get("amount", 0)) == 1
-			and int(farm["mill"].get("started_at", 0)) == now + 200
-			and Maker.state(farm, Maker.MILL, now + 210) == Maker.WORKING,
-		"collecting merged flour keeps the other tablet's active mill cycle")
+	var shared_cycle := now - 120
+	farm["coop"] = {"fed_at": shared_cycle, "eggs": 0}
+	farm["mill"] = {"started_at": shared_cycle, "done": 0}
+	SaveManager._merge_progress({"farm": {
+		"coop": {"fed_at": 0, "eggs": 2, "ready_started_at": shared_cycle},
+		"mill": {"started_at": 0, "done": 1,
+			"ready_started_at": shared_cycle},
+	}})
+	var same_cycle_farm: Dictionary = SaveManager.data["farm"]
+	var same_cycle_eggs := Pen.collect(same_cycle_farm, Pen.COOP, now + 1)
+	var same_cycle_flour := Maker.collect(same_cycle_farm, Maker.MILL, now + 1)
+	_ok(int(same_cycle_eggs.get("amount", 0)) == 2
+			and int(same_cycle_flour.get("amount", 0)) == 1
+			and int(same_cycle_farm["coop"].get("fed_at", 0)) == 0
+			and int(same_cycle_farm["mill"].get("started_at", 0)) == 0,
+		"collecting a ready cycle does not restart its stale pen or mill timer")
+	SaveManager._merge_progress({"farm": {
+		"coop": {"fed_at": shared_cycle, "eggs": 0},
+		"mill": {"started_at": shared_cycle, "done": 0},
+	}})
+	_ok(int(same_cycle_farm["coop"].get("fed_at", 0)) == 0
+			and int(same_cycle_farm["mill"].get("started_at", 0)) == 0,
+		"a later backup cannot rearm either already-completed cycle")
+
+	# A later, distinct run is queued behind the imported output and starts
+	# immediately after collection, preserving both devices' real progress.
+	_fresh_save()
+	farm = SaveManager.data["farm"]
+	var old_ready_cycle := now - 300
+	var later_cycle := now - 50
+	farm["coop"] = {"fed_at": later_cycle, "eggs": 0}
+	farm["mill"] = {"started_at": later_cycle, "done": 0}
+	SaveManager._merge_progress({"farm": {
+		"coop": {"fed_at": 0, "eggs": 2,
+			"ready_started_at": old_ready_cycle},
+		"mill": {"started_at": 0, "done": 1,
+			"ready_started_at": old_ready_cycle},
+	}})
+	var queued_farm: Dictionary = SaveManager.data["farm"]
+	_ok(int(queued_farm["coop"].get("pending_fed_at", 0)) == later_cycle
+			and int(queued_farm["mill"].get("pending_started_at", 0)) == later_cycle,
+		"a distinct running cycle queues behind imported pen and mill output")
+	Pen.collect(queued_farm, Pen.COOP, now + 1)
+	Maker.collect(queued_farm, Maker.MILL, now + 1)
+	_ok(Pen.state(queued_farm, Pen.COOP, now + 10) == Pen.PRODUCING
+			and Maker.state(queued_farm, Maker.MILL, now + 10) == Maker.WORKING,
+		"collecting imported output resumes each distinct queued cycle once")
+
+	# A pre-cycle-stamp backup cannot tell whether its timer belongs to the
+	# imported ready output. Discard that ambiguous timer, then use collection
+	# time as a high-water mark so re-importing the old timer cannot revive it.
+	_fresh_save()
+	farm = SaveManager.data["farm"]
+	var legacy_cycle := now - 120
+	farm["coop"] = {"fed_at": legacy_cycle, "eggs": 0}
+	farm["mill"] = {"started_at": legacy_cycle, "done": 0}
+	SaveManager._merge_progress({"farm": {
+		"coop": {"fed_at": 0, "eggs": 2},
+		"mill": {"started_at": 0, "done": 1},
+	}})
+	var legacy_farm: Dictionary = SaveManager.data["farm"]
+	var collected_legacy_pen := FacilityAction.press_pen(
+		legacy_farm, Pen.COOP, now + 1)
+	var collected_legacy_maker := FacilityAction.press_maker(
+		legacy_farm, Maker.MILL, now + 1)
+	_ok(str(collected_legacy_pen.get("action", "")) == FacilityAction.COLLECTED
+			and str(collected_legacy_maker.get("action", "")) == FacilityAction.COLLECTED
+			and int(legacy_farm["coop"].get("completed_started_at", 0)) == now + 1
+			and int(legacy_farm["mill"].get("completed_started_at", 0)) == now + 1,
+		"collecting legacy output records a completion high-water mark")
+	SaveManager._merge_progress({"farm": {
+		"coop": {"fed_at": legacy_cycle, "eggs": 2},
+		"mill": {"started_at": legacy_cycle, "done": 1},
+	}})
+	_ok(int(legacy_farm["coop"].get("fed_at", 0)) == 0
+			and int(legacy_farm["mill"].get("started_at", 0)) == 0
+			and int(legacy_farm["coop"].get("eggs", 0)) == 0
+			and int(legacy_farm["mill"].get("done", 0)) == 0,
+		"a stale legacy backup cannot replay collected output or rearm its timer")
 
 
 ## Candidate 2: visitors who want a dish from the kitchen (schedule, want bubble, and gifting).

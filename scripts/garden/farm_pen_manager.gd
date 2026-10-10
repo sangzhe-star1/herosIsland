@@ -81,6 +81,7 @@ static func state(farm: Dictionary, spec: Dictionary, now: int) -> String:
 	var duration := int(spec.get("seconds", 120))
 	if now - fed_at >= duration:
 		p[rkey] = int(spec.get("output_count", 1))
+		p["ready_started_at"] = fed_at
 		p["fed_at"] = 0
 		return READY
 	return PRODUCING
@@ -108,19 +109,33 @@ static func feed(farm: Dictionary, spec: Dictionary, now: int) -> bool:
 	var rkey := str(spec.get("ready_key", "ready"))
 	p["fed_at"] = now
 	p[rkey] = 0
+	p["ready_started_at"] = 0
+	p["pending_fed_at"] = 0
 	return true
 
 
-static func collect(farm: Dictionary, spec: Dictionary) -> Dictionary:
+static func collect(farm: Dictionary, spec: Dictionary, now: int) -> Dictionary:
 	var p := pen(farm, spec)
 	var rkey := str(spec.get("ready_key", "ready"))
 	var amount := int(p.get(rkey, 0))
 	if amount <= 0:
 		return {}
 	p[rkey] = 0
-	# A cross-device merge can carry finished output beside a newer active
-	# cycle. Normal READY production already clears fed_at in state(); leaving a
-	# nonzero stamp here lets collection keep both parts of that merged history.
+	var ready_started_at := int(p.get("ready_started_at", 0))
+	if ready_started_at > 0:
+		p["completed_started_at"] = maxi(
+			int(p.get("completed_started_at", 0)), ready_started_at)
+	elif now > 0:
+		# A legacy ready result has no cycle stamp. Its collection time is the
+		# safest high-water mark: an ambiguous timer from another device must not
+		# turn that already-paid output into a second batch.
+		p["completed_started_at"] = maxi(
+			int(p.get("completed_started_at", 0)), now)
+	var pending_fed_at := int(p.get("pending_fed_at", 0))
+	p["fed_at"] = pending_fed_at \
+		if pending_fed_at > int(p.get("completed_started_at", 0)) else 0
+	p["pending_fed_at"] = 0
+	p["ready_started_at"] = 0
 	var out_crop := str(spec.get("output", ""))
 	var receipt := Barn.store_harvest(out_crop, amount)
 	receipt["crop_id"] = out_crop

@@ -156,7 +156,8 @@ func _ready() -> void:
 		"%s:1" % recurring_key, "%s:2" % recurring_key,
 	]
 	var travel_farm: Dictionary = SaveManager.data["farm"]
-	travel_farm["coop"] = {"fed_at": 0, "eggs": 2}
+	travel_farm["coop"] = {"fed_at": 0, "eggs": 2,
+		"ready_started_at": SETTLEMENT_TIME - 120}
 	travel_farm["mill"] = {"started_at": SETTLEMENT_TIME + 5, "done": 0}
 	travel_farm["cow_shed"] = {"fed_at": 0, "ready": 1}
 	travel_farm["beehive"] = {"fed_at": SETTLEMENT_TIME + 20, "ready": 0}
@@ -343,8 +344,22 @@ func _ready() -> void:
 	var merged_farm_state: Dictionary = SaveManager.data["farm"]
 	_ok(int(merged_farm_state.get("coop", {}).get("eggs", 0)) == 2
 			and int(merged_farm_state.get("coop", {}).get("fed_at", 0))
+			== 0
+			and int(merged_farm_state.get("coop", {}).get("pending_fed_at", 0))
 			== SETTLEMENT_TIME + 100,
-		"a ready coop output and the other tablet's running cycle can coexist")
+		"a distinct later coop cycle waits behind imported ready output")
+	var collected_merged_eggs: Dictionary = Pen.collect(
+		merged_farm_state, Pen.COOP, SETTLEMENT_TIME + 101)
+	_ok(int(collected_merged_eggs.get("amount", 0)) == 2
+			and int(merged_farm_state.get("coop", {}).get("fed_at", 0))
+			== SETTLEMENT_TIME + 100
+			and int(merged_farm_state.get("coop", {}).get("pending_fed_at", 0)) == 0,
+		"collecting imported eggs advances to the queued cycle exactly once")
+	SaveManager._merge_progress({"farm": {"coop": {
+		"fed_at": SETTLEMENT_TIME - 120, "eggs": 0}}})
+	_ok(int(merged_farm_state.get("coop", {}).get("fed_at", 0))
+			== SETTLEMENT_TIME + 100,
+		"a stale timer cannot rearm a cycle that was already completed elsewhere")
 	var merged_dailies: Dictionary = merged_farm_state.get("dailies", {})
 	_ok(int(merged_dailies.get("progress", {}).get("water", 0)) == 3
 			and int(merged_dailies.get("progress", {}).get("harvest", 0)) == 1

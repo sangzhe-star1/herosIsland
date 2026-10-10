@@ -1410,10 +1410,9 @@ func _merge_farm(theirs: Dictionary) -> void:
 		farm["last_farm_visit_at"] = maxi(int(farm.get("last_farm_visit_at", 0)),
 			int(tf.get("last_farm_visit_at", 0)))
 
-		# Facility output and running work both survive an import. Output counts
-		# take the higher value so importing the same harvest twice never mints
-		# more; when both devices were working, keep the earliest start stamp,
-		# which is the cycle furthest along.
+		# Facility cycles are identified by their start stamp. This deduplicates a
+		# completed cycle against a stale timer on the other tablet while keeping
+		# a genuinely later cycle queued behind output waiting to be collected.
 		_merge_timed_facility(farm, tf, "coop", "fed_at", "eggs")
 		_merge_timed_facility(farm, tf, "cow_shed", "fed_at", "ready")
 		_merge_timed_facility(farm, tf, "beehive", "fed_at", "ready")
@@ -1623,16 +1622,68 @@ func _merge_timed_facility(farm: Dictionary, theirs: Dictionary,
 		if local_value is Dictionary else {}
 	if remote_value is Dictionary:
 		var remote: Dictionary = remote_value
-		merged[output_key] = maxi(maxi(0, int(merged.get(output_key, 0))),
-			maxi(0, int(remote.get(output_key, 0))))
-		var local_at := int(merged.get(timer_key, 0))
-		var remote_at := int(remote.get(timer_key, 0))
-		if local_at <= 0:
-			merged[timer_key] = maxi(0, remote_at)
-		elif remote_at > 0:
-			# The facility has one active slot. Preserve the cycle nearest to
-			# completion while keeping any already-finished output above.
-			merged[timer_key] = mini(local_at, remote_at)
+		var pending_key := "pending_" + timer_key
+		var completed_at := maxi(int(merged.get("completed_started_at", 0)),
+			int(remote.get("completed_started_at", 0)))
+		merged["completed_started_at"] = completed_at
+
+		var local_output := maxi(0, int(merged.get(output_key, 0)))
+		var remote_output := maxi(0, int(remote.get(output_key, 0)))
+		var local_ready_at := int(merged.get("ready_started_at", 0))
+		var remote_ready_at := int(remote.get("ready_started_at", 0))
+		# A stamped ready result at or before the completed high-water was
+		# already collected on one device; the barn merge carries it. An unstamped
+		# legacy result is kept only until any completion high-water exists, since
+		# its cycle cannot be distinguished from an already-paid one.
+		var keep_local_output := local_output > 0 \
+			and ((local_ready_at > 0 and local_ready_at > completed_at) \
+			or (local_ready_at <= 0 and completed_at <= 0))
+		var keep_remote_output := remote_output > 0 \
+			and ((remote_ready_at > 0 and remote_ready_at > completed_at) \
+			or (remote_ready_at <= 0 and completed_at <= 0))
+		var ready_output := 0
+		var ready_at := 0
+		if keep_local_output and keep_remote_output:
+			if local_ready_at > 0 and remote_ready_at > 0 \
+					and local_ready_at != remote_ready_at:
+				# Different cycle starts are separate runs. One ready slot can carry
+				# their combined output; collecting it advances completion past both.
+				ready_output = local_output + remote_output
+				ready_at = maxi(local_ready_at, remote_ready_at)
+			else:
+				# Equal ids (or an old save with no id) may be the same run.
+				ready_output = maxi(local_output, remote_output)
+				ready_at = maxi(local_ready_at, remote_ready_at)
+		elif keep_local_output:
+			ready_output = local_output
+			ready_at = local_ready_at
+		elif keep_remote_output:
+			ready_output = remote_output
+			ready_at = remote_ready_at
+		merged[output_key] = ready_output
+		merged["ready_started_at"] = ready_at if ready_output > 0 else 0
+
+		# An unseen legacy ready output has no start stamp. Keep it once and
+		# discard any ambiguous timer rather than let that old cycle produce
+		# twice. Newer saves can distinguish a later cycle and queue it.
+		var timer_candidates := [int(merged.get(timer_key, 0)),
+			int(remote.get(timer_key, 0)), int(merged.get(pending_key, 0)),
+			int(remote.get(pending_key, 0))]
+		var active_at := 0
+		var pending_at := 0
+		for candidate in timer_candidates:
+			if candidate <= completed_at:
+				continue
+			if ready_output > 0:
+				if ready_at <= 0 or candidate <= ready_at:
+					continue
+				pending_at = candidate if pending_at <= 0 else mini(
+					pending_at, candidate)
+			else:
+				active_at = candidate if active_at <= 0 else mini(
+					active_at, candidate)
+		merged[timer_key] = active_at
+		merged[pending_key] = pending_at
 	farm[key] = merged
 
 

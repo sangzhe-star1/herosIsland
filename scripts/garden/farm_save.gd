@@ -194,10 +194,14 @@ static func default_farm() -> Dictionary:
 		# Harvest transaction ids already paid for. Bounded on purpose -- see
 		# remember_paid() for why a bound cannot let a harvest be paid twice.
 		"paid_harvests": [],
-		"coop": {"fed_at": 0, "eggs": 0},   # the hens: when last fed, eggs waiting
-		"mill": {"started_at": 0, "done": 0},  # the windmill: grinding since, flour waiting
-		"cow_shed": {"fed_at": 0, "ready": 0},  # the cow: when last fed, milk waiting
-		"beehive": {"fed_at": 0, "ready": 0},  # the bees: when last fed, honey waiting
+		"coop": {"fed_at": 0, "eggs": 0, "ready_started_at": 0,
+			"completed_started_at": 0, "pending_fed_at": 0},
+		"mill": {"started_at": 0, "done": 0, "ready_started_at": 0,
+			"completed_started_at": 0, "pending_started_at": 0},
+		"cow_shed": {"fed_at": 0, "ready": 0, "ready_started_at": 0,
+			"completed_started_at": 0, "pending_fed_at": 0},
+		"beehive": {"fed_at": 0, "ready": 0, "ready_started_at": 0,
+			"completed_started_at": 0, "pending_fed_at": 0},
 		# The market's receipts. The counter only rises, so every sale in the
 		# history of a save has its own id -- the same shape as plant_cycle_id,
 		# because it is solving the same problem: a second press of the same
@@ -467,10 +471,13 @@ static func normalise_farm(raw: Variant) -> Dictionary:
 		return farm
 	var given: Dictionary = raw
 	for key in farm.keys():
-		if key == "plots":
+		if key == "plots" or key in ["coop", "mill", "cow_shed", "beehive"]:
 			continue
 		if given.has(key) and SaveManager.same_shape(given[key], farm[key]):
 			farm[key] = given[key]
+	for facility_key in ["coop", "mill", "cow_shed", "beehive"]:
+		farm[facility_key] = _normalise_facility_state(given.get(facility_key),
+			farm[facility_key])
 
 	farm["npc"] = normalise_npc(farm.get("npc"))
 	var wanted: int = maxi(int(farm["plot_count"]), PLOT_COUNT)
@@ -481,3 +488,16 @@ static func normalise_farm(raw: Variant) -> Dictionary:
 		plots.append(normalise_plot(incoming[i] if i < incoming.size() else null, i))
 	farm["plots"] = plots
 	return farm
+
+
+## Facility saves gain cycle stamps over time. Fill missing known keys while
+## preserving any future/unknown keys, just as the plot normalizer does.
+static func _normalise_facility_state(raw: Variant,
+		defaults: Dictionary) -> Dictionary:
+	var out := defaults.duplicate(true)
+	if not raw is Dictionary:
+		return out
+	for key in raw.keys():
+		if not defaults.has(key) or SaveManager.same_shape(raw[key], defaults[key]):
+			out[key] = raw[key]
+	return out
