@@ -589,7 +589,7 @@ SPEND_MAY = {
     "scripts/garden/seed_shop_manager.gd",     # seed shop panel confirms first
     "scripts/garden/inventory_manager.gd",     # barn-side of the same panels
     "scripts/garden/farm_expansion_manager.gd",# 开垦 asks, then pays, then can undo
-    "scripts/garden/garden_screen.gd",         # barn upgrade: 先问后扣、5秒放回
+    "scripts/garden/farm_barn_upgrade_controller.gd", # barn panel confirms first; Undo offers the five-second return
 }
 for path in gd:
     if path.startswith("tests"):

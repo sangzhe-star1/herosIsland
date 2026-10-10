@@ -56,6 +56,7 @@ const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd")
 const DailyProgress := preload("res://scripts/garden/farm_daily_progress_controller.gd")
+const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
@@ -3123,20 +3124,13 @@ func _barn_panel(view: Vector2) -> void:
 func _upgrade_confirmed() -> void:
 	_confirm_upgrade = false
 	var farm := _farm()
-	# Three ways to be refused, and all three used to return without a
-	# redraw: the confirm card stayed up over a button that did nothing.
-	if Barn.cap() >= Farm.WAREHOUSE_UPGRADED \
-			or not Barn.has("plank", Undo.UPGRADE_PLANKS, "inventory") \
-			or not Coins.spend(Undo.UPGRADE_COINS):
+	var receipt := BarnUpgrade.settle(farm, GameClock.ticks_ms())
+	if not bool(receipt.get("upgraded", false)):
+		# A refused purchase still closes the confirm card and redraws honestly.
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 		_queue_rebuild()
 		return
-	Barn.take("plank", Undo.UPGRADE_PLANKS, "inventory")
-	farm["warehouse_cap"] = Farm.WAREHOUSE_UPGRADED
-	# Room just appeared out of thin air; anything waiting outside comes in.
-	Barn.tip_basket_in()
-	SaveManager.save_game()
-	_pending_undo = Undo.offer("cap", "", GameClock.ticks_ms())
+	_pending_undo = receipt.get("undo", {})
 	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
 	AudioManager.say("farm_barn_bigger")
 	_queue_rebuild()
