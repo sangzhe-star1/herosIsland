@@ -19,6 +19,7 @@ const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controller.gd")
 const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.gd")
 const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
+const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -47,7 +48,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 692
+const CHECKS_EXPECTED := 695
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -74,6 +75,7 @@ func _ready() -> void:
 	_the_tilling_controller_turns_only_empty_earth()
 	_the_planting_controller_starts_one_cycle()
 	_the_harvest_controller_keeps_paid_cycles_unique()
+	_the_harvest_ledger_claim_keeps_its_bound()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
 	# --- stage two: growing ---
@@ -1613,6 +1615,36 @@ func _the_harvest_controller_keeps_paid_cycles_unique() -> void:
 	_ok(PlotHarvest.after_harvest(Farm.fresh_plot(0)).is_empty()
 			and PlotHarvest.recover_paid_duplicate(Farm.fresh_plot(0), paid).is_empty(),
 		"unripe soil cannot enter either harvest reset path")
+
+
+## RewardManager.record() mutates its argument, so it must receive a snapshot;
+## otherwise remember_paid() sees a pre-appended id and skips its size bound.
+func _the_harvest_ledger_claim_keeps_its_bound() -> void:
+	var farm := {"paid_harvests": []}
+	var ripe := Farm.fresh_plot(0)
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	ripe["plant_cycle_id"] = 1
+	var first: Dictionary = HarvestLedger.claim(ripe, farm, "carrot")
+	var first_key := "farm_harvest_plot_1_1"
+	_ok(bool(first.get("claimed", false))
+			and first_key in (farm["paid_harvests"] as Array),
+		"the first ripe planting claims and stores its stable ledger id")
+	var duplicate: Dictionary = HarvestLedger.claim(ripe, farm, "carrot")
+	_ok(not bool(duplicate.get("claimed", true))
+			and bool(duplicate.get("duplicate", false))
+			and (farm["paid_harvests"] as Array).size() == 1,
+		"the same planting is refused without appending another ledger id")
+
+	for cycle in range(2, Farm.PAID_LEDGER_KEPT + 2):
+		ripe["plant_cycle_id"] = cycle
+		HarvestLedger.claim(ripe, farm, "carrot")
+	var paid: Array = farm["paid_harvests"]
+	_ok(paid.size() == Farm.PAID_LEDGER_KEPT
+			and paid[0] == "farm_harvest_plot_1_2"
+			and paid[paid.size() - 1] == "farm_harvest_plot_1_%d"
+			% (Farm.PAID_LEDGER_KEPT + 1),
+		"real claim ordering keeps the ledger bounded and the newest id")
 
 
 # --- 阶段 4: the bear ------------------------------------------------------

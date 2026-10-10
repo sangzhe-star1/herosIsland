@@ -56,6 +56,7 @@ const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
+const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
@@ -1915,15 +1916,12 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	var farm := _farm()
 	var plot_id := str(plot.get("plot_id", ""))
 	var crop_id := str(plot.get("crop_id", ""))
-	var key := PlotHarvest.transaction_id(plot)
-
-	var paid: Array = farm.get("paid_harvests", [])
-	if not paid is Array:
-		paid = []
-	# Ask first, take second. If this is a repeat nothing at all happens --
-	# including no crops into the barn, which is the half that would otherwise
-	# have kept paying out silently.
-	if not RewardManager.record("garden:harvest:%s" % crop_id, key, paid):
+	# Ask first, take second. The ledger controller checks against a snapshot,
+	# then writes through Farm.remember_paid() so the save's bound is preserved.
+	# If this is a repeat nothing at all happens -- including no crops into the
+	# barn, which is the half that would otherwise have kept paying out silently.
+	var claim: Dictionary = HarvestLedger.claim(plot, farm, crop_id)
+	if not bool(claim.get("claimed", false)):
 		# A repeat. The tap-while-animating and restart-after-save repeats
 		# arrive on a bed that is already reset; nothing to do. But a READY
 		# bed whose id is in the ledger is a bed that can never be picked:
@@ -1931,10 +1929,12 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 		# their ledgers can make one (paid_harvests is unioned while the
 		# beds are kept from one side). Free the bed -- no crops, no coins,
 		# and an id the ledger has not seen for its next planting.
-		if str(plot.get("state", "")) == Farm.READY:
+		if bool(claim.get("duplicate", false)) and Farm.is_ready(plot):
+			var paid_value: Variant = farm.get("paid_harvests", [])
+			var paid: Array = paid_value if paid_value is Array else []
 			_free_a_bed_paid_twice(plot, paid)
 		return {}
-	Farm.remember_paid(farm, key)
+	var key := str(claim.get("key", ""))
 	# The farm grows up a little. INSIDE the gate on purpose: a repeat that
 	# was refused above pays no xp either, so the level inherits the same
 	# once-per-planting promise as the crops.
