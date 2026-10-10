@@ -78,7 +78,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1142
+const CHECKS_EXPECTED := 1148
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -151,6 +151,7 @@ func _ready() -> void:
 	_the_undo_controller_keeps_its_window_and_reverses_safe_purchases()
 	_the_pending_undo_state_expires_and_consumes_once()
 	_the_planting_transaction_commits_one_shared_cycle()
+	_the_planted_cycle_survives_disk_reload_and_harvests_once()
 	_the_barn_upgrade_controller_settles_costs_overflow_and_undo()
 	_the_market_pays_once_and_only_for_what_is_there()
 	_the_market_retries_refused_sales_and_bounds_its_receipt_ledger()
@@ -1809,6 +1810,87 @@ func _the_planting_transaction_commits_one_shared_cycle() -> void:
 		and int(lesson_saved.get("growth_override_seconds", 0)) == 6
 		and not bool(lesson_saved.get("golden", true)),
 		"the target lesson carrot receives its fast cycle without a gold roll")
+
+
+## The cycle written by the planting transaction must survive the real disk
+## path, become the harvest id after reload, and remain paid exactly once.
+func _the_planted_cycle_survives_disk_reload_and_harvests_once() -> void:
+	GameClock.set_test_now(NOON, 0)
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["last_seen_at"] = NOON
+	farm["clock_high_water"] = NOON
+	var plots: Array = farm["plots"]
+	var bed: Dictionary = plots[0]
+	bed["state"] = Farm.TILLED
+	bed["crop_id"] = ""
+	bed["plant_cycle_id"] = 0
+	plots[0] = bed
+	farm["plots"] = plots
+	var planted: Dictionary = PlantingTransaction.settle(farm, 0, "carrot",
+		NOON, false, -1, "carrot", 6, 0.5)
+	_ok(bool(planted.get("planted", false))
+		and int(farm["plots"][0].get("plant_cycle_id", 0)) == 1,
+		"the disk-path fixture starts exactly one planted cycle")
+	SaveManager.save_game()
+	var disk_value: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var disk_plot: Dictionary = {}
+	if disk_value is Dictionary:
+		var disk_farm: Variant = disk_value.get("farm", {})
+		if disk_farm is Dictionary:
+			var disk_plots: Variant = disk_farm.get("plots", [])
+			if disk_plots is Array and not disk_plots.is_empty() \
+					and disk_plots[0] is Dictionary:
+				disk_plot = disk_plots[0]
+	_ok(str(disk_plot.get("crop_id", "")) == "carrot"
+		and int(disk_plot.get("plant_cycle_id", 0)) == 1
+		and int(disk_plot.get("planted_at", 0)) == NOON,
+		"the written save contains the crop, cycle id, and planting timestamp")
+
+	SaveManager.load_game()
+	farm = SaveManager.data["farm"]
+	var loaded: Dictionary = farm["plots"][0]
+	_ok(str(loaded.get("crop_id", "")) == "carrot"
+		and int(loaded.get("plant_cycle_id", 0)) == 1
+		and int(loaded.get("planted_at", 0)) == NOON,
+		"a real reload preserves the planting facts needed by harvest")
+	loaded["state"] = Farm.READY
+	loaded["growth_stage"] = Farm.STAGES
+	loaded["growth_progress"] = 1.0
+	loaded["care_event"] = ""
+	plots = farm["plots"]
+	plots[0] = loaded
+	farm["plots"] = plots
+	var harvest_id := PlotHarvest.transaction_id(loaded)
+	var yield_before := Barn.count("carrot") + Barn.count("carrot", Barn.BASKET)
+	var harvest: Dictionary = HarvestTransaction.settle(loaded, farm)
+	var amount := int(GameData.get_crop("carrot").get("harvest_amount", 1))
+	_ok(bool(harvest.get("claimed", false))
+		and str(harvest.get("transaction_id", "")) == harvest_id
+		and harvest_id == "farm_harvest_plot_1_1"
+		and int(harvest.get("stored", 0)) + int(harvest.get("spilled", 0)) == amount
+		and str(loaded.get("state", "")) == Farm.TILLED
+		and int(loaded.get("plant_cycle_id", 0)) == 1,
+		"the reloaded crop is paid once against its planted cycle and returns to soil")
+	var duplicate := Farm.fresh_plot(0)
+	duplicate["state"] = Farm.READY
+	duplicate["crop_id"] = "carrot"
+	duplicate["plant_cycle_id"] = 1
+	var repeated: Dictionary = HarvestTransaction.settle(duplicate, farm)
+	_ok(not bool(repeated.get("claimed", true))
+		and bool(repeated.get("duplicate_freed", false))
+		and Barn.count("carrot") + Barn.count("carrot", Barn.BASKET)
+			== yield_before + amount,
+		"the same reloaded planting cycle cannot pay a second yield")
+	SaveManager.save_game()
+	SaveManager.load_game()
+	farm = SaveManager.data["farm"]
+	_ok("farm_harvest_plot_1_1" in (farm.get("paid_harvests", []) as Array)
+		and int(farm["plots"][0].get("plant_cycle_id", 0)) == 1
+		and str(farm["plots"][0].get("state", "")) == Farm.TILLED,
+		"the paid receipt and the next cycle id both survive another disk round trip")
+	GameClock.clear_test_now()
 
 
 ## The barn's single roof purchase accepts all of its costs or none, moves the

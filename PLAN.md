@@ -778,10 +778,13 @@ These are yours to make. Nothing below has been changed without asking.
   now resolves the supplied lesson/daily context, starts exactly one planting
   cycle, and updates the saved farm plot array as one transaction. Seed drops
   and brush planting share `_plant_in`; the screen keeps input context, disk
-  save timing, and feedback. GardenProbe passed 1,186 checks, GardenTouchProbe
-  passed 1,993 across 16:9 and 4:3, FarmWorldProbe passed 907 across both
-  layouts, and `tools_check.py` reports 0 errors and 208 warnings. The full
-  30-probe smoke suite was not rerun for this focused transaction extraction.
+  save timing, and feedback. GardenProbe now writes and reloads a planted cycle,
+  claims its harvest id, rejects a duplicate yield, then verifies the paid id
+  and next cycle survive another disk round trip; it passed 1,192 checks.
+  GardenTouchProbe passed 1,993 across 16:9 and 4:3, FarmWorldProbe passed 907
+  across both layouts, and `tools_check.py` reports 0 errors and 208 warnings.
+  The full 30-probe smoke suite was not rerun for this focused transaction
+  extraction.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
