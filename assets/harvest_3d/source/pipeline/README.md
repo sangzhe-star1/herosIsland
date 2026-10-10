@@ -2,10 +2,10 @@
 
 One studio, one recipe per asset, one command. There are now 74 recipes for
 the shipped crops and farm props. It reproduces every crop to the pixel (0 or
-1 differing pixels of 262,144, measured against `../../crops/*.png`), so it
-can replace the fifteen one-off Blender scripts that produced them: those
-scripts carry thirteen cameras between them and no two candidates were
-guaranteed to sit on the same ground line.
+1 differing pixels of 262,144, measured against `../../crops/*.png`), and has
+replaced the fifteen one-off crop builders in the active workflow. The
+historical `build_pack.py` remains documented for provenance; its thirteen
+different cameras did not guarantee a shared ground line.
 
 It runs wherever Blender's Python runs. The original crop-only sandbox run
 used `pip install bpy` (Blender 5.0 as a Python module, CPU Cycles, 47 s for

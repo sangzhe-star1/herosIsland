@@ -208,8 +208,9 @@ These are yours to make. Nothing below has been changed without asking.
    installed (the old one was lit by the other rig). The checked-in crop and
    prop sprites now pass the static audit; per-asset sidecar notes distinguish
    hand-painted outlines and non-floor icons from accidental alpha fringes.
-   What remains is to retire the fifteen old scripts (keep the frozen profile
-   .blend they share).
+   The fifteen one-off crop builders are retired from the active workflow;
+   their models now live in the recipe pipeline. The original pack remains
+   documented for provenance, and the frozen profile is retained.
 6. **The save file has two version fields.** `SAVE_VERSION` is written on
    every save and never read. `FARM_SAVE_VERSION` is the one migrations use.
    Folding them into one is a small change, but it touches every existing save,
@@ -217,11 +218,10 @@ These are yours to make. Nothing below has been changed without asking.
 
 ## Current follow-through — 10 October 2026
 
-- **Ready for review:** branch `claude/stoic-bell-a41pfu` includes the pushed
-  save-merge fix `b597418`. PR
-  [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is open against
-  `main`. The PR has no reviews or automated checks, and `main` remains at
-  `deb168e`.
+- **Integration complete:** branch `claude/stoic-bell-a41pfu` was 51 commits
+  ahead of `main` at `deb168e`; it was fast-forwarded and pushed through
+  `8ef21a2`. PR [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is
+  closed as merged. Local and remote `main` now include the full branch.
 - **Integration verification:** `./tests/run_smoke.sh` finished cleanly with
   30 passed and 0 skipped after the plot-care extraction and touch fix. During
   earlier runs, GardenProbe exposed a save-merge bug: only the bear has
@@ -233,7 +233,7 @@ These are yours to make. Nothing below has been changed without asking.
   marked as emulated and uses touch when mouse-to-touch emulation is enabled;
   physical mouse input remains available. The probe covers that ordering in
   both display shapes and retains failure-only input traces.
-- **Completed locally:** rabbit and puppy friend farms; the plot gesture,
+- **Completed and integrated:** rabbit and puppy friend farms; the plot gesture,
   plot-care, plot-planting, and plot-tilling controllers; HarvestTouch input
   fix; repository cleanup. Blender source generators now live under
   `tools/art/`. Disposable screenshot/debug scripts and duplicate scene
@@ -241,7 +241,8 @@ These are yours to make. Nothing below has been changed without asking.
   `.agents/skills/`, and no `.ours`/`.theirs` conflict residue was present.
 - **Needs the player's device/save:** test hen and mill timers, cloud discovery,
   dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
-  genuine older iPad save before changing save-version fields.
+  genuine older iPad save before changing save-version fields. These need
+  hands-on play and the player's actual save file.
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
 - **Latest local verification:** GardenTouchProbe passed 1,862 checks,
