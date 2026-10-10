@@ -260,8 +260,10 @@ These are yours to make. Nothing below has been changed without asking.
    The shared regret toast is now `FarmUndoPanel`; purchase reversal still
    settles through `farm_undo_controller.gd`. The shelf's dense next-action
    card, daily crest, and order preview now live in `FarmNextTaskPanel`; the
-   screen still derives the task and focuses its world target.
-   `garden_screen.gd` is 2,861 lines.
+   screen still derives the task and focuses its world target. The barn's
+   capacity card, overflow summary, shared shelf height, and flight landing
+   point now live in `FarmBarnPanel`; the screen supplies the current viewport
+   and keeps collection settlement. `garden_screen.gd` is 2,708 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -694,6 +696,12 @@ These are yours to make. Nothing below has been changed without asking.
   camera/focus action. GardenTouchProbe passed 1,993 checks across 16:9 and
   4:3; FarmWorldProbe passed 889 checks across the same layouts. The screen
   is now 2,861 lines, and `tools_check.py` reports 0 errors and 208 warnings.
+- **Barn shelf and overflow presentation boundary (10 October):** `FarmBarnPanel`
+  now draws the capacity shortcut and spilled-crop summary and owns the shared
+  shelf height plus the stable basket-flight destination. GardenProbe passed
+  1,173 checks, GardenTouchProbe 1,993 across 16:9 and 4:3, and FarmWorldProbe
+  889 across the same layouts. `garden_screen.gd` is 2,708 lines;
+  `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

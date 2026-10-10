@@ -1865,11 +1865,20 @@ elif os.path.exists(LAYOUT_FILE):
         # zoom, every bed the child owns fits in the window at once. Measured
         # at 1280x720, the shortest shape the island is ever handed.
         top_bar = _gd_const("scripts/garden/garden_screen.gd", "TOP_BAR")
-        shelf = _gd_const("scripts/garden/garden_screen.gd", "SHELF")
-        if top_bar is None or shelf is None:
-            errors.append("tools_check 5s cannot find TOP_BAR / SHELF in "
-                          "garden_screen.gd -- it cannot tell how tall the "
-                          "farm's window is and has stopped checking")
+        shelf = _gd_const("scripts/garden/panels/farm_barn_panel.gd",
+                          "SHELF_HEIGHT")
+        shared_shelf = False
+        for raw in open("scripts/garden/garden_screen.gd", encoding="utf-8"):
+            if raw.lstrip().startswith("#"):
+                continue
+            if re.match(r"\s*const\s+SHELF\s*:=\s*FarmBarnPanel\.SHELF_HEIGHT\b", raw):
+                shared_shelf = True
+                break
+        if top_bar is None or shelf is None or not shared_shelf:
+            errors.append("tools_check 5s cannot resolve TOP_BAR and the shared "
+                          "SHELF_HEIGHT from garden_screen.gd and FarmBarnPanel -- "
+                          "it cannot tell how tall the farm's window is and has "
+                          "stopped checking")
         else:
             xs = [plot_at(i)[0] for i in range(plot_count)]
             ys = [plot_at(i)[1] for i in range(plot_count)]

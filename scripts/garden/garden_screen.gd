@@ -87,10 +87,7 @@ const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## tablet for the island. These are compact *lanes*, not smaller touch targets:
 ## the buttons inside keep their child-friendly hit boxes.
 const TOP_BAR := 68.0
-const SHELF := 140.0
-## The barn card and its overflow basket share this one shelf measurement.
-## A flight should land on the same place the rebuilt shelf will draw.
-const BARN_CARD := Vector2(152.0, SEED_TILE.y)
+const SHELF := FarmBarnPanel.SHELF_HEIGHT
 
 ## Paged surfaces: six rows on the shop sheet, fourteen seed slots on the
 ## dense possession row. The usual whole seed collection fits at once.
@@ -1777,161 +1774,11 @@ func _poke_decoration(at: Vector2) -> void:
 
 
 func _barn(view: Vector2) -> void:
-	# Inside the shelf, to the right of the seeds. The first cut put it just
-	# above the shelf and it landed on top of the bottom row of beds -- there
-	# is no room between them at 16:9, and "your seeds | your barn" belongs
-	# together anyway: both are things he HAS.
-	# The rack can grow to six tiles now, so the shelf keeps only the short
-	# version: the basket and how full it is. The pile itself -- which crops,
-	# how many of each -- lives one tap away behind the barn's own door, which
-	# is where a pile that size belongs. "40" stays here because it is the
-	# number he needs to have seen BEFORE the day he fills it.
-	# A real card, pinned to the shelf's right edge with the same margin the
-	# rack starts with -- the first cut floated a bare label at 65% of the
-	# width, which read as text that had fallen off something.
-	var box := BARN_CARD
-	var at := Vector2(view.x - 16.0 - box.x, _seed_lane_y(view) - box.y * 0.5)
-	var card := Panel.new()
-	card.name = "GardenBarnCard"
-	card.add_theme_stylebox_override("panel",
-		_inventory_surface(true))
-	card.position = at
-	card.custom_minimum_size = box
-	card.size = box
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(card)
-
-	var basket := HarvestArt.prop_badge("basket_empty", 36.0, "BarnBasketPicture")
-	if basket != null:
-		basket.position = at + Vector2(12.0, box.y * 0.5 - 18.0)
-		basket.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play.add_child(basket)
-	var label := UiKit.title(I18n.t("garden.barn"), 17, Color(0.55, 0.51, 0.44))
-	label.position = at + Vector2(58.0, 6.0)
-	label.size = Vector2(82, 18)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(label)
-	var room := UiKit.title("%d/%d" % [Barn.total(), Barn.cap()], 22)
-	room.position = at + Vector2(58.0, 24.0)
-	room.size = Vector2(82, 25)
-	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(room)
-	# The same tiny capacity rail as the farm-level chip turns the number into
-	# a shape a five-year-old can compare at a glance.
-	var rail := Panel.new()
-	rail.name = "BarnCapacityRail"
-	rail.add_theme_stylebox_override("panel", UiKit.track_style())
-	rail.position = at + Vector2(58.0, 51.0)
-	rail.size = Vector2(82.0, 5.0)
-	rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(rail)
-	var fill := Panel.new()
-	fill.name = "BarnCapacityFill"
-	fill.add_theme_stylebox_override("panel", UiKit.fill_style(Color(0.95, 0.66, 0.20)))
-	fill.position = rail.position + Vector2(2.0, 2.0)
-	fill.size = Vector2(78.0 * clampf(float(Barn.total()) / float(maxi(Barn.cap(), 1)),
-		0.0, 1.0), 2.0)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(fill)
-
-	# This card already looks like a button, so make it the child's shortest
-	# path to the existing barn panel instead of asking him to rediscover the
-	# world building that represents the same storage.
-	var press := Button.new()
-	press.name = "BarnShortcut"
-	press.flat = true
-	press.focus_mode = Control.FOCUS_NONE
-	press.position = at
-	press.custom_minimum_size = box
-	press.size = box
-	press.pressed.connect(func(): _open_panel("barn"))
-	_play.add_child(press)
-	if _world != null and is_instance_valid(_world):
-		_world.add_blocker(press)
-	_barn_button_at = at + Vector2(box.x * 0.5, box.y * 0.5)
-
-	_spilled_basket(view)
-
-
-## The basket by the barn door: what he picked when the barn was already full.
-##
-## Drawn ONLY when there is something in it, and drawn as a pile of crops rather
-## than as a warning. Nothing here is lost and nothing here is urgent -- the
-## basket empties itself back into the barn the moment an order or a sale makes
-## room (InventoryManager.tip_basket_in), so there is no errand to give him and
-## no red badge to give him it with.
-func _spilled_basket(view: Vector2) -> void:
-	var spilled := Barn.contents(Barn.BASKET)
-	if spilled.is_empty():
-		return
-	# The upper row reserves a fixed slot beside the task ribbon. Two crops
-	# summarize the pile; its touch target opens every waiting crop below.
-	# All spill flights land on the same rim as the number of kinds changes.
-	var at := spilled_basket_anchor(view)
-	var rim := Panel.new()
-	rim.name = "OverflowBasketSlot"
-	rim.position = at + Vector2(-6.0, -10.0)
-	rim.size = Vector2(42.0, 38.0)
-	rim.add_theme_stylebox_override("panel", _inventory_surface(true))
-	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(rim)
-	var pile := HarvestArt.prop_badge("basket_empty", 30.0, "HarvestOverflowBasket")
-	if pile != null:
-		pile.name = "HarvestOverflowBasket"
-		pile.set_meta("crop_kinds", spilled.size())
-		pile.set_meta("destination_at", at + Vector2(15.0, 9.0))
-		pile.modulate = Color(1.0, 0.94, 0.78)
-		pile.position = Vector2(at.x, at.y - 6.0)
-		_play.add_child(pile)
-	var x := at.x - 8.0 - float(mini(spilled.size(), 2)) * 66.0
-	for pair in spilled.slice(0, 2):
-		var art := _crop_picture(str(pair[0]), 26.0, "OverflowPicture_%s" % str(pair[0]))
-		if art != null:
-			art.position = Vector2(x, at.y - 4.0)
-			_play.add_child(art)
-		var many := UiKit.title("x%d" % int(pair[1]), 18)
-		many.position = Vector2(x + 24.0, at.y)
-		many.size = Vector2(44, 22)
-		many.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play.add_child(many)
-		x += 66.0
-
-	if spilled.size() > 2:
-		var more_badge := Panel.new()
-		more_badge.position = at + Vector2(-6.0, -20.0)
-		more_badge.size = Vector2(40.0, 22.0)
-		more_badge.add_theme_stylebox_override("panel", _quiet_surface_style(
-			Color(1.0, 0.91, 0.68), 9, Color(0.60, 0.45, 0.22), 1, 0))
-		more_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_play.add_child(more_badge)
-		var more := UiKit.title("+%d" % (spilled.size() - 2), 14, Color(0.42, 0.32, 0.18))
-		more.name = "OverflowMoreKinds"
-		more.size = Vector2(40.0, 22.0)
-		more.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		more_badge.add_child(more)
-
-	# The bounded summary has a way to inspect every waiting crop. It opens
-	# the same collection sheet on the existing BASKET store, never a new bag.
-	var press := Button.new()
-	press.name = "OverflowShortcut"
-	press.flat = true
-	press.focus_mode = Control.FOCUS_NONE
-	press.position = Vector2(view.x - 268.0, view.y - SHELF + 6.0)
-	press.custom_minimum_size = Vector2(188.0, 60.0)
-	press.size = press.custom_minimum_size
-	press.pressed.connect(func(): _open_panel("basket"))
-	_play.add_child(press)
-
-
-## Pure shelf geometry, shared by the rebuilt overflow pile and every flight
-## already on its way there. Crop rows extend left; this landing rim never does.
-static func spilled_basket_anchor(view: Vector2) -> Vector2:
-	return Vector2(view.x - 118.0, view.y - SHELF + 27.0)
+	FarmBarnPanel.new(self).build_shelf(view)
 
 
 func _spill_flight_destination() -> Vector2:
-	return spilled_basket_anchor(get_viewport_rect().size) + Vector2(15.0, 9.0)
+	return FarmBarnPanel.spill_flight_destination(get_viewport_rect().size)
 
 
 ## Who needs a hand today. Three cards, each one a picture of somebody, what

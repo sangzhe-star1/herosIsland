@@ -34,7 +34,7 @@ const Gesture := preload("res://scripts/harvest/gesture.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
-const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
+const FarmBarnPanel := preload("res://scripts/garden/panels/farm_barn_panel.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
@@ -1306,8 +1306,8 @@ func _a_full_barn_never_loses_anything() -> void:
 ## new crop kind spills. A flight started during one brush stroke has one honest
 ## landing place even if later beds add more kinds before the shelf rebuilds.
 func _the_overflow_basket_has_a_stable_shelf_anchor() -> void:
-	var wide := GardenScreen.spilled_basket_anchor(Vector2(1280, 720))
-	var tall := GardenScreen.spilled_basket_anchor(Vector2(1280, 960))
+	var wide := FarmBarnPanel.spilled_basket_anchor(Vector2(1280, 720))
+	var tall := FarmBarnPanel.spilled_basket_anchor(Vector2(1280, 960))
 	_ok(wide.x > 0.0 and wide.x < 1280.0 and wide.y > 0.0 and wide.y < 720.0,
 		"the overflow basket anchor sits on the visible wide shelf")
 	_ok(is_equal_approx(wide.x, tall.x) and is_equal_approx(tall.y - wide.y, 240.0),
