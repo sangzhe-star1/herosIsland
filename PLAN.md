@@ -231,7 +231,11 @@ These are yours to make. Nothing below has been changed without asking.
    art, selected mark, drag items and pager; the screen retains the live drag
    field, selection callbacks, current page and lesson pointer. The rack
    centre used by the lesson and probes delegates to the panel's geometry, so
-   there is one layout source. `garden_screen.gd` is now 3,729 lines.
+   there is one layout source. `garden_screen.gd` is now 3,663 lines. On
+   10 October, plot verbs moved to
+   `scripts/garden/farm_plot_action_controller.gd`; bare-hand taps and the
+   next-task resolver now use the same state-first action table, while the
+   screen retains presentation and persistence effects.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -528,6 +532,15 @@ These are yours to make. Nothing below has been changed without asking.
   isolated GardenTouchProbe passed 1,959 checks across 16:9 and 4:3;
   FarmWorldProbe passed 829 checks, and both drawer layouts were rendered and
   reviewed. See `docs/GARDEN_HARVEST_VISUAL_UPGRADE_PLAN.md`.
+- **Plot action contract unified (10 October):** bare-hand plot taps and the
+  next-task resolver now read `FarmPlotActionController.for_plot()`, so the
+  action promised by the ribbon comes from the same state mapping as the tap.
+  The query also skips a bed while its harvest animation lock is active and
+  picks the next tappable bed. The harvest challenge card's hit area now shares
+  its breathing transform with the visible surface. The focused farm suite passed 7 probes;
+  FarmWorldProbe passed 849 checks, GardenProbe 1,142, and GardenTouchProbe
+  1,959 across 16:9 and 4:3. This still leaves the screen responsible for
+  saves, sound, and visual feedback.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

@@ -37,6 +37,8 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
+const PlotAction := preload("res://scripts/garden/farm_plot_action_controller.gd")
+const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const Stroke := preload("res://scripts/garden/continuous_action_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
@@ -51,7 +53,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 829
+const CHECKS_EXPECTED := 849
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -84,6 +86,7 @@ func _ready() -> void:
 	else:
 		_an_old_npc_save_gains_friend_defaults()
 		_the_layout_is_legal()
+		_the_plot_action_table_is_shared_and_state_first()
 		_the_stroke_bookkeeping_refuses_seconds()
 		_tool_action_controller_owns_plot_transitions()
 		_golden_state_is_a_visual_input()
@@ -397,6 +400,75 @@ func _the_layout_is_legal() -> void:
 	_ok(Layout.min_zoom() > 0.0, "the smallest zoom is not zero")
 	_ok(Layout.facilities().size() >= 6,
 		"the farm has buildings on it, not just beds")
+
+
+## The HUD task and a tap on the same bed must name the same next action.
+## State wins over stale crop/care fields so a partly repaired save cannot
+## tell the child to water a ripe crop or harvest an empty patch.
+func _the_plot_action_table_is_shared_and_state_first() -> void:
+	_shape = "plot action rules"
+	var plot := Farm.fresh_plot(0)
+	_ok(PlotAction.for_plot(plot) == PlotAction.TILL,
+		"bare grass offers tilling")
+	_ok(_next_task_kind(plot) == "till",
+		"the task ribbon asks for the same tilling action")
+	plot["state"] = Farm.TILLED
+	_ok(PlotAction.for_plot(plot) == PlotAction.PLANT,
+		"turned soil offers planting")
+	_ok(_next_task_kind(plot) == "plant",
+		"the task ribbon asks for the same planting action")
+	plot["state"] = Farm.READY
+	plot["care_event"] = Growth.CARE_THIRSTY
+	_ok(PlotAction.for_plot(plot) == PlotAction.HARVEST,
+		"a ripe crop stays harvestable even if an old care marker remains")
+	_ok(_next_task_kind(plot) == "harvest",
+		"the task ribbon follows ripe state before stale care fields")
+	plot["state"] = Farm.NEEDS_CARE
+	plot["care_event"] = Growth.CARE_WEEDS
+	_ok(PlotAction.for_plot(plot) == PlotAction.CARE,
+		"a care bed offers its repair action")
+	_ok(_next_task_kind(plot) == "care",
+		"the task ribbon offers the repair action for the same bed")
+	plot["state"] = Farm.GROWING
+	plot["crop_id"] = "carrot"
+	_ok(PlotAction.for_plot(plot) == PlotAction.WAIT,
+		"a growing crop asks the child to wait")
+	_ok(_next_task_kind(plot) == "growing",
+		"the task ribbon keeps growing as a quiet, non-actionable preview")
+	plot["state"] = Farm.SEEDED
+	_ok(PlotAction.for_plot(plot) == PlotAction.WAIT,
+		"a newly seeded crop does not offer a premature action")
+	_ok(_next_task_kind(plot) == "growing",
+		"a newly seeded crop also stays on the quiet preview")
+	plot["state"] = "DAMAGED_STATE"
+	_ok(PlotAction.for_plot(plot) == PlotAction.WAIT,
+		"an unknown state stays quiet instead of guessing")
+	_ok(_next_task_kind(plot).is_empty(),
+		"an unknown state does not invent a task")
+	_ok(PlotAction.for_plot(Farm.fresh_plot(0), true) == PlotAction.LOCKED,
+		"a harvest-locked empty bed rejects a tap")
+	plot["state"] = Farm.READY
+	_ok(PlotAction.for_plot(plot, true) == PlotAction.LOCKED,
+		"a harvest-locked ripe bed cannot pay twice")
+	_ok(_next_task_kind(plot, {str(plot.get("plot_id", "")): true}).is_empty(),
+		"the task ribbon hides a bed while its harvest is resolving")
+	var next_plot := Farm.fresh_plot(1)
+	var unlocked_task: Dictionary = NextTask.select([plot, next_plot], {}, {},
+		["carrot"], Tools.new(), {str(plot.get("plot_id", "")): true})
+	_ok(str(unlocked_task.get("kind", "")) == "till"
+		and int(unlocked_task.get("index", -1)) == 1,
+		"the task ribbon moves to the next tappable bed during harvest")
+	plot["state"] = Farm.NEEDS_CARE
+	_ok(PlotAction.for_plot(plot, true) == PlotAction.LOCKED,
+		"the short harvest lock applies before every plot action")
+	_ok(PlotAction.for_plot({}) == PlotAction.TILL,
+		"a missing state uses the same safe empty-bed default as FarmSave")
+
+
+func _next_task_kind(plot: Dictionary, harvesting_ids: Dictionary = {}) -> String:
+	var task: Dictionary = NextTask.select([plot], {}, {}, ["carrot"], Tools.new(),
+		harvesting_ids)
+	return str(task.get("kind", ""))
 
 
 ## Gate one of the brush, asked point-blank.

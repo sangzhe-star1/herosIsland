@@ -40,6 +40,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const Stroke := preload("res://scripts/garden/continuous_action_controller.gd")
 const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
+const PlotAction := preload("res://scripts/garden/farm_plot_action_controller.gd")
 const SeedShop := preload("res://scripts/garden/seed_shop_manager.gd")
 const Market := preload("res://scripts/garden/farm_market_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -740,7 +741,8 @@ func _next_task() -> Dictionary:
 	var pending := _first_pending_order()
 	var deliverable := _first_fillable_order()
 	var unlocked: Array = _farm().get("unlocked_crops", [])
-	return NextTask.select(plots, pending, deliverable, unlocked, _tools)
+	return NextTask.select(plots, pending, deliverable, unlocked, _tools,
+		_harvesting)
 
 
 ## The first still-open order on the physical board. The ribbon only previews
@@ -1414,21 +1416,20 @@ func _tap_plot(index: int) -> void:
 	# that rule, and it lives in memory rather than in the save on purpose: a
 	# tablet closed mid-animation must not come back holding a patch of earth
 	# that is permanently mid-animation and can never be touched again.
-	if plot_id in _harvesting:
-		return
-
-	match str(plot.get("state", Farm.EMPTY)):
-		Farm.EMPTY:
+	match PlotAction.for_plot(plot, plot_id in _harvesting):
+		PlotAction.LOCKED:
+			return
+		PlotAction.TILL:
 			var till_result: Dictionary = _tools.apply_to_plot("shovel", plot)
 			if till_result.is_empty():
 				return
 			plot = till_result.get("plot", plot)
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
-		Farm.READY:
+		PlotAction.HARVEST:
 			_harvest(plot, index)
-		Farm.NEEDS_CARE:
+		PlotAction.CARE:
 			plot = _care_for(plot, index)
-		Farm.TILLED:
+		PlotAction.PLANT:
 			# Turned, empty, and tapped: he is trying to plant by tapping. Point
 			# at the rack rather than doing nothing, which is the same as being
 			# broken. A 4% pulse of the whole shelf was the whole answer here,
@@ -1442,7 +1443,7 @@ func _tap_plot(index: int) -> void:
 			if _shelf != null:
 				Juice.pop(_shelf, 0.04)
 			return
-		_:
+		PlotAction.WAIT:
 			# SEEDED or GROWING. Nothing to do yet -- so answer the question he
 			# WAS asking, which is "how much longer": the ring comes up for a
 			# few seconds and then gets out of the way again. A bed that does
@@ -3595,13 +3596,15 @@ func _challenge_door(view: Vector2) -> void:
 	press.name = "HarvestChallengeShortcut"
 	press.flat = true
 	press.focus_mode = Control.FOCUS_NONE
-	press.position = door.position
+	press.position = Vector2.ZERO
 	press.size = door_box
 	press.custom_minimum_size = door_box
 	press.tooltip_text = I18n.t("garden.harvest_challenge")
 	var go := str(next.get("id", ""))
 	press.pressed.connect(func(): GameManager.start_level(go))
-	_play.add_child(press)
+	# Keep the hit target inside the animated card so its bounds follow every
+	# breathing-scale frame instead of drifting away from the visible surface.
+	door.add_child(press)
 	var choose := _chip_button("", Color(0.97, 0.91, 0.68), HUD_CHOOSER_BOX)
 	choose.name = "HarvestChallengeChooser"
 	choose.tooltip_text = I18n.t("garden.choose_challenge")
