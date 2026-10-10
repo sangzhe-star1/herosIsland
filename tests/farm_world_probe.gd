@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 805
+const CHECKS_EXPECTED := 807
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -1391,6 +1391,7 @@ func _one_stroke_never_pays_twice() -> void:
 		"the brush flight keeps the crop after the bed resets")
 	_ok(flight_amount == yield_count,
 		"the brush flight keeps the crop's real harvest amount")
+	await _capture_probe_screen("harvest_feedback")
 	var yield_label: Node = _find_named(_garden, "HarvestYield")
 	_ok(yield_label is Label and str((yield_label as Label).text) == "x%d" % yield_count,
 		"a brush harvest says the real yield, not one picked bed")
@@ -2248,6 +2249,7 @@ func _capture_probe_screen(label: String) -> void:
 	var path := folder.path_join("%s_%s.png" % [label, shape])
 	var saved := image.save_png(path) if image != null and not image.is_empty() \
 		else ERR_INVALID_DATA
+	print("farm world screenshot: %s" % path)
 	_ok(saved == OK and ProbeLifecycle.image_has_content(image),
 		"%s has a rendered screenshot for %s" % [label, _shape])
 

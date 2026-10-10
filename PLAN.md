@@ -223,7 +223,10 @@ These are yours to make. Nothing below has been changed without asking.
    shovel, seed, water, weed, and bug transitions through the existing
    `farm_tool_controller.gd`; the screen still supplies lesson/golden context
    and owns saving and feedback. Basket harvest remains with its receipt and
-   storage transaction.
+   storage transaction. Crop, pen, pond, and dog collection flights plus the
+   harvest combo label now live in `farm_collection_feedback_controller.gd`;
+   the screen supplies truthful destination positions and the shared image
+   builder.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -404,6 +407,13 @@ These are yours to make. Nothing below has been changed without asking.
   208 existing warnings. The full smoke suite was not rerun for this extraction.
 - **Tool-action boundary integrated:** `16def87` is now on `main` and
   `origin/main`; the worktree is clean.
+- **Collection-feedback boundary:** crop and facility receipts now share
+  `farm_collection_feedback_controller.gd` for flying art, split quantities,
+  golden tint, and the harvest combo label. FarmWorldProbe passed 811 checks
+  across 16:9 and 4:3; GardenTouchProbe passed 1,887. Harvest-interaction
+  screenshots were rendered and visually checked at both ratios.
+  `tools_check.py` reports 0 errors and 208 existing warnings. The full smoke
+  suite was not rerun for this extraction.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

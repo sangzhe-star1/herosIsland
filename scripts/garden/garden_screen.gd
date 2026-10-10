@@ -51,6 +51,7 @@ const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
+const CollectionFeedback := preload("res://scripts/garden/farm_collection_feedback_controller.gd")
 const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
@@ -171,6 +172,7 @@ var _play: Control
 ## redraws the empty bed and barn count. It is a screen layer, not a second
 ## animation system: labels and crop art still come from UiKit/Juice.
 var _harvest_feedback: CanvasLayer
+var _collection_feedback = CollectionFeedback.new()
 var _shelf: Control
 var _rebuild_queued := false
 ## The farm itself: ground, buildings and beds, all of which move together when
@@ -245,7 +247,6 @@ var _stroke := Stroke.new()
 var _tool_buttons: Dictionary = {}
 ## The running count while a harvest stroke is going, and the label showing it.
 var _combo := 0
-var _combo_label: Label
 ## Where picked crops fly to: the barn shortcut is the honest home for food.
 ## The basket tool harvests; it does not store the harvest.
 var _barn_button_at := Vector2.ZERO
@@ -1091,11 +1092,14 @@ func _collect_facility_produce(facility_id: String, receipt: Dictionary,
 	var stored := int(receipt.get("stored", 0))
 	var spilled := int(receipt.get("spilled", 0))
 	if stored > 0:
-		_spawn_harvest_flight(-1, receipt, stored, _barn_button_at,
-			"warehouse", "HarvestFlight", at + Vector2(0, -20))
+		_collection_feedback.show_flight(_harvest_feedback_layer(), self,
+			receipt, stored, _barn_button_at, "warehouse", "HarvestFlight",
+			Callable(self, "_crop_picture"), at + Vector2(0, -20))
 	if spilled > 0:
-		_spawn_harvest_flight(-1, receipt, spilled, _spill_flight_destination(),
-			"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
+		_collection_feedback.show_flight(_harvest_feedback_layer(), self,
+			receipt, spilled, _spill_flight_destination(), "harvest_basket",
+			"HarvestSpillFlight", Callable(self, "_crop_picture"),
+			at + Vector2(0, -20))
 	_harvested_something = true
 	_queue_rebuild()
 
@@ -1123,11 +1127,14 @@ func _on_fish_caught(info: Dictionary) -> void:
 	var stored := int(info.get("stored", 1))
 	var spilled := int(info.get("spilled", 0))
 	if stored > 0:
-		_spawn_harvest_flight(-1, info, stored, _barn_button_at,
-			"warehouse", "HarvestFlight", at + Vector2(0, -20))
+		_collection_feedback.show_flight(_harvest_feedback_layer(), self,
+			info, stored, _barn_button_at, "warehouse", "HarvestFlight",
+			Callable(self, "_crop_picture"), at + Vector2(0, -20))
 	if spilled > 0:
-		_spawn_harvest_flight(-1, info, spilled, _spill_flight_destination(),
-			"harvest_basket", "HarvestSpillFlight", at + Vector2(0, -20))
+		_collection_feedback.show_flight(_harvest_feedback_layer(), self,
+			info, spilled, _spill_flight_destination(), "harvest_basket",
+			"HarvestSpillFlight", Callable(self, "_crop_picture"),
+			at + Vector2(0, -20))
 	_harvested_something = true
 	_queue_rebuild()
 	if bool(info.get("unlocked_ducklings", false)):
@@ -1140,8 +1147,9 @@ func _on_dog_found_seed(crop_id: String) -> void:
 	var spot_pos: Vector2 = DogManager.DIG_SPOT_POSITION
 	var at: Vector2 = _world.camera.world_to_screen(spot_pos) if _world != null and is_instance_valid(_world) else Vector2(640, 360)
 	var receipt := {"crop_id": crop_id, "amount": 1, "stored": 1, "spilled": 0}
-	_spawn_harvest_flight(-1, receipt, 1, _barn_button_at,
-		"seed", "HarvestFlight", at + Vector2(0, -20))
+	_collection_feedback.show_flight(_harvest_feedback_layer(), self,
+		receipt, 1, _barn_button_at, "seed", "HarvestFlight",
+		Callable(self, "_crop_picture"), at + Vector2(0, -20))
 
 
 func _on_scarecrow_tapped() -> void:
@@ -2141,8 +2149,8 @@ func _on_stroke_ended() -> void:
 	_queue_rebuild()
 
 
-## The running count of a harvest stroke, big and in the middle where the
-## crops are flying from. "x3" is a number he can read.
+## Collection feedback must survive the bed and barn redraw that just paid
+## for it, so it lives on one screen-space layer owned by the farm.
 func _harvest_feedback_layer() -> CanvasLayer:
 	if _harvest_feedback == null or not is_instance_valid(_harvest_feedback):
 		_harvest_feedback = CanvasLayer.new()
@@ -2153,111 +2161,18 @@ func _harvest_feedback_layer() -> CanvasLayer:
 
 
 func _show_combo(index: int, receipt: Dictionary) -> void:
-	if _combo_label == null or not is_instance_valid(_combo_label):
-		_combo_label = UiKit.title("", 64, Color(1.0, 0.62, 0.12))
-		_combo_label.name = "HarvestYield"
-		_combo_label.position = Vector2(get_viewport_rect().size.x * 0.5 - 70.0,
-			TOP_BAR + 30.0)
-		_combo_label.size = Vector2(140, 72)
-		_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_combo_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_harvest_feedback_layer().add_child(_combo_label)
-	_combo_label.text = "x%d" % _combo
-	Juice.pop(_combo_label, 0.22)
-	_fly_to_barn(index, receipt)
-
-
-## The picked crop flies from its bed to the place that really received it.
-## A partial harvest deliberately has two small receipts: otherwise a child
-## sees all three carrots fly to the barn even though one is waiting in the
-## overflow basket, and the screen tells the opposite story to the inventory.
-func _fly_to_barn(index: int, receipt: Dictionary) -> void:
-	if not Juice.motion_enabled():
-		return
-	var crop_id := str(receipt.get("crop_id", ""))
-	if crop_id == "" or index < 0 or index >= _plots().size():
-		return
-	# Older callers supplied only `amount`; keep that harmless shape meaning
-	# "all stored" while the harvesting path now carries the full receipt.
-	var stored := maxi(int(receipt.get("stored", receipt.get("amount", 0))), 0)
-	var spilled := maxi(int(receipt.get("spilled", 0)), 0)
-	if stored > 0:
-		_spawn_harvest_flight(index, receipt, stored, _barn_button_at,
-			"warehouse", "HarvestFlight")
-	if spilled > 0:
-		_spawn_harvest_flight(index, receipt, spilled, _spill_flight_destination(),
-			"harvest_basket", "HarvestSpillFlight")
-
-
-## One visual receipt. Both destinations use this exact component so crop art,
-## golden tint, timing and cleanup cannot drift apart while only the honest
-## destination and quantity vary.
-func _spawn_harvest_flight(index: int, receipt: Dictionary, amount: int,
-		destination_at: Vector2, destination: String, node_prefix: String,
-		from_at: Vector2 = Vector2.INF) -> void:
-	var crop_id := str(receipt.get("crop_id", ""))
-	var golden := bool(receipt.get("golden", false))
-	var art := _crop_picture(crop_id, 44.0, "HarvestCropPicture", golden)
-	if art == null:
-		return
-	art.name = "%s_%s" % [node_prefix, crop_id]
-	art.set_meta("crop_id", crop_id)
-	art.set_meta("amount", amount)
-	art.set_meta("total_amount", int(receipt.get("amount", amount)))
-	art.set_meta("stored", int(receipt.get("stored", amount)))
-	art.set_meta("spilled", int(receipt.get("spilled", 0)))
-	art.set_meta("destination", destination)
-	art.set_meta("destination_at", destination_at)
-	art.set_meta("golden", bool(receipt.get("golden", false)))
-	# The flight lives 0.4 s. A receipt of it stays on the screen so a slow
-	# frame (a probe under software GL, a tablet mid-save) can still ask
-	# "what flew, and how much" after the sprite itself has gone.
-	var stamp := {"node": art.name, "crop_id": crop_id, "amount": amount,
-		"destination": destination, "destination_at": destination_at}
-	set_meta("last_harvest_flight", stamp)
-	# One stroke across two beds makes two flights 0.4 s apart; the first is
-	# gone before the second is asked about. Keep the last few, in order.
-	var flights: Array = get_meta("harvest_flights", [])
-	flights.append(stamp)
-	while flights.size() > 8:
-		flights.pop_front()
-	set_meta("harvest_flights", flights)
-	if bool(receipt.get("golden", false)):
-		# The one that came up gold flies gold: the same flight, telling the
-		# same story, in the colour the bed promised.
-		art.modulate = Color(1.0, 0.85, 0.35)
-	var root_offset := Vector2.ZERO
-	var start := from_at if from_at.is_finite() else _bed_centre(index)
-	art.position = start - Vector2(22, 22) + root_offset
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_harvest_feedback_layer().add_child(art)
-	# When one crop batch splits, the little x2 / x1 tags answer the question
-	# a single flying icon cannot: how much reached each real destination.
-	if amount != int(receipt.get("amount", amount)):
-		var count := UiKit.on_art(UiKit.title("×%d" % amount, 20, Color.WHITE), 4)
-		count.name = "FlightAmount"
-		count.position = Vector2(24.0, -13.0)
-		count.size = Vector2(46.0, 24.0)
-		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.add_child(count)
-	var t := art.create_tween()
-	t.tween_property(art, "position", destination_at - Vector2(22, 22) + root_offset, 0.4)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	t.parallel().tween_property(art, "scale", Vector2(0.5, 0.5), 0.4)
-	t.tween_callback(art.queue_free)
+	var plots := _plots()
+	var source_valid := index >= 0 and index < plots.size()
+	var source_at := _bed_centre(index) if source_valid else Vector2.ZERO
+	_collection_feedback.show_combo(self, _harvest_feedback_layer(), _combo,
+		receipt, source_at, source_valid, _barn_button_at,
+		_spill_flight_destination(), get_viewport_rect().size, TOP_BAR,
+		Callable(self, "_crop_picture"))
 
 
 func _end_combo() -> void:
 	_combo = 0
-	if _combo_label != null and is_instance_valid(_combo_label):
-		var label := _combo_label
-		_combo_label = null
-		if Juice.motion_enabled():
-			var t := label.create_tween()
-			t.tween_property(label, "modulate:a", 0.0, 0.5)
-			t.tween_callback(label.queue_free)
-		else:
-			label.queue_free()
+	_collection_feedback.end_combo()
 
 
 # --- the barn and the order board ---------------------------------------
