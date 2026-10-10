@@ -601,10 +601,11 @@ These are yours to make. Nothing below has been changed without asking.
   harvest transaction, feedback, and save. FarmWorldProbe passed 858 checks
   with its real touch path at 16:9 and 4:3; `tools_check.py` reports 0 errors
   and 208 warnings.
-- **Latest remote plan check (10 October):** fetched
+- **Latest remote plan check (10 October):** before the save follow-up, fetched
   `origin/claude/stoic-bell-a41pfu` at `69892a9` and `origin/main` at
-  `a6fcc94`. The feature branch is an ancestor of `main`; the planned merge is
-  complete and there are no feature-only commits to integrate.
+  `14b584e`. The feature branch was already an ancestor of `main` and 95
+  commits behind it, so there were no feature-only commits to integrate. The
+  follow-up is now pushed to `origin/main` as `5115021`.
 - **Harvest-progress boundary (10 October):** the claimed receipt now gates
   XP, daily harvest progress, recipe unlocks, and the first-market hint in
   `farm_harvest_progress_controller.gd`. It mutates the live save in memory;
