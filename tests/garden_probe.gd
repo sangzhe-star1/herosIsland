@@ -21,6 +21,8 @@ const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.
 const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
 const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
+const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
+const FarmTools := preload("res://scripts/garden/farm_tool_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -49,7 +51,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 702
+const CHECKS_EXPECTED := 710
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -78,6 +80,7 @@ func _ready() -> void:
 	_the_harvest_controller_keeps_paid_cycles_unique()
 	_the_harvest_ledger_claim_keeps_its_bound()
 	_harvest_transaction_settles_storage_and_plot_together()
+	_the_next_task_controller_keeps_garden_priorities()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
 	# --- stage two: growing ---
@@ -1707,6 +1710,74 @@ func _harvest_transaction_settles_storage_and_plot_together() -> void:
 			and int(overflow.get("spilled", 0)) == strawberry_amount
 			and Barn.count("strawberry", Barn.BASKET) == strawberry_amount,
 		"a full barn routes the entire new yield to its visible overflow basket")
+
+
+## The ribbon gets one answer from live state: a full order beats the next
+## empty bed, ripe and needy beds keep their turn, and growing means wait.
+func _the_next_task_controller_keeps_garden_priorities() -> void:
+	_fresh_save()
+	Barn.put("carrot", 2)
+	var tools := FarmTools.new()
+	var pending := {"id": "rabbit_pie",
+		"requirements": {"carrot": 2, "corn": 1}}
+	var deliverable := {"id": "rabbit_carrot_order", "customer_icon": "rabbit",
+		"requirements": {"carrot": 2}}
+	var empty := Farm.fresh_plot(0)
+	var task := NextTask.select([empty], pending, deliverable,
+		["carrot", "corn"], tools)
+	_ok(str(task.get("kind", "")) == "deliver"
+			and str(task.get("order", {}).get("id", "")) == "rabbit_carrot_order",
+		"a fillable order beats another empty bed and keeps its actual card")
+
+	var ripe := Farm.fresh_plot(0)
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	task = NextTask.select([ripe], pending, deliverable,
+		["carrot", "corn"], tools)
+	_ok(str(task.get("kind", "")) == "harvest"
+			and int(task.get("index", -1)) == 0,
+		"a ripe crop stays ahead of delivery")
+
+	var weeds := Farm.fresh_plot(0)
+	weeds["state"] = Farm.NEEDS_CARE
+	weeds["crop_id"] = "carrot"
+	weeds["care_event"] = Growth.CARE_WEEDS
+	task = NextTask.select([weeds], pending, deliverable,
+		["carrot", "corn"], tools)
+	_ok(str(task.get("kind", "")) == "care"
+			and str(task.get("tool_id", "")) == "weed"
+			and str(task.get("title_key", "")) == "garden.next.weed",
+		"the care task uses the shared tool rule and the matching word")
+
+	var tilled := Farm.fresh_plot(0)
+	tilled["state"] = Farm.TILLED
+	task = NextTask.select([tilled], pending, {}, ["carrot", "corn"], tools)
+	_ok(str(task.get("kind", "")) == "plant"
+			and str(task.get("crop_id", "")) == "corn",
+		"a missing crop from the pending order guides the planting task")
+	tools.seed_crop = "carrot"
+	var tomato_order := {"id": "rabbit_tomato", "requirements": {"tomato": 1}}
+	task = NextTask.select([tilled], tomato_order, {}, ["carrot", "corn"], tools)
+	_ok(str(task.get("crop_id", "")) == "carrot",
+		"an unavailable order crop falls back to the seed the player chose")
+
+	var growing := Farm.fresh_plot(0)
+	growing["state"] = Farm.GROWING
+	growing["crop_id"] = "carrot"
+	task = NextTask.select([growing], pending, {}, ["carrot"], tools)
+	_ok(str(task.get("kind", "")) == "growing"
+			and not bool(task.get("actionable", true))
+			and str(task.get("icon", ""))
+			== str(GameData.get_crop("carrot").get("icon", "")),
+		"when no action is ready, the ribbon names the crop that is growing")
+
+	var fresh := Farm.fresh_plot(0)
+	task = NextTask.select([fresh], {}, {}, ["carrot"], tools)
+	_ok(str(task.get("kind", "")) == "till"
+			and str(task.get("tool_id", "")) == "shovel",
+		"an untouched bed points to the shovel action")
+	_ok(NextTask.select([], {}, {}, [], tools).is_empty(),
+		"an empty farm with no deliverable order has no invented task")
 
 
 # --- 阶段 4: the bear ------------------------------------------------------

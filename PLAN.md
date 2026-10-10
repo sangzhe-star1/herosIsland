@@ -181,7 +181,9 @@ These are yours to make. Nothing below has been changed without asking.
    path bug where `RewardManager.record()` pre-appended to the save array and
    caused the 64-entry retention helper to skip trimming. Continue one
    cohesive boundary at a time, with touch and overflow probes guarding both
-   16:9 and 4:3 behavior.
+   16:9 and 4:3 behavior. The next-task priority query now lives in
+   `scripts/garden/farm_next_task_controller.gd`; the screen keeps ribbon
+   rendering, wording, and camera focus.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -279,6 +281,10 @@ These are yours to make. Nothing below has been changed without asking.
 - **Latest stroke-lifecycle verification:** FarmWorldProbe asked 792 questions
   across both screen shapes, including an empty-seed no-op through the live
   garden screen; `tools_check.py` reports 0 errors and 208 warnings.
+- **Next-task controller verification:** GardenProbe passed 942 checks,
+  including eight direct priority cases; GardenTouchProbe passed 1,865 checks
+  across both shapes. `tools_check.py` reports 0 errors and 208 warnings. The
+  full suite was not rerun for this no-behavior-change extraction.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

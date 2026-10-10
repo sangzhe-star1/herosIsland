@@ -56,6 +56,7 @@ const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
+const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
@@ -749,83 +750,9 @@ func _next_task() -> Dictionary:
 		return {}
 	var plots := _plots()
 	var pending := _first_pending_order()
-	var deliverable := _an_order_he_can_fill()
-	var index := Tools.next_action_index(plots)
-	if index >= 0:
-		var plot: Dictionary = plots[index]
-		var state := str(plot.get("state", Farm.EMPTY))
-		# Do not interrupt a ripe reward or a crop that needs help, but once the
-		# basket can finish an order, delivering is a clearer next beat than
-		# opening yet another empty patch of soil.
-		if deliverable != "" and state in [Farm.TILLED, Farm.EMPTY]:
-			return _delivery_task(deliverable)
-		var crop_id := str(plot.get("crop_id", ""))
-		var task: Dictionary = {
-			"index": index,
-			"crop_id": crop_id,
-			"order": pending,
-			"actionable": true,
-		}
-		match state:
-			Farm.READY:
-				task.merge({
-					"kind": "harvest", "tool_id": "basket", "icon": "basket",
-					"title_key": "garden.next.harvest",
-				}, true)
-			Farm.NEEDS_CARE:
-				var tool_id := _tools.tool_for(plot)
-				var title_key := "garden.next.water"
-				if tool_id == "weed":
-					title_key = "garden.next.weed"
-				elif tool_id == "bug":
-					title_key = "garden.next.bug"
-				task.merge({
-					"kind": "care", "tool_id": tool_id,
-					"icon": str(_tools.tool_data(tool_id).get("icon", "watering_can")),
-					"title_key": title_key,
-				}, true)
-			Farm.TILLED:
-				var wanted := _first_missing_order_crop(pending)
-				var unlocked: Array = _farm().get("unlocked_crops", [])
-				if wanted == "" or not wanted in unlocked:
-					wanted = _tools.crop_to_plant(unlocked)
-				task.merge({
-					"kind": "plant", "tool_id": "seed", "icon": "seed",
-					"crop_id": wanted, "title_key": "garden.next.seed",
-				}, true)
-			_:
-				task.merge({
-					"kind": "till", "tool_id": "shovel", "icon": "shovel",
-					"title_key": "garden.next.till",
-				}, true)
-		return task
-
-	# A full basket is an immediate happy payoff, but it does not outrank a
-	# ripe plant or a thirsty sprout that is already on the screen.
-	if deliverable != "":
-		return _delivery_task(deliverable)
-
-	for i in range(plots.size()):
-		var growing: Dictionary = plots[i]
-		if Farm.is_planted(growing):
-			return {
-				"kind": "growing", "index": i,
-				"crop_id": str(growing.get("crop_id", "")),
-				"icon": str(GameData.get_crop(str(growing.get("crop_id", "")))
-					.get("icon", "sprout")),
-				"title_key": "garden.next.growing", "order": pending,
-				"actionable": false,
-			}
-	return {}
-
-
-func _delivery_task(order_id: String) -> Dictionary:
-	var order := _order_for_id(order_id)
-	return {
-		"kind": "deliver", "icon": str(order.get("customer_icon", "teddy")),
-		"title_key": "garden.next.deliver", "order": order,
-		"actionable": true,
-	}
+	var deliverable := _first_fillable_order()
+	var unlocked: Array = _farm().get("unlocked_crops", [])
+	return NextTask.select(plots, pending, deliverable, unlocked, _tools)
 
 
 ## The first still-open order on the physical board. The ribbon only previews
@@ -836,28 +763,6 @@ func _first_pending_order() -> Dictionary:
 		if not str(order.get("id", "")) in delivered:
 			return order
 	return {}
-
-
-func _order_for_id(order_id: String) -> Dictionary:
-	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
-	for order in _orders_for_board(delivered):
-		if str(order.get("id", "")) == order_id:
-			return order
-	return {}
-
-
-## One crop is enough for the compact preview. Sorting makes its choice stable
-## even if a future JSON editor happens to reorder the requirements object.
-func _first_missing_order_crop(order: Dictionary) -> String:
-	if order.is_empty():
-		return ""
-	var wants: Dictionary = order.get("requirements", {})
-	var ids: Array = wants.keys()
-	ids.sort()
-	for crop_id in ids:
-		if Barn.count(str(crop_id)) < int(wants[crop_id]):
-			return str(crop_id)
-	return str(ids[0]) if not ids.is_empty() else ""
 
 
 func _next_task_text(task: Dictionary) -> String:
@@ -936,7 +841,7 @@ func _add_next_task_button(task: Dictionary, at: Vector2, box: Vector2) -> void:
 func _task_order_preview(order: Dictionary) -> Dictionary:
 	if order.is_empty():
 		return {}
-	var crop_id := _first_missing_order_crop(order)
+	var crop_id := NextTask.first_missing_order_crop(order)
 	if crop_id == "":
 		return {}
 	var wants: Dictionary = order.get("requirements", {})
@@ -3811,18 +3716,22 @@ func _lesson_plot_after_planting(index: int) -> int:
 	return named if named >= 0 and named < plots.size() else -1
 
 
-## The first order the barn can pay for and nobody has delivered yet, or "".
+## The first order the barn can pay for and nobody has delivered yet.
 ## Reads the BOARD, not the file: a level-gated order is not there to point
 ## at, and a finger aimed at a card that is not drawn teaches "the game lies".
-func _an_order_he_can_fill() -> String:
+func _first_fillable_order() -> Dictionary:
 	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
 	for order in _orders_for_board(delivered):
 		var order_id := str(order.get("id", ""))
 		if order_id in delivered:
 			continue
 		if Barn.can_pay(order.get("requirements", {})):
-			return order_id
-	return ""
+			return order
+	return {}
+
+
+func _an_order_he_can_fill() -> String:
+	return str(_first_fillable_order().get("id", ""))
 
 
 ## Say one step's line, and point at the thing the line is about.
