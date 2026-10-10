@@ -2,10 +2,10 @@
 
 ## 25ecd52 菜园存档的 Phase 8 兼容回归 — 10 October 2026
 
-- GardenProbe 固定了用户先前给出的 `25ecd52` 历史菜园键集：经 JSON 写回/读取，再走 `SaveManager._migrate()` 与 `Farm.normalise_farm()`。
-- 逐项验证旧存档中的 26 个农场字段、六块地、收成/销售账本、小熊状态、每日任务和库存仍保留；新增农场字段按默认值补齐，兔兔和小狗加入默认伙伴状态，孩子的经验和星星币不变。
-- GardenProbe 通过 1,129 项；检查数门槛从 772 提到 1,100，防止整段迁移检查被跳过后仍显示通过。`./tests/run_smoke.sh`：30 passed、0 skipped；`python3 tools_check.py`：0 errors、208 warnings。
-- 这覆盖了历史版本字段结构，仍需在真实 iPad 备份上做最终迁移核对；没有改动存档版本字段。
+- GardenProbe 固定用户先前给出的 `25ecd52` 历史菜园键集，在隔离 `user://save_game.json` 写入后调用正式 `load_game()`、存档，再从磁盘重载。
+- 逐项验证 26 个旧农场字段、六块地、收成/销售账本、小熊状态、每日任务和仓库仍保留；新增农场字段及兔兔/小狗状态按默认值补齐，孩子的经验和星星币不变，`version=1` 与 `save_version=4` 都保持原值。
+- GardenProbe 通过 1,137 项；检查数门槛为 1,100，防止整段迁移检查被跳过后仍显示通过。正式磁盘路径夹具加入后 `./tests/run_smoke.sh`：30 passed、0 skipped；最后的版本字段断言由隔离 GardenProbe 复验通过；`python3 tools_check.py`：0 errors、208 warnings。
+- 这覆盖了历史版本字段结构和本机加载/写盘路径，仍需在真实 iPad 备份上做最终迁移核对；没有改动存档版本字段。
 
 ## 刷子存档只认实际地块变化 — 10 October 2026
 

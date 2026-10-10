@@ -43,6 +43,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
+const PHASE_SEVEN_SAVE_TIME := 1_760_000_100
 
 ## Exact farm keys present in the user's earlier 25ecd52 build. Keep this
 ## historical allowlist explicit: a newer Farm.default_farm() must not
@@ -416,8 +417,8 @@ func _an_old_save_keeps_the_beds_it_already_had() -> void:
 
 ## The Phase 7 farm at 25ecd52 had all of its progress but none of the fields
 ## added by Phase 8. Round-trip that exact key set as JSON, then migrate it
-## through SaveManager and Farm.normalise_farm: every old value must survive,
-## and every newer field must arrive at its current default.
+## through the game's user:// load/save path and Farm.normalise_farm: every old
+## value must survive, and every newer field must arrive at its current default.
 func _a_phase_seven_save_gains_later_defaults_without_losing_farm_state() -> void:
 	var current_defaults: Dictionary = Farm.default_farm()
 	var legacy_farm := current_defaults.duplicate(true)
@@ -432,13 +433,15 @@ func _a_phase_seven_save_gains_later_defaults_without_losing_farm_state() -> voi
 	legacy_farm["plot_count"] = Farm.PLOT_COUNT
 	legacy_farm["plots"] = []
 	for i in range(Farm.PLOT_COUNT):
-		legacy_farm["plots"].append(Farm.fresh_plot(i))
+		var plot := Farm.fresh_plot(i)
+		plot["last_updated_at"] = PHASE_SEVEN_SAVE_TIME
+		legacy_farm["plots"].append(plot)
 	var growing: Dictionary = legacy_farm["plots"][0]
 	growing["state"] = Farm.GROWING
 	growing["crop_id"] = "carrot"
 	growing["plant_cycle_id"] = 12
-	growing["planted_at"] = 1_760_000_000
-	growing["last_updated_at"] = 1_760_000_000
+	growing["planted_at"] = PHASE_SEVEN_SAVE_TIME
+	growing["last_updated_at"] = PHASE_SEVEN_SAVE_TIME
 	growing["growth_stage"] = 3
 	growing["growth_progress"] = 0.6
 	growing["water_level"] = 0.5
@@ -448,21 +451,23 @@ func _a_phase_seven_save_gains_later_defaults_without_losing_farm_state() -> voi
 	ready["crop_id"] = "strawberry"
 	ready["plant_cycle_id"] = 27
 	ready["planted_at"] = 1_759_999_000
-	ready["last_updated_at"] = 1_759_999_000
+	ready["last_updated_at"] = PHASE_SEVEN_SAVE_TIME
 	ready["growth_stage"] = Farm.STAGES - 1
-	legacy_farm["warehouse"] = {"carrot": 8, "flour": 2}
+	# Keep the upgraded barn full so the ordinary load settlement cannot move
+	# the basket during this migration-only test.
+	legacy_farm["warehouse"] = {"carrot": 58, "flour": 2}
 	legacy_farm["warehouse_cap"] = Farm.WAREHOUSE_UPGRADED
 	legacy_farm["harvest_basket"] = {"tomato": 3}
 	legacy_farm["unlocked_crops"] = ["carrot", "corn", "strawberry"]
 	legacy_farm["unlocked_recipes"] = ["carrot_soup", "berry_tart"]
 	legacy_farm["completed_missions"] = ["first_harvest", "market_day"]
 	legacy_farm["npc_friendship"] = {"bear": 4, "rabbit": 2}
-	legacy_farm["last_seen_at"] = 1_760_000_000
-	legacy_farm["clock_high_water"] = 1_760_000_100
+	legacy_farm["last_seen_at"] = PHASE_SEVEN_SAVE_TIME
+	legacy_farm["clock_high_water"] = PHASE_SEVEN_SAVE_TIME
 	legacy_farm["opened"] = true
 	legacy_farm["tutorial_completed"] = true
 	legacy_farm["market_taught"] = true
-	legacy_farm["last_farm_visit_at"] = 1_760_000_050
+	legacy_farm["last_farm_visit_at"] = PHASE_SEVEN_SAVE_TIME
 	legacy_farm["paid_harvests"] = ["plot_1_11", "plot_2_26"]
 	legacy_farm["coop"] = {"fed_at": 1_760_000_000, "eggs": 3}
 	legacy_farm["mill"] = {"started_at": 1_760_000_010, "done": 2}
@@ -487,10 +492,38 @@ func _a_phase_seven_save_gains_later_defaults_without_losing_farm_state() -> voi
 	old_save["profile"]["xp"] = 359
 	old_save["rewards"]["coins"] = 214
 	old_save["farm"] = legacy_farm
-	var disk_save: Dictionary = JSON.parse_string(JSON.stringify(old_save))
+	DirAccess.remove_absolute(SaveManager.SAVE_PATH)
+	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
+	DirAccess.remove_absolute(SaveManager.SAVE_TMP)
+	var old_file := FileAccess.open(SaveManager.SAVE_PATH, FileAccess.WRITE)
+	_ok(old_file != null, "the historical save fixture can be written to user://")
+	if old_file == null:
+		return
+	old_file.store_string(JSON.stringify(old_save, "\t"))
+	old_file.close()
 
-	SaveManager.data = SaveManager._migrate(disk_save)
-	SaveManager._settle_after_load()
+	# Exercise the same disk-read, migration, and offline-settlement path used at
+	# game start, with no wall-clock growth between the saved time and the load.
+	GameClock.set_test_now(PHASE_SEVEN_SAVE_TIME, 0)
+	SaveManager.load_game()
+	var first_load: Dictionary = SaveManager.data["farm"]
+	_ok(_same_json_value(first_load["farm_xp"], legacy_farm["farm_xp"]),
+		"load_game reads the historical farm instead of starting fresh")
+	SaveManager.save_game()
+	var written_main: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	_ok(written_main is Dictionary and written_main.get("farm") is Dictionary,
+		"the normalized farm is written back as a complete main save")
+	_ok(written_main is Dictionary
+		and int(written_main.get("version", 0)) == SaveManager.SAVE_VERSION,
+		"the ordinary save version survives the disk migration")
+	_ok(written_main is Dictionary and int(written_main.get("save_version", 0))
+			== SaveManager.FARM_SAVE_VERSION,
+		"the farm version stays at the version already stored on disk")
+	_ok(FileAccess.file_exists(SaveManager.SAVE_BACKUP),
+		"rewriting the migrated save keeps the old main file as backup")
+	SaveManager.load_game()
+	GameClock.clear_test_now()
 	var migrated: Dictionary = SaveManager.data["farm"]
 	for key in PHASE_SEVEN_FARM_KEYS:
 		if key == "npc":
@@ -514,6 +547,11 @@ func _a_phase_seven_save_gains_later_defaults_without_losing_farm_state() -> voi
 		"a Phase 7 save keeps the child's experience")
 	_ok(int(SaveManager.data["rewards"].get("coins", 0)) == 214,
 		"a Phase 7 save keeps the child's star coins")
+	_ok(int(SaveManager.data.get("version", 0)) == SaveManager.SAVE_VERSION,
+		"the old save retains the shared save-version boundary")
+	_ok(int(SaveManager.data.get("save_version", 0))
+			== SaveManager.FARM_SAVE_VERSION,
+		"the old save retains the farm-version boundary")
 
 
 ## Compare values after a JSON save/load without treating an integer written to
