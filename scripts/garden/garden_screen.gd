@@ -1281,24 +1281,25 @@ func _tap_plot(index: int) -> void:
 		return
 	var plot: Dictionary = plots[index]
 	var plot_id := str(plot.get("plot_id", ""))
-
-	# A plot in the middle of its harvest is not tappable. This is the whole of
-	# that rule, and it lives in memory rather than in the save on purpose: a
-	# tablet closed mid-animation must not come back holding a patch of earth
-	# that is permanently mid-animation and can never be touched again.
-	match PlotAction.for_plot(plot, plot_id in _harvesting):
+	var decision: Dictionary = _tools.apply_hand_tap(plot,
+		plot_id in _harvesting, GameClock.now_unix())
+	match str(decision.get("kind", PlotAction.WAIT)):
 		PlotAction.LOCKED:
 			return
 		PlotAction.TILL:
-			var till_result: Dictionary = _tools.apply_to_plot("shovel", plot)
-			if till_result.is_empty():
+			var tilled: Dictionary = decision.get("plot", plot)
+			if tilled == plot:
 				return
-			plot = till_result.get("plot", plot)
+			plot = tilled
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
 		PlotAction.HARVEST:
 			_harvest(plot, index)
 		PlotAction.CARE:
-			plot = _care_for(plot, index)
+			var cared: Dictionary = decision.get("plot", plot)
+			if cared == plot:
+				return
+			plot = cared
+			_respond_to_plot_care(str(decision.get("transition", "")), index)
 		PlotAction.PLANT:
 			# Turned, empty, and tapped: he is trying to plant by tapping. Point
 			# at the rack rather than doing nothing, which is the same as being

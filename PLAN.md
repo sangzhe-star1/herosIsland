@@ -237,7 +237,8 @@ These are yours to make. Nothing below has been changed without asking.
    viewport and top-bar height. The 16 world signal and gesture callbacks now
    bind through `FarmWorldController.connect_screen_callbacks()` before the
    first world build, so synchronous reduced-motion bear settlement is not
-   missed. `garden_screen.gd` is now 3,419 lines. On 10 October, plot verbs moved to
+   missed. `garden_screen.gd` was 3,419 lines at that point; the latest
+   bare-hand action pass leaves it at 3,420 lines. On 10 October, plot verbs moved to
    `scripts/garden/farm_plot_action_controller.gd`; bare-hand taps and the
    next-task resolver now use the same state-first action table, while the
    screen retains presentation and persistence effects.
@@ -558,6 +559,17 @@ These are yours to make. Nothing below has been changed without asking.
   this keeps the reduced-motion bear's synchronous settlement safe. The
   focused farm suite passed all 7 probes, and `garden_screen.gd` is now 3,419
   lines.
+- **Bare-hand plot action boundary (10 October):** `FarmToolController` now
+  resolves a hand tap through the shared plot-action table and returns the
+  till/care transition. `garden_screen.gd` still owns the planting prompt,
+  harvest transaction, feedback, and save. FarmWorldProbe passed 858 checks
+  with its real touch path at 16:9 and 4:3; `tools_check.py` reports 0 errors
+  and 208 warnings.
+- **Latest remote plan check (10 October):** fetched
+  `origin/claude/stoic-bell-a41pfu` at `69892a9` and `origin/main` at
+  `6e34b19`. The feature branch is an ancestor of `main`, which has 59 later
+  commits; the planned merge is already complete. The previous note naming
+  `9f74ede` and 47 later commits records an earlier check, not the current tip.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

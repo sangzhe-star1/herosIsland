@@ -150,6 +150,29 @@ func apply_to_plot(tool_id: String, plot: Dictionary, now: int = 0,
 			return {}
 
 
+## Resolve a bare-hand tap through the same state-first action table used by
+## the task ribbon, then apply only transitions that belong to a plot. The
+## screen still owns prompts, harvest receipts, sounds, and persistence.
+func apply_hand_tap(plot: Dictionary, harvesting: bool = false,
+		now: int = 0) -> Dictionary:
+	var kind := PlotAction.for_plot(plot, harvesting)
+	var result := {"kind": kind, "plot": plot, "transition": ""}
+	var tool_id := ""
+	match kind:
+		PlotAction.TILL:
+			tool_id = "shovel"
+		PlotAction.CARE:
+			tool_id = tool_for(plot)
+	if tool_id == "":
+		return result
+	var transition := apply_to_plot(tool_id, plot, now)
+	if transition.is_empty():
+		return result
+	result["plot"] = transition.get("plot", plot)
+	result["transition"] = str(transition.get("action", ""))
+	return result
+
+
 func work_exists(tool_id: String, plots: Array) -> bool:
 	for plot in plots:
 		if needs(tool_id, plot):

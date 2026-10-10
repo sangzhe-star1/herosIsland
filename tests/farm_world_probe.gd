@@ -38,6 +38,7 @@ const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const PlotAction := preload("res://scripts/garden/farm_plot_action_controller.gd")
+const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const Stroke := preload("res://scripts/garden/continuous_action_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
@@ -53,7 +54,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 850
+const CHECKS_EXPECTED := 858
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -87,6 +88,7 @@ func _ready() -> void:
 		_an_old_npc_save_gains_friend_defaults()
 		_the_layout_is_legal()
 		_the_plot_action_table_is_shared_and_state_first()
+		_the_hand_tap_uses_the_shared_action_and_transition()
 		_the_stroke_bookkeeping_refuses_seconds()
 		_tool_action_controller_owns_plot_transitions()
 		_golden_state_is_a_visual_input()
@@ -472,6 +474,69 @@ func _next_task_kind(plot: Dictionary, harvesting_ids: Dictionary = {}) -> Strin
 	var task: Dictionary = NextTask.select([plot], {}, {}, ["carrot"], Tools.new(),
 		harvesting_ids)
 	return str(task.get("kind", ""))
+
+
+## Bare-hand taps use the same state table as the task ribbon and the same
+## pure plot transitions as brushes. Harvest remains a receipt transaction in
+## the screen, so this controller only returns its intent.
+func _the_hand_tap_uses_the_shared_action_and_transition() -> void:
+	_shape = "hand tap action rules"
+	var tools: Tools = Tools.new()
+	var grass: Dictionary = Farm.fresh_plot(0)
+	var result := tools.apply_hand_tap(grass)
+	_ok(str(result.get("kind", "")) == PlotAction.TILL
+			and str(result.get("transition", "")) == "till"
+			and str(result.get("plot", {}).get("state", "")) == Farm.TILLED,
+		"an empty bed's hand tap returns the shared till transition")
+	_ok(str(grass.get("state", "")) == Farm.EMPTY,
+		"resolving the tap leaves the caller's saved plot snapshot untouched")
+
+	var tilled: Dictionary = Farm.fresh_plot(1)
+	tilled["state"] = Farm.TILLED
+	result = tools.apply_hand_tap(tilled)
+	_ok(str(result.get("kind", "")) == PlotAction.PLANT
+			and result.get("plot", {}) == tilled,
+		"a tilled bed returns a planting prompt without changing its state")
+
+	var ripe: Dictionary = Farm.fresh_plot(2)
+	ripe["state"] = Farm.READY
+	ripe["crop_id"] = "carrot"
+	result = tools.apply_hand_tap(ripe)
+	_ok(str(result.get("kind", "")) == PlotAction.HARVEST
+			and result.get("plot", {}) == ripe
+			and str(result.get("transition", "")) == "",
+		"a ripe tap returns harvest intent without bypassing its receipt")
+
+	var thirsty: Dictionary = Farm.fresh_plot(3)
+	thirsty["state"] = Farm.NEEDS_CARE
+	thirsty["crop_id"] = "carrot"
+	thirsty["care_event"] = Growth.CARE_THIRSTY
+	result = tools.apply_hand_tap(thirsty, false, 5678)
+	_ok(str(result.get("kind", "")) == PlotAction.CARE
+			and str(result.get("transition", "")) == PlotCare.WATER
+			and str(result.get("plot", {}).get("state", "")) == Farm.GROWING,
+		"a thirsty tap routes through the shared watering transition")
+
+	var damaged: Dictionary = Farm.fresh_plot(4)
+	damaged["state"] = Farm.NEEDS_CARE
+	damaged["crop_id"] = "carrot"
+	damaged["care_event"] = "unknown_old_job"
+	result = tools.apply_hand_tap(damaged, false, 9000)
+	_ok(str(result.get("kind", "")) == PlotAction.CARE
+			and str(result.get("transition", "")) == PlotCare.REPAIR,
+		"an unfamiliar care marker keeps the safe legacy repair path")
+
+	result = tools.apply_hand_tap(ripe, true)
+	_ok(str(result.get("kind", "")) == PlotAction.LOCKED
+			and result.get("plot", {}) == ripe,
+		"the harvest animation lock prevents a second tap transition")
+
+	var growing: Dictionary = Farm.fresh_plot(5)
+	growing["state"] = Farm.GROWING
+	result = tools.apply_hand_tap(growing)
+	_ok(str(result.get("kind", "")) == PlotAction.WAIT
+			and result.get("plot", {}) == growing,
+		"a growing bed returns the wait intent without a state mutation")
 
 
 ## Gate one of the brush, asked point-blank.

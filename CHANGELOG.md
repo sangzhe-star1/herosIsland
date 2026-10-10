@@ -1,5 +1,10 @@
 # Changelog
 
+## 裸手点地复用动作与状态迁移控制器 — 10 October 2026
+
+- 裸手点地现在通过 `FarmToolController.apply_hand_tap()` 读取共享动作表，并复用铲地、浇水与异常照料修复的状态迁移；屏幕仍处理种植提示、收菜交易、音效、视觉反馈和存档。
+- FarmWorldProbe 增加 8 条直接断言，并在 16:9、4:3 下通过 858 项；`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
+
 ## 菜园世界事件由世界控制器统一接线 — 10 October 2026
 
 - 将地块、设施、扩地、刷地、钓鱼、动物与手势等 16 条世界事件回调收进 `farm_world_controller.gd`；菜园在世界 `build()` 前统一绑定，保留低动态效果下可能同步发出的熊回访结算。
