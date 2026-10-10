@@ -15,6 +15,7 @@ extends Node
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -800,7 +801,10 @@ func _care_restarts_growth_from_the_action() -> void:
 	waiting["planted_at"] = NOON
 	waiting["last_updated_at"] = NOON
 	var cared_at := NOON + 30 * 60
-	var resumed := Growth.reanchor(Growth.weed(waiting), cared_at)
+	var weed_result: Dictionary = PlotCare.apply(waiting, cared_at)
+	var resumed: Dictionary = weed_result.get("plot", {})
+	_ok(str(weed_result.get("action", "")) == PlotCare.WEED,
+		"the shared care transition reports the weed job for its screen response")
 	var farm := {"last_seen_at": NOON, "clock_high_water": NOON,
 		"plots": [resumed]}
 
@@ -815,6 +819,44 @@ func _care_restarts_growth_from_the_action() -> void:
 		"...rather than crediting the half hour it was waiting")
 	_ok(int(actual.get("last_updated_at", 0)) == cared_at + 60,
 		"care's new local anchor is carried through the next settlement")
+
+	var thirsty := Farm.fresh_plot(1)
+	thirsty["state"] = Farm.NEEDS_CARE
+	thirsty["crop_id"] = "carrot"
+	thirsty["care_event"] = Growth.CARE_THIRSTY
+	thirsty["water_level"] = 0.0
+	var water_result: Dictionary = PlotCare.apply(thirsty, cared_at)
+	var watered: Dictionary = water_result.get("plot", {})
+	_ok(str(water_result.get("action", "")) == PlotCare.WATER
+			and str(watered.get("state", "")) == Farm.GROWING
+			and str(watered.get("care_event", "")) == ""
+			and is_equal_approx(float(watered.get("water_level", 0.0)), 1.0),
+		"watering through the shared controller clears thirst and resumes growth")
+	_ok(int(watered.get("last_updated_at", 0)) == cared_at,
+		"watering anchors the plot at the child's action")
+
+	var buggy := Farm.fresh_plot(2)
+	buggy["state"] = Farm.NEEDS_CARE
+	buggy["crop_id"] = "tomato"
+	buggy["care_event"] = Growth.CARE_BUG
+	var shoo_result: Dictionary = PlotCare.apply(buggy, cared_at)
+	var shooed: Dictionary = shoo_result.get("plot", {})
+	_ok(str(shoo_result.get("action", "")) == PlotCare.SHOO
+			and str(shooed.get("state", "")) == Farm.GROWING
+			and str(shooed.get("care_event", "")) == ""
+			and bool(shooed.get("care_completed", false)),
+		"shooing through the shared controller completes the bug job once")
+
+	var unfamiliar := Farm.fresh_plot(3)
+	unfamiliar["state"] = Farm.NEEDS_CARE
+	unfamiliar["care_event"] = "future_job"
+	var repair_result: Dictionary = PlotCare.apply(unfamiliar, cared_at)
+	var repaired: Dictionary = repair_result.get("plot", {})
+	_ok(str(repair_result.get("action", "")) == PlotCare.REPAIR
+			and str(repaired.get("state", "")) == Farm.GROWING
+			and str(repaired.get("care_event", "")) == "future_job"
+			and int(repaired.get("last_updated_at", 0)) == cared_at,
+		"an unfamiliar care job repairs without erasing its marker or timestamp")
 	GameClock.clear_test_now()
 
 

@@ -897,7 +897,20 @@ func _one_basket_needs_one_move() -> void:
 		var before := _picked_total()
 		var path := _move_for(carrot)
 		var trace := {"gesture": "first carrot pull", "frame": Engine.get_process_frames()}
+		var field_events: Array[Dictionary] = []
+		var field := _level.get("_field") as Control
+		var observer := func(event: InputEvent) -> void:
+			field_events.append({"type": event.get_class(), "device": event.device,
+				"position": event.get("position"),
+				"pressed": event.get("pressed"), "index": event.get("index")})
+		field.gui_input.connect(observer)
 		await _stroke(path, trace)
+		field.gui_input.disconnect(observer)
+		trace["gui_events"] = field_events
+		trace["emulate_mouse_from_touch"] = Input.is_emulating_mouse_from_touch()
+		var first_move: Dictionary = trace.get("moves", [{}])[0]
+		_ok(int(first_move.get("pointer", -1)) == 0,
+			"screen touch keeps the gesture when Godot also sends mouse input")
 		if _picked_total() == before:
 			print("DBG failed first carrot pull: ", trace,
 				" path=", path, " target=", carrot.name,

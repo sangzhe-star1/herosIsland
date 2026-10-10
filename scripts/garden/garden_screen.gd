@@ -28,6 +28,7 @@ extends LevelManager
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
@@ -1797,26 +1798,25 @@ func _on_gesture_finished(index: int, track: PackedVector2Array,
 ## by the tap and by the care gestures, because "the same care from a
 ## different hand" must be the same care. Returns the plot in its new state.
 func _care_for(plot: Dictionary, index: int) -> Dictionary:
-	var cared_at := GameClock.now_unix()
-	match str(plot.get("care_event", "")):
-		Growth.CARE_THIRSTY:
-			plot = Growth.reanchor(Growth.water(plot), cared_at)
+	var result: Dictionary = PlotCare.apply(plot, GameClock.now_unix())
+	_respond_to_plot_care(str(result.get("action", "")), index)
+	return result.get("plot", plot)
+
+
+## The same response follows a care transition whether it came from one tap or
+## one brush stroke. PlotCare owns the saved state; this screen owns the
+## child's audible and visible confirmation.
+func _respond_to_plot_care(action: String, index: int) -> void:
+	match action:
+		PlotCare.WATER:
 			AudioManager.play_sfx("res://assets/audio/water.ogg")
 			_daily_progress("water")
 			if _world != null and is_instance_valid(_world):
 				_world.drink_bed(index)
-		Growth.CARE_WEEDS:
-			plot = Growth.reanchor(Growth.weed(plot), cared_at)
+		PlotCare.WEED:
 			AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
-		Growth.CARE_BUG:
-			plot = Growth.reanchor(Growth.shoo(plot), cared_at)
+		PlotCare.SHOO:
 			AudioManager.play_sfx("res://assets/audio/rustle.ogg")
-		_:
-			# Waiting for care, but not for anything with a name. Repair
-			# it rather than leave a plot no tap can ever move.
-			plot["state"] = Farm.GROWING
-			plot = Growth.reanchor(plot, cared_at)
-	return plot
 
 
 ## Pick it, and pay for it exactly once.
@@ -2265,18 +2265,10 @@ func _on_stroke_swept(index: int) -> void:
 			_plant_in(index, _tools.crop_to_plant(_farm().get("unlocked_crops", [])))
 			plot = plots[index]
 			AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
-		"water":
-			plot = Growth.reanchor(Growth.water(plot), GameClock.now_unix())
-			AudioManager.play_sfx("res://assets/audio/water.ogg")
-			_daily_progress("water")
-			if _world != null and is_instance_valid(_world):
-				_world.drink_bed(index)
-		"weed":
-			plot = Growth.reanchor(Growth.weed(plot), GameClock.now_unix())
-			AudioManager.play_sfx("res://assets/audio/drag_back.ogg")
-		"bug":
-			plot = Growth.reanchor(Growth.shoo(plot), GameClock.now_unix())
-			AudioManager.play_sfx("res://assets/audio/rustle.ogg")
+		"water", "weed", "bug":
+			var result: Dictionary = PlotCare.apply(plot, GameClock.now_unix())
+			plot = result.get("plot", plot)
+			_respond_to_plot_care(str(result.get("action", "")), index)
 		"basket":
 			var receipt: Dictionary = _harvest_core(plot)
 			if not receipt.is_empty():
