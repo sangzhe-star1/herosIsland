@@ -441,6 +441,11 @@ These are yours to make. Nothing below has been changed without asking.
   receipt before the delivery's single save. GardenTouchProbe passed 1,891
   checks across 16:9 and 4:3; it closes and reloads without an extra test save
   and verifies both the delivered order and lesson flag survived together.
+- **Dog-dig reward receipt:** the world controller's pre-emission save is now
+  the only write for a found seed; the screen callback only builds its reward
+  flight. FarmWorldProbe passed 827 checks across 16:9 and 4:3, including a
+  backup-marker check proving the presentation callback does not save again.
+  `tools_check.py` reports 0 errors and 208 existing warnings.
 
 ---
 

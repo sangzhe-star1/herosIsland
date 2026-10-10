@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 817
+const CHECKS_EXPECTED := 827
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -183,6 +183,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _friend_farm_buttons_are_available()
 	await _the_visitor_board_reads_and_clears(view)
 	await _the_dog_minds_his_own_business()
+	await _dog_seed_receipt_does_not_resave()
 	# --- 阶段 5: the stones, the ladder, and the market's one lesson ---
 	await _the_stones_ask_before_they_move()
 	await _the_barn_full_moment_points_at_the_market()
@@ -2101,6 +2102,24 @@ func _the_dog_minds_his_own_business() -> void:
 	_ok(dog.get("_scarf") != null,
 		"the first friendship star ties the red scarf on")
 	SaveManager.data["farm"]["npc_friendship"] = {}
+
+
+## The world controller saves the deterministic dig before emitting this
+## screen receipt. Showing the flying seed must not rotate the save a second
+## time and replace its backup.
+func _dog_seed_receipt_does_not_resave() -> void:
+	SaveManager.save_game()
+	var marker := "dog-seed-receipt-must-not-save"
+	var backup := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	_ok(backup != null, "the dog reward can observe the isolated save")
+	if backup == null:
+		return
+	backup.store_string(marker)
+	backup.close()
+	_garden.call("_on_dog_found_seed", "corn")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == marker,
+		"presenting the already-saved dog reward does not write the save again")
+	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 
 
 ## A visit to the bear's farm on its real screen, with real taps: the starred

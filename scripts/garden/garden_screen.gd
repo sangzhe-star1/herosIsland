@@ -1140,7 +1140,8 @@ func _on_fish_caught(info: Dictionary) -> void:
 
 
 func _on_dog_found_seed(crop_id: String) -> void:
-	SaveManager.save_game()
+	# FarmWorldController persists the deterministic dig result before it emits
+	# this receipt. This callback only presents that already-committed reward.
 	_queue_rebuild()
 	var spot_pos: Vector2 = DogManager.DIG_SPOT_POSITION
 	var at: Vector2 = _world.camera.world_to_screen(spot_pos) if _world != null and is_instance_valid(_world) else Vector2(640, 360)
