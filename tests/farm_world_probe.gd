@@ -41,6 +41,7 @@ const PlotAction := preload("res://scripts/garden/farm_plot_action_controller.gd
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const Stroke := preload("res://scripts/garden/continuous_action_controller.gd")
+const BuildingAction := preload("res://scripts/garden/farm_building_action_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -54,7 +55,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 859
+const CHECKS_EXPECTED := 885
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -91,6 +92,7 @@ func _ready() -> void:
 		_the_hand_tap_uses_the_shared_action_and_transition()
 		_the_stroke_bookkeeping_refuses_seconds()
 		_tool_action_controller_owns_plot_transitions()
+		_building_action_routes_and_unlocks_are_shared()
 		_golden_state_is_a_visual_input()
 		for shape in SHAPES:
 			_shape = "%dx%d" % [shape.x, shape.y]
@@ -688,6 +690,61 @@ func _tool_action_controller_owns_plot_transitions() -> void:
 		"harvest stays in the receipt-and-storage transaction boundary")
 
 
+## Building presses resolve to one progression decision before the screen
+## opens a panel, starts a level, or hands a timed facility to its manager.
+func _building_action_routes_and_unlocks_are_shared() -> void:
+	_shape = "building action rules"
+	var farm := {"visit_log_unread": true}
+	var panels := {
+		"orders": "orders", "seed_shop": "shop", "market": "market",
+		"warehouse": "barn", "bear_door": "gift", "visit_board": "visits",
+	}
+	for building_id in panels:
+		var decision := BuildingAction.press(str(building_id), farm, 1, false)
+		_ok(str(decision.get("kind", "")) == BuildingAction.PANEL
+				and str(decision.get("panel", "")) == str(panels[building_id]),
+			"%s resolves to its intended screen" % str(building_id))
+	farm["visit_log_unread"] = true
+	var visit_read := BuildingAction.press("visit_board", farm, 1, false)
+	_ok(not bool(farm.get("visit_log_unread", true))
+			and bool(visit_read.get("needs_save", false)),
+		"reading an unread visit board clears and commits its unread state")
+	_ok(not bool(BuildingAction.press("visit_board", farm, 1, false)
+			.get("needs_save", true)),
+		"reopening an already-read visit board does not request another save")
+	_ok(str(BuildingAction.press("well", farm, 7, false).get("kind", ""))
+			== BuildingAction.LOCKED
+			and str(BuildingAction.press("well", farm, 8, true).get("kind", ""))
+			== BuildingAction.WISH,
+		"the wishing well opens only for a master farmer")
+	for facility_id in ["coop", "mill", "cow_shed", "beehive"]:
+		var facility := BuildingAction.press(facility_id, farm, 8, true)
+		_ok(str(facility.get("kind", "")) == BuildingAction.FACILITY
+				and str(facility.get("facility_id", "")) == facility_id,
+			"%s keeps the shared timed-facility path" % facility_id)
+	var workshop_level := int(Layout.facility("workshop").get("level", 5))
+	_ok(str(BuildingAction.press("workshop", farm,
+			workshop_level - 1, false).get("kind", "")) == BuildingAction.LOCKED
+			and str(BuildingAction.press("workshop", farm, workshop_level, false)
+				.get("panel", "")) == "kitchen",
+		"the kitchen door follows its data-driven level gate")
+	var decor_level := int(Layout.facility("decor").get("level", 4))
+	_ok(str(BuildingAction.press("decor", farm, decor_level - 1, false,
+			"decor_room", true).get("kind", "")) == BuildingAction.LOCKED,
+		"the sticker-room door stays closed below its level gate")
+	_ok(str(BuildingAction.press("decor", farm, decor_level, false,
+			"decor_room", false).get("kind", "")) == BuildingAction.LOCKED,
+		"an unlocked but missing sticker room does not launch a broken level")
+	var decor := BuildingAction.press("decor", farm, decor_level, false,
+		"decor_room", true)
+	_ok(str(decor.get("kind", "")) == BuildingAction.START_LEVEL
+			and str(decor.get("level_id", "")) == "decor_room",
+		"the sticker-room door returns the configured level when it exists")
+	_ok(str(BuildingAction.press("unknown", farm, 8, true).get("kind", ""))
+			== BuildingAction.LOCKED,
+		"an unknown building keeps a calm locked response")
+
+
 ## The promise the whole opening view rests on.
 ##
 ## A child who walks in and cannot see his beds has to go looking, and a
@@ -1000,13 +1057,25 @@ func _pressing_a_building_looks_at_it() -> void:
 		_ok(_world().facility_under(at) == id,
 			"'%s' can be pressed where it is drawn" % id)
 		await _tap(at)
+		match id:
+			"seed_shop":
+				_ok(bool(_garden.get("_shop_open")),
+					"pressing the seed shop routes to its data action")
+			"market":
+				_ok(bool(_garden.get("_market_open")),
+					"pressing the market routes to its data action")
+			"orders":
+				_ok(bool(_garden.get("_orders_open")),
+					"pressing the order board routes to its data action")
+			"well":
+				_ok(not bool(_garden.call("_something_is_open")),
+					"the locked wishing well stays closed before master farmer")
 		# Not "is the camera near it" -- near is impossible for a building by
 		# the world's edge, where the clamp stops the centre short. The promise
 		# is the visible one: after pressing it, it is on the glass.
 		_ok(_camera().inside(_world().facility_screen_position(id)),
 			"pressing '%s' brings it onto the glass" % id)
-		# Every one of these doors opens a sheet now. Close it before walking
-		# on, or its blocker eats the press on the next building.
+		# Close any opened sheet before walking on, or its blocker eats the next press.
 		_garden.call("_close_panels")
 		await get_tree().process_frame
 		await get_tree().process_frame

@@ -47,6 +47,7 @@ const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
 const ArrivalSettlement := preload("res://scripts/garden/farm_arrival_settlement_controller.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
+const BuildingAction := preload("res://scripts/garden/farm_building_action_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
 const BearReturn := preload("res://scripts/garden/farm_bear_return_controller.gd")
@@ -760,55 +761,34 @@ func _follow_the_camera() -> void:
 ## anybody is listening. What is left is whatever that building DOES, and in
 ## this stage only one of them does anything yet.
 func _tap_building(id: String) -> void:
-	match id:
-		"orders":
-			_open_panel("orders")
-			# The lesson's last step was pointing at the board; now that the
-			# cards are up, let it say the line again with the finger on the
-			# one he can actually fill.
-			if _lesson_said == "order":
-				_lesson_said = ""
-		"seed_shop":
-			_open_panel("shop")
-		"market":
-			_open_panel("market")
-		"warehouse":
-			_open_panel("barn")
-		"bear_door":
-			_open_panel("gift")
-		"visit_board":
-			# Reading the board is what makes its news old: the unread flag
-			# clears here, which also sends the dog home -- the rebuild that
-			# opens the panel re-aims him.
-			var farm: Dictionary = _farm()
-			if bool(farm.get("visit_log_unread", false)):
-				farm["visit_log_unread"] = false
+	var deco_room := ""
+	var deco_room_exists := false
+	if id == "decor":
+		deco_room = str(level_data.get("config", {}).get("deco_room", ""))
+		deco_room_exists = deco_room != "" \
+			and not GameData.get_level(deco_room).is_empty()
+	var decision := BuildingAction.press(id, _farm(), Level.level(),
+		Level.is_master_farmer(), deco_room, deco_room_exists)
+	match str(decision.get("kind", BuildingAction.LOCKED)):
+		BuildingAction.PANEL:
+			if bool(decision.get("needs_save", false)):
+				# Reading the board makes its news old and sends the dog home.
 				SaveManager.save_game()
-			_open_panel("visits")
-		"well":
-			if Level.is_master_farmer():
-				_tap_wishing_well()
-			else:
-				AudioManager.play_sfx("res://assets/audio/water.ogg")
-		"coop", "mill", "cow_shed", "beehive":
-			_tap_facility(id)
-		"workshop":
-			# 5 级前它画成圈好的地，点了轻响就够——没有锁，只有还没长到。
-			if Level.level() >= int(Layout.facility("workshop").get("level", 5)):
-				_open_panel("kitchen")
-			else:
-				AudioManager.play_sfx("res://assets/audio/pop.ogg")
-		"decor":
-			# 世界里的装饰区和货架上的贴纸书门是同一扇门，读同一条数据。
-			var deco_room := str(level_data.get("config", {}).get("deco_room", ""))
-			if Level.level() >= int(Layout.facility("decor").get("level", 4)) \
-					and deco_room != "" and not GameData.get_level(deco_room).is_empty():
-				AudioManager.play_sfx("res://assets/audio/door.ogg")
-				GameManager.start_level(deco_room)
-			else:
-				AudioManager.play_sfx("res://assets/audio/pop.ogg")
-		_:
-			AudioManager.play_sfx("res://assets/audio/pop.ogg")
+			if id == "orders" and _lesson_said == "order":
+				# The lesson's last step pointed at the board. With its cards up,
+				# let it say the line again beside one he can actually fill.
+				_lesson_said = ""
+			_open_panel(str(decision.get("panel", "")))
+		BuildingAction.FACILITY:
+			_tap_facility(str(decision.get("facility_id", id)))
+		BuildingAction.WISH:
+			_tap_wishing_well()
+		BuildingAction.START_LEVEL:
+			AudioManager.play_sfx("res://assets/audio/door.ogg")
+			GameManager.start_level(str(decision.get("level_id", "")))
+		BuildingAction.LOCKED:
+			AudioManager.play_sfx("res://assets/audio/%s.ogg"
+				% str(decision.get("cue", "pop")))
 
 
 ## A timed facility answers a press in the same four ways whatever it makes.

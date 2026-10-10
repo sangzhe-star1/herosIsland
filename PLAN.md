@@ -631,6 +631,13 @@ These are yours to make. Nothing below has been changed without asking.
   original shovel stroke commits while the thirsty bed and selected seed stay
   untouched. It passed 1,979 checks at 16:9 and 4:3; FarmWorldProbe passed
   859 checks; `tools_check.py` reports 0 errors and 208 warnings.
+- **Building press routing boundary (10 October):**
+  `farm_building_action_controller.gd` now owns the panel mapping, visit-board
+  read-state change, wishing-well and workshop gates, decorator-room launch
+  gate, and timed-facility routing. `garden_screen.gd` keeps the resulting
+  panel, scene, sound, and save effects. FarmWorldProbe passed 885 checks,
+  including real building touches at 16:9 and 4:3 plus route and unlock cases;
+  `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
