@@ -81,6 +81,7 @@ const FarmPanelBase := preload("res://scripts/garden/panels/farm_panel_base.gd")
 const FarmExpansionPanel := preload("res://scripts/garden/panels/farm_expansion_panel.gd")
 const FarmUndoPanel := preload("res://scripts/garden/panels/farm_undo_panel.gd")
 const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_panel.gd")
+const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -1628,34 +1629,7 @@ func _end_combo() -> void:
 ## the room-naming rule keeps the id out of code, and a save from before the
 ## room existed simply shows no door. 二期阶段 1 的入口。
 func _deco_door(view: Vector2) -> void:
-	var room_id := str(level_data.get("config", {}).get("deco_room", ""))
-	if room_id == "" or GameData.get_level(room_id).is_empty():
-		return
-	var box := Vector2(60, 60)
-	# Keep the lower possession lane clear for the overflow basket. This door
-	# used to cover its entire image while receipts kept flying underneath it.
-	var at := Vector2(view.x - 16.0 - box.x, view.y - SHELF + 6.0)
-	var b := Button.new()
-	b.name = "DecoDoor"
-	b.focus_mode = Control.FOCUS_NONE
-	b.position = at
-	b.custom_minimum_size = box
-	b.size = box
-	b.add_theme_stylebox_override("normal", _quiet_surface_style(
-		Color(0.97, 0.93, 0.83), 16, Color(0.73, 0.60, 0.38, 0.26), 1))
-	b.add_theme_stylebox_override("hover", _quiet_surface_style(
-		Color(0.99, 0.96, 0.88), 16, Color(0.73, 0.60, 0.38, 0.48), 1))
-	b.add_theme_stylebox_override("pressed", _quiet_surface_style(
-		Color(0.93, 0.88, 0.76), 16, Color(0.67, 0.51, 0.31, 0.48), 1))
-	var art: Control = UiKit.picture("sticker_book", 38.0)
-	if art != null:
-		art.position = Vector2((box.x - 38.0) * 0.5, (box.y - 38.0) * 0.5)
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_child(art)
-	b.pressed.connect(func():
-		AudioManager.play_sfx("res://assets/audio/pop.ogg")
-		GameManager.start_level(room_id))
-	_play.add_child(b)
+	FarmDecorationsView.new(self).build_door(view, SHELF)
 
 
 ## What he arranged in the decorating room, standing in the farm itself.
@@ -1699,39 +1673,8 @@ func _draw_decorations() -> void:
 		return
 	_drop_decorations(old)
 	_deco_drawn = stamp
-	var layer := Node2D.new()
-	layer.name = "Decorations"
-	_world.add_child(layer)
-	# Between the ground and everything that stands on it. FarmWorld layers
-	# by CHILD ORDER, not z_index -- a z of -1 rendered the furniture under
-	# the grass itself, which the first screenshot said plainly by showing
-	# nothing at all. Ground is child 0; slot 1 is "on the grass, behind the
-	# beds and the buildings", which is where furniture belongs.
-	_world.move_child(layer, 1)
-	var world: Vector2 = Layout.world_size()
-	for entry in placed:
-		var size := clampf(float(entry.get("size", 84.0)), 40.0, 160.0)
-		var art: Control = UiKit.picture(str(entry.get("icon", "star")), size)
-		if art == null:
-			continue
-		# The room's canvas is its design screen; the farm is a 2200x1150
-		# world. Fractions carry the arrangement across: left stays left,
-		# high stays high, and nothing depends on either screen's pixels.
-		# The room lays its canvas out on the REAL viewport -- 1280x960 on
-		# a 4:3 tablet -- so the fraction is taken against that, not against
-		# the design size: divided by 720, everything he placed in the lower
-		# third of an iPad screen piled up on the bottom fence.
-		var canvas: Vector2 = get_viewport_rect().size
-		var fx := clampf(float(entry.get("x", 640.0)) / maxf(canvas.x, 1.0), 0.0, 1.0)
-		var fy := clampf(float(entry.get("y", 300.0)) / maxf(canvas.y, 1.0), 0.0, 1.0)
-		art.position = Vector2(fx * (world.x - size), fy * (world.y - size))
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		# 三期阶段 3：家具活了一点。围着自己的中心一点点呼吸式起伏，
-		# 周期各自错开——一排同拍点头的家具是布景，不是院子。
-		# （先进树再上发条：create_tween 只认树上的节点。）
-		art.pivot_offset = art.size * 0.5
-		layer.add_child(art)
-		Juice.idle_bob(art, 2.0, 2.6 + 0.37 * float(layer.get_child_count()))
+	FarmDecorationsView.new(self).draw_saved(placed,
+		get_viewport_rect().size)
 
 
 ## 三期阶段 3：家具会答话，但永远排在最后。
@@ -1742,35 +1685,7 @@ func _draw_decorations() -> void:
 ## 时，它答应一声。挤压回弹加一下歪头，首页 poke 的语言；只动
 ## scale/rotation，不进存档，不算玩法。
 func _poke_decoration(at: Vector2) -> void:
-	if _world == null or not is_instance_valid(_world):
-		return
-	var layer: Node = _world.get_node_or_null("Decorations")
-	if layer == null:
-		return
-	var spot: Vector2 = _world.camera.screen_to_world(at)
-	for child in layer.get_children():
-		if not (child is Control):
-			continue
-		var art := child as Control
-		if not Rect2(art.position, art.size).has_point(spot):
-			continue
-		AudioManager.play_sfx("res://assets/audio/pop.ogg")
-		Juice.pop(art, 0.16)
-		# Written down before the wiggle, for two readers: the probe, which
-		# used to read `rotation` 0.12 s later and lost the race on a slow
-		# frame; and the reduce-motion case, which used to be no answer.
-		art.set_meta("poked_at", GameClock.ticks_ms())
-		if not Juice.motion_enabled():
-			Juice.pop(art, 0.1)
-		if Juice.motion_enabled():
-			var t := art.create_tween()
-			t.tween_property(art, "rotation", 0.13, 0.11)\
-				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			t.tween_property(art, "rotation", -0.09, 0.15)\
-				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-			t.tween_property(art, "rotation", 0.0, 0.13)\
-				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		return
+	FarmDecorationsView.new(self).poke(at)
 
 
 func _barn(view: Vector2) -> void:

@@ -263,7 +263,9 @@ These are yours to make. Nothing below has been changed without asking.
    screen still derives the task and focuses its world target. The barn's
    capacity card, overflow summary, shared shelf height, and flight landing
    point now live in `FarmBarnPanel`; the screen supplies the current viewport
-   and keeps collection settlement. `garden_screen.gd` is 2,708 lines.
+   and keeps collection settlement. The saved-decoration door, world placement,
+   and poke response now live in `FarmDecorationsView`; the screen keeps room
+   selection and the rebuild stamp. `garden_screen.gd` is 2,623 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -702,6 +704,12 @@ These are yours to make. Nothing below has been changed without asking.
   1,173 checks, GardenTouchProbe 1,993 across 16:9 and 4:3, and FarmWorldProbe
   889 across the same layouts. `garden_screen.gd` is 2,708 lines;
   `tools_check.py` reports 0 errors and 208 warnings.
+- **Saved-decoration presentation boundary (10 October):** `FarmDecorationsView`
+  owns the decorating-room entrance, passive saved-furniture placement, and
+  poke feedback. The screen still chooses the active room and caches the save
+  stamp so unchanged arrangements keep their animation. GardenTouchProbe passed
+  1,993 checks across 16:9 and 4:3 with no script errors; `tools_check.py`
+  reports 0 errors and 208 warnings. `garden_screen.gd` is 2,623 lines.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
