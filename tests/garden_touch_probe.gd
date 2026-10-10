@@ -20,6 +20,7 @@ const Layout := preload("res://scripts/garden/farm_layout.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
+const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_panel.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
@@ -1670,7 +1671,7 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 			and arrow.get_global_rect().position.x - hero_action.get_global_rect().end.x >= 10.0,
 			"the next-action words leave a clear gutter before their arrow")
 		var derived: Dictionary = _garden.call("_next_task")
-		_ok(hero_action != null and hero_action.text == _garden.call("_next_task_text", derived),
+		_ok(hero_action != null and hero_action.text == FarmNextTaskPanel.title_for_task(derived),
 			"the hero task words come from the one derived garden task")
 		var half := _bed_box() * 0.5
 		var bed := Rect2(_bed(0) - half, half * 2.0)

@@ -54,7 +54,6 @@ const BearReturn := preload("res://scripts/garden/farm_bear_return_controller.gd
 const CollectionFeedback := preload("res://scripts/garden/farm_collection_feedback_controller.gd")
 const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
-const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd")
 const DailyProgress := preload("res://scripts/garden/farm_daily_progress_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
@@ -66,7 +65,6 @@ const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const PlantingContext := preload("res://scripts/garden/farm_planting_context_controller.gd")
-const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
 const FarmMarketPanel := preload("res://scripts/garden/panels/farm_market_panel.gd")
@@ -82,6 +80,7 @@ const FarmToolRackPanel := preload("res://scripts/garden/panels/farm_tool_rack_p
 const FarmPanelBase := preload("res://scripts/garden/panels/farm_panel_base.gd")
 const FarmExpansionPanel := preload("res://scripts/garden/panels/farm_expansion_panel.gd")
 const FarmUndoPanel := preload("res://scripts/garden/panels/farm_undo_panel.gd")
+const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_panel.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -383,7 +382,8 @@ func _rebuild() -> void:
 	var show_task := not _lesson_running and not _something_is_open() \
 		and not task.is_empty()
 	var show_beacon := show_task and bool(task.get("actionable", false))
-	_world.set_task_beacon(task if show_beacon else {}, _next_task_color(task))
+	_world.set_task_beacon(task if show_beacon else {},
+		FarmNextTaskPanel.color_for_task(task))
 	_draw_decorations()
 
 	_play = UiKit.play_area(self, true)
@@ -423,7 +423,7 @@ func _rebuild() -> void:
 	# The shelf is drawn after the top bar. Put this last so its one clear
 	# instruction is visible above the shelf background and never hidden by it.
 	if show_task:
-		_next_task_ribbon(view, task)
+		FarmNextTaskPanel.new(self).build(view, task, SHELF)
 	# The world needs to know whether a press on a bed is a tap or a stroke,
 	# and it must never disagree with the toolbar about it.
 	_world.brush_armed = _tools.is_brush()
@@ -590,95 +590,6 @@ func _first_pending_order() -> Dictionary:
 	return OrderBoard.first_pending(_orders_for_board(delivered), delivered)
 
 
-func _next_task_text(task: Dictionary) -> String:
-	var key := str(task.get("title_key", ""))
-	if key == "":
-		return ""
-	var crop_id := str(task.get("crop_id", ""))
-	if crop_id == "":
-		return I18n.t(key)
-	var crop: Dictionary = GameData.get_crop(crop_id)
-	return I18n.t(key) % I18n.t(str(crop.get("name_key", "garden.tool.seed")))
-
-
-func _next_task_color(task: Dictionary) -> Color:
-	match str(task.get("kind", "")):
-		"harvest": return Color(1.0, 0.90, 0.58)
-		"care": return Color(0.78, 0.91, 1.0)
-		"plant": return Color(0.84, 0.94, 0.72)
-		"till": return Color(0.96, 0.86, 0.68)
-		"deliver": return Color(0.90, 0.84, 1.0)
-		_: return Color(0.91, 0.94, 0.84)
-
-
-## The little daily crest is display data only. FarmDailyManager owns both
-## the tally and the all-done meaning; this page only gives the shared task
-## ribbon a small, word-light way to show it.
-func _daily_task_badge() -> Dictionary:
-	var daily: Dictionary = Dailies.summary(_farm().get("dailies", {}))
-	if bool(daily.get("all_done", false)):
-		daily["label"] = I18n.t("garden.daily.lucky")
-	else:
-		daily["label"] = "%d/%d" % [int(daily.get("done", 0)),
-			int(daily.get("total", 0))]
-	return daily
-
-
-## One card, one verb, one target. Action and both progress summaries share
-## a compact two-column slot beside the tools, leaving the farm free to pan.
-func _next_task_ribbon(view: Vector2, task: Dictionary) -> void:
-	if task.is_empty():
-		return
-	# Seven 72px tools finish at 568. The next-step card preserves action,
-	# daily care and order tally in two columns within the same 60px row.
-	_add_next_task_button(task, Vector2(580.0, view.y - SHELF + 6.0), Vector2(414.0, 60.0))
-
-
-## Both shelf shapes use exactly the same derived task, icon, colour and
-## focus action. Layout may respond to a tablet, but "what should I do?" must
-## never become a second garden rule.
-func _add_next_task_button(task: Dictionary, at: Vector2, box: Vector2) -> void:
-	var order: Dictionary = task.get("order", {})
-	var ribbon := HeroTaskRibbon.new()
-	ribbon.configure({
-		"name": "NextTask",
-		"dense": true,
-		"hint": I18n.t("garden.next"),
-		"title": _next_task_text(task),
-		"icon": str(task.get("icon", "star")),
-		"tint": _next_task_color(task),
-		"preview": _task_order_preview(order),
-		"daily": _daily_task_badge(),
-		"primary": bool(task.get("actionable", false)),
-	}, box)
-	ribbon.position = at
-	ribbon.set_meta("kind", str(task.get("kind", "")))
-	ribbon.set_meta("plot_index", int(task.get("index", -1)))
-	ribbon.set_meta("tool_id", str(task.get("tool_id", "")))
-	ribbon.set_meta("order_id", str(order.get("id", "")))
-
-	var task_copy := task.duplicate(true)
-	ribbon.pressed.connect(func(): _focus_next_task(task_copy))
-	_play.add_child(ribbon)
-
-## The order preview is a single icon-chain, not a miniature second order
-## board. The grown-up details remain one tap away at the existing building.
-func _task_order_preview(order: Dictionary) -> Dictionary:
-	if order.is_empty():
-		return {}
-	var crop_id := NextTask.first_missing_order_crop(order)
-	if crop_id == "":
-		return {}
-	var wants: Dictionary = order.get("requirements", {})
-	var need := int(wants.get(crop_id, 0))
-	var crop: Dictionary = GameData.get_crop(crop_id)
-	return {
-		"customer_icon": str(order.get("customer_icon", "teddy")),
-		"crop_icon": str(crop.get("icon", "seed")),
-		"progress": "%d/%d" % [mini(Barn.count(crop_id), need), need],
-	}
-
-
 func _focus_next_task(task: Dictionary) -> void:
 	AudioManager.play_sfx("res://assets/audio/pop.ogg")
 	if str(task.get("kind", "")) == "deliver":
@@ -700,7 +611,7 @@ func _focus_next_task(task: Dictionary) -> void:
 	var plot: Dictionary = plots[index]
 	_world.show_ring(index, plot)
 	Juice.shockwave(_play, _bed_centre(index), 110.0,
-		_next_task_color(task).lightened(0.12))
+		FarmNextTaskPanel.color_for_task(task).lightened(0.12))
 	if str(task.get("kind", "")) == "plant" and _shelf != null \
 			and is_instance_valid(_shelf):
 		Juice.pop(_shelf, 0.05)
@@ -1568,10 +1479,10 @@ func _sync_tool_target_halos(task: Dictionary = {}) -> void:
 ## the visual family children have already learned from the task ribbon.
 func _tool_target_color(tool_id: String) -> Color:
 	match tool_id:
-		"basket": return _next_task_color({"kind": "harvest"})
-		"water", "weed", "bug": return _next_task_color({"kind": "care"})
-		"seed": return _next_task_color({"kind": "plant"})
-		"shovel": return _next_task_color({"kind": "till"})
+		"basket": return FarmNextTaskPanel.color_for_task({"kind": "harvest"})
+		"water", "weed", "bug": return FarmNextTaskPanel.color_for_task({"kind": "care"})
+		"seed": return FarmNextTaskPanel.color_for_task({"kind": "plant"})
+		"shovel": return FarmNextTaskPanel.color_for_task({"kind": "till"})
 		_: return Color(1.0, 1.0, 1.0)
 
 

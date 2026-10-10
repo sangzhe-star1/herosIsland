@@ -258,7 +258,10 @@ These are yours to make. Nothing below has been changed without asking.
    undo receipt. The land-expansion confirmation now lives in
    `FarmExpansionPanel`; the screen keeps the purchase and world animation.
    The shared regret toast is now `FarmUndoPanel`; purchase reversal still
-   settles through `farm_undo_controller.gd`. `garden_screen.gd` is 2,950 lines.
+   settles through `farm_undo_controller.gd`. The shelf's dense next-action
+   card, daily crest, and order preview now live in `FarmNextTaskPanel`; the
+   screen still derives the task and focuses its world target.
+   `garden_screen.gd` is 2,861 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -685,6 +688,12 @@ These are yours to make. Nothing below has been changed without asking.
   real purchase, cancel, and undo touches; they asked 1,993 and 889 checks.
   `tools_check.py` reports 0 errors and 208 warnings. The integrated head at
   `4831e32` also passed `./tests/run_smoke.sh`: 30 passed, 0 skipped.
+- **Next-action ribbon presentation boundary (10 October):** `FarmNextTaskPanel`
+  now owns task wording, its shared task tint, the daily crest, the order
+  preview, and the dense shelf card. The screen keeps task selection and the
+  camera/focus action. GardenTouchProbe passed 1,993 checks across 16:9 and
+  4:3; FarmWorldProbe passed 889 checks across the same layouts. The screen
+  is now 2,861 lines, and `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
