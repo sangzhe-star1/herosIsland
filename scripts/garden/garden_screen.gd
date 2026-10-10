@@ -1436,18 +1436,16 @@ func _tool_bar(view: Vector2) -> void:
 
 
 func _select_tool(tool_id: String) -> void:
-	# The brush owns the selected action until its finger lifts. A second finger
-	# can still reach a toolbar Button while the first is over the farm; letting
-	# that Button mutate `selected` would change the meaning of this live stroke.
-	if _world != null and is_instance_valid(_world) and _world.stroking():
+	var selection: Dictionary = _tools.select_tool(tool_id,
+		_world != null and is_instance_valid(_world) and _world.stroking())
+	if selection.is_empty():
 		return
 	var drawer_was_open := _tool_rack_expanded
 	_tool_rack_expanded = false
-	if _tools.selected == tool_id:
+	if not bool(selection.get("changed", false)):
 		if drawer_was_open:
 			_queue_rebuild()
 		return
-	_tools.selected = tool_id
 	_world.brush_armed = _tools.is_brush()
 	var voice := str(_tools.tool_data(tool_id).get("voice", ""))
 	if voice != "":
@@ -1488,13 +1486,11 @@ func _tool_target_color(tool_id: String) -> Color:
 ## separate "now choose a crop" step: the tile IS the choice, and the ring
 ## drawn around it is the receipt.
 func _choose_seed(crop_id: String) -> void:
-	# Seed tiles are Buttons as well as drag targets. Keep both input paths from
-	# changing a brush stroke after its first bed has already been touched.
-	if _world != null and is_instance_valid(_world) and _world.stroking():
+	var selection: Dictionary = _tools.select_seed(crop_id,
+		_world != null and is_instance_valid(_world) and _world.stroking())
+	if selection.is_empty():
 		return
-	_tools.seed_crop = crop_id
-	if _tools.selected != "seed":
-		_tools.selected = "seed"
+	if bool(selection.get("tool_changed", false)):
 		AudioManager.say("farm_tool_seed")
 	_world.brush_armed = true
 	AudioManager.play_sfx("res://assets/audio/drag_pick.ogg")

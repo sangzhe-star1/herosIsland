@@ -76,6 +76,32 @@ func is_brush() -> bool:
 	return selected != HAND
 
 
+## Change the held tool only when the brush is between strokes.
+##
+## The toolbar remains tappable by a second finger during a stroke, but that
+## press must not change what the first finger is doing. Keep that rule beside
+## the selected-tool state so both tool buttons and seed tiles use one gate.
+func select_tool(tool_id: String, stroke_active: bool = false) -> Dictionary:
+	if stroke_active or tool_data(tool_id).is_empty():
+		return {}
+	var changed := selected != tool_id
+	selected = tool_id
+	return {"changed": changed, "tool_id": selected}
+
+
+## Choosing a seed also arms the seed brush in one action. Refuse the whole
+## choice during a live stroke so neither its tool nor its crop can be retargeted.
+func select_seed(crop_id: String, stroke_active: bool = false) -> Dictionary:
+	if stroke_active:
+		return {}
+	var tool_changed := selected != "seed"
+	var crop_changed := seed_crop != crop_id
+	selected = "seed"
+	seed_crop = crop_id
+	return {"tool_changed": tool_changed, "crop_changed": crop_changed,
+		"tool_id": selected, "crop_id": seed_crop}
+
+
 func tool_data(tool_id: String) -> Dictionary:
 	for tool in TOOLS:
 		if str(tool.get("id", "")) == tool_id:

@@ -747,6 +747,12 @@ These are yours to make. Nothing below has been changed without asking.
   warnings. The full smoke suite was not rerun. The market teaching finger's
   original screen-root parent is preserved so it survives the expected layer
   lifetime and probe lookup. `garden_screen.gd` is 2,473 lines.
+- **Tool selection state boundary (10 October):**
+  `FarmToolController` now owns selecting a tool and choosing its seed crop,
+  including refusing either change while a brush stroke is active. The screen
+  keeps the drawer, brush arming, sound, and rebuild response. FarmWorldProbe
+  covers accepted, unchanged, invalid, and locked selections; GardenTouchProbe
+  still exercises second-finger toolbar and seed touches across 16:9 and 4:3.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

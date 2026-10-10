@@ -55,7 +55,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 889
+const CHECKS_EXPECTED := 894
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -92,6 +92,7 @@ func _ready() -> void:
 		_the_hand_tap_uses_the_shared_action_and_transition()
 		_the_stroke_bookkeeping_refuses_seconds()
 		_tool_action_controller_owns_plot_transitions()
+		_tool_selection_is_owned_by_its_controller()
 		_building_action_routes_and_unlocks_are_shared()
 		_golden_state_is_a_visual_input()
 		for shape in SHAPES:
@@ -711,6 +712,33 @@ func _tool_action_controller_owns_plot_transitions() -> void:
 	_ok(tools.apply_to_plot("basket", ripe).is_empty()
 			and str(ripe.get("state", "")) == Farm.READY,
 		"harvest stays in the receipt-and-storage transaction boundary")
+
+
+func _tool_selection_is_owned_by_its_controller() -> void:
+	_shape = "tool selection state"
+	var tools: Tools = Tools.new()
+	var shovel: Dictionary = tools.select_tool("shovel")
+	_ok(bool(shovel.get("changed", false)) and tools.selected == "shovel",
+		"the controller accepts a known tool between brush strokes")
+	var locked_tool: Dictionary = tools.select_tool("water", true)
+	var locked_seed: Dictionary = tools.select_seed("corn", true)
+	_ok(locked_tool.is_empty() and locked_seed.is_empty()
+			and tools.selected == "shovel" and tools.seed_crop == "",
+		"a live stroke refuses tool and seed changes together")
+	var seed: Dictionary = tools.select_seed("corn")
+	_ok(str(seed.get("tool_id", "")) == "seed"
+			and str(seed.get("crop_id", "")) == "corn"
+			and bool(seed.get("tool_changed", false))
+			and tools.selected == "seed" and tools.seed_crop == "corn",
+		"choosing a seed arms its crop brush as one state change")
+	var same_tool: Dictionary = tools.select_tool("seed")
+	_ok(not bool(same_tool.get("changed", true))
+			and tools.selected == "seed",
+		"selecting the held tool is accepted without reporting a change")
+	var invalid: Dictionary = tools.select_tool("unknown")
+	_ok(invalid.is_empty() and tools.selected == "seed"
+			and tools.seed_crop == "corn",
+		"an unknown tool leaves the current selection intact")
 
 
 ## Building presses resolve to one progression decision before the screen
