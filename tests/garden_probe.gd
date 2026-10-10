@@ -56,7 +56,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 748
+const CHECKS_EXPECTED := 756
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -123,6 +123,7 @@ func _ready() -> void:
 	_the_undo_controller_keeps_its_window_and_reverses_safe_purchases()
 	_the_barn_upgrade_controller_settles_costs_overflow_and_undo()
 	_the_market_pays_once_and_only_for_what_is_there()
+	_the_market_retries_refused_sales_and_bounds_its_receipt_ledger()
 	# --- 阶段 4: the bear, the shared strawberry, and the visitor board ---
 	_the_bears_farm_is_arithmetic_and_kindness()
 	_the_bear_drops_by_but_never_in_front_of_him()
@@ -1645,6 +1646,57 @@ func _the_market_pays_once_and_only_for_what_is_there() -> void:
 	SaveManager.load_game()
 	_ok(int(SaveManager.data["rewards"]["coins"]) == expected,
 		"what was written to disk is the one real sale")
+
+
+## A stale basket is not a sale receipt: leave its id unused so the child can
+## fix the pile, retry, and keep only the bounded tail of sale history.
+func _the_market_retries_refused_sales_and_bounds_its_receipt_ledger() -> void:
+	_fresh_save()
+	SaveManager.data["rewards"]["coins"] = 0
+	var farm: Dictionary = SaveManager.data["farm"]
+	Barn.put("carrot", 2)
+	_ok(Market.sell({"carrot": 3}) == 0,
+		"a stale sale basket is refused before it becomes a receipt")
+	_ok(int(farm.get("sale_receipt_id", 0)) == 0
+		and (farm.get("paid_sales", []) as Array).is_empty()
+		and Barn.count("carrot") == 2 and Coins.balance() == 0,
+		"the refusal leaves its id, ledger, goods, and purse untouched")
+	Barn.put("mystery_crop", 1)
+	var mixed_unpriced := {"carrot": 1, "mystery_crop": 1}
+	_ok(Market.quote(mixed_unpriced) == 0
+		and Market.sell(mixed_unpriced) == 0,
+		"a known carrot cannot hide an unpriced item in the same sale")
+	_ok(Barn.count("carrot") == 2 and Barn.count("mystery_crop") == 1
+		and int(farm.get("sale_receipt_id", 0)) == 0,
+		"the mixed refusal keeps both items and leaves the sale id free")
+	Barn.take("mystery_crop", 1)
+
+	Barn.put("carrot", 1)
+	var retry_worth := Market.quote({"carrot": 3})
+	var retried := Market.sell({"carrot": 3})
+	_ok(retried == retry_worth and Coins.balance() == retry_worth
+		and Barn.count("carrot") == 0,
+		"adding the missing carrot lets the same sale complete")
+	_ok(int(farm.get("sale_receipt_id", 0)) == 1
+		and farm.get("paid_sales", []) == ["farm_sale_1"],
+		"the first completed sale gets the first id")
+
+	_fresh_save()
+	farm = SaveManager.data["farm"]
+	var earlier_sales: Array = []
+	for i in range(Farm.PAID_LEDGER_KEPT):
+		earlier_sales.append("old_sale_%d" % i)
+	farm["sale_receipt_id"] = 100
+	farm["paid_sales"] = earlier_sales
+	Barn.put("carrot", 1)
+	var last_worth := Market.quote({"carrot": 1})
+	var last_paid := Market.sell({"carrot": 1})
+	var ledger: Array = farm["paid_sales"]
+	_ok(last_paid == last_worth and ledger.size() == Farm.PAID_LEDGER_KEPT,
+		"a real sale keeps the history at its 64-entry bound")
+	_ok(ledger[0] == "old_sale_1"
+		and ledger[ledger.size() - 1] == "farm_sale_101",
+		"trimming drops the oldest sale and keeps the newest receipt")
 
 
 # =====================================================================

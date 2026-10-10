@@ -207,7 +207,9 @@ These are yours to make. Nothing below has been changed without asking.
    `scripts/garden/farm_barn_upgrade_controller.gd`: the confirm card stays in
    the screen, while the controller owns the one-time cap check, all-or-nothing
    plank and coin costs, overflow basket transfer, persistence, and undo
-   receipt.
+   receipt. Market sales now preflight the whole basket before consuming a
+   receipt id, reject mixed baskets containing unpriced goods, and pass a copy
+   to `RewardManager.record()` so the 64-sale history stays bounded.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -346,6 +348,13 @@ These are yours to make. Nothing below has been changed without asking.
   touch probe passed 34 checks across 16:9 and 4:3 by confirming and undoing
   the roof through the real panel. `tools_check.py` reports 0 errors and 208
   existing warnings.
+- **Market sale ledger verification:** GardenProbe passed 1,030 checks,
+  including retrying a refused stale basket, rejecting an unpriced item beside
+  a priced crop without losing either, and trimming the sale ledger to its
+  newest 64 keys. The focused real-panel market touch probe passed 20 checks
+  across 16:9 and 4:3, including a stock change between drag and sale followed
+  by a successful retry. `tools_check.py` reports 0 errors and 208 existing
+  warnings.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.
