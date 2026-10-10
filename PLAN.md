@@ -761,8 +761,8 @@ These are yours to make. Nothing below has been changed without asking.
   waiting-food view and the bear-door alias. Read-only screen properties keep
   existing panel presenters and input probes compatible. FarmWorldProbe passed
   907 checks, GardenTouchProbe passed 1,993 across 16:9 and 4:3, and
-  `tools_check.py` reports 0 errors and 208 warnings. The full smoke suite was
-  not rerun after this focused state extraction.
+  `tools_check.py` reports 0 errors and 208 warnings. After this extraction,
+  the isolated `./tests/run_smoke.sh` passed all 30 probes with 0 skipped.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
