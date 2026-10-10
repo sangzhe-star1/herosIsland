@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1903
+const CHECKS_EXPECTED := 1907
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -2878,7 +2878,16 @@ func _the_lesson_happens_once_in_a_childhood() -> void:
 	# Four seconds in, the six-second carrot is thirsty -- thirst_seconds is two
 	# thirds of the way through every crop, and scaling has to keep that true or
 	# the lesson reaches "give it a drink" with nothing to drink.
+	var save_before_growth := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 	await _let_the_garden_catch_up(4)
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_PATH) == save_before_growth,
+		"half-second lesson beats keep their time-derived growth out of disk writes")
+	SaveManager.load_game()
+	_ok(str(_plots()[0].get("care_event", "")) == Growth.CARE_THIRSTY,
+		"reloading from the unchanged planting save catches up the lesson carrot")
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
 	_ok(str(_plots()[0].get("care_event", "")) == Growth.CARE_THIRSTY,
 		"the lesson's carrot gets thirsty, exactly once, like every other crop")
 	_ok(str(_garden.get("_lesson_said")) == "water",

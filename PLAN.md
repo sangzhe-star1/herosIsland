@@ -468,6 +468,14 @@ These are yours to make. Nothing below has been changed without asking.
   proving the refill persists in one save. GardenProbe passed 1,057, rendered
   garden shots were reviewed at 16:9 and 4:3, and `tools_check.py` reports
   0 errors and 208 existing warnings.
+- **Tutorial growth persistence:** the six-second lesson carrot still settles
+  every half-second for responsive feedback, but those derived growth updates
+  stay in memory. Planting and care actions persist their time anchors; a reload
+  recalculates the same growth from those anchors. GardenTouchProbe passed
+  1,907 checks across 16:9 and 4:3, including an unchanged save followed by a
+  real load that catches the carrot up to its thirsty state. GardenProbe passed
+  1,057, garden renders were reviewed at both ratios, and `tools_check.py`
+  reports 0 errors and 208 existing warnings.
 
 ---
 

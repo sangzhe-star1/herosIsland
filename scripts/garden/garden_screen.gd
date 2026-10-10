@@ -3560,7 +3560,10 @@ func _lesson_tick() -> void:
 		await get_tree().create_timer(LESSON_TICK).timeout
 		if not _lesson_running or not is_inside_tree():
 			return
-		SaveManager.settle_farm()
+		# Planting and care actions persist their time anchors. Growth is derived
+		# from those anchors on load, so the half-second lesson animation can
+		# settle in memory without rewriting the whole save on every beat.
+		SaveManager.settle_farm(false)
 		if FarmTick.visual_signature(_plots()) != _beds_looked_like:
 			_queue_rebuild()
 
