@@ -246,7 +246,10 @@ These are yours to make. Nothing below has been changed without asking.
    receipt steppers, shelf-card return, refusal feedback, and the successful
    sale response now live in `scripts/garden/panels/farm_market_panel.gd`; the
    screen retains the visit basket, scroll offset, drag field, and panel
-   lifecycle so clock-driven rebuilds keep the same selection.
+   lifecycle so clock-driven rebuilds keep the same selection. The order
+   board's card size, row spacing, origin, and card-centre calculation now
+   share `FarmOrdersPanel`; the screen's lesson pointer delegates to that
+   geometry instead of carrying a second copy.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -613,6 +616,13 @@ These are yours to make. Nothing below has been changed without asking.
   `garden_screen.gd` fell to 3,167 lines. GardenTouchProbe passed 1,959 checks
   across 16:9 and 4:3, and the selected-sale panel was rendered and reviewed at
   1280×720 and 1024×768. `tools_check.py` reports 0 errors and 208 warnings.
+- **Order-board geometry boundary (10 October):** the board panel now owns the
+  single card-size, row-gap, origin, and centre calculation used by both its
+  drawing and the lesson finger; `garden_screen.gd` is now 3,152 lines.
+  GardenTouchProbe passed 1,961 checks across
+  16:9 and 4:3, including a direct assertion that the target falls inside the
+  drawn order card. FarmShot rendered the board at 1280×720 and 1024×768;
+  `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

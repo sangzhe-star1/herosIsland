@@ -89,15 +89,6 @@ const SHELF := 140.0
 ## A flight should land on the same place the rebuilt shelf will draw.
 const BARN_CARD := Vector2(152.0, SEED_TILE.y)
 
-## The order board, written down once instead of in four places.
-##
-## The first lesson ends by pointing a finger at one particular card, and a
-## finger that lands beside the card rather than on it is worse than no finger:
-## a child follows it, taps nothing, and concludes the game is broken. Both the
-## drawing and the pointing read these, so the two cannot drift apart.
-const ORDER_CARD := Vector2(378, 94)
-const ORDER_FIRST := 48.0        # heading down to the first card
-const ORDER_GAP := 102.0          # card to card
 ## Paged surfaces: six rows on the shop sheet, fourteen seed slots on the
 ## dense possession row. The usual whole seed collection fits at once.
 const PANEL_PAGE := 6
@@ -2053,21 +2044,15 @@ func _orders_for_board(delivered: Array) -> Array:
 ## Top left of the order board, measured from the viewport every time -- see
 ## _bed_centre for why nothing here may be measured from a hard-coded 720.
 func _order_board_origin() -> Vector2:
-	var view := get_viewport_rect().size
-	return Vector2(view.x * 0.5 - ORDER_CARD.x * 0.5, TOP_BAR + 46.0)
+	return FarmOrdersPanel.board_origin(get_viewport_rect().size)
 
 
 ## The middle of one order's card, for the lesson's finger to land on. Walks
 ## the BOARD, not the file -- the finger must land where the card is drawn.
 func _order_card_centre(order_id: String) -> Vector2:
 	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
-	var at := _order_board_origin()
-	var y := at.y + ORDER_FIRST
-	for order in _orders_for_board(delivered):
-		if str(order.get("id", "")) == order_id:
-			break
-		y += ORDER_GAP
-	return Vector2(at.x, y) + ORDER_CARD * 0.5
+	var board: Array = _orders_for_board(delivered)
+	return FarmOrdersPanel.card_centre(order_id, board, get_viewport_rect().size)
 
 
 ## Collect a finished day-job. The date is inside the once-key, so a claim

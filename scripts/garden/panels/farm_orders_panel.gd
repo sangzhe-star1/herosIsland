@@ -11,10 +11,27 @@ const ORDER_GAP := 102.0
 const ORDER_BOARD_CARDS := 3
 
 
+## Keep the board layout and lesson target in the same place. A pointer aimed
+## at yesterday's card coordinates is a broken tutorial even when the board
+## itself still looks right.
+static func board_origin(view: Vector2) -> Vector2:
+	return Vector2(view.x * 0.5 - ORDER_CARD.x * 0.5, TOP_BAR + 46.0)
+
+
+static func card_centre(order_id: String, board: Array, view: Vector2) -> Vector2:
+	var card_index := board.size()
+	for i in range(board.size()):
+		if str(board[i].get("id", "")) == order_id:
+			card_index = i
+			break
+	return board_origin(view) + Vector2(0.0,
+		ORDER_FIRST + ORDER_GAP * float(card_index)) + ORDER_CARD * 0.5
+
+
 func build(view: Vector2) -> void:
 	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
 	var board: Array = screen.call("_orders_for_board", delivered)
-	var at: Vector2 = screen.call("_order_board_origin")
+	var at := board_origin(view)
 
 	var sheet := Panel.new()
 	sheet.add_theme_stylebox_override("panel", UiKit.panel_style(Color(0.99, 0.97, 0.90), 28))

@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1911
+const CHECKS_EXPECTED := 1913
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -2839,6 +2839,9 @@ func _handing_an_order_over_pays_once() -> void:
 	_ok(card != null, "the order he can fill has a card he can press")
 	if card == null:
 		return
+	var lesson_target: Vector2 = _garden.call("_order_card_centre", str(order.get("id", "")))
+	_ok(Rect2(card.global_position, card.size).has_point(lesson_target),
+		"the lesson's order finger lands inside the card actually drawn")
 	_ok(not card.disabled, "and it is pressable")
 
 	var before := Coins.balance()
