@@ -209,7 +209,11 @@ These are yours to make. Nothing below has been changed without asking.
    plank and coin costs, overflow basket transfer, persistence, and undo
    receipt. Market sales now preflight the whole basket before consuming a
    receipt id, reject mixed baskets containing unpriced goods, and pass a copy
-   to `RewardManager.record()` so the 64-sale history stays bounded.
+   to `RewardManager.record()` so the 64-sale history stays bounded. The coop,
+   mill, cow shed, and beehive now use
+   `scripts/garden/farm_facility_action_controller.gd` for their shared press
+   decisions (collect, wait, start, or missing input); `garden_screen.gd` keeps
+   the sound, crop prompt, save, and receipt animation.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -355,6 +359,15 @@ These are yours to make. Nothing below has been changed without asking.
   across 16:9 and 4:3, including a stock change between drag and sale followed
   by a successful retry. `tools_check.py` reports 0 errors and 208 existing
   warnings.
+- **PR #12 integrated:** the market receipt fix is merged as `567bda2`, and
+  local `main` has been fast-forwarded to the same `origin/main` commit.
+- **Timed facility action boundary:** coop, mill, cow shed, and beehive now
+  share the extracted collect/wait/start/missing decision while preserving
+  their data-specific inputs, durations, outputs, and screen feedback.
+  GardenProbe passed 1,041 checks; GardenTouchProbe passed 1,883 checks across
+  16:9 and 4:3, including real world presses on both data-led pens. FarmShot
+  rendered and was visually checked at 1280×720 and 1024×768. `tools_check.py`
+  reports 0 errors and the same 208 existing warnings.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

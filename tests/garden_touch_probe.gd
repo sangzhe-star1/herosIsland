@@ -125,6 +125,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_bed_grows_the_same_crop_the_harvest_page_shows()
 	await _the_hens_turn_corn_into_eggs()
 	await _the_mill_turns_wheat_into_flour()
+	await _the_data_led_pens_share_the_facility_press_path()
 	await _a_drag_from_the_dog_is_a_throw()
 	await _the_cloud_waters_the_bed_it_is_dropped_on()
 	await _the_bear_comes_back_to_a_thirsty_bed()
@@ -2364,6 +2365,62 @@ func _the_mill_turns_wheat_into_flour() -> void:
 	SaveManager.data["farm"]["warehouse"] = {}
 	SaveManager.save_game()
 	_garden.call("_rebuild")
+	await get_tree().process_frame
+
+
+## The cow shed and beehive use the same pressed-action decision while keeping
+## their own feed, duration, output, and voice data.
+func _the_data_led_pens_share_the_facility_press_path() -> void:
+	_garden.call("_close_panels")
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["farm_xp"] = 100000
+	farm["warehouse"] = {"wheat": 2, "strawberry": 2}
+	farm["harvest_basket"] = {}
+	farm["cow_shed"] = {"fed_at": 0, "ready": 0}
+	farm["beehive"] = {"fed_at": 0, "ready": 0}
+	GameClock.set_test_now(NOON, 0)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var world: Node = _garden.get("_world")
+	var fx: Node = _garden.call("_harvest_feedback_layer")
+
+	world.call("press_at", world.call("facility_screen_position", "cow_shed"))
+	await get_tree().process_frame
+	_ok(Barn.count("wheat") == 0
+		and int(SaveManager.data["farm"]["cow_shed"].get("fed_at", 0)) == NOON,
+		"touching the cow shed consumes its data-defined feed")
+	_garden.call("_tap_pen", "cow_shed")
+	await get_tree().process_frame
+	_ok(Barn.count("wheat") == 0 and _find_named(fx, "CoopRing") != null,
+		"a second cow-shed touch shows progress without charging again")
+	GameClock.set_test_now(NOON + 150, 0)
+	_garden.call("_tap_pen", "cow_shed")
+	await get_tree().process_frame
+	_ok(Barn.count("milk") == 1
+		and int(SaveManager.data["farm"]["cow_shed"].get("ready", 0)) == 0,
+		"the completed cow-shed touch collects exactly one milk")
+
+	world.call("press_at", world.call("facility_screen_position", "beehive"))
+	await get_tree().process_frame
+	_ok(Barn.count("strawberry") == 0
+		and int(SaveManager.data["farm"]["beehive"].get("fed_at", 0)) == NOON + 150,
+		"touching the beehive consumes its data-defined feed")
+	_garden.call("_tap_pen", "beehive")
+	await get_tree().process_frame
+	_ok(Barn.count("strawberry") == 0 and _find_named(fx, "CoopRing") != null,
+		"a second beehive touch shows progress without charging again")
+	GameClock.set_test_now(NOON + 240, 0)
+	_garden.call("_tap_pen", "beehive")
+	await get_tree().process_frame
+	_ok(Barn.count("honey") == 1
+		and int(SaveManager.data["farm"]["beehive"].get("ready", 0)) == 0,
+		"the completed beehive touch collects exactly one honey")
+
+	GameClock.set_test_now(NOON, 0)
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
 	await get_tree().process_frame
 
 

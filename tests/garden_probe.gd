@@ -40,6 +40,7 @@ const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
+const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 
 ## The fewest questions this probe is allowed to have asked by the time it
 ## prints its verdict.
@@ -131,6 +132,7 @@ func _ready() -> void:
 	_the_regular_gets_his_milestones_once()
 	_the_kitchen_cooks_knowledge_and_feeds_a_friend()
 	_the_pens_and_new_recipes_work()
+	_the_facility_action_controller_unifies_timed_production()
 	_the_visitors_request_and_receive_dishes()
 	_the_day_and_night_cycle_and_dew_work()
 	_the_pond_fishing_and_ducklings_work()
@@ -2619,6 +2621,67 @@ func _the_pens_and_new_recipes_work() -> void:
 	_ok(Recipes.dish_count("honey_cake") == 1, "honey_cake was prepared")
 	_ok(Barn.count("honey") == 0 and Barn.count("egg") == 0 and Barn.count("flour") == 0,
 		"all ingredients for honey_cake deducted")
+
+
+## The page presents the result; this controller owns the common production decision.
+func _the_facility_action_controller_unifies_timed_production() -> void:
+	_fresh_save()
+	var Pen := preload("res://scripts/garden/farm_pen_manager.gd")
+	var Maker := preload("res://scripts/garden/farm_maker_manager.gd")
+	var farm: Dictionary = SaveManager.data["farm"]
+	var now := 1000
+
+	var missing_pen := FacilityAction.press_pen(farm, Pen.COW_SHED, now)
+	_ok(str(missing_pen.get("action", "")) == FacilityAction.MISSING
+		and str(missing_pen.get("input_crop", "")) == "wheat",
+		"an empty pen press names its missing input")
+	_ok(Barn.count("wheat") == 0 and int(farm["cow_shed"].get("fed_at", 0)) == 0,
+		"a refused pen press changes neither stock nor its clock")
+	Barn.put("wheat", 2)
+	var started_pen := FacilityAction.press_pen(farm, Pen.COW_SHED, now)
+	_ok(str(started_pen.get("action", "")) == FacilityAction.STARTED
+		and Barn.count("wheat") == 0,
+		"the successful pen action charges the feed once")
+	var waiting_pen := FacilityAction.press_pen(farm, Pen.COW_SHED, now + 75)
+	_ok(str(waiting_pen.get("action", "")) == FacilityAction.WAITING
+		and is_equal_approx(float(waiting_pen.get("progress", -1.0)), 0.5),
+		"a producing pen press reports progress without charging again")
+	var collected_pen := FacilityAction.press_pen(farm, Pen.COW_SHED, now + 150)
+	var milk_receipt: Dictionary = collected_pen.get("receipt", {})
+	_ok(str(collected_pen.get("action", "")) == FacilityAction.COLLECTED
+		and str(milk_receipt.get("crop_id", "")) == "milk"
+		and int(milk_receipt.get("amount", 0)) == 1,
+		"the completed pen action returns its single produce receipt")
+	var repeated_pen := FacilityAction.press_pen(farm, Pen.COW_SHED, now + 150)
+	_ok(str(repeated_pen.get("action", "")) == FacilityAction.MISSING
+		and Barn.count("milk") == 1,
+		"collecting a pen twice cannot duplicate its produce")
+
+	_fresh_save()
+	farm = SaveManager.data["farm"]
+	var missing_maker := FacilityAction.press_maker(farm, Maker.MILL, now)
+	_ok(str(missing_maker.get("action", "")) == FacilityAction.MISSING
+		and str(missing_maker.get("input_crop", "")) == "wheat",
+		"an empty maker press names its missing input")
+	Barn.put("wheat", 2)
+	var started_maker := FacilityAction.press_maker(farm, Maker.MILL, now)
+	_ok(str(started_maker.get("action", "")) == FacilityAction.STARTED
+		and Barn.count("wheat") == 0,
+		"the successful maker action charges its full input once")
+	var waiting_maker := FacilityAction.press_maker(farm, Maker.MILL, now + 45)
+	_ok(str(waiting_maker.get("action", "")) == FacilityAction.WAITING
+		and is_equal_approx(float(waiting_maker.get("progress", -1.0)), 0.5),
+		"a working maker press reports progress without charging again")
+	var collected_maker := FacilityAction.press_maker(farm, Maker.MILL, now + 90)
+	var flour_receipt: Dictionary = collected_maker.get("receipt", {})
+	_ok(str(collected_maker.get("action", "")) == FacilityAction.COLLECTED
+		and str(flour_receipt.get("crop_id", "")) == "flour"
+		and int(flour_receipt.get("amount", 0)) == 1,
+		"the completed maker action returns its single produce receipt")
+	var repeated_maker := FacilityAction.press_maker(farm, Maker.MILL, now + 90)
+	_ok(str(repeated_maker.get("action", "")) == FacilityAction.MISSING
+		and Barn.count("flour") == 1,
+		"collecting a maker twice cannot duplicate its produce")
 
 
 ## Candidate 2: visitors who want a dish from the kitchen (schedule, want bubble, and gifting).
