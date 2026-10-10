@@ -15,8 +15,10 @@ const Farm := preload("res://scripts/garden/farm_save.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const Gesture := preload("res://scripts/harvest/gesture.gd")
+const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
+const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
@@ -4158,13 +4160,39 @@ func _challenge_preview_keeps_its_art_owned(scene: Node, expected: String) -> vo
 ## jobs; the moves are the expressive path, never a gate.
 func _care_has_moves_of_its_own() -> void:
 	var scene: Node = _garden
-	var moves: Dictionary = scene.get("CARE_MOVES")
+	var moves: Dictionary = PlotGesture.CARE_MOVES
 	for event in ["thirsty", "weeds", "bug"]:
 		_ok(moves.has(event),
 			"the %s care event has a move of its own" % event)
 	for key in moves:
 		_ok(str(moves[key].get("recogniser", "")) in Gesture.ALL,
 			"the %s care move is one Gesture can judge" % key)
+	var thirsty := {"state": Farm.NEEDS_CARE, "care_event": "thirsty"}
+	var pour: PackedVector2Array = Gesture.demo_path("drag",
+		moves["thirsty"]["params"], Vector2.ZERO)
+	_ok(PlotGesture.wants_gesture(thirsty, false),
+		"a thirsty bed accepts its expressive care move")
+	_ok(PlotGesture.judge(thirsty, false, pour, Vector2.ZERO)
+			== PlotGesture.CARE,
+		"a downward pour resolves to the same care action as a tap")
+	var sideways := PackedVector2Array([Vector2(-80, 0), Vector2(80, 0)])
+	_ok(PlotGesture.judge(thirsty, false, sideways, Vector2.ZERO)
+			== PlotGesture.PAN,
+		"a failed care move remains a harmless camera pan")
+	var ready_carrot := {"state": Farm.READY, "crop_id": "carrot"}
+	var carrot_move := HarvestCrops.gesture_for("carrot")
+	var carrot_pull: PackedVector2Array = Gesture.demo_path(
+		str(carrot_move["recogniser"]), carrot_move["gesture_params"], Vector2.ZERO)
+	_ok(PlotGesture.judge(ready_carrot, false, carrot_pull, Vector2.ZERO)
+			== PlotGesture.HARVEST,
+		"the crop catalogue's move resolves to harvest in the garden")
+	_ok(not PlotGesture.wants_gesture(thirsty, true)
+		and PlotGesture.judge(thirsty, true, pour, Vector2.ZERO)
+			== PlotGesture.NONE,
+		"a bed already harvesting cannot start or finish a second gesture")
+	_ok(PlotGesture.judge({"state": Farm.GROWING, "crop_id": "carrot"},
+		false, carrot_pull, Vector2.ZERO) == PlotGesture.NONE,
+		"a growing bed cannot be picked by an old or misplaced gesture")
 	await get_tree().create_timer(0.6).timeout
 
 	# Water pours from above: press the thirsty bed, drag DOWN, let go.

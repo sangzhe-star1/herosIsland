@@ -38,6 +38,7 @@ const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const Stroke := preload("res://scripts/garden/continuous_action_controller.gd")
+const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
 const SeedShop := preload("res://scripts/garden/seed_shop_manager.gd")
 const Market := preload("res://scripts/garden/farm_market_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -49,7 +50,6 @@ const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
 const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
-const Gesture := preload("res://scripts/harvest/gesture.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
@@ -155,21 +155,6 @@ const UNDO_WINDOW_MS := 5000
 ## rare enough that meeting one is a story he tells. Gold changes the
 ## CELEBRATION and never the yield -- see _harvest_core.
 const GOLDEN_PLANT_CHANCE := 0.04
-
-## The move each care event asks for, in the same Gesture grammar the harvest
-## uses: a weed pulls up like a carrot, a bug is shooed side to side, water
-## pours from above. A tap still does every one of these jobs -- the moves
-## are the expressive path, never a gate.
-const CARE_MOVES := {
-	"weeds": {"recogniser": "drag",
-		"params": {"direction_x": 0.0, "direction_y": -1.0,
-			"distance": 90.0, "angle": 40.0}},
-	"bug": {"recogniser": "sweep",
-		"params": {"turns": 2, "leg": 50.0}},
-	"thirsty": {"recogniser": "drag",
-		"params": {"direction_x": 0.0, "direction_y": 1.0,
-			"distance": 90.0, "angle": 40.0}},
-}
 
 ## The chance as it stands for THIS farm today: doubled when every one of the
 ## day's little jobs is done. 王者农场's blessing-to-mutation loop in its
@@ -1765,17 +1750,8 @@ func _bed_wants_gesture(index: int) -> bool:
 	if index < 0 or index >= plots.size():
 		return false
 	var plot: Dictionary = plots[index]
-	if str(plot.get("plot_id", "")) in _harvesting:
-		return false
-	# Ripe beds ask for the crop's own move, judged by the same recognisers
-	# 丰收行动 judges by. Care beds stay tap-only: arming gesture intent on
-	# them bisected as the change that silently broke later harvest taps
-	# (2026-09-04 session) -- re-attempt only with that mystery solved.
-	if str(plot.get("state", "")) == Farm.READY:
-		return not HarvestCrops.gesture_for(str(plot.get("crop_id", ""))).is_empty()
-	if str(plot.get("state", "")) == Farm.NEEDS_CARE:
-		return CARE_MOVES.has(str(plot.get("care_event", "")))
-	return false
+	return PlotGesture.wants_gesture(plot,
+		str(plot.get("plot_id", "")) in _harvesting)
 
 
 ## The bed leans while the finger pulls on it. Pure forwarding: what the lean
@@ -1798,40 +1774,22 @@ func _on_gesture_finished(index: int, track: PackedVector2Array,
 	if index < 0 or index >= plots.size():
 		return
 	var plot: Dictionary = plots[index]
-	# The bed may have changed while the finger was down; judge the bed that
-	# IS, not the one the finger landed on.
-	var state := str(plot.get("state", ""))
-	if str(plot.get("plot_id", "")) in _harvesting:
-		return
-	if state == Farm.NEEDS_CARE:
-		# The care move: pour, pull or shoo, judged by the same recogniser
-		# the harvest moves are. Success does the care the tap would have;
-		# anything else was a pan that happened to start on a bed.
-		var care: Dictionary = CARE_MOVES.get(str(plot.get("care_event", "")), {})
-		if care.is_empty():
-			return
-		if Gesture.satisfied(str(care["recogniser"]), care["params"],
-				track, centre):
+	# Judge the bed as it exists at release, since its state may have changed
+	# while the finger was down. This pure result leaves side effects here.
+	var verdict := PlotGesture.judge(plot,
+		str(plot.get("plot_id", "")) in _harvesting, track, centre)
+	match verdict:
+		PlotGesture.CARE:
 			plot = _care_for(plot, index)
 			plots[index] = plot
 			_commit_plot(plots, index)
-			return
-		if _world != null and is_instance_valid(_world):
-			_world.pan_by(net)
-		return
-	if state != Farm.READY:
-		return
-	var move := HarvestCrops.gesture_for(str(plot.get("crop_id", "")))
-	if move.is_empty():
-		return
-	if Gesture.satisfied(str(move["recogniser"]), move["gesture_params"],
-			track, centre):
-		Juice.burst(_play, _bed_centre(index), 12)
-		_harvest(plot, index)
-		_commit_plot(plots, index)
-		return
-	if _world != null and is_instance_valid(_world):
-		_world.pan_by(net)
+		PlotGesture.HARVEST:
+			Juice.burst(_play, _bed_centre(index), 12)
+			_harvest(plot, index)
+			_commit_plot(plots, index)
+		PlotGesture.PAN:
+			if _world != null and is_instance_valid(_world):
+				_world.pan_by(net)
 
 
 ## The care a NEEDS_CARE bed asks for, done: water, weed or shoo, each with
