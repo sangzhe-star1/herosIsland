@@ -95,12 +95,15 @@ def project_anchors(studio, recipe):
 
 def sidecar_metadata(recipe, entry):
     """Keep explicit anchors even for assets whose contact shadow is baked."""
-    if entry['contact_shadow_baked'] and not entry.get('anchors_px'):
+    if (entry['contact_shadow_baked'] and not entry.get('anchors_px')
+            and not entry.get('audit')):
         return None
     metadata = {'contact_shadow_baked': entry['contact_shadow_baked'],
                 'source': 'pipeline/recipes/%s.json' % recipe['id']}
     if entry.get('anchors_px'):
         metadata['anchors_px'] = entry['anchors_px']
+    if entry.get('audit'):
+        metadata['audit'] = entry['audit']
     return metadata
 
 
@@ -183,6 +186,8 @@ def main(argv):
             entry['deep_footprint'] = True
         if r.get('floats'):
             entry['floats'] = True
+        if r.get('audit'):
+            entry['audit'] = r['audit']
         if r.get('anchors'):
             entry['anchors_px'] = project_anchors(S, r)
         if opts['glb']:

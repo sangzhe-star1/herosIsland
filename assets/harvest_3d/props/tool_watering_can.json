@@ -1,4 +1,8 @@
 {
   "contact_shadow_baked": false,
-  "source": "pipeline/recipes/tool_watering_can.json"
+  "source": "pipeline/recipes/tool_watering_can.json",
+  "audit": {
+    "floats": true,
+    "black_outline": true
+  }
 }

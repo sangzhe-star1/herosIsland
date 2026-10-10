@@ -93,6 +93,14 @@ class BuildContractTests(unittest.TestCase):
             self.assertEqual(metadata['contact_shadow_baked'], baked)
             self.assertEqual(metadata['anchors_px'], anchors)
 
+    def test_sidecar_preserves_explicit_audit_policy(self):
+        policy = {'black_outline': True}
+        metadata = build.sidecar_metadata(
+            {'id': 'basket_empty'},
+            {'contact_shadow_baked': True, 'audit': policy})
+        self.assertEqual(metadata['audit'], policy)
+        self.assertEqual(metadata['source'], 'pipeline/recipes/basket_empty.json')
+
     def test_manifest_anchor_coordinates_must_be_finite_in_canvas(self):
         self.assertEqual(audit.check_anchors({'surface': [256.0, 438.7]}), [])
         for anchors in ([], {'surface': [512, 200]}, {'surface': [float('inf'), 200]},

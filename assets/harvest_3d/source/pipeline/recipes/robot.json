@@ -1,0 +1,16 @@
+{
+  "id": "robot",
+  "kind": "prop",
+  "model": "robot",
+  "params": {},
+  "ortho_scale": 2.45,
+  "shadow": {
+    "baked": false,
+    "size": [
+      0.7,
+      0.28
+    ]
+  },
+  "install": "props/robot.png",
+  "_note": "Replaces the legacy raster with the matching toy design from Blender; the antenna orb fits inside the shared frame."
+}

@@ -1,4 +1,8 @@
 {
   "contact_shadow_baked": false,
-  "source": "pipeline/recipes/tool_trowel.json"
+  "source": "pipeline/recipes/tool_trowel.json",
+  "audit": {
+    "floats": true,
+    "black_outline": true
+  }
 }

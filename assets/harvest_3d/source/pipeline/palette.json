@@ -478,6 +478,42 @@
       ],
       "roughness": 0.92
     },
+    "robot_shell": {
+      "label": "Robot | blue-grey shell",
+      "color": [
+        0.28,
+        0.43,
+        0.46
+      ],
+      "roughness": 0.72
+    },
+    "robot_side": {
+      "label": "Robot | soft metal",
+      "color": [
+        0.43,
+        0.46,
+        0.45
+      ],
+      "roughness": 0.58
+    },
+    "robot_antenna": {
+      "label": "Robot | rose antenna",
+      "color": [
+        0.44,
+        0.28,
+        0.29
+      ],
+      "roughness": 0.72
+    },
+    "robot_mouth": {
+      "label": "Robot | warm grey mouth",
+      "color": [
+        0.43,
+        0.42,
+        0.38
+      ],
+      "roughness": 0.78
+    },
     "wall_lilac": {
       "label": "Wall | lilac",
       "color": [

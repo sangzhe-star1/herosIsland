@@ -1,6 +1,6 @@
 # Harvest sprite pipeline
 
-One studio, one recipe per asset, one command. There are now 73 recipes for
+One studio, one recipe per asset, one command. There are now 74 recipes for
 the shipped crops and farm props. It reproduces every crop to the pixel (0 or
 1 differing pixels of 262,144, measured against `../../crops/*.png`), so it
 can replace the fifteen one-off Blender scripts that produced them: those
@@ -21,11 +21,18 @@ audit with zero failures. The audit and the self-test need only Pillow.
 | `palette.json` | every material the models use, by key (`M['leaf']`) |
 | `studio.py` | Blender side: opens the frozen profile (world, Sun key, two Area lights, Standard view at −0.2 EV), keeps only its camera and lamps, frames the camera so the world origin lands on the pivot, and offers the primitives, the optional baked shadow, mesh repair, render and GLB |
 | `models/<name>.py` | geometry only: `build(S, P)`; `S` is the studio, `P` the recipe's params. `from_glb.py` imports existing geometry instead |
-| `recipes/<id>.json` | which model, which params, shadow policy, optional `ortho_scale` and named local `anchors`, where it installs |
+| `recipes/<id>.json` | which model, which params, shadow policy, optional `ortho_scale`, named local `anchors`, audit policy, where it installs |
 | `build.py` | walks the recipes, renders, writes `manifest.json`, runs the audit |
 | `audit.py` | no Blender: size, alpha, ground line, footprint, fringe, projected anchors, tiled material coverage/seams, contact sheet |
 | `test_pipeline.py` | recipes ↔ `data/harvest_crops.json` ↔ `harvest_visual_art.gd`, audit on the shipped PNGs, break-it-once |
 | `test_pipeline_contracts.py` | no Blender: audit interpreter selection, anchor coordinates/sidecars, texture fault injection |
+
+The checked-in legacy props may add an `audit` object to their sidecar for
+their actual placement (`floats` for UI/flying art, `deep_footprint` for broad
+buildings) and intentional ink outlines. This keeps the shared anchor checks
+useful without treating a hand-painted outline as alpha contamination. New
+Blender outputs still have to pass the same fringe check unless their recipe
+explicitly declares an outline.
 
 ## Run it
 

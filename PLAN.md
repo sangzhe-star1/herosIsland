@@ -194,21 +194,22 @@ These are yours to make. Nothing below has been changed without asking.
    `SubViewport`) with 32 GLB models under `assets/props_3d/`. The farm
    itself stays 2.5D. What still wants a decision: whether the farm's world
    layer follows, or whether the two styles meet only at the bear's door.
-5. **The asset pipeline is one studio and 73 recipes, and it has been
+5. **The asset pipeline is one studio and 74 recipes, and it has been
    run.** `assets/harvest_3d/source/pipeline/` opens the frozen render profile
    every shipped sprite came from, frames its camera on the (256, 467) pivot,
    and renders one model per recipe; `build.py` also writes the manifest and
    runs the Pillow audit and contact sheet. The 17 crops still match
    `assets/harvest_3d/crops/` to 0 or 1 pixel. On 10 October, Blender 5.2.2
-   rendered all 73 current recipes on this Mac; the full generated set passed
-   the audit with zero failures. `soil_cover` now has a `from_glb` recipe, and
+   rendered all 74 current recipes on this Mac; the full generated set passed
+   the audit with zero failures. `robot` now has a reproducible Blender model
+   with its complete antenna inside the frame. `soil_cover` has a `from_glb` recipe, and
    its GLB and frozen-profile fingerprints are checked against the actual
    files. `soil_grass_patch` was re-rendered through the same profile and
-   installed (the old one was lit by the other rig). What is left: retire the
-   fifteen old scripts (keep the frozen profile .blend they share) and bring
-   the remaining legacy prop sprites into the same audit contract. The
-   checked-in prop folder still has ten audit failures; see current
-   follow-through below.
+   installed (the old one was lit by the other rig). The checked-in crop and
+   prop sprites now pass the static audit; per-asset sidecar notes distinguish
+   hand-painted outlines and non-floor icons from accidental alpha fringes.
+   What remains is to retire the fifteen old scripts (keep the frozen profile
+   .blend they share).
 6. **The save file has two version fields.** `SAVE_VERSION` is written on
    every save and never read. `FARM_SAVE_VERSION` is the one migrations use.
    Folding them into one is a small change, but it touches every existing save,
@@ -249,15 +250,14 @@ These are yours to make. Nothing below has been changed without asking.
   30 passed and 0 skipped after the care, planting, and tilling controller
   extractions and touch fix;
   `tools_check.py` reports 0 errors and 208 warnings.
-- **3D pipeline follow-through:** Blender 5.2.2 rendered all 73 recipes into a
-  temporary review directory; all 73 passed the generated-output audit. The
-  separate static audit in `test_pipeline.py` still finds ten issues in the
-  checked-in props: semi-transparent dark edge pixels on `basket_empty`,
-  `building_beehive`, `building_cow_shed`, `milk`, `tool_trowel`, and
-  `tool_watering_can`; incorrect ground anchors on `firefly`, `fish`, and
-  `honey`; and a clipped antenna on `robot`. The current generated trowel and
-  watering can are much plainer than the shipped painted props, so they were
-  kept out of the project rather than replacing the better-looking art.
+- **3D pipeline follow-through:** Blender 5.2.2 rendered all 74 recipes into a
+  temporary review directory; all 74 passed the generated-output audit. The
+  robot now has a source model and complete antenna in both world and UI art.
+  The checked-in crop and prop folders pass their static audits. Legacy
+  hand-painted outlines and icons that do not sit on the ground are recorded
+  per asset, so the test keeps rejecting unapproved alpha fringes and bad
+  anchors. The generated trowel and watering can remain uninstalled because
+  they are plainer than the shipped painted versions.
 
 ---
 

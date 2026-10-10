@@ -1,0 +1,6 @@
+{
+  "audit": {
+    "deep_footprint": true,
+    "black_outline": true
+  }
+}

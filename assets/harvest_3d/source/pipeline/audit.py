@@ -60,7 +60,8 @@ def measure(path):
     }
 
 
-def check(path, m, allow_edge=False, deep=False, floats=False):
+def check(path, m, allow_edge=False, deep=False, floats=False,
+          black_outline=False):
     rules = dict(CONTRACT['audit'])
     if floats:
         # A butterfly or a windmill's sails never touch the ground; the
@@ -104,7 +105,8 @@ def check(path, m, allow_edge=False, deep=False, floats=False):
         if abs(off) > float(rules['footprint_centre_tolerance_px']):
             errors.append('footprint centre is %+.0f px from the pivot column %d'
                           % (off, px))
-    if m['semi'] and m['black_fringe'] / m['semi'] > float(rules['black_fringe_max_fraction']):
+    if (not black_outline and m['semi']
+            and m['black_fringe'] / m['semi'] > float(rules['black_fringe_max_fraction'])):
         errors.append('%d of %d semi-transparent pixels are black: a dark fringe, the '
                       'alpha was premultiplied or the background leaked in'
                       % (m['black_fringe'], m['semi']))
@@ -232,6 +234,7 @@ def main(argv):
     edge_ok = set()
     deep = set()
     floats = set()
+    black_outline = set()
     if manifest:
         for a in manifest.get('assets', []):
             if a.get('footprint_reaches_edge'):
@@ -240,6 +243,8 @@ def main(argv):
                 deep.add(a['id'])
             if a.get('floats'):
                 floats.add(a['id'])
+            if a.get('audit', {}).get('black_outline'):
+                black_outline.add(a['id'])
             if list(a.get('ground_pivot_pixel', [])) != list(CONTRACT['ground_pivot_pixel']):
                 print('ERROR manifest: %s pivot %s, contract %s'
                       % (a['id'], a.get('ground_pivot_pixel'), CONTRACT['ground_pivot_pixel']))
@@ -261,6 +266,29 @@ def main(argv):
                 deep.add(r.stem)
             if recipe.get('floats'):
                 floats.add(r.stem)
+        # Older hand-painted props have per-file notes for items and buildings
+        # that are not made by the current Blender recipe set.
+        for png in pngs:
+            sidecar = png.with_suffix('.json')
+            if not sidecar.is_file():
+                continue
+            metadata = json.loads(sidecar.read_text())
+            policy = metadata.get('audit', {})
+            if not isinstance(policy, dict):
+                print('ERROR %s: audit sidecar field must be an object' % sidecar.name)
+                return 1
+            invalid = {key: value for key, value in policy.items()
+                       if key not in {'deep_footprint', 'floats', 'black_outline'}
+                       or not isinstance(value, bool)}
+            if invalid:
+                print('ERROR %s: invalid audit policy %s' % (sidecar.name, invalid))
+                return 1
+            if policy.get('deep_footprint'):
+                deep.add(png.stem)
+            if policy.get('floats'):
+                floats.add(png.stem)
+            if policy.get('black_outline'):
+                black_outline.add(png.stem)
     failures = 0
     textures = 0
     items = []
@@ -272,7 +300,8 @@ def main(argv):
             errors = check_texture(png, m, spec)
         else:
             errors = check(png, m, allow_edge=png.stem in edge_ok, deep=png.stem in deep,
-                           floats=png.stem in floats)
+                           floats=png.stem in floats,
+                           black_outline=png.stem in black_outline)
         items.append((png.stem, m['image'], spec is not None))
         if errors:
             failures += 1

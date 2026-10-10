@@ -58,6 +58,11 @@ for rid, r in recipes.items():
     sh = r.get('shadow', {})
     ok(isinstance(sh.get('baked'), bool) and len(sh.get('size', [])) == 2,
        '%s.json: shadow needs {"baked": bool, "size": [sx, sy]}' % rid)
+    audit_policy = r.get('audit', {})
+    ok(isinstance(audit_policy, dict)
+       and set(audit_policy) <= {'deep_footprint', 'floats', 'black_outline'}
+       and all(isinstance(value, bool) for value in audit_policy.values()),
+       '%s.json: audit policy must use known boolean flags' % rid)
 
 # 2. the data and the runtime agree with the recipes
 crop_ids = [c['id'] for c in json.load(open(GAME / 'data/harvest_crops.json'))]
@@ -134,6 +139,8 @@ with tempfile.TemporaryDirectory() as tmp:
     fringe.save(fringe_path)
     errs = audit.check(fringe_path, audit.measure(fringe_path))
     ok(any('fringe' in e for e in errs), 'a black-fringed carrot was accepted')
+    errs = audit.check(fringe_path, audit.measure(fringe_path), black_outline=True)
+    ok(not any('fringe' in e for e in errs), 'an explicit outline policy was ignored')
 
     blank = Image.new('RGBA', (512, 512))
     blank_path = Path(tmp) / 'blank.png'
