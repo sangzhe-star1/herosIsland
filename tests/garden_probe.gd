@@ -39,6 +39,7 @@ const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
+const PlantingContext := preload("res://scripts/garden/farm_planting_context_controller.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
@@ -74,7 +75,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1108
+const CHECKS_EXPECTED := 1116
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -108,6 +109,7 @@ func _ready() -> void:
 	_the_farm_tick_controller_only_reports_meaningful_changes()
 	_the_wishing_well_claim_is_once_per_day()
 	_the_lesson_controller_tracks_the_bed_and_action()
+	_planting_context_controller_keeps_lesson_and_golden_rules_together()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
 	_a_phase_seven_save_gains_later_defaults_without_losing_farm_state()
@@ -2060,6 +2062,53 @@ func _the_planting_controller_starts_one_cycle() -> void:
 		"a second seed cannot overwrite a growing cycle")
 	_ok(PlotPlanting.plant(tilled, "", NOON + 10, 0, false).is_empty(),
 		"an empty crop id cannot start a cycle")
+
+
+## The lesson acceleration and daily-care rarity rule resolve from one
+## injected context, so neither can drift between drag planting and brush.
+func _planting_context_controller_keeps_lesson_and_golden_rules_together() -> void:
+	var base_chance := PlantingContext.golden_chance({})
+	_ok(is_equal_approx(base_chance, 0.04),
+		"ordinary plantings keep the one-in-twenty-five golden chance")
+	var ordinary := PlantingContext.resolve({}, false, 1, -1,
+		"corn", "carrot", 6, 0.0399)
+	_ok(bool(ordinary.get("golden", false))
+			and int(ordinary.get("growth_override_seconds", -1)) == 0,
+		"a roll below the ordinary threshold makes gold without lesson timing")
+	var ordinary_edge := PlantingContext.resolve({}, false, 1, -1,
+		"carrot", "carrot", 6, 0.04)
+	_ok(not bool(ordinary_edge.get("golden", true)),
+		"the ordinary chance excludes its exact upper boundary")
+
+	var full_dailies := {"progress": {}}
+	var progress: Dictionary = full_dailies["progress"]
+	for task in GameData.garden_dailies:
+		progress[str(task.get("id", ""))] = int(task.get("target", 1))
+	var blessed := PlantingContext.resolve(full_dailies, false, 1, -1,
+		"corn", "carrot", 6, 0.0799)
+	_ok(is_equal_approx(PlantingContext.golden_chance(full_dailies), 0.08)
+			and bool(blessed.get("golden", false)),
+		"finishing every daily doubles the chance and admits rolls below it")
+	var blessed_edge := PlantingContext.resolve(full_dailies, false, 1, -1,
+		"corn", "carrot", 6, 0.08)
+	_ok(not bool(blessed_edge.get("golden", true)),
+		"the doubled chance also excludes its exact upper boundary")
+
+	var lesson_seed := PlantingContext.resolve(full_dailies, true, 2, 2,
+		"carrot", "carrot", 6, 0.0)
+	_ok(int(lesson_seed.get("growth_override_seconds", 0)) == 6
+			and not bool(lesson_seed.get("golden", true)),
+		"only the target lesson carrot gets six-second growth and no gold roll")
+	var wrong_crop := PlantingContext.resolve(full_dailies, true, 2, 2,
+		"corn", "carrot", 6, 0.0)
+	_ok(int(wrong_crop.get("growth_override_seconds", -1)) == 0
+			and not bool(wrong_crop.get("golden", true)),
+		"another crop in the lesson bed receives neither lesson timing nor gold")
+	var wrong_bed := PlantingContext.resolve(full_dailies, true, 1, 2,
+		"carrot", "carrot", 6, 0.0)
+	_ok(int(wrong_bed.get("growth_override_seconds", -1)) == 0
+			and not bool(wrong_bed.get("golden", true)),
+		"the lesson carrot on another bed stays on its normal clock")
 
 
 ## A paid harvest resets the field without reusing its transaction id; a

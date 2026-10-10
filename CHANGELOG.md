@@ -1,5 +1,10 @@
 # Changelog
 
+## 播种教学与金色作物规则收进上下文控制器 — 10 October 2026
+
+- 新增 `farm_planting_context_controller.gd`，统一解析教学加速与日常照料金色概率；随机数由调用方单次注入，概率边界和“只加速目标胡萝卜、教学期间不抽金苗”可确定性复验。
+- `garden_screen.gd` 从 3,430 行降到 3,412 行。GardenProbe 通过 1,158 项，GardenTouchProbe 双比例通过 1,959 项；`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
+
 ## 收菜后续进度由交易凭证统一门控 — 10 October 2026
 
 - 新增 `farm_harvest_progress_controller.gd`，把收菜经验、每日收成进度、食谱解锁和首次市场提示标记放到收成交易之后统一结算；拒绝或重复凭证不会产生这些进度，控制器不提前写盘，仍由点收/刷收的最终提交统一保存。

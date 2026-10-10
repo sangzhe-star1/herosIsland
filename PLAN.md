@@ -238,8 +238,8 @@ These are yours to make. Nothing below has been changed without asking.
    bind through `FarmWorldController.connect_screen_callbacks()` before the
    first world build, so synchronous reduced-motion bear settlement is not
    missed. `garden_screen.gd` was 3,419 lines at that point; the bare-hand
-   action pass left it at 3,420, and the harvest-progress boundary brings it
-   to 3,430. On 10 October, plot verbs moved to
+   action pass left it at 3,420, the harvest-progress boundary brought it to
+   3,430, and the planting-context boundary reduced it to 3,412. On 10 October, plot verbs moved to
    `scripts/garden/farm_plot_action_controller.gd`; bare-hand taps and the
    next-task resolver now use the same state-first action table, while the
    screen retains presentation and persistence effects.
@@ -579,7 +579,14 @@ These are yours to make. Nothing below has been changed without asking.
   checked to leave every follow-up untouched, while a real farm touch probe
   exercises the harvest path at both aspect ratios. GardenProbe passed 1,150,
   GardenTouchProbe passed 1,959, and `tools_check.py` reports 0 errors and
-  208 warnings.
+  208 warnings. The isolated full smoke run at `94036ef` completed with
+  30 passed and 0 skipped.
+- **Planting-context boundary (10 October):** lesson growth and golden-crop
+  probability now resolve in `farm_planting_context_controller.gd`; the
+  screen supplies the active lesson target and one random roll. Tests cover
+  both probability thresholds, full-daily doubling, and the lesson crop/bed
+  exceptions. GardenProbe passed 1,158 checks; GardenTouchProbe passed 1,959
+  at 16:9 and 4:3; `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

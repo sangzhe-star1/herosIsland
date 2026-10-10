@@ -67,6 +67,7 @@ const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
+const PlantingContext := preload("res://scripts/garden/farm_planting_context_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
@@ -131,22 +132,11 @@ const WELCOME_BEAT := 2.0
 ## purpose is not left wondering why the second one did nothing.
 const HARVEST_LOCK_SECONDS := 0.45
 
-## The chance a planting comes up golden: the whole plant glows for its whole
-## life, and picking it gets a celebration of its own. One bed in twenty-five:
-## often enough that a child who gardens every day meets one every few visits,
-## rare enough that meeting one is a story he tells. Gold changes the
-## CELEBRATION and never the yield -- see _harvest_core.
-const GOLDEN_PLANT_CHANCE := 0.04
-
-## The chance as it stands for THIS farm today: doubled when every one of the
-## day's little jobs is done. 王者农场's blessing-to-mutation loop in its
-## kindest form -- the bonus is earned by CARING, never by paying, and a
-## child who never opens the list is never told he lost anything, because
-## four percent is already the gift it was yesterday.
+## Compatibility query used by the screen probe; probability lives with the
+## planting context, not in this presentation script.
 func _golden_chance() -> float:
 	var dailies: Dictionary = _farm().get("dailies", {})
-	return GOLDEN_PLANT_CHANCE * 2.0 if Dailies.all_done(dailies) \
-		else GOLDEN_PLANT_CHANCE
+	return PlantingContext.golden_chance(dailies)
 
 var _field: DragField
 var _play: Control
@@ -1594,27 +1584,19 @@ func _plant_in(index: int, crop_id: String) -> bool:
 	var plot: Dictionary = plots[index]
 	if str(plot.get("state", "")) != Farm.TILLED:
 		return false
-	# The lesson's carrot, and nothing else ever, runs on its own clock: six
-	# seconds from seed to ripe so the child sees the end of what he started
-	# while he is still crouched over it. Cleared by the harvest, because a
-	# picked bed is reset from Farm.fresh_plot().
-	# "The lesson's carrot, and nothing else ever" -- the code said "anything
-	# planted while the lesson is on". Corn in bed three grew in six seconds,
-	# every visit, until the first order was handed over.
-	var lesson_seed: bool = _lesson_running \
-		and index == _lesson_plot_after_planting(index) \
-		and crop_id == str(GameData.garden_tutorial.get("crop_id", "carrot"))
-	# One roll per PLANTING, not per crop: the whole plant is golden for its
-	# whole life, which is why the glow is worth walking over to see. Rare on
-	# purpose -- a bed in twenty-five -- because the whole value of gold is
-	# that it is an event, and a reward the harvest hands out either way
-	# (the yield is exactly the crop's own; gold changes the celebration,
-	# never the numbers).
-	var golden := not _lesson_running \
-		and randf() < _golden_chance()
+	# The six-second carrot belongs only to its lesson bed. The random roll is
+	# supplied once per real planting and never consumed during the lesson.
+	var lesson_target := _lesson_plot_after_planting(index) \
+		if _lesson_running else -1
+	var golden_roll := randf() if not _lesson_running else -1.0
+	var context: Dictionary = PlantingContext.resolve(
+		_farm().get("dailies", {}), _lesson_running, index, lesson_target,
+		crop_id, str(GameData.garden_tutorial.get("crop_id", "carrot")),
+		_tutorial_growth, golden_roll)
 	var result: Dictionary = _tools.apply_to_plot("seed", plot,
 		GameClock.now_unix(), crop_id,
-		_tutorial_growth if lesson_seed else 0, golden)
+		int(context.get("growth_override_seconds", 0)),
+		bool(context.get("golden", false)))
 	if result.is_empty():
 		return false
 	plots[index] = result.get("plot", plot)
