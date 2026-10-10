@@ -19,6 +19,7 @@ const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
+const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
@@ -3851,7 +3852,7 @@ func _market_refusals_and_recipe_refills_keep_state() -> void:
 		await get_tree().process_frame
 	_ok(Barn.total() == Barn.cap() and not Recipes.is_unlocked("strawberry_soup"),
 		"the storage-only resume starts with a full barn and an unknown soup")
-	var beds_before: String = str(_garden.call("_how_the_beds_look"))
+	var beds_before := FarmTick.visual_signature(_plots())
 	var play_before := _garden.get("_play") as Control
 	var play_id := play_before.get_instance_id() if is_instance_valid(play_before) else 0
 	# Space appears while the app is paused; resume is responsible for settling
@@ -3870,7 +3871,7 @@ func _market_refusals_and_recipe_refills_keep_state() -> void:
 	GameManager.farm_resumed.disconnect(observe_resume)
 	_ok(resume_changes.size() == 1 and resume_changes[0],
 		"the real application resume announces a changed farm after its storage refill")
-	_ok(_garden.call("_how_the_beds_look") == beds_before,
+	_ok(FarmTick.visual_signature(_plots()) == beds_before,
 		"the storage-only resume leaves every bed's visible fingerprint unchanged")
 	var play_after := _garden.get("_play") as Control
 	_ok(is_instance_valid(play_after) and play_after.get_instance_id() != play_id,

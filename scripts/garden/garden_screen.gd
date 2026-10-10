@@ -51,6 +51,7 @@ const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
 const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
 const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
+const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
@@ -492,7 +493,7 @@ func _rebuild() -> void:
 	# time half a second later. That second rebuild is not invisible: it wipes
 	# the pointing finger off the screen a moment after it appears, which was
 	# caught in a screenshot and by nothing else.
-	_beds_looked_like = _how_the_beds_look()
+	_beds_looked_like = FarmTick.visual_signature(_plots())
 
 	# The market's finger, planted AFTER the sweep that would have taken it.
 	if _market_finger_queued:
@@ -3629,40 +3630,8 @@ func _lesson_tick() -> void:
 		if not _lesson_running or not is_inside_tree():
 			return
 		SaveManager.settle_farm()
-		if _how_the_beds_look() != _beds_looked_like:
+		if FarmTick.visual_signature(_plots()) != _beds_looked_like:
 			_queue_rebuild()
-
-
-## Everything about the beds that the screen draws, as one string. Comparing
-## this is how the tick knows the difference between "a second went by" and
-## "something happened", and last_seen_at moving is not something happening.
-func _how_the_beds_look() -> String:
-	var out := ""
-	for plot in _plots():
-		out += "%s/%d/%.3f/%s;" % [
-			str(plot.get("state", "")),
-			int(plot.get("growth_stage", 0)),
-			float(plot.get("growth_progress", 0.0)),
-			str(plot.get("care_event", "")),
-		]
-	return out
-
-
-## Everything about the beds that decides what the SCREEN should be -- ribbon,
-## dog, hints -- as one string. Sub-stage growth is deliberately left out: a
-## plant that inched a millimetre taller does not need the furniture rebuilt
-## over his head, and a rebuild takes a pointing finger down with it. The bed
-## art itself does follow the inch, because PlotView.refresh redraws only beds
-## whose own fingerprint moved.
-func _what_the_beds_mean() -> String:
-	var out := ""
-	for plot in _plots():
-		out += "%s/%d/%s;" % [
-			str(plot.get("state", "")),
-			int(plot.get("growth_stage", 0)),
-			str(plot.get("care_event", "")),
-		]
-	return out
 
 
 ## The garden's quiet clock. One beat every GARDEN_TICK seconds until the
@@ -3690,28 +3659,23 @@ func _garden_tick_once() -> void:
 	# too and the second call finds an empty basket -- this way the screen
 	# learns whether anything MOVED, which is what the shelf count shows.
 	var tipped := Barn.tip_basket_in()
-	var ripe_before := {}
-	for plot in _plots():
-		if Farm.is_ready(plot):
-			ripe_before[str(plot.get("plot_id", ""))] = true
-	var meant_before := _what_the_beds_mean()
+	var before := FarmTick.capture(_plots())
 	SaveManager.settle_farm()
 	if _world != null and is_instance_valid(_world):
 		_world.refresh(_plots())
-	_beds_looked_like = _how_the_beds_look()
-	if _what_the_beds_mean() == meant_before and tipped == 0:
+	var result := FarmTick.resolve(before, _plots(), tipped)
+	_beds_looked_like = str(result.get("visual", ""))
+	if not bool(result.get("needs_rebuild", false)):
 		return
 	if _world != null and is_instance_valid(_world):
 		var celebrated := false
-		for i in range(_plots().size()):
-			var plot: Dictionary = _plots()[i]
-			if Farm.is_ready(plot) \
-					and not ripe_before.has(str(plot.get("plot_id", ""))):
-				if not celebrated:
-					celebrated = true
-					AudioManager.play_sfx("res://assets/audio/pop.ogg")
-				Juice.shockwave(_play, _bed_centre(i), 140.0,
-					Color(1.0, 0.94, 0.62, 0.5))
+		for index_value in result.get("ripened_indices", []):
+			var index := int(index_value)
+			if not celebrated:
+				celebrated = true
+				AudioManager.play_sfx("res://assets/audio/pop.ogg")
+			Juice.shockwave(_play, _bed_centre(index), 140.0,
+				Color(1.0, 0.94, 0.62, 0.5))
 	_queue_rebuild()
 
 
