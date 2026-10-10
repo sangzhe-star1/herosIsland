@@ -234,7 +234,10 @@ These are yours to make. Nothing below has been changed without asking.
    there is one layout source. `garden_screen.gd` is now 3,436 lines. The
    back/level/challenge/coin header now lives in
    `scripts/garden/panels/farm_header_panel.gd`, with the screen supplying its
-   viewport and top-bar height. On 10 October, plot verbs moved to
+   viewport and top-bar height. The 16 world signal and gesture callbacks now
+   bind through `FarmWorldController.connect_screen_callbacks()` before the
+   first world build, so synchronous reduced-motion bear settlement is not
+   missed. `garden_screen.gd` is now 3,419 lines. On 10 October, plot verbs moved to
    `scripts/garden/farm_plot_action_controller.gd`; bare-hand taps and the
    next-task resolver now use the same state-first action table, while the
    screen retains presentation and persistence effects.
@@ -550,6 +553,11 @@ These are yours to make. Nothing below has been changed without asking.
   lines. GardenTouchProbe passed 1,959 checks at both aspect ratios, and
   FarmWorldProbe passed 850 with fresh screenshots visually checked at 16:9
   and 4:3. The screen still owns navigation and gameplay state.
+- **World callback boundary (10 October):** `FarmWorldController` now binds its
+  16 input, gesture, and arrival callbacks to the screen before `build()`;
+  this keeps the reduced-motion bear's synchronous settlement safe. The
+  focused farm suite passed all 7 probes, and `garden_screen.gd` is now 3,419
+  lines.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,

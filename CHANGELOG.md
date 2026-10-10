@@ -1,5 +1,10 @@
 # Changelog
 
+## 菜园世界事件由世界控制器统一接线 — 10 October 2026
+
+- 将地块、设施、扩地、刷地、钓鱼、动物与手势等 16 条世界事件回调收进 `farm_world_controller.gd`；菜园在世界 `build()` 前统一绑定，保留低动态效果下可能同步发出的熊回访结算。
+- `garden_screen.gd` 从 3,436 行降到 3,419 行。农场专项套件 7 项通过、0 跳过；`tools_check.py` 为 0 errors、208 warnings。
+
 ## 菜园顶栏迁入独立面板 — 10 October 2026
 
 - 新增 `farm_header_panel.gd`，收拢返回、等级、丰收挑战入口与星币栏的 HUD 绘制和布局尺寸；`garden_screen.gd` 只提供当前视口和顶栏高度，面板/关卡切换仍由屏幕拥有。

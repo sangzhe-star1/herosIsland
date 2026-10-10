@@ -187,6 +187,28 @@ var _last_grass_tap := -10.0
 var _clock := 0.0
 
 
+## Route world events to the garden screen before build(). A reduced-motion
+## bear visit may emit its completion signals synchronously during the first
+## refresh, so these connections must exist before the world becomes visible.
+func connect_screen_callbacks(screen: Node) -> void:
+	bear_watering.connect(Callable(screen, "_on_bear_watering"))
+	bear_visited.connect(Callable(screen, "_on_bear_visit_finished"))
+	plot_pressed.connect(Callable(screen, "_tap_plot"))
+	facility_pressed.connect(Callable(screen, "_tap_building"))
+	expansion_pressed.connect(Callable(screen, "_tap_stones"))
+	camera_moved.connect(Callable(screen, "_follow_the_camera"))
+	stroke_swept.connect(Callable(screen, "_on_stroke_swept"))
+	stroke_ended.connect(Callable(screen, "_on_stroke_ended"))
+	grass_pressed.connect(Callable(screen, "_poke_decoration"))
+	cloud_rained.connect(Callable(screen, "_on_cloud_rained"))
+	fish_caught.connect(Callable(screen, "_on_fish_caught"))
+	dog_found_seed.connect(Callable(screen, "_on_dog_found_seed"))
+	scarecrow_tapped.connect(Callable(screen, "_on_scarecrow_tapped"))
+	gesture_bed_check = Callable(screen, "_bed_wants_gesture")
+	gesture_moved.connect(Callable(screen, "_on_gesture_moved"))
+	gesture_finished.connect(Callable(screen, "_on_gesture_finished"))
+
+
 func build(view: Vector2, top_bar: float, shelf: float, plots: Array) -> void:
 	for child in get_children():
 		child.queue_free()

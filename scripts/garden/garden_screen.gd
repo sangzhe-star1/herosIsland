@@ -403,25 +403,8 @@ func _rebuild() -> void:
 	if _world == null or not is_instance_valid(_world):
 		_world = FarmWorld.new()
 		add_child(_world)
-		# A reduced-motion bear visit can settle synchronously during build's
-		# first refresh, so its two transaction signals must already be connected.
-		_world.bear_watering.connect(_on_bear_watering)
-		_world.bear_visited.connect(_on_bear_visit_finished)
+		_world.connect_screen_callbacks(self)
 		_world.build(view, TOP_BAR, SHELF, _plots())
-		_world.plot_pressed.connect(_tap_plot)
-		_world.facility_pressed.connect(_tap_building)
-		_world.expansion_pressed.connect(_tap_stones)
-		_world.camera_moved.connect(_follow_the_camera)
-		_world.stroke_swept.connect(_on_stroke_swept)
-		_world.stroke_ended.connect(_on_stroke_ended)
-		_world.grass_pressed.connect(_poke_decoration)
-		_world.cloud_rained.connect(_on_cloud_rained)
-		_world.fish_caught.connect(_on_fish_caught)
-		_world.dog_found_seed.connect(_on_dog_found_seed)
-		_world.scarecrow_tapped.connect(_on_scarecrow_tapped)
-		_world.gesture_bed_check = _bed_wants_gesture
-		_world.gesture_moved.connect(_on_gesture_moved)
-		_world.gesture_finished.connect(_on_gesture_finished)
 	else:
 		_world.refresh(_plots())
 	# Ask the existing task resolver ONCE. The shelf card and the flag in the
