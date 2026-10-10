@@ -56,6 +56,7 @@ const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
+const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
@@ -2683,62 +2684,22 @@ func _close_orders() -> void:
 
 ## Hand the basket over.
 ##
-## The order of these four lines is the whole of "an order pays once". The
-## barn is emptied and the delivery recorded and the save written BEFORE any
-## animation, because an await here with the recording after it is exactly how
-## a second press pays twice -- and a six-year-old presses things twice.
+## FarmOrderDelivery settles the basket and once key synchronously; XP, daily
+## progress, and the save are written before any presentation or await. A
+## second press cannot get between payment and its persisted record.
 func _deliver(order: Dictionary) -> void:
-	var order_id := str(order.get("id", ""))
 	var orders: Dictionary = SaveManager.data.get("farm_orders", {})
-	var delivered: Array = orders.get("delivered", [])
-	var recurring := bool(order.get("recurring", false))
-
-	# Asked BEFORE the barn is touched, and that order matters. The first cut
-	# emptied the barn first and only then asked whether this order had already
-	# been paid for -- so an order delivered twice would have taken three more
-	# carrots and given nothing back. The card is disabled once delivered, so
-	# it was unreachable, but "unreachable" is a property of today's screen and
-	# not of the rule. A recurring order has no "delivered" to check -- its
-	# once-only proof is the delivery COUNT below, not the ledger.
-	if not recurring and order_id in delivered:
+	var receipt := OrderDelivery.settle(order, orders)
+	if not bool(receipt.get("settled", false)):
 		return
-	var wants: Dictionary = order.get("requirements", {})
-	if not Barn.pay(wants):
-		return
-	var paid := 0
-	if recurring:
-		# Delivery N's once-key names N: no earlier delivery ever used it, so
-		# a second press on the same card pays the same delivery once -- the
-		# same promise the friends' own orders keep, kept a different way.
-		var counts: Dictionary = orders.get("counts", {})
-		var n := int(counts.get(order_id, 0)) + 1
-		counts[order_id] = n
-		orders["counts"] = counts
-		var once_key := "%s:%d" % [
-			str(order.get("completion_transaction_key", order_id)), n]
-		var ledger: Array = orders.get("recurring_paid", [])
-		paid = RewardManager.grant("garden:order:%s" % order_id,
-			int(order.get("rewards", {}).get("coins", 0)), once_key, ledger)
-		orders["recurring_paid"] = ledger
-	else:
-		paid = RewardManager.grant("garden:order:%s" % order_id,
-			int(order.get("rewards", {}).get("coins", 0)), order_id, delivered)
+	var paid := int(receipt.get("paid", 0))
 	if paid > 0:
-		# The thank-you gifts ride the same once-only gate as the coins: paid
-		# is only ever above zero the first time this order_id goes through.
-		# Today that is one plank per friend -- the three the barn's bigger
-		# roof is built from, each one seen arriving rather than found in a
-		# menu. Recurring orders carry no gifts; their gift is that they exist.
-		var gifts: Dictionary = order.get("rewards", {}).get("items", {})
-		for item_id in gifts.keys():
-			Barn.put(str(item_id), int(gifts[item_id]), "inventory")
 		# Helping a friend grows the farm most of all -- and only the first
 		# time this order goes through, same gate as the coins above. For a
 		# recurring order every delivery is a first delivery, and that is the
 		# design: tending beds is how the farm grows up, forever.
 		_earn_xp("order")
 		_daily_progress("deliver")
-	orders["delivered"] = delivered
 	SaveManager.data["farm_orders"] = orders
 	SaveManager.save_game()
 

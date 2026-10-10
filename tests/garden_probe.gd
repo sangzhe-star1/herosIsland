@@ -21,6 +21,7 @@ const PlotTilling := preload("res://scripts/garden/farm_plot_tilling_controller.
 const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
 const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
+const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const FarmTools := preload("res://scripts/garden/farm_tool_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
@@ -51,7 +52,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 710
+const CHECKS_EXPECTED := 729
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -105,6 +106,7 @@ func _ready() -> void:
 	_compact_seed_grabs_do_not_reach_the_tool_row()
 	_an_order_is_all_or_nothing()
 	_an_order_pays_once()
+	_order_delivery_controller_settles_story_and_recurring_orders()
 	_the_garden_cannot_touch_his_score()
 	_weeds_come_once_and_never_hurt_anything()
 	_the_caterpillar_is_weeds_wearing_a_different_face()
@@ -1119,6 +1121,87 @@ func _an_order_pays_once() -> void:
 	_ok(RewardManager.grant("garden:order:%s" % order_id, price,
 		order_id, after_restart) == 0,
 		"and it still will not pay a second time tomorrow")
+
+
+## Keep the once-only gate, whole-basket payment, gifts, and recurring count in
+## one tested settlement boundary instead of the garden's rendering script.
+func _order_delivery_controller_settles_story_and_recurring_orders() -> void:
+	_fresh_save()
+	var story: Dictionary = GameData.garden_orders[0]
+	var story_id := str(story.get("id", ""))
+	var story_wants: Dictionary = story.get("requirements", {})
+	for item_id in story_wants.keys():
+		Barn.put(str(item_id), int(story_wants[item_id]))
+	var story_price := int(story.get("rewards", {}).get("coins", 0))
+	var coins_before := Coins.balance()
+	var orders: Dictionary = SaveManager.data["farm_orders"]
+	var story_receipt := OrderDelivery.settle(story, orders)
+	_ok(bool(story_receipt.get("settled", false)),
+		"a complete story basket is accepted by the delivery controller")
+	_ok(int(story_receipt.get("paid", 0)) == story_price,
+		"the receipt reports the story order's exact coin reward")
+	_ok(story_id in orders.get("delivered", []),
+		"the once-only story key is written before presentation")
+	_ok(Barn.count("carrot") == 0,
+		"the required basket leaves the barn as one complete payment")
+	_ok(Coins.balance() == coins_before + story_price,
+		"the story reward is paid exactly once")
+	_ok(Barn.count("plank", "inventory") == 1,
+		"the first delivery also grants its one thank-you plank")
+
+	# Even if an old card is invoked again after the child has rebuilt its basket,
+	# the delivered ledger is checked before anything is taken.
+	for item_id in story_wants.keys():
+		Barn.put(str(item_id), int(story_wants[item_id]))
+	var duplicate := OrderDelivery.settle(story, orders)
+	_ok(not bool(duplicate.get("settled", false))
+			and str(duplicate.get("reason", "")) == "already_delivered",
+		"a paid story order is rejected by its persisted once key")
+	_ok(Barn.count("carrot") == int(story_wants.get("carrot", 0)),
+		"the duplicate story card leaves the replacement basket untouched")
+	_ok(Coins.balance() == coins_before + story_price,
+		"the duplicate story card cannot pay twice")
+	_ok(Barn.count("plank", "inventory") == 1,
+		"the duplicate story card cannot grant its gift again")
+
+	_fresh_save()
+	var recurring: Dictionary = {}
+	for candidate in GameData.garden_orders:
+		if bool(candidate.get("recurring", false)):
+			recurring = candidate
+			break
+	_ok(not recurring.is_empty(),
+		"the order catalogue has a recurring basket to deliver")
+	var recurring_id := str(recurring.get("id", ""))
+	var recurring_wants: Dictionary = recurring.get("requirements", {})
+	for item_id in recurring_wants.keys():
+		Barn.put(str(item_id), int(recurring_wants[item_id]))
+	var recurring_price := int(recurring.get("rewards", {}).get("coins", 0))
+	var recurring_key := str(recurring.get("completion_transaction_key", recurring_id))
+	coins_before = Coins.balance()
+	orders = SaveManager.data["farm_orders"]
+	var first_delivery := OrderDelivery.settle(recurring, orders)
+	_ok(bool(first_delivery.get("settled", false))
+			and int(first_delivery.get("paid", 0)) == recurring_price,
+		"the first recurring delivery pays its full reward")
+	_ok(int(orders.get("counts", {}).get(recurring_id, 0)) == 1,
+		"the first recurring delivery advances its count once")
+	_ok("%s:1" % recurring_key in orders.get("recurring_paid", []),
+		"the recurring reward ledger names the first delivery")
+	_ok(not recurring_id in orders.get("delivered", []),
+		"a recurring card stays available after delivery")
+	for item_id in recurring_wants.keys():
+		Barn.put(str(item_id), int(recurring_wants[item_id]))
+	var second_delivery := OrderDelivery.settle(recurring, orders)
+	_ok(bool(second_delivery.get("settled", false))
+			and int(second_delivery.get("paid", 0)) == recurring_price,
+		"a genuinely new recurring basket earns the reward again")
+	_ok(int(orders.get("counts", {}).get(recurring_id, 0)) == 2,
+		"the second recurring basket advances the count to two")
+	_ok("%s:2" % recurring_key in orders.get("recurring_paid", []),
+		"the second reward has a distinct persisted once key")
+	_ok(Coins.balance() == coins_before + recurring_price * 2,
+		"only the two delivered recurring baskets change the coin balance")
 
 
 ## Acceptance #13. Gardening is not an achievement, and must not look like one.

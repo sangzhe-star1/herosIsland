@@ -183,7 +183,10 @@ These are yours to make. Nothing below has been changed without asking.
    cohesive boundary at a time, with touch and overflow probes guarding both
    16:9 and 4:3 behavior. The next-task priority query now lives in
    `scripts/garden/farm_next_task_controller.gd`; the screen keeps ribbon
-   rendering, wording, and camera focus.
+   rendering, wording, and camera focus. Order delivery's once gate, whole-
+   basket payment, recurring ledger, and friend gifts now live in
+   `scripts/garden/farm_order_delivery_controller.gd`; the screen keeps XP,
+   daily progress, the lesson, and presentation effects.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -285,6 +288,11 @@ These are yours to make. Nothing below has been changed without asking.
   including eight direct priority cases; GardenTouchProbe passed 1,865 checks
   across both shapes. `tools_check.py` reports 0 errors and 208 warnings. The
   full suite was not rerun for this no-behavior-change extraction.
+- **Order delivery verification:** GardenProbe passed 961 checks, including
+  story-order duplicate protection, retained goods after a repeated card,
+  once-only gifts, and distinct recurring delivery keys. GardenTouchProbe
+  passed 1,865 checks across 16:9 and 4:3; `tools_check.py` reports 0 errors
+  and 208 warnings. The full suite was not rerun for this controller split.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.
