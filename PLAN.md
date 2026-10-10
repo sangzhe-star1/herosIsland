@@ -751,8 +751,10 @@ These are yours to make. Nothing below has been changed without asking.
   `FarmToolController` now owns selecting a tool and choosing its seed crop,
   including refusing either change while a brush stroke is active. The screen
   keeps the drawer, brush arming, sound, and rebuild response. FarmWorldProbe
-  covers accepted, unchanged, invalid, and locked selections; GardenTouchProbe
-  still exercises second-finger toolbar and seed touches across 16:9 and 4:3.
+  passed 897 checks; GardenTouchProbe passed 1,993 across 16:9 and 4:3,
+  including second-finger toolbar and seed touches. `tools_check.py` reports
+  0 errors and 208 warnings; the full smoke suite was not rerun for this
+  focused state extraction.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
