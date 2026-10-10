@@ -162,10 +162,12 @@ These are yours to make. Nothing below has been changed without asking.
    extracted to `scripts/garden/plot_gesture_controller.gd`. The shared water,
    weed, and bug state transition now lives in
    `scripts/garden/farm_plot_care_controller.gd` and serves taps and brush
-   strokes. The screen still owns tilling, planting, harvest transactions,
-   multi-bed stroke commits, and their visual side effects. Continue one
-   cohesive boundary at a time, with the touch probe guarding both 16:9 and
-   4:3 behavior.
+   strokes. Planting's plot-state transition now lives in
+   `scripts/garden/farm_plot_planting_controller.gd`; the screen supplies the
+   tutorial timing and golden decision and saves the returned plot. The screen
+   still owns tilling, harvest transactions, multi-bed stroke commits, and
+   their visual side effects. Continue one cohesive boundary at a time, with
+   the touch probe guarding both 16:9 and 4:3 behavior.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -220,24 +222,26 @@ These are yours to make. Nothing below has been changed without asking.
   checks the NPC schema before taking the timestamp high-water mark. The
   intermittent HarvestTouch failure also had a concrete cause: Godot delivered
   an emulated mouse press before the screen-touch press, so the mouse release
-  could cancel the touch gesture. HarvestAction now treats touch as canonical
-  whenever either emulation is enabled. The probe covers that ordering in
+  could cancel the touch gesture. HarvestAction now ignores mouse events
+  marked as emulated and uses touch when mouse-to-touch emulation is enabled;
+  physical mouse input remains available. The probe covers that ordering in
   both display shapes and retains failure-only input traces.
-- **Completed locally:** rabbit and puppy friend farms; the plot gesture
-  controller; shared plot-care transitions; HarvestTouch input fix; repository cleanup. Blender
-  source generators now live under `tools/art/`. Disposable screenshot/debug
-  scripts and duplicate scene builders were removed. The relevant project
-  skills remain in `.agents/skills/`, and no `.ours`/`.theirs` conflict residue
-  was present.
+- **Completed locally:** rabbit and puppy friend farms; the plot gesture,
+  plot-care, and plot-planting controllers; HarvestTouch input fix; repository
+  cleanup. Blender source generators now live under `tools/art/`. Disposable
+  screenshot/debug scripts and duplicate scene builders were removed. The
+  relevant project skills remain in `.agents/skills/`, and no
+  `.ours`/`.theirs` conflict residue was present.
 - **Needs the player's device/save:** test hen and mill timers, cloud discovery,
   dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
   genuine older iPad save before changing save-version fields.
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
 - **Latest local verification:** GardenTouchProbe passed 1,862 checks,
-  GardenProbe 905, FarmWorldProbe 781, and HarvestTouchProbe 2,316 across
+  GardenProbe 912, FarmWorldProbe 781, and HarvestTouchProbe 2,316 across
   16:9 and 4:3; FarmShot rendered at 16:9 and 4:3. The complete suite reports
-  30 passed and 0 skipped after the care-controller extraction and touch fix;
+  30 passed and 0 skipped after the care and planting controller extractions
+  and touch fix;
   `tools_check.py` reports 0 errors and 208 warnings.
 
 ---
