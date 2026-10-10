@@ -1,4 +1,13 @@
 extends Node
+
+class ReceiptFeedbackProbe:
+	extends RefCounted
+
+	var flights := 0
+
+	func show_flight(_layer, _host, _receipt, _amount, _destination_at,
+		_destination, _node_prefix, _picture_builder, _from_at = Vector2.INF) -> void:
+		flights += 1
 ## 星光农场 as a place you can move around in.
 ##
 ## WHY THIS IS A TOUCH PROBE AND NOT A LOGIC ONE
@@ -42,7 +51,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 827
+const CHECKS_EXPECTED := 829
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -183,7 +192,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _friend_farm_buttons_are_available()
 	await _the_visitor_board_reads_and_clears(view)
 	await _the_dog_minds_his_own_business()
-	await _dog_seed_receipt_does_not_resave()
+		await _dog_seed_receipt_does_not_resave()
 	# --- 阶段 5: the stones, the ladder, and the market's one lesson ---
 	await _the_stones_ask_before_they_move()
 	await _the_barn_full_moment_points_at_the_market()
@@ -2116,9 +2125,18 @@ func _dog_seed_receipt_does_not_resave() -> void:
 		return
 	backup.store_string(marker)
 	backup.close()
+	var previous_feedback: Variant = _garden.get("_collection_feedback")
+	var feedback := ReceiptFeedbackProbe.new()
+	var rebuild_was_queued := bool(_garden.get("_rebuild_queued"))
+	_garden.set("_collection_feedback", feedback)
+	_garden.set("_rebuild_queued", true)
 	_garden.call("_on_dog_found_seed", "corn")
+	_garden.set("_collection_feedback", previous_feedback)
+	_garden.set("_rebuild_queued", rebuild_was_queued)
 	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == marker,
 		"presenting the already-saved dog reward does not write the save again")
+	_ok(feedback.flights == 1,
+		"the receipt callback still delegates its reward presentation")
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 
 
