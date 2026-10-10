@@ -860,8 +860,10 @@ These are yours to make. Nothing below has been changed without asking.
   an ambiguous old timer or output is discarded rather than paid twice. The
   Phase 7 disk-migration fixture verifies the old coop and mill state survives
   while new marker fields are filled with defaults. `GardenProbe` passed 1,212
-  checks, `SaveProbe` passed, and the isolated full smoke suite passed 30/30
-  with 0 skipped. `tools_check.py` reports 0 errors and 208 existing warnings.
+  checks and `SaveProbe` passed after the collection API was tightened to
+  require game time. Before that final interface tightening, the isolated full
+  smoke suite passed 30/30 with 0 skipped; the two affected probes were rerun
+  afterward. `tools_check.py` reports 0 errors and 208 existing warnings.
   This synthetic merge coverage still needs a real iPad backup and the planned
   iPad pacing/playability session.
 
