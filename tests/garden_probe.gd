@@ -16,6 +16,7 @@ extends Node
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
+const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
@@ -68,6 +69,7 @@ func _ready() -> void:
 	_a_damaged_garden_is_repaired_not_believed()
 	_a_plot_says_what_it_is_doing_in_one_word()
 	_a_save_from_before_the_state_machine_still_knows_what_it_was_doing()
+	_the_planting_controller_starts_one_cycle()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
 	# --- stage two: growing ---
@@ -1510,6 +1512,42 @@ func _a_planting_cycle_never_repeats() -> void:
 		% (Farm.PAID_LEDGER_KEPT + 19), "...keeping the most recent")
 	_ok(not ("farm_harvest_plot_1_0" in paid),
 		"...and dropping the oldest, which no rising cycle can ever present again")
+
+
+## All seed paths share one pure transition, with no accidental second cycle.
+func _the_planting_controller_starts_one_cycle() -> void:
+	var grass := Farm.fresh_plot(0)
+	var rejected_grass: Dictionary = PlotPlanting.plant(
+		grass, "carrot", NOON, 0, false)
+	_ok(rejected_grass.is_empty() and str(grass.get("state", "")) == Farm.EMPTY,
+		"a seed cannot turn an untilled patch into a planting")
+
+	var tilled := Farm.fresh_plot(1)
+	tilled["state"] = Farm.TILLED
+	tilled["plant_cycle_id"] = 8
+	tilled["care_event"] = "old_marker"
+	var original := tilled.duplicate(true)
+	var planted: Dictionary = PlotPlanting.plant(
+		tilled, "carrot", NOON + 9, 6, true)
+	_ok(planted.size() > 0 and str(planted.get("state", "")) == Farm.SEEDED
+			and str(planted.get("crop_id", "")) == "carrot"
+			and int(planted.get("plant_cycle_id", 0)) == 9,
+		"planting turns one tilled patch into the next named cycle")
+	_ok(int(planted.get("planted_at", 0)) == NOON + 9
+			and int(planted.get("last_updated_at", 0)) == NOON + 9
+			and int(planted.get("growth_override_seconds", 0)) == 6
+			and bool(planted.get("golden", false)),
+		"the transition receives one timestamp, lesson timing, and gold decision")
+	_ok(float(planted.get("water_level", 0.0)) == 1.0
+			and str(planted.get("care_event", "")) == ""
+			and not bool(planted.get("care_completed", true)),
+		"a new seed begins watered and without an old care job")
+	_ok(tilled == original,
+		"the planting transition leaves its source plot snapshot unchanged")
+	_ok(PlotPlanting.plant(planted, "corn", NOON + 10, 0, false).is_empty(),
+		"a second seed cannot overwrite a growing cycle")
+	_ok(PlotPlanting.plant(tilled, "", NOON + 10, 0, false).is_empty(),
+		"an empty crop id cannot start a cycle")
 
 
 # --- 阶段 4: the bear ------------------------------------------------------

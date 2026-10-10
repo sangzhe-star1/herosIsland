@@ -29,6 +29,7 @@ extends LevelManager
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
+const PlotPlanting := preload("res://scripts/garden/farm_plot_planting_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
@@ -2047,19 +2048,6 @@ func _plant_in(index: int, crop_id: String) -> void:
 	var plot: Dictionary = plots[index]
 	if str(plot.get("state", "")) != Farm.TILLED:
 		return
-	plot["crop_id"] = crop_id
-	plot["state"] = Farm.SEEDED
-	# A new planting, and therefore a new transaction id for whatever comes out
-	# of it. Rising by one here is the whole reason a harvest cannot be paid
-	# for twice; see _harvest_core().
-	plot["plant_cycle_id"] = int(plot.get("plant_cycle_id", 0)) + 1
-	plot["planted_at"] = GameClock.now_unix()
-	plot["last_updated_at"] = GameClock.now_unix()
-	plot["growth_stage"] = 0
-	plot["growth_progress"] = 0.0
-	plot["water_level"] = 1.0
-	plot["care_event"] = ""
-	plot["care_completed"] = false
 	# The lesson's carrot, and nothing else ever, runs on its own clock: six
 	# seconds from seed to ripe so the child sees the end of what he started
 	# while he is still crouched over it. Cleared by the harvest, because a
@@ -2067,18 +2055,22 @@ func _plant_in(index: int, crop_id: String) -> void:
 	# "The lesson's carrot, and nothing else ever" -- the code said "anything
 	# planted while the lesson is on". Corn in bed three grew in six seconds,
 	# every visit, until the first order was handed over.
-	var lesson_seed: bool = _lesson_running and index == _lesson_plot() \
+	var lesson_seed: bool = _lesson_running \
+		and index == _lesson_plot_after_planting(index) \
 		and crop_id == str(GameData.garden_tutorial.get("crop_id", "carrot"))
-	plot["growth_override_seconds"] = _tutorial_growth if lesson_seed else 0
 	# One roll per PLANTING, not per crop: the whole plant is golden for its
 	# whole life, which is why the glow is worth walking over to see. Rare on
 	# purpose -- a bed in twenty-five -- because the whole value of gold is
 	# that it is an event, and a reward the harvest hands out either way
 	# (the yield is exactly the crop's own; gold changes the celebration,
 	# never the numbers).
-	plot["golden"] = not _lesson_running \
+	var golden := not _lesson_running \
 		and randf() < _golden_chance()
-	plots[index] = plot
+	var planted: Dictionary = PlotPlanting.plant(plot, crop_id,
+		GameClock.now_unix(), _tutorial_growth if lesson_seed else 0, golden)
+	if planted.is_empty():
+		return
+	plots[index] = planted
 	SaveManager.data["farm"]["plots"] = plots
 
 
@@ -3850,6 +3842,22 @@ func _lesson_plot() -> int:
 		return named
 	for i in range(plots.size()):
 		if Farm.is_planted(plots[i]):
+			return i
+	return named if named >= 0 and named < plots.size() else -1
+
+
+## Preview the lesson target after planting `index`, without mutating the save.
+## The old in-place transition evaluated _lesson_plot() after it had already
+## marked the candidate bed planted; the pure controller no longer does that,
+## so the screen reproduces that ordering explicitly for the lesson rule.
+func _lesson_plot_after_planting(index: int) -> int:
+	var plots := _plots()
+	var named := int(GameData.garden_tutorial.get("plot_index", 0))
+	if named >= 0 and named < plots.size() \
+			and (named == index or Farm.is_planted(plots[named])):
+		return named
+	for i in range(plots.size()):
+		if i == index or Farm.is_planted(plots[i]):
 			return i
 	return named if named >= 0 and named < plots.size() else -1
 
