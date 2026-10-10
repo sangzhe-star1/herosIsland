@@ -60,6 +60,7 @@ const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_control
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
+const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
 const FarmShopPanel := preload("res://scripts/garden/panels/farm_shop_panel.gd")
@@ -3544,34 +3545,9 @@ func _lesson_advance() -> void:
 
 ## Which of the six steps the garden is currently asking for, or "" for none.
 func _lesson_step() -> String:
-	# The last step first, and deliberately out of order: something in the barn
-	# that somebody is waiting for beats anything the earth is doing. Handing it
-	# over is the end of the lesson, and he is already holding the carrots.
-	if _an_order_he_can_fill() != "":
-		return "order"
-
-	var index := _lesson_plot()
-	var plots := _plots()
-	if index < 0 or index >= plots.size():
-		return ""
-	var plot: Dictionary = plots[index]
-	match str(plot.get("state", "")):
-		Farm.EMPTY:
-			return "till"
-		Farm.TILLED:
-			return "plant"
-		Farm.READY:
-			return "harvest"
-		Farm.NEEDS_CARE:
-			# Only thirst has words. The lesson's carrot never grows weeds --
-			# its care_event_types is ["thirsty"] and nothing else -- but a plot
-			# waiting for something nobody has recorded a line for should stay
-			# quiet rather than say the nearest thing.
-			if str(plot.get("care_event", "")) == Growth.CARE_THIRSTY:
-				return "water"
-	# SEEDED or GROWING: nothing to say. It is just time passing, and a lesson
-	# that filled the silence would be asking him to do something he cannot.
-	return ""
+	return Lesson.step(_plots(),
+		int(GameData.garden_tutorial.get("plot_index", 0)),
+		_an_order_he_can_fill())
 
 
 ## Which bed the lesson is about.
@@ -3582,30 +3558,16 @@ func _lesson_step() -> String:
 ## at bare earth while his carrot grew somewhere else would be teaching him that
 ## the game is not watching him. So the plant wins over the plan.
 func _lesson_plot() -> int:
-	var plots := _plots()
-	var named := int(GameData.garden_tutorial.get("plot_index", 0))
-	if named >= 0 and named < plots.size() and Farm.is_planted(plots[named]):
-		return named
-	for i in range(plots.size()):
-		if Farm.is_planted(plots[i]):
-			return i
-	return named if named >= 0 and named < plots.size() else -1
+	return Lesson.target_plot(_plots(),
+		int(GameData.garden_tutorial.get("plot_index", 0)))
 
 
 ## Preview the lesson target after planting `index`, without mutating the save.
-## The old in-place transition evaluated _lesson_plot() after it had already
-## marked the candidate bed planted; the pure controller no longer does that,
-## so the screen reproduces that ordering explicitly for the lesson rule.
+## This lets the lesson choose its one fast-growing carrot before the shared
+## planting transition writes the selected bed.
 func _lesson_plot_after_planting(index: int) -> int:
-	var plots := _plots()
-	var named := int(GameData.garden_tutorial.get("plot_index", 0))
-	if named >= 0 and named < plots.size() \
-			and (named == index or Farm.is_planted(plots[named])):
-		return named
-	for i in range(plots.size()):
-		if i == index or Farm.is_planted(plots[i]):
-			return i
-	return named if named >= 0 and named < plots.size() else -1
+	return Lesson.target_after_planting(_plots(),
+		int(GameData.garden_tutorial.get("plot_index", 0)), index)
 
 
 ## The first order the barn can pay for and nobody has delivered yet.

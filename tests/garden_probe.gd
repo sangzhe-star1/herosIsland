@@ -36,6 +36,7 @@ const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
+const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 
@@ -84,6 +85,7 @@ func _ready() -> void:
 	_the_harvest_ledger_claim_keeps_its_bound()
 	_harvest_transaction_settles_storage_and_plot_together()
 	_the_next_task_controller_keeps_garden_priorities()
+	_the_lesson_controller_tracks_the_bed_and_action()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
 	# --- stage two: growing ---
@@ -1950,6 +1952,57 @@ func _the_next_task_controller_keeps_garden_priorities() -> void:
 		"an untouched bed points to the shovel action")
 	_ok(NextTask.select([], {}, {}, [], tools).is_empty(),
 		"an empty farm with no deliverable order has no invented task")
+
+
+## The lesson follows the bed he actually planted, says only an available
+## action, and gives a complete order its final turn ahead of waiting crops.
+func _the_lesson_controller_tracks_the_bed_and_action() -> void:
+	var plots := [Farm.fresh_plot(0), Farm.fresh_plot(1), Farm.fresh_plot(2)]
+	_ok(Lesson.target_plot(plots, 0) == 0
+		and Lesson.step(plots, 0, "") == "till",
+		"the named empty bed starts the lesson at turning the soil")
+	_ok(Lesson.step(plots, 0, "bear_carrots") == "order",
+		"an order he can fill is the lesson's final priority")
+
+	var first: Dictionary = plots[0]
+	first["state"] = Farm.TILLED
+	plots[0] = first
+	_ok(Lesson.step(plots, 0, "") == "plant",
+		"turned earth asks for the seed")
+	_ok(Lesson.target_after_planting(plots, 0, 2) == 2,
+		"before save mutation, the chosen planting is already the lesson target")
+
+	var second: Dictionary = plots[1]
+	second["state"] = Farm.GROWING
+	second["crop_id"] = "carrot"
+	plots[1] = second
+	_ok(Lesson.target_plot(plots, 0) == 1,
+		"a planted bed elsewhere takes over when the named bed is still bare")
+	_ok(Lesson.step(plots, 0, "") == "",
+		"the lesson stays quiet while that real crop is growing")
+
+	first["state"] = Farm.SEEDED
+	first["crop_id"] = "carrot"
+	plots[0] = first
+	_ok(Lesson.target_plot(plots, 0) == 0,
+		"once planted, the named bed keeps precedence over later plants")
+	first["state"] = Farm.READY
+	plots[0] = first
+	_ok(Lesson.step(plots, 0, "") == "harvest",
+		"a ripe lesson crop asks to be picked")
+	first["state"] = Farm.NEEDS_CARE
+	first["care_event"] = Growth.CARE_THIRSTY
+	plots[0] = first
+	_ok(Lesson.step(plots, 0, "") == "water",
+		"the lesson names the care action it has a voice line for")
+	first["care_event"] = "future_job"
+	plots[0] = first
+	_ok(Lesson.step(plots, 0, "") == "",
+		"an unfamiliar care marker does not get a guessed instruction")
+	_ok(Lesson.target_plot(plots, 8) == 0,
+		"an invalid configured bed falls back to the planted bed")
+	_ok(Lesson.target_plot([Farm.fresh_plot(0)], -1) == -1,
+		"without a configured or planted bed, the lesson has no target")
 
 
 # --- 阶段 4: the bear ------------------------------------------------------
