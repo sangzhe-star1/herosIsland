@@ -51,6 +51,7 @@ const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
+const BearReturn := preload("res://scripts/garden/farm_bear_return_controller.gd")
 const CollectionFeedback := preload("res://scripts/garden/farm_collection_feedback_controller.gd")
 const DogManager := preload("res://scripts/garden/farm_dog_manager.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
@@ -419,6 +420,10 @@ func _rebuild() -> void:
 	if _world == null or not is_instance_valid(_world):
 		_world = FarmWorld.new()
 		add_child(_world)
+		# A reduced-motion bear visit can settle synchronously during build's
+		# first refresh, so its two transaction signals must already be connected.
+		_world.bear_watering.connect(_on_bear_watering)
+		_world.bear_visited.connect(_on_bear_visit_finished)
 		_world.build(view, TOP_BAR, SHELF, _plots())
 		_world.plot_pressed.connect(_tap_plot)
 		_world.facility_pressed.connect(_tap_building)
@@ -1117,6 +1122,27 @@ func _on_cloud_rained(index: int) -> void:
 		return
 	plots[index] = _care_for(plot, index)
 	_commit_plot(plots, index)
+
+
+## The bear's animated visit is one transaction: the thirsty bed, water tally,
+## spent visit, and unread board entry commit together at the water moment.
+## The animation stays in the existing world until its separate finish signal.
+func _on_bear_watering(index: int) -> void:
+	var farm := _farm()
+	var result := BearReturn.settle_water(farm, index, GameClock.now_unix())
+	if not bool(result.get("settled", false)):
+		return
+	var plots := _plots()
+	if _world != null and is_instance_valid(_world):
+		_world.refresh(plots)
+	_respond_to_plot_care(str(result.get("action", "")), index)
+	SaveManager.save_game()
+	if _hints != null:
+		_hints.progress()
+
+
+func _on_bear_visit_finished(_index: int) -> void:
+	_queue_rebuild()
 
 
 func _on_fish_caught(info: Dictionary) -> void:

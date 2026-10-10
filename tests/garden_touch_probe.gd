@@ -2528,6 +2528,7 @@ func _the_bear_comes_back_to_a_thirsty_bed() -> void:
 	farm["visit_log"] = []
 	farm["visit_log_unread"] = false
 	farm["bear_return_visit_pending"] = true
+	SaveManager.save_game()
 	_garden.call("_rebuild")
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -2535,7 +2536,48 @@ func _the_bear_comes_back_to_a_thirsty_bed() -> void:
 		"no thirsty bed: the bear waits, the visit stays pending")
 	_ok((SaveManager.data["farm"].get("visit_log", []) as Array).is_empty(),
 		"...and the board says nothing about a watering that did not happen")
-	_ok(world.get_node_or_null("BearVisitorActor") == null, "...and he is not on the farm")
+	_ok(world.find_child("BearVisitorActor", true, false) == null,
+		"...and he is not on the farm")
+
+	# Open a fresh GardenScreen with a waiting visit already in the save. With
+	# reduced motion, the water and finish callbacks run synchronously inside
+	# FarmWorld.build(); this guards connecting them before that first build.
+	farm = SaveManager.data["farm"]
+	plots = farm["plots"]
+	plots[0]["state"] = Farm.GROWING
+	plots[0]["crop_id"] = "carrot"
+	plots[0]["growth_stage"] = 1
+	plots[0]["water_level"] = 0.1
+	plots[0]["care_event"] = Growth.CARE_THIRSTY
+	plots[0]["plant_cycle_id"] = 8199
+	farm["plots"] = plots
+	farm["visit_log"] = []
+	farm["visit_log_unread"] = false
+	farm["bear_return_visit_pending"] = true
+	farm["dailies"] = {"date": GameClock.now_date(), "progress": {}, "claimed": []}
+	SaveManager.save_game()
+	_garden.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_garden = null
+	_open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	farm = SaveManager.data["farm"]
+	_ok(not bool(farm.get("bear_return_visit_pending", true)),
+		"a first world build settles its reduced-motion visit before opening")
+	_ok(str(_plots()[0].get("care_event", "")) != Growth.CARE_THIRSTY
+		and float(_plots()[0].get("water_level", 0.0)) > 0.9,
+		"the synchronous first-build callback waters the thirsty bed")
+	var instant_log: Array = farm.get("visit_log", [])
+	_ok(instant_log.size() == 1
+		and str(instant_log[0].get("who", "")) == "bear",
+		"the synchronous first-build callback writes one visitor-board row")
+	_ok(int(farm.get("dailies", {}).get("progress", {}).get("water", 0)) == 1,
+		"the synchronous first-build callback counts today's water once")
+	world = _garden.get("_world")
+	_ok(world.find_child("BearVisitorActor", true, false) == null,
+		"a reduced-motion visitor completes without leaving an actor behind")
 
 	farm = SaveManager.data["farm"]
 	plots = farm["plots"]
@@ -2545,24 +2587,60 @@ func _the_bear_comes_back_to_a_thirsty_bed() -> void:
 	plots[1]["water_level"] = 0.1
 	plots[1]["care_event"] = Growth.CARE_THIRSTY
 	plots[1]["plant_cycle_id"] = 8200
+	farm["visit_log"] = []
+	farm["visit_log_unread"] = false
+	farm["bear_return_visit_pending"] = true
+	farm["dailies"] = {"date": GameClock.now_date(), "progress": {}, "claimed": []}
+	SaveManager.data["settings"]["reduce_motion"] = false
+	SaveManager.save_game()
+	var before_water_save := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 	_garden.call("_rebuild")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	farm = SaveManager.data["farm"]
+	world = _garden.get("_world")
+	_ok(bool(farm.get("bear_return_visit_pending", false)),
+		"the visit stays pending while the bear walks toward the bed")
+	_ok(str(_plots()[1].get("care_event", "")) == Growth.CARE_THIRSTY,
+		"the bed is not watered before the bear reaches it")
+	_ok((farm.get("visit_log", []) as Array).is_empty(),
+		"the board has no entry before water lands")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_PATH) == before_water_save,
+		"starting the walk does not persist a half-finished visit")
+	_ok(world.find_child("BearVisitorActor", true, false) != null,
+		"the real visitor actor is walking on the farm")
+	# Let the actual tween reach its watering callback.
+	await get_tree().create_timer(1.5).timeout
+	farm = SaveManager.data["farm"]
 	_ok(not bool(farm.get("bear_return_visit_pending", false)),
-		"a thirsty bed brings the bear and spends the visit")
+		"the visit is spent when the bear reaches the thirsty bed")
 	_ok(str(_plots()[1].get("care_event", "")) != Growth.CARE_THIRSTY
 		and float(_plots()[1].get("water_level", 0.0)) > 0.9,
 		"the bear waters the thirsty bed")
 	var log: Array = farm.get("visit_log", [])
-	_ok(not log.is_empty() and str((log[0] as Dictionary).get("who", "")) == "bear"
+	_ok(log.size() == 1 and str((log[0] as Dictionary).get("who", "")) == "bear"
 		and int((log[0] as Dictionary).get("watered", 0)) == 1,
-		"the board's line is written when the water lands")
+		"the board's one line is committed with the water")
 	_ok(bool(farm.get("visit_log_unread", false)), "...and the board lights up")
+	_ok(int(farm.get("dailies", {}).get("progress", {}).get("water", 0)) == 1,
+		"the same water event advances today's care task once")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == before_water_save,
+		"bed care, daily progress, and the visit log rotate the save only once")
+	_ok(world.find_child("BearVisitorActor", true, false) != null,
+		"committing the water leaves the bear's return animation on screen")
+	await get_tree().create_timer(2.5).timeout
+	_ok(log.size() == 1
+		and int(SaveManager.data["farm"].get("dailies", {})
+			.get("progress", {}).get("water", 0)) == 1,
+		"finishing the walk does not repeat the water, daily, or board entry")
+	_ok(world.find_child("BearVisitorActor", true, false) == null,
+		"the bear leaves after the complete visit")
 	SaveManager.data["settings"]["reduce_motion"] = false
 	world.call("go_home")
 	for index in range(plots.size()):
 		plots[index] = Farm.fresh_plot(index)
+	SaveManager.data["farm"]["bear_return_visit_pending"] = false
+	SaveManager.save_game()
 	_garden.call("_rebuild")
 	await get_tree().process_frame
 

@@ -65,6 +65,7 @@ signal gesture_finished(index: int, track: PackedVector2Array, centre: Vector2,
 signal fish_caught(info: Dictionary)
 signal dog_found_seed(crop_id: String)
 signal bear_visited(index: int)
+signal bear_watering(index: int)
 signal scarecrow_tapped()
 
 const Layout := preload("res://scripts/garden/farm_layout.gd")
@@ -140,6 +141,7 @@ var _beds: Array = []          # PlotView, one per bed in the save
 ## input, keeps his distance, stores nothing.
 var _dog: Dog
 var _visitor: Node2D
+var _bear_visit_in_progress := false
 var _tint_layer: ColorRect
 var _ducklings: Array = []
 var _fishing_active := false
@@ -1499,7 +1501,8 @@ func _on_dog_dig_done() -> void:
 
 func _check_bear_return_visit(plots: Array) -> void:
 	var farm: Dictionary = SaveManager.data.get("farm", {})
-	if not bool(farm.get("bear_return_visit_pending", false)):
+	if not bool(farm.get("bear_return_visit_pending", false)) \
+			or _bear_visit_in_progress:
 		return
 
 	# No thirsty bed, no visit yet: the bear waits for a day he can help on,
@@ -1509,8 +1512,7 @@ func _check_bear_return_visit(plots: Array) -> void:
 	if target_idx < 0:
 		return
 
-	farm["bear_return_visit_pending"] = false
-	SaveManager.save_game()
+	_bear_visit_in_progress = true
 
 	var door := Layout.facility("bear_door")
 	var door_pos := Layout.facility_at(door)
@@ -1524,15 +1526,9 @@ func _check_bear_return_visit(plots: Array) -> void:
 
 	bear_actor.walk_to_bed_and_water(bed_pos,
 		func():
-			cloud_rained.emit(target_idx)
-			# The board's line is written when the water lands, not when he
-			# sets out: the log says what happened, in the order it happened.
-			var now_farm: Dictionary = SaveManager.data.get("farm", {})
-			Farm.remember_visit(now_farm,
-				{"who": "bear", "watered": 1, "star": 1, "at": GameClock.now_unix()})
-			now_farm["visit_log_unread"] = true
-			SaveManager.save_game(),
+			bear_watering.emit(target_idx),
 		func():
+			_bear_visit_in_progress = false
 			bear_visited.emit(target_idx)
 	)
 

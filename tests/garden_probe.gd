@@ -43,6 +43,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const WellWish := preload("res://scripts/garden/farm_well_wish_controller.gd")
+const BearReturn := preload("res://scripts/garden/farm_bear_return_controller.gd")
 const PHASE_SEVEN_SAVE_TIME := 1_760_000_100
 
 ## Exact farm keys present in the user's earlier 25ecd52 build. Keep this
@@ -156,6 +157,7 @@ func _ready() -> void:
 	_the_pond_fishing_and_ducklings_work()
 	_the_dog_grows_tricks_and_daily_dig_work()
 	_the_market_day_announcement_and_price_doubling_work()
+	_the_bear_return_transaction_keeps_the_visit_pending_until_water()
 	_the_bear_comes_back_and_gift_basket_work()
 	_two_tablets_agree_about_the_bear()
 	# --- 阶段 5: the ladder and the land ---
@@ -3293,6 +3295,34 @@ func _the_market_day_announcement_and_price_doubling_work() -> void:
 
 	# Clean up clock
 	GameClock.clear_test_now()
+
+
+func _the_bear_return_transaction_keeps_the_visit_pending_until_water() -> void:
+	var farm := Farm.default_farm()
+	farm["bear_return_visit_pending"] = true
+	var plot: Dictionary = farm["plots"][1]
+	plot["state"] = Farm.NEEDS_CARE
+	plot["crop_id"] = "carrot"
+	plot["care_event"] = Growth.CARE_THIRSTY
+	plot["water_level"] = 0.1
+	plot["plant_cycle_id"] = 23
+	var receipt := BearReturn.settle_water(farm, 1, NOON)
+	_ok(bool(receipt.get("settled", false)),
+		"the returning bear can settle one pending thirsty bed")
+	_ok(not bool(farm.get("bear_return_visit_pending", true)),
+		"water commits the pending visit only when it lands")
+	_ok(str(farm["plots"][1].get("care_event", "")) != Growth.CARE_THIRSTY
+		and float(farm["plots"][1].get("water_level", 0.0)) > 0.9,
+		"the bed's care state is part of the bear visit transaction")
+	var log: Array = farm.get("visit_log", [])
+	_ok(log.size() == 1 and str(log[0].get("who", "")) == "bear"
+		and int(log[0].get("watered", 0)) == 1,
+		"the same transaction writes one truthful visitor-board entry")
+	var committed := JSON.stringify(farm)
+	var repeated := BearReturn.settle_water(farm, 1, NOON + 1)
+	_ok(not bool(repeated.get("settled", false))
+		and JSON.stringify(farm) == committed,
+		"a repeated water signal cannot pay or log the visit twice")
 
 
 func _the_bear_comes_back_and_gift_basket_work() -> void:

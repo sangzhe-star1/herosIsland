@@ -275,6 +275,21 @@ These are yours to make. Nothing below has been changed without asking.
 
 ## Current follow-through — 10 October 2026
 
+- **Remote plan check:** fetched `origin/main` and
+  `origin/claude/stoic-bell-a41pfu`; the remote feature branch is already an
+  ancestor of `main`, so the planned merge is complete and no merge was
+  needed. The local checkout was on `main` and matched `origin/main` before
+  the current change.
+- **Bear return durability:** the pending visit now remains saved while the
+  bear walks. At the water moment, the thirsty bed, daily-care tally, unread
+  visitor-board row, and cleared pending flag commit together once. GardenProbe
+  passed 1,142 checks and GardenTouchProbe passed 1,941 checks over 16:9 and
+  4:3, including an opening save that triggers synchronous reduced-motion
+  settlement during the first world build. FarmWorldProbe was given its
+  documented 400-second budget but timed
+  out before finishing its first shape; it printed no assertion or script
+  error, so it is not counted as a pass. `tools_check.py` reports 0 errors
+  and 208 warnings.
 - **Integration complete:** branch `claude/stoic-bell-a41pfu` was 51 commits
   ahead of `main` at `deb168e`; it was fast-forwarded and pushed through
   `8ef21a2`. PR [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is
