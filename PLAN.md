@@ -186,7 +186,10 @@ These are yours to make. Nothing below has been changed without asking.
    rendering, wording, and camera focus. Order delivery's once gate, whole-
    basket payment, recurring ledger, and friend gifts now live in
    `scripts/garden/farm_order_delivery_controller.gd`; the screen keeps XP,
-   daily progress, the lesson, and presentation effects.
+   daily progress, the lesson, and presentation effects. Board rotation,
+   level gating, and the pending/fillable-card queries now live in
+   `scripts/garden/farm_order_board_controller.gd`; the screen supplies the
+   live save and draws the selected cards.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -293,6 +296,11 @@ These are yours to make. Nothing below has been changed without asking.
   once-only gifts, and distinct recurring delivery keys. GardenTouchProbe
   passed 1,865 checks across 16:9 and 4:3; `tools_check.py` reports 0 errors
   and 208 warnings. The full suite was not rerun for this controller split.
+- **Order board verification:** GardenProbe passed 966 checks, covering story
+  priority, level gates, deterministic recurring rotation, and pending and
+  fillable-card queries. GardenTouchProbe passed 1,865 checks across 16:9 and
+  4:3; `tools_check.py` reports 0 errors and 208 warnings. The full suite was
+  not rerun for this controller split.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

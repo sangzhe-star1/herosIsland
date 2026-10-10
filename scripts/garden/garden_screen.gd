@@ -57,6 +57,7 @@ const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
+const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 const FarmOrdersPanel := preload("res://scripts/garden/panels/farm_orders_panel.gd")
@@ -110,9 +111,6 @@ const BARN_CARD := Vector2(152.0, SEED_TILE.y)
 const ORDER_CARD := Vector2(378, 94)
 const ORDER_FIRST := 48.0        # heading down to the first card
 const ORDER_GAP := 102.0          # card to card
-## How the board picks its three: see _orders_for_board.
-const ORDER_BOARD_CARDS := 3
-
 ## Paged surfaces: six rows on the shop sheet, fourteen seed slots on the
 ## dense possession row. The usual whole seed collection fits at once.
 const PANEL_PAGE := 6
@@ -760,10 +758,7 @@ func _next_task() -> Dictionary:
 ## this one little reason to grow; _order_board remains the one full view.
 func _first_pending_order() -> Dictionary:
 	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
-	for order in _orders_for_board(delivered):
-		if not str(order.get("id", "")) in delivered:
-			return order
-	return {}
+	return OrderBoard.first_pending(_orders_for_board(delivered), delivered)
 
 
 func _next_task_text(task: Dictionary) -> String:
@@ -2598,44 +2593,10 @@ func _order_board(view: Vector2) -> void:
 	FarmOrdersPanel.new(self).build(view)
 
 
-## One-time requests have a purpose and get their turn before routine baskets.
-## Routine baskets rotate by the existing delivery ledger; ties keep file order.
-## No date, random seed, or new save field is needed, including for old saves.
-static func select_orders_for_board(catalogue: Array, delivered: Array,
-		counts: Dictionary, farm_level: int) -> Array:
-	var story: Array = []
-	var recurring: Array = []
-	var receipts: Array = []
-	for index in range(catalogue.size()):
-		var order: Dictionary = catalogue[index]
-		var gate := str(order.get("unlock_condition", ""))
-		if gate.begins_with("level:") and farm_level < int(gate.substr(6)):
-			continue
-		var order_id := str(order.get("id", ""))
-		if bool(order.get("recurring", false)):
-			recurring.append({"order": order, "index": index,
-				"count": maxi(0, int(counts.get(order_id, 0)))})
-		elif order_id in delivered:
-			receipts.append(order)
-		else:
-			story.append(order)
-	recurring.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		if int(a["count"]) == int(b["count"]):
-			return int(a["index"]) < int(b["index"])
-		return int(a["count"]) < int(b["count"]))
-	var board: Array = story.slice(0, ORDER_BOARD_CARDS)
-	for row in recurring:
-		if board.size() == ORDER_BOARD_CARDS:
-			break
-		board.append(row["order"])
-	while board.size() < ORDER_BOARD_CARDS and not receipts.is_empty():
-		board.append(receipts.pop_back())
-	return board
-
-
 func _orders_for_board(delivered: Array) -> Array:
 	var counts: Dictionary = SaveManager.data.get("farm_orders", {}).get("counts", {})
-	return select_orders_for_board(GameData.garden_orders, delivered, counts, Level.level())
+	return OrderBoard.select_orders_for_board(GameData.garden_orders, delivered,
+		counts, Level.level())
 
 ## Top left of the order board, measured from the viewport every time -- see
 ## _bed_centre for why nothing here may be measured from a hard-coded 720.
@@ -3682,13 +3643,7 @@ func _lesson_plot_after_planting(index: int) -> int:
 ## at, and a finger aimed at a card that is not drawn teaches "the game lies".
 func _first_fillable_order() -> Dictionary:
 	var delivered: Array = SaveManager.data.get("farm_orders", {}).get("delivered", [])
-	for order in _orders_for_board(delivered):
-		var order_id := str(order.get("id", ""))
-		if order_id in delivered:
-			continue
-		if Barn.can_pay(order.get("requirements", {})):
-			return order
-	return {}
+	return OrderBoard.first_fillable(_orders_for_board(delivered), delivered)
 
 
 func _an_order_he_can_fill() -> String:
