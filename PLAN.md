@@ -784,8 +784,8 @@ These are yours to make. Nothing below has been changed without asking.
   that neither harvest nor order pays twice after reload; it passed 1,199
   checks. GardenTouchProbe passed 1,993 across 16:9 and 4:3, FarmWorldProbe
   passed 907 across both layouts, and `tools_check.py` reports 0 errors and
-  208 warnings. The full 30-probe smoke suite was not rerun for this focused
-  transaction extraction.
+  208 warnings. After this end-to-end coverage was added,
+  `./tests/run_smoke.sh` passed all 30 probes with 0 skipped on `main`.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
