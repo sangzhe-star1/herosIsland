@@ -568,10 +568,10 @@ These are yours to make. Nothing below has been changed without asking.
   and 208 warnings.
 - **Latest remote plan check (10 October):** fetched
   `origin/claude/stoic-bell-a41pfu` at `69892a9` and `origin/main` at
-  `6e34b19`; the bare-hand boundary was subsequently pushed as `afea575`.
-  At that point, the feature branch was an ancestor and `main` had 60 commits
-  beyond it; the planned merge was already complete. The previous note naming
-  `9f74ede` and 47 later commits records an earlier check, not the current tip.
+  `b71cc6c`. The feature branch is an ancestor of `main`, which has 62 commits
+  beyond it; the planned merge is complete and there are no feature-only
+  commits to integrate. The earlier notes with 47 and 60 later commits record
+  prior fetches, not the current tip.
 - **Harvest-progress boundary (10 October):** the claimed receipt now gates
   XP, daily harvest progress, recipe unlocks, and the first-market hint in
   `farm_harvest_progress_controller.gd`. It mutates the live save in memory;
@@ -587,6 +587,16 @@ These are yours to make. Nothing below has been changed without asking.
   both probability thresholds, full-daily doubling, and the lesson crop/bed
   exceptions. GardenProbe passed 1,158 checks; GardenTouchProbe passed 1,959
   at 16:9 and 4:3; `tools_check.py` reports 0 errors and 208 warnings.
+- **Farm-arrival save boundary (10 October):** `farm_arrival_settlement_controller.gd`
+  now owns offline growth, morning dew, daily rollover, scheduled bear return,
+  and the actual arrival stamp as one save transaction. `garden_screen.gd` keeps
+  the sound and world presentation. The probe proves the prior main file becomes
+  the backup after one write and that growth, dew, daily state, friendship, and
+  visit time all reach the new main file together. GardenProbe passed 1,168;
+  the full suite passed 30/30 before the final scheduled-visit assertion was
+  added, and that strengthened GardenProbe passed separately. GardenTouchProbe
+  passed 1,959, FarmWorldProbe 858, HarvestTouchProbe 1,959, and
+  `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
@@ -613,9 +623,10 @@ These are yours to make. Nothing below has been changed without asking.
   whether fetch or farming holds attention longer. Record the real old-save
   migration result with the [play-test sheet](docs/GARDEN_PLAYTEST_SHEET.md)
   and [isolated save audit](docs/SAVE_MIGRATION_AUDIT.md), and replace generated
-  voice lines when a recording is ready. Repository cleanup remains open
-  because the listed scratch files, third-party skill bundle, and merge
-  remnants need your keep/delete decision.
+  voice lines when a recording is ready. Repository cleanup is complete:
+  reusable Blender generators are under `tools/art/`, disposable `scratch/`
+  scripts were removed, project skills remain under `.agents/skills/`, and no
+  `.ours`/`.theirs` conflict remnants are present.
 
 ---
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 农场到访状态收进单次保存事务 — 10 October 2026
+
+- 新增 `farm_arrival_settlement_controller.gd`，统一结算离线生长、晨露、每日任务轮换、熊回访和实际到访时间；`garden_screen.gd` 只读取结算结果播放反馈，完成一次 `save_game()` 后再构建画面。
+- `GardenProbe` 新增备份轮转断言，并覆盖按时回访的友情值、回访时间与存档落盘；最终通过 1,168 项。全量 smoke（30 passed、0 skipped）通过；随后加强的回访分支也通过独立 GardenProbe。
+- `garden_screen.gd` 从 3,412 行降到 3,390 行；`GardenTouchProbe` 1,959 项、`FarmWorldProbe` 858 项、`HarvestTouchProbe` 1,959 项通过；`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
+
 ## 播种教学与金色作物规则收进上下文控制器 — 10 October 2026
 
 - 新增 `farm_planting_context_controller.gd`，统一解析教学加速与日常照料金色概率；随机数由调用方单次注入，概率边界和“只加速目标胡萝卜、教学期间不抽金苗”可确定性复验。

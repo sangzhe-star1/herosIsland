@@ -40,6 +40,7 @@ const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const PlantingContext := preload("res://scripts/garden/farm_planting_context_controller.gd")
+const ArrivalSettlement := preload("res://scripts/garden/farm_arrival_settlement_controller.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
@@ -75,7 +76,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1116
+const CHECKS_EXPECTED := 1126
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -113,6 +114,7 @@ func _ready() -> void:
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
 	_a_phase_seven_save_gains_later_defaults_without_losing_farm_state()
+	_farm_arrival_settlement_commits_one_complete_visit()
 	# --- stage two: growing ---
 	_a_carrot_goes_through_five_stages()
 	_it_grows_while_he_is_playing_a_level()
@@ -558,6 +560,73 @@ func _a_phase_seven_save_gains_later_defaults_without_losing_farm_state() -> voi
 	_ok(int(SaveManager.data.get("save_version", 0))
 			== SaveManager.FARM_SAVE_VERSION,
 		"the old save retains the farm-version boundary")
+
+
+## Farm entry must write the complete arrival once: the old main file becomes
+## the backup, while growth, dew, daily rollover, and visit stamps land together.
+func _farm_arrival_settlement_commits_one_complete_visit() -> void:
+	const ARRIVAL := 1_791_360_000 # 2026-10-07, 08:00
+	GameClock.set_test_now(ARRIVAL, 0)
+	SaveManager.data = SaveManager._default_data()
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["last_seen_at"] = ARRIVAL - 3600
+	farm["clock_high_water"] = ARRIVAL - 3600
+	farm["last_dew_date"] = ""
+	farm["dailies"] = {"date": "2026-10-06", "progress": {"water": 2},
+		"claimed": ["water"]}
+	var friendship: Dictionary = farm.get("npc_friendship", {})
+	friendship["bear"] = 1
+	farm["npc_friendship"] = friendship
+	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
+	npc["bear"]["last_visit_at"] = ARRIVAL - NpcFarm.visit_period()
+	farm["npc"] = npc
+	var plot: Dictionary = farm["plots"][0]
+	plot["state"] = Farm.GROWING
+	plot["crop_id"] = "carrot"
+	plot["planted_at"] = ARRIVAL - 2400
+	plot["last_updated_at"] = ARRIVAL - 2400
+	plot["water_level"] = 1.0
+	farm["plots"][0] = plot
+	SaveManager.data["farm"] = farm
+	SaveManager.save_game()
+	var before_arrival := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
+
+	var result: Dictionary = ArrivalSettlement.settle()
+	var settled: Dictionary = SaveManager.data["farm"]
+	var date := GameClock.now_date()
+	_ok(bool(result.get("dew", {}).get("applied", false)),
+		"farm entry reports the morning dew in its arrival result")
+	_ok(str(settled.get("last_dew_date", "")) == date,
+		"morning dew is part of the settled farm state")
+	_ok(str(settled.get("dailies", {}).get("date", "")) == date,
+		"the entry transaction rolls yesterday's jobs to today's date")
+	_ok(int(settled.get("last_seen_at", 0)) == ARRIVAL,
+		"offline growth is settled at the arrival time")
+	_ok(int(settled.get("last_farm_visit_at", 0)) == ARRIVAL,
+		"the farm records when the child actually arrived")
+	var visit: Dictionary = result.get("visit", {})
+	_ok(str(visit.get("who", "")) == "bear",
+		"farm entry returns the bear's scheduled visit")
+	_ok(int(settled.get("npc_friendship", {}).get("bear", 0)) == 2,
+		"the scheduled visit's friendship change joins the arrival")
+	_ok(int(settled.get("npc", {}).get("bear", {}).get("last_visit_at", 0))
+			== ARRIVAL,
+		"the scheduled visit is stamped at the arrival time")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == before_arrival,
+		"all arrival changes are committed by exactly one save")
+	var persisted: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var persisted_farm: Dictionary = persisted.get("farm", {}) \
+		if persisted is Dictionary else {}
+	_ok(persisted is Dictionary
+		and str(persisted_farm.get("last_dew_date", "")) == date
+		and str(persisted_farm.get("dailies", {}).get("date", "")) == date
+		and int(persisted_farm.get("last_farm_visit_at", 0)) == ARRIVAL
+		and int(persisted_farm.get("npc_friendship", {}).get("bear", 0)) == 2
+		and int(persisted_farm.get("npc", {}).get("bear", {})
+				.get("last_visit_at", 0)) == ARRIVAL,
+		"the main save contains the complete arrival transaction")
+	GameClock.clear_test_now()
 
 
 ## Compare values after a JSON save/load without treating an integer written to

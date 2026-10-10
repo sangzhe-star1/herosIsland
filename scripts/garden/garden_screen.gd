@@ -43,10 +43,9 @@ const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
 const PlotAction := preload("res://scripts/garden/farm_plot_action_controller.gd")
 const SeedShop := preload("res://scripts/garden/seed_shop_manager.gd")
 const Market := preload("res://scripts/garden/farm_market_manager.gd")
-const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const Expand := preload("res://scripts/garden/farm_expansion_manager.gd")
-const DayCycle := preload("res://scripts/garden/farm_day_cycle.gd")
+const ArrivalSettlement := preload("res://scripts/garden/farm_arrival_settlement_controller.gd")
 const Pen := preload("res://scripts/garden/farm_pen_manager.gd")
 const Maker := preload("res://scripts/garden/farm_maker_manager.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
@@ -269,30 +268,9 @@ func auto_complete_on_target() -> bool:
 
 
 func setup_level() -> void:
-	# Whatever grew while he was away, before the first thing is drawn. Growth
-	# is worked out from timestamps; this is where it catches up on arrival,
-	# and the garden's quiet clock (GARDEN_TICK) keeps it caught up from here
-	# on -- nothing accumulates frame by frame, the clock is only re-asked.
-	# The arrival save below commits growth together with dew, daily rollover,
-	# and visit bookkeeping; do not rotate the backup once per settlement.
-	SaveManager.settle_farm(false)
-	var dew: Dictionary = DayCycle.check_morning_dew(SaveManager.data.get("farm", {}))
-	# Today's little jobs, rolled against today's date. A list from yesterday
-	# rolls over silently here -- nothing is lost, nothing nags; see
-	# farm_daily_manager.gd for why the date lives inside the claim keys.
-	SaveManager.data["farm"]["dailies"] = Dailies.roll(_farm(),
-		GameClock.now_date())
-	# Did the bear drop by while nobody was here? Worked out the same way
-	# growth is -- from the clock, on arrival -- so a visit can never happen in
-	# front of the child while he stands watching the gate. If it did happen,
-	# the log has a new line and the dog will point at the board.
-	var visit := NpcFarm.maybe_visit(GameClock.now_unix())
-	# When he last actually stood here, as opposed to when growth was last
-	# settled -- which anything that loads the save does, including a level.
-	SaveManager.data["farm"]["last_farm_visit_at"] = GameClock.now_unix()
-	# Written to disk now, entry or not: maybe_visit's own bookkeeping (the
-	# first-friendship stamp) must survive a child who looks in and leaves.
-	SaveManager.save_game()
+	var arrival: Dictionary = ArrivalSettlement.settle()
+	var dew: Dictionary = arrival.get("dew", {})
+	var visit: Dictionary = arrival.get("visit", {})
 	if not visit.is_empty():
 		AudioManager.play_sfx("res://assets/audio/pop.ogg")
 	elif bool(dew.get("applied", false)) and int(dew.get("sparkle_count", dew.get("watered_count", 0))) > 0:
