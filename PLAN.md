@@ -507,6 +507,15 @@ These are yours to make. Nothing below has been changed without asking.
   cannot silently stop running. The full suite passed 30/30 after adding the
   disk-path fixture. This is stronger historical-fixture coverage, but it
   does not replace the actual iPad backup check requested above.
+- **Real-save migration audit is ready:**
+  `python3 tests/audit_garden_save.py --save /absolute/path/to/save_game.json`
+  copies a supplied file into a uniquely named QA project's `user://`, runs
+  the normal load, settlement, save, and reload path, and emits a compact
+  report plus a normalized copy outside the repository. The source file's
+  SHA-256 is checked before and after. A synthetic fixture passed all eight
+  preservation checks and left its input unchanged; farm fields that changed
+  during normalization are explicitly flagged for review. The actual iPad
+  backup still has not been supplied or tested.
 - **Next play-test pass:** on iPad, time the coop (120 seconds), mill (90),
   cow shed (150), and beehive (90); note whether each feels like waiting or
   play. Check whether the visitor and market-day cues are found unaided, and
