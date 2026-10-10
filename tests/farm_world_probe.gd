@@ -60,11 +60,18 @@ func _ready() -> void:
 	ProbeLifecycle.isolate_desktop_pointer(self)
 	var barn_upgrade_only := OS.get_cmdline_user_args().has(
 		"--barn-upgrade-only")
-	print("\n=== %s ===" % ("farm barn upgrade probe" if barn_upgrade_only
-		else "farm world probe"))
-	if barn_upgrade_only:
+	var market_sale_only := OS.get_cmdline_user_args().has(
+		"--market-sale-only")
+	var focused_probe := barn_upgrade_only or market_sale_only
+	var probe_name := "farm barn upgrade probe" if barn_upgrade_only \
+		else "farm market sale probe" if market_sale_only else "farm world probe"
+	print("\n=== %s ===" % probe_name)
+	if focused_probe:
 		for shape in SHAPES:
-			await _run_barn_upgrade_on(shape)
+			if barn_upgrade_only:
+				await _run_barn_upgrade_on(shape)
+			else:
+				await _run_market_sale_on(shape)
 	else:
 		_an_old_npc_save_gains_friend_defaults()
 		_the_layout_is_legal()
@@ -74,7 +81,9 @@ func _ready() -> void:
 			_shape = "%dx%d" % [shape.x, shape.y]
 			await _run_on_a(shape)
 
-	var expected := 17 * SHAPES.size() if barn_upgrade_only else CHECKS_EXPECTED
+	var focused_checks := 17 if barn_upgrade_only else 10
+	var expected := focused_checks * SHAPES.size() if focused_probe \
+		else CHECKS_EXPECTED
 	if _asked < expected:
 		_failures.append("this probe only asked %d questions and expected at "
 			% _asked + "least %d -- a section was skipped in silence" % expected)
@@ -82,6 +91,7 @@ func _ready() -> void:
 		print("FAIL  %s" % failure)
 	print("asked %d questions" % _asked)
 	var label := "FARM BARN UPGRADE PROBE" if barn_upgrade_only \
+		else "FARM MARKET SALE PROBE" if market_sale_only \
 		else "FARM WORLD PROBE"
 	print("%s %s\n" % [label,
 		"PASSED" if _failures.is_empty() else "FAILED"])
@@ -102,6 +112,23 @@ func _run_barn_upgrade_on(window: Vector2i) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await _the_barn_roof_is_bought_once(view)
+	await _close()
+
+
+## Exercise a refused stale sale and the same basket's later successful retry
+## through the market panel's real thumb path, in both tablet shapes.
+func _run_market_sale_on(window: Vector2i) -> void:
+	get_window().size = window
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	_shape = "%dx%d" % [window.x, window.y]
+	print("-- market window %s -> viewport %s" % [str(window), str(view)])
+	_fresh_farm()
+	_open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _the_market_box_sells_the_pile_he_dragged(view)
 	await _close()
 
 
@@ -1662,8 +1689,22 @@ func _the_market_box_sells_the_pile_he_dragged(view: Vector2) -> void:
 	_ok(Barn.count("carrot") == 6,
 		"and nothing has left the barn yet")
 
-	# 卖掉: the one press that makes it real.
+	# Another device can change the shelf after this receipt was drawn. Refuse
+	# without consuming the remaining five carrots or losing the editable pile.
+	var farm: Dictionary = SaveManager.data["farm"]
+	Barn.take("carrot", 1)
+	SaveManager.save_game()
 	var buttons: Dictionary = _garden.get("_panel_buttons")
+	await _tap((buttons["sell"] as Button).position + Vector2(90, 31))
+	_ok(Coins.balance() == 0 and Barn.count("carrot") == 5,
+		"a stale receipt refuses before taking the crops that remain")
+	var pending: Dictionary = _garden.get("_market_sell")
+	_ok(int(pending.get("carrot", 0)) == 6
+		and int(farm.get("sale_receipt_id", 0)) == 0
+		and (farm.get("paid_sales", []) as Array).is_empty(),
+		"the refused sale stays editable and does not spend its receipt id")
+	Barn.put("carrot", 1)
+	buttons = _garden.get("_panel_buttons")
 	await _tap((buttons["sell"] as Button).position + Vector2(90, 31))
 	_ok(Coins.balance() == worth, "selling pays exactly the shown total")
 	_ok(Barn.count("carrot") == 0, "and the carrots leave the barn")
