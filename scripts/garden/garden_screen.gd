@@ -81,6 +81,7 @@ const FarmUndoPanel := preload("res://scripts/garden/panels/farm_undo_panel.gd")
 const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_panel.gd")
 const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
 const FarmLessonView := preload("res://scripts/garden/farm_lesson_view.gd")
+const FarmProgressNoticeView := preload("res://scripts/garden/farm_progress_notice_view.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -2049,135 +2050,18 @@ func _point_at_market() -> void:
 ## Nothing to dismiss, nothing modal: the harvest that earned it is still
 ## mid-celebration and this must not interrupt that.
 func _recipe_learned_card(recipe: Dictionary) -> void:
-	var view: Vector2 = get_viewport_rect().size
-	var wide := 520.0
-	var card := Panel.new()
-	card.add_theme_stylebox_override("panel",
-		UiKit.panel_style(Color(1.0, 0.99, 0.95, 0.98), 22))
-	card.position = Vector2((view.x - wide) * 0.5, 96.0)
-	card.custom_minimum_size = Vector2(wide, 116.0)
-	card.size = Vector2(wide, 116.0)
-	card.z_index = 30
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Collection feedback survives the bed/barn redraw that earned it.
-	_harvest_feedback_layer().add_child(card)
-	var face := UiKit.picture("teddy", 72.0)
-	if face != null:
-		face.position = Vector2(20.0, 22.0)
-		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(face)
-	var said := UiKit.title(I18n.t("garden.recipe_learned"), UiKit.TYPE_CAPTION,
-		Color(0.52, 0.48, 0.40))
-	said.position = Vector2(108.0, 18.0)
-	said.size = Vector2(wide - 130.0, 26.0)
-	said.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	card.add_child(said)
-	var dish := UiKit.title(I18n.t(str(recipe.get("name_key", ""))), UiKit.TYPE_BODY)
-	dish.position = Vector2(108.0, 46.0)
-	dish.size = Vector2(wide - 130.0, 34.0)
-	dish.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	card.add_child(dish)
-	var x := 108.0
-	for need in recipe.get("needs", []):
-		var art := UiKit.picture(
-			str(GameData.get_crop(str(need.get("crop_id", ""))).get("icon", "seed")), 26.0)
-		if art != null:
-			art.position = Vector2(x, 82.0)
-			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.add_child(art)
-		x += 34.0
-	AudioManager.play_sfx("res://assets/audio/correct.ogg")
-	Juice.pop(card, 0.14)
-	var t := card.create_tween()
-	t.tween_interval(2.6)
-	t.tween_property(card, "modulate:a", 0.0, 0.4)
-	t.tween_callback(card.queue_free)
+	FarmProgressNoticeView.new(self).recipe_learned(recipe,
+		_harvest_feedback_layer(), get_viewport_rect().size)
 
 
 func _show_master_farmer_celebration() -> void:
-	var layer := _harvest_feedback_layer()
-	var old := layer.get_node_or_null("MasterCelebration")
-	if old != null:
-		old.name = "ExpiredMasterCelebration"
-		old.queue_free()
-	var card := Panel.new()
-	card.name = "MasterCelebration"
-	card.add_theme_stylebox_override("panel", UiKit.panel_style(
-		Color(1.0, 0.97, 0.82, 0.98), 20))
-	var wide := 480.0
-	var tall := 90.0
-	var view: Vector2 = get_viewport_rect().size
-	card.position = Vector2((view.x - wide) * 0.5, 96.0)
-	card.custom_minimum_size = Vector2(wide, tall)
-	card.size = Vector2(wide, tall)
-	card.z_index = 32
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(card)
-	var crown := UiKit.picture("crown", 48.0)
-	if crown != null:
-		crown.position = Vector2(16.0, 21.0)
-		crown.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(crown)
-	var title := UiKit.title(I18n.t("farm.level_8_title"), 22, Color(0.68, 0.42, 0.10))
-	title.position = Vector2(78.0, 12.0)
-	title.size = Vector2(wide - 92.0, 24.0)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	card.add_child(title)
-	var desc := UiKit.title(I18n.t("farm.level_8_desc"), 16, Color(0.42, 0.36, 0.25))
-	desc.position = Vector2(78.0, 38.0)
-	desc.size = Vector2(wide - 92.0, 20.0)
-	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	card.add_child(desc)
-	var reward_lbl := UiKit.title(I18n.t("farm.level_8_reward"), 14, Color(0.56, 0.46, 0.22))
-	reward_lbl.position = Vector2(78.0, 60.0)
-	reward_lbl.size = Vector2(wide - 92.0, 18.0)
-	reward_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	card.add_child(reward_lbl)
-	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
-	Juice.pop(card, 0.14)
-	if Juice.motion_enabled():
-		Juice.burst(layer, Vector2(view.x * 0.5, 140.0), 16)
-	var t := card.create_tween()
-	t.tween_interval(3.6)
-	t.tween_property(card, "modulate:a", 0.0, 0.45)
-	t.tween_callback(card.queue_free)
+	FarmProgressNoticeView.new(self).master_farmer(
+		_harvest_feedback_layer(), get_viewport_rect().size)
 
 
 func _show_toast_message(text: String, icon_name: String = "") -> void:
-	var layer := _harvest_feedback_layer()
-	var old := layer.get_node_or_null("ToastBanner")
-	if old != null:
-		old.name = "ExpiredToastBanner"
-		old.queue_free()
-	var card := Panel.new()
-	card.name = "ToastBanner"
-	card.add_theme_stylebox_override("panel", UiKit.panel_style(
-		Color(1.0, 0.98, 0.89, 0.98), 20))
-	var wide := 500.0
-	card.position = Vector2((get_viewport_rect().size.x - wide) * 0.5, TOP_BAR + 14.0)
-	card.size = Vector2(wide, 64.0)
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(card)
-	var x_offset := 16.0
-	if icon_name != "":
-		var art := UiKit.picture(icon_name, 40.0)
-		if art != null:
-			art.position = Vector2(14.0, 12.0)
-			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			card.add_child(art)
-			x_offset = 64.0
-	var words := UiKit.title(text, 17, Color(0.34, 0.31, 0.23))
-	words.position = Vector2(x_offset, 10.0)
-	words.size = Vector2(wide - x_offset - 16.0, 44.0)
-	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(words)
-	Juice.pop(card, 0.05)
-	var lifetime := card.create_tween()
-	lifetime.tween_interval(2.8)
-	lifetime.tween_property(card, "modulate:a", 0.0, 0.35)
-	lifetime.tween_callback(card.queue_free)
+	FarmProgressNoticeView.new(self).toast(_harvest_feedback_layer(),
+		get_viewport_rect().size, TOP_BAR, text, icon_name)
 
 
 ## 小熊的菜谱本：一页六道菜，多了翻页。会做的亮着、配料和名字都在；还不

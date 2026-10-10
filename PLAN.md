@@ -269,7 +269,9 @@ These are yours to make. Nothing below has been changed without asking.
    Teaching fingers, hint highlights, and the break card now live in
    `scripts/garden/farm_lesson_view.gd`; the screen keeps lesson state, voice,
    timing, completion saves, hint choices, and the shovel action.
-   `garden_screen.gd` is 2,578 lines.
+   Recipe-learned cards, the level-eight celebration, and short toast banners
+   now live in `scripts/garden/farm_progress_notice_view.gd`; screen call sites
+   still decide when each notice is earned. `garden_screen.gd` is 2,462 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -724,6 +726,13 @@ These are yours to make. Nothing below has been changed without asking.
   and 16px. `garden_screen.gd` is 2,578 lines; `tools_check.py` reports 0 errors
   and 208 warnings. The full smoke suite was not rerun for this presentation
   extraction.
+- **Progress-notice presentation boundary (10 October):** recipe-learned cards,
+  the level-eight celebration, and transient toast banners now draw through
+  `FarmProgressNoticeView`; award thresholds and when a notice is earned stay
+  with `garden_screen.gd`. GardenProbe passed 1,173 checks and GardenTouchProbe
+  passed 1,993 across 16:9 and 4:3. `tools_check.py` reports 0 errors and 208
+  warnings; the full smoke suite was not rerun for this presentation extraction.
+  `garden_screen.gd` is 2,462 lines.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated
   `user://save_game.json`, then runs the normal `load_game()` settlement,
