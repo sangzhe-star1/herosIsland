@@ -2214,48 +2214,6 @@ func _shop_panel(view: Vector2) -> void:
 	FarmShopPanel.new(self).build(view)
 
 
-## The confirm card: the crop, the price, and two honest buttons. Drawn on top
-## of the shop's rows, inside the same sheet, so the blocker already covers it.
-func _confirm_card(view: Vector2, origin: Vector2, wide: float) -> void:
-	var crop: Dictionary = GameData.get_crop(_confirm_crop)
-	var card := Panel.new()
-	card.add_theme_stylebox_override("panel",
-		UiKit.panel_style(Color(1.0, 0.99, 0.94), 24))
-	card.position = Vector2(origin.x + wide * 0.5 - 220.0, origin.y + 110.0)
-	card.custom_minimum_size = Vector2(440, 210)
-	card.size = Vector2(440, 210)
-	_play.add_child(card)
-
-	var art := UiKit.picture(str(crop.get("icon", "seed")), 64.0)
-	if art != null:
-		art.position = card.position + Vector2(56, 36)
-		_play.add_child(art)
-	var coin := UiKit.picture("star_coin", 40.0)
-	if coin != null:
-		coin.position = card.position + Vector2(170, 48)
-		_play.add_child(coin)
-	var price_tag := UiKit.title(str(SeedShop.price_of(_confirm_crop)), 38)
-	price_tag.position = card.position + Vector2(220, 46)
-	price_tag.size = Vector2(120, 46)
-	_play.add_child(price_tag)
-
-	var yes := _chip_button(I18n.t("garden.buy"),
-		Color(0.72, 0.88, 0.60), Vector2(160, 60))
-	yes.position = card.position + Vector2(44, 124)
-	yes.pressed.connect(_buy_confirmed)
-	_play.add_child(yes)
-	_panel_buttons["confirm_buy"] = yes
-
-	var no := _chip_button(I18n.t("garden.cancel"),
-		Color(0.78, 0.86, 0.97), Vector2(160, 60))
-	no.position = card.position + Vector2(236, 124)
-	no.pressed.connect(func():
-		_confirm_crop = ""
-		_queue_rebuild())
-	_play.add_child(no)
-	_panel_buttons["cancel_buy"] = no
-
-
 func _buy_confirmed() -> void:
 	var crop_id := _confirm_crop
 	_confirm_crop = ""

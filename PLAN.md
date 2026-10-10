@@ -252,7 +252,9 @@ These are yours to make. Nothing below has been changed without asking.
    geometry instead of carrying a second copy. The remaining shared sheet,
    close-button, pager, and chip-button builders now have one implementation
    in `farm_panel_base.gd`; the screen retains thin adapters for extracted
-   panels that still call its public seams. `garden_screen.gd` is 3,045 lines.
+   panels that still call its public seams. The seed purchase confirmation now
+   belongs to `FarmShopPanel`; the screen keeps the purchase transaction and
+   undo receipt. `garden_screen.gd` is 3,003 lines.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -658,6 +660,12 @@ These are yours to make. Nothing below has been changed without asking.
   its existing panel-facing methods now delegate to `farm_panel_base.gd`.
   This removes 97 net lines while preserving panel call seams. GardenTouchProbe
   passed 1,989 checks across 16:9 and 4:3, FarmWorldProbe passed 885, and
+  `tools_check.py` reports 0 errors and 208 warnings.
+- **Seed purchase panel boundary (10 October):** `FarmShopPanel` now draws its
+  own confirmation card and cancel/buy controls; the screen still owns the
+  actual `SeedShop.buy()` transaction and undo receipt. GardenTouchProbe used
+  the real buttons to prove cancel leaves coins and seeds unchanged, then buy
+  enters the existing undo flow. It passed 1,993 checks across 16:9 and 4:3;
   `tools_check.py` reports 0 errors and 208 warnings.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact
   farm-key set present in historical commit `25ecd52`, writes it into isolated

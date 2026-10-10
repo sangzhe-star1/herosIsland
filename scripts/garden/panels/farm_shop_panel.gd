@@ -94,7 +94,7 @@ func build(view: Vector2) -> void:
 				owned_tag.size = Vector2(90, 28)
 				play.add_child(owned_tag)
 			"buyable":
-				var buy: Button = screen.call("_chip_button", I18n.t("garden.buy"),
+				var buy: Button = chip_button(I18n.t("garden.buy"),
 					Color(0.72, 0.88, 0.60), Vector2(150, 48))
 				buy.position = Vector2(origin.x + wide - 214.0, y - 4.0)
 				var this_crop := crop_id
@@ -114,4 +114,46 @@ func build(view: Vector2) -> void:
 
 	var confirm_crop: String = str(screen.get("_confirm_crop"))
 	if confirm_crop != "":
-		screen.call("_confirm_card", view, origin, wide)
+		_confirm_card(origin, wide, confirm_crop)
+
+
+func _confirm_card(origin: Vector2, wide: float, crop_id: String) -> void:
+	var crop: Dictionary = GameData.get_crop(crop_id)
+	var card := Panel.new()
+	card.name = "SeedPurchaseCard"
+	card.add_theme_stylebox_override("panel",
+		UiKit.panel_style(Color(1.0, 0.99, 0.94), 24))
+	card.position = Vector2(origin.x + wide * 0.5 - 220.0, origin.y + 110.0)
+	card.custom_minimum_size = Vector2(440.0, 210.0)
+	card.size = Vector2(440.0, 210.0)
+	play.add_child(card)
+
+	var art := UiKit.picture(str(crop.get("icon", "seed")), 64.0)
+	if art != null:
+		art.position = card.position + Vector2(56.0, 36.0)
+		play.add_child(art)
+	var coin := UiKit.picture("star_coin", 40.0)
+	if coin != null:
+		coin.position = card.position + Vector2(170.0, 48.0)
+		play.add_child(coin)
+	var price_tag := UiKit.title(str(SeedShop.price_of(crop_id)), 38)
+	price_tag.position = card.position + Vector2(220.0, 46.0)
+	price_tag.size = Vector2(120.0, 46.0)
+	play.add_child(price_tag)
+
+	var yes := chip_button(I18n.t("garden.buy"),
+		Color(0.72, 0.88, 0.60), Vector2(160.0, 60.0))
+	yes.position = card.position + Vector2(44.0, 124.0)
+	yes.pressed.connect(func(): screen.call("_buy_confirmed"))
+	play.add_child(yes)
+	var panel_buttons: Dictionary = screen.get("_panel_buttons")
+	panel_buttons["confirm_buy"] = yes
+
+	var no := chip_button(I18n.t("garden.cancel"),
+		Color(0.78, 0.86, 0.97), Vector2(160.0, 60.0))
+	no.position = card.position + Vector2(236.0, 124.0)
+	no.pressed.connect(func():
+		screen.set("_confirm_crop", "")
+		screen.call("_queue_rebuild"))
+	play.add_child(no)
+	panel_buttons["cancel_buy"] = no

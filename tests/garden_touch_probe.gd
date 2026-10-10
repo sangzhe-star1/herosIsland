@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1941
+const CHECKS_EXPECTED := 1945
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -401,8 +401,8 @@ func _fresh_garden() -> void:
 	SaveManager.data["farm"]["last_seen_at"] = NOON
 
 
-## The refund controller is called by a real button assembled by GardenScreen;
-## exercise the purchase and tap through that seam at both tablet shapes.
+## The shop panel's real confirm and cancel buttons drive the purchase and
+## regret window at both tablet shapes.
 func _undo_button_returns_a_seed_on_the_live_screen() -> void:
 	_fresh_garden()
 	SaveManager.data["rewards"]["coins"] = 100
@@ -412,8 +412,36 @@ func _undo_button_returns_a_seed_on_the_live_screen() -> void:
 	for frame in range(3):
 		await get_tree().process_frame
 
+	_garden.call("_open_panel", "shop")
+	for frame in range(3):
+		await get_tree().process_frame
 	_garden.set("_confirm_crop", "potato")
-	_garden.call("_buy_confirmed")
+	_garden.call("_queue_rebuild")
+	for frame in range(3):
+		await get_tree().process_frame
+	var confirm_buttons: Dictionary = _garden.get("_panel_buttons")
+	var cancel_buy := confirm_buttons.get("cancel_buy") as Button
+	_ok(_find_named(_garden, "SeedPurchaseCard") is Panel
+			and confirm_buttons.get("confirm_buy") is Button
+			and cancel_buy is Button,
+		"the shop panel draws its purchase choice above the seed catalogue")
+	if cancel_buy != null:
+		await _tap(cancel_buy.get_global_rect().get_center())
+	for frame in range(3):
+		await get_tree().process_frame
+	_ok(str(_garden.get("_confirm_crop")) == ""
+			and "potato" not in SaveManager.data["farm"].get("unlocked_crops", [])
+			and Coins.balance() == 100,
+		"cancel closes the shop choice without taking coins or unlocking a seed")
+
+	_garden.set("_confirm_crop", "potato")
+	_garden.call("_queue_rebuild")
+	for frame in range(3):
+		await get_tree().process_frame
+	confirm_buttons = _garden.get("_panel_buttons")
+	var buy_seed := confirm_buttons.get("confirm_buy") as Button
+	if buy_seed != null:
+		await _tap(buy_seed.get_global_rect().get_center())
 	for frame in range(3):
 		await get_tree().process_frame
 	var undo_buttons: Dictionary = _garden.get("_panel_buttons")
