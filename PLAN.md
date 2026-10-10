@@ -204,13 +204,20 @@ These are yours to make. Nothing below has been changed without asking.
 
 ## Current follow-through — 10 October 2026
 
-- **Ready for review:** branch `claude/stoic-bell-a41pfu` is pushed through
-  `271c28b`; PR [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is
-  open against `main`. The current PR page shows no reviews or automated
-  checks. Three full-suite attempts stopped at different GUI probes (one
-  intermittent HarvestTouch assertion, one FarmWorld timeout, and one
-  GardenTouch input cascade), so I left the merge pending review and a clean
-  full-suite run. Each affected probe passed when run alone.
+- **Ready for review:** branch `claude/stoic-bell-a41pfu` includes the pushed
+  save-merge fix `b597418`; with this plan update it is 44 commits ahead of
+  `main`. PR
+  [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is open against
+  `main`. The PR has no reviews or automated checks, and `main` remains at
+  `deb168e` while this branch is 44 commits ahead.
+- **Integration verification:** `./tests/run_smoke.sh` finished cleanly with
+  30 passed and 0 skipped. During the first full run, GardenProbe exposed a
+  real save-merge bug: only the bear has `last_visit_at`, but the merge read
+  that key from every NPC. The merge now checks the NPC schema before taking
+  the timestamp high-water mark; GardenProbe's two-device case and the full
+  suite both pass. One earlier HarvestTouch tap assertion did not reproduce
+  in the subsequent clean runs. Failure-only gesture snapshots now make both
+  touch probes leave the relevant input state in their logs if it recurs.
 - **Completed locally:** rabbit and puppy friend farms; the plot gesture
   controller; repository cleanup. Blender source generators now live under
   `tools/art/`. Disposable screenshot/debug scripts and duplicate scene
@@ -223,7 +230,8 @@ These are yours to make. Nothing below has been changed without asking.
   in `docs/VOICE_SCRIPT.md` on the Mac.
 - **Latest local verification:** GardenTouchProbe passed 1,862 checks,
   FarmWorldProbe 781, and HarvestTouchProbe 2,314 across 16:9 and 4:3;
-  `tools_check.py` reports 0 errors and 208 warnings.
+  the complete suite reports 30 passed and 0 skipped; `tools_check.py`
+  reports 0 errors and 208 warnings.
 
 ---
 
