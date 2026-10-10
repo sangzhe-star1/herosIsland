@@ -1,6 +1,6 @@
 # Little Heroes Growth Island — development plan
 
-First written 22 July 2026. Status brought up to date 25 September 2026.
+First written 22 July 2026. Status brought up to date 10 October 2026.
 Living document; revise as reality intervenes.
 
 ---
@@ -85,7 +85,7 @@ the house, replace any licensed character likeness with an original hero.
 
 ---
 
-## Phase 7 — The farm as a place — **begun 4 October**
+## Phase 7 — The farm as a place — **complete 10 October**
 
 The whole world layer is one rendered toy set, placed by data, with a
 little life of its own (sails, duck, hens, butterflies). The first new loop
@@ -102,10 +102,15 @@ you, story orders ahead of the rotating ones, harvest levels 11 to 16 with
 a level picker, a compact HUD and warehouse, trowel and watering-can toys,
 and the mouse/touch mirror-event fix. The 7 October commit also put real
 3D scenes behind nine minigames, the home diorama and the bear's meadow,
-added 48 rendered icons, 120 shop items and three new battle moves, and
-reports the full suite green (38 probes, 496 smoke checks).
+added 48 rendered icons, 120 shop items and three new battle moves. On 8
+October the farm reached level 8 with its feast, badge, golden scarecrow and
+daily wishing well. On 10 October the rabbit and puppy each gained a data-led
+friend farm, and the plot gesture judge moved behind its own tested
+controller. The actual farm loops are built; iPad pacing, a real old-save
+migration, and replacing generated voice with a human recording remain
+play-test work.
 
-## Phase 8 — More to do on the farm — **candidates, 7 October**
+## Phase 8 — More to do on the farm — **candidates 0–7 complete 7 October**
 
 Where the farm stands after Phase 7 and the two local commits: fourteen
 crops, twenty-two orders (six of them friend quests), fourteen recipes,
@@ -151,11 +156,13 @@ These are yours to make. Nothing below has been changed without asking.
 2. **The battle track is a third of the game.** `monster_duel` runs 21 of the
    59 levels. That is fine if it is what he returns to. If it is not, it is
    the first place to cut.
-3. **`scripts/garden/garden_screen.gd` is now 4,700 lines.** A split into a
-   panels layer was built on 25 September and dropped on 4 October, because
-   the file had grown by 1,500 lines of garden features in between and the two
-   could not be merged. Split it on the current file, before the next garden
-   feature, by the same recipe: the sheets as a base class, one stub seam.
+3. **`scripts/garden/garden_screen.gd` still carries too many jobs.** The
+   panel layer was rebuilt on the current branch and completed on 7 October.
+   On 10 October, the plot gesture table, eligibility check, and verdict were
+   extracted to `scripts/garden/plot_gesture_controller.gd`; the screen still
+   owns plot mutations, tool strokes, and their visual side effects. Continue
+   with one cohesive boundary at a time, with the touch probe guarding both
+   16:9 and 4:3 behavior.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -194,6 +201,25 @@ These are yours to make. Nothing below has been changed without asking.
    every save and never read. `FARM_SAVE_VERSION` is the one migrations use.
    Folding them into one is a small change, but it touches every existing save,
    so it wants a test on a real old save first.
+
+## Current follow-through — 10 October 2026
+
+- **Ready for review:** branch `claude/stoic-bell-a41pfu` is pushed through
+  `defc45b`; PR [#1](https://github.com/sangzhe-star1/herosIsland/pull/1) is
+  open against `main`. The current PR page shows no reviews or automated
+  checks, so the merge remains a review step.
+- **Completed locally:** rabbit and puppy friend farms; the plot gesture
+  controller; repository cleanup. Blender source generators now live under
+  `tools/art/`. Disposable screenshot/debug scripts and duplicate scene
+  builders were removed. The relevant project skills remain in
+  `.agents/skills/`, and no `.ours`/`.theirs` conflict residue was present.
+- **Needs the player's device/save:** test hen and mill timers, cloud discovery,
+  dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
+  genuine older iPad save before changing save-version fields.
+- **Needs a human recording session:** record the remaining farm lines listed
+  in `docs/VOICE_SCRIPT.md` on the Mac.
+- **Latest local verification:** GardenTouchProbe passed 1,862 checks across
+  16:9 and 4:3; `tools_check.py` reports 0 errors and 208 warnings.
 
 ---
 

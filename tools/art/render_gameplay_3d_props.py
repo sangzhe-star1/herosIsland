@@ -1,8 +1,10 @@
 import bpy
 import math
 import os
+from pathlib import Path
 
-OUT_DIR = "/opt/heroesIsland/assets/props_3d"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OUT_DIR = PROJECT_ROOT / "assets/props_3d"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 def reset_scene(cam_loc=(0.0, -3.2, 2.2), target_loc=(0.0, 0.0, 0.0)):

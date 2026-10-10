@@ -1,5 +1,21 @@
 # Changelog
 
+## Plot gesture controller and repository cleanup — 10 October 2026
+
+- Extracted the plot care/harvest gesture rules, eligibility check, and
+  verdict from `garden_screen.gd` into `plot_gesture_controller.gd`. The screen
+  keeps save, camera, animation, and sound side effects; both paths still use
+  the harvest catalogue and shared gesture recognisers.
+- Added direct rule checks plus real mouse/touch coverage for care, harvest,
+  camera-pan fallback, locked harvest beds, and unripe beds. GardenTouchProbe
+  passed 1,862 checks at 16:9 and 4:3.
+- Moved the three procedural Blender asset generators to `tools/art/` and
+  changed output paths to be checkout-relative. Removed one-off screenshot,
+  debug, obsolete probe-runner, and superseded scene-generator files from
+  `scratch/`; kept the generators that still reproduce shipped asset families.
+- `tools_check.py`: 0 errors, 208 warnings. Branch head `defc45b`; PR #1
+  remains open for review.
+
 ## 农场 8 级终极里程碑与星光大农夫庆典 — 8 October 2026
 
 农场等级攀至梯顶 8 级（560 XP）正式完整落地，串联全套农场设施产出、大宴席料理、终极成就徽章、世界互动与每日许愿泉觉醒：
@@ -77,7 +93,7 @@ PLAN.md 第 8 阶段那张表上，0 到 7 的 Done 保留。两个留下的决�
   最后一节只跑三招、不到 1.6 秒就退出了；这次多了飞踢和重砸两招，节拍刚好
   跨过去。改成挂在小怪自己身上的 Tween（`bind_node`，和泥球同一个理由），
   小怪一走它跟着停。`goo.gd` 的连发间隔是同一个写法，顺手改成竞技场自己的
-  Tween。在 `scratch/run_all_probes.py` 的 5 个探针里没有这一只，所以本地那
+  Tween。早期临时 runner 只覆盖 5 个探针，没有这一只，所以本地那
   边看不到。
 
 - **GardenTouchProbe 在整套里 240 秒超时。** 本地提交把它从 1230 问加到了

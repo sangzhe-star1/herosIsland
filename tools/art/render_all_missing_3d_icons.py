@@ -1,8 +1,10 @@
 import bpy
 import math
 import os
+from pathlib import Path
 
-OUT_DIR = "/opt/heroesIsland/assets/icons/3d"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OUT_DIR = PROJECT_ROOT / "assets/icons/3d"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 def srgb_to_lin(c):

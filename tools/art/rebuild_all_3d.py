@@ -1,6 +1,9 @@
 import bpy
 import math
 import os
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 def srgb_to_lin(c):
     return tuple(max(0.0, min(1.0, float(x))) ** 2.2 for x in c)
@@ -35,7 +38,7 @@ def clear_scene():
 # =========================================================================
 def build_duel_arena():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/duel_arena.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/duel_arena.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_stone = create_mat("ArenaStone", (0.42, 0.38, 0.32), roughness=0.85)
@@ -141,7 +144,7 @@ def build_duel_arena():
 # =========================================================================
 def build_harvest_meadow():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/harvest_meadow.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/harvest_meadow.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_grass = create_mat("MeadowGrass", (0.28, 0.42, 0.22), roughness=0.85)
@@ -390,7 +393,7 @@ def build_harvest_meadow():
 # =========================================================================
 def build_traffic_street():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/traffic_street.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/traffic_street.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_asphalt = create_mat("RoadAsphalt", (0.24, 0.26, 0.30), roughness=0.85)
@@ -593,7 +596,7 @@ def build_traffic_street():
 # =========================================================================
 def build_workshop():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/build_workshop.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/build_workshop.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_table = create_mat("WorkbenchOak", (0.55, 0.40, 0.26), roughness=0.55)
@@ -716,7 +719,7 @@ def build_workshop():
 # =========================================================================
 def build_toy_room():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/toy_room_study.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/toy_room_study.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_table_wood = create_mat("TableWood", (0.76, 0.62, 0.48), roughness=0.45)
@@ -812,7 +815,7 @@ def build_toy_room():
 # =========================================================================
 def build_platformer_course():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/platformer_course.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/platformer_course.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_grass = create_mat("GrassTop", (0.26, 0.40, 0.22), roughness=0.88)
@@ -912,7 +915,7 @@ def build_platformer_course():
 # =========================================================================
 def build_puzzle_chamber():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/puzzle_chamber.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/puzzle_chamber.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_wall = create_mat("ChamberWall", (0.28, 0.32, 0.38), roughness=0.75)
@@ -1001,7 +1004,7 @@ def build_puzzle_chamber():
 # =========================================================================
 def build_park_observatory():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/park_observatory.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/park_observatory.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_grass = create_mat("ParkGrass", (0.28, 0.44, 0.24), roughness=0.85)
@@ -1106,7 +1109,7 @@ def build_park_observatory():
 # =========================================================================
 def build_defense_fortress():
     clear_scene()
-    out_path = "/opt/heroesIsland/assets/scenes_3d/defense_fortress.glb"
+    out_path = str(PROJECT_ROOT / "assets/scenes_3d/defense_fortress.glb")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     mat_wall = create_mat("FortressWall", (0.44, 0.46, 0.50), roughness=0.70)
