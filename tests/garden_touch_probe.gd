@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1913
+const CHECKS_EXPECTED := 1931
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -134,6 +134,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _harvest_levels_can_be_chosen_and_replayed(view)
 	await _inventory_keeps_its_rendered_food_and_readable_slots(view)
 	await _touch_and_mouse_keep_their_own_gestures()
+	await _brush_selection_stays_fixed_until_lift()
 	await _undo_button_returns_a_seed_on_the_live_screen()
 	await _the_wishing_well_pays_once_per_day()
 
@@ -5254,9 +5255,124 @@ func _touch_and_mouse_keep_their_own_gestures() -> void:
 	await get_tree().process_frame
 
 
-func _source_touch(at: Vector2, pressed: bool) -> void:
+## A toolbar tap from a second finger must not retarget the brush under the
+## first. Prove the same real controls work while idle, then attempt both a
+## tool change and a seed change while a shovel stroke is held.
+func _brush_selection_stays_fixed_until_lift() -> void:
+	var saved := SaveManager.data.duplicate(true)
+	var controller: RefCounted = _garden.get("_tools")
+	var saved_tool := str(controller.get("selected"))
+	var saved_seed := str(controller.get("seed_crop"))
+	var saved_expanded := bool(_garden.get("_tool_rack_expanded"))
+	var saved_lesson := bool(_garden.get("_lesson_running"))
+	var saved_page := int(_garden.get("_rack_page"))
+	var world: Node = _garden.get("_world")
+	var saved_centre: Vector2 = _camera().centre
+	var saved_zoom: float = _camera().zoom
+	SaveManager.data["settings"]["reduce_motion"] = true
+	SaveManager.data["farm"]["tutorial_completed"] = true
+	SaveManager.data["farm"]["unlocked_crops"] = ["carrot", "corn"]
+	var plots: Array = []
+	for index in range(_plots().size()):
+		plots.append(Farm.fresh_plot(index))
+	plots[1]["state"] = Farm.NEEDS_CARE
+	plots[1]["care_event"] = Growth.CARE_THIRSTY
+	SaveManager.data["farm"]["plots"] = plots
+	_garden.set("_lesson_running", false)
+	_garden.set("_rack_page", 0)
+	_garden.set("_tool_rack_expanded", false)
+	_garden.call("_close_panels")
+	controller.set("selected", Tools.HAND)
+	controller.set("seed_crop", "carrot")
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var corn_button: Node = _find_named(_garden, "GardenSeed_corn")
+	_ok(corn_button is Control and (corn_button as Control).visible,
+		"the corn choice stays visible while the farm is idle")
+	_garden.call("_choose_seed", "corn")
+	_ok(str(controller.get("selected")) == "seed"
+		and str(controller.get("seed_crop")) == "corn",
+		"the seed-button callback selects its crop while the farm is idle")
+
+	controller.set("selected", Tools.HAND)
+	controller.set("seed_crop", "carrot")
+	_garden.set("_tool_rack_expanded", true)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var water_button: Node = _find_named(_garden, "GardenTool_water")
+	_ok(water_button is Button and (water_button as Button).visible
+		and not (water_button as Button).disabled,
+		"the dry-bed setup exposes an enabled watering tool to the second finger")
+	if water_button is Button:
+		await _tap_touch_index((water_button as Control).get_global_rect().get_center(), 1)
+	_ok(str(controller.get("selected")) == "water",
+		"a second-finger tool tap reaches its live toolbar button while idle")
+
+	controller.set("selected", "shovel")
+	controller.set("seed_crop", "carrot")
+	_garden.set("_tool_rack_expanded", true)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	world.call("go_home")
+	world.set("brush_armed", true)
+	water_button = _find_named(_garden, "GardenTool_water")
+	corn_button = _find_named(_garden, "GardenSeed_corn")
+	var bed_at := _bed(0)
+	await _source_touch(bed_at, true, 0)
+	_ok(world.call("stroking"),
+		"the first finger starts one shovel stroke before the second reaches UI")
+	var water_taps := {"count": 0}
+	if water_button is Button:
+		(water_button as Button).pressed.connect(_increment_count.bind(water_taps))
+		await _tap_touch_index((water_button as Control).get_global_rect().get_center(), 1)
+	_ok(int(water_taps["count"]) == 1,
+		"the second finger really activates the watering button during the stroke")
+	_ok(str(controller.get("selected")) == "shovel",
+		"a second-finger tool tap cannot retarget an active shovel stroke")
+	_garden.call("_choose_seed", "corn")
+	_ok(str(controller.get("selected")) == "shovel"
+		and str(controller.get("seed_crop")) == "carrot",
+		"the seed-button callback cannot change the active brush or its crop")
+	await _source_touch(bed_at, false, 0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(Farm.is_tilled(_plots()[0])
+		and str(_plots()[1].get("care_event", "")) == Growth.CARE_THIRSTY,
+		"lifting commits the original shovel action and leaves the thirsty bed alone")
+
+	SaveManager.data = saved
+	SaveManager.save_game()
+	controller.set("selected", saved_tool)
+	controller.set("seed_crop", saved_seed)
+	_garden.set("_tool_rack_expanded", saved_expanded)
+	_garden.set("_lesson_running", saved_lesson)
+	_garden.set("_rack_page", saved_page)
+	_garden.call("_rebuild")
+	_camera().zoom = saved_zoom
+	_camera().centre = saved_centre
+	world.call("_settle")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _increment_count(counter: Dictionary) -> void:
+	counter["count"] = int(counter.get("count", 0)) + 1
+
+
+func _tap_touch_index(at: Vector2, touch_index: int) -> void:
+	for pressed in [true, false]:
+		await _source_touch(at, pressed, touch_index)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _source_touch(at: Vector2, pressed: bool, touch_index: int = 0) -> void:
 	var event := InputEventScreenTouch.new()
-	event.index = 0
+	event.index = touch_index
 	event.position = _glass(at)
 	event.pressed = pressed
 	Input.parse_input_event(event)
