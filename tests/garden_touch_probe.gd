@@ -39,7 +39,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1931
+const CHECKS_EXPECTED := 1941
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -2731,6 +2731,9 @@ func _the_cloud_waters_the_bed_it_is_dropped_on() -> void:
 	plots[0]["care_event"] = Growth.CARE_THIRSTY
 	plots[0]["plant_cycle_id"] = 8100
 	farm["plots"] = plots
+	farm["dailies"] = {"date": GameClock.now_date(), "progress": {}, "claimed": []}
+	SaveManager.save_game()
+	var before_rain_save := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 	world.set("_cloud_rest_until", 0)
 	_garden.call("_rebuild")
 	await get_tree().process_frame
@@ -2744,11 +2747,22 @@ func _the_cloud_waters_the_bed_it_is_dropped_on() -> void:
 	world.call("look_at_world", Vector2(700.0, 280.0))
 	await get_tree().process_frame
 	var from: Vector2 = camera.call("world_to_screen", cloud.position)
+	# A marker distinguishes a refused drop from a save caused by feedback or
+	# the still-running weather animation.
+	var backup_marker := "cloud-miss-must-not-save"
+	var backup := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	_ok(backup != null, "the cloud path can observe its isolated save")
+	if backup == null:
+		return
+	backup.store_string(backup_marker)
+	backup.close()
 	# Dropped on the grass: back it goes, the bed still thirsty.
 	await _finger(from, camera.call("world_to_screen", Layout.plot_at(0) + Vector2(0.0, 260.0)))
 	_ok(str(_plots()[0].get("care_event", "")) == Growth.CARE_THIRSTY,
 		"let go over nothing, the cloud waters nothing")
 	_ok(world.get_node_or_null("RainCloud") != null, "...and stays")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == backup_marker,
+		"dropping rain on grass does not write a farm transaction")
 	await get_tree().create_timer(0.6).timeout
 	from = camera.call("world_to_screen", (world.get_node("RainCloud") as Node2D).position)
 	await _finger(from, camera.call("world_to_screen", Layout.plot_at(0)))
@@ -2756,9 +2770,31 @@ func _the_cloud_waters_the_bed_it_is_dropped_on() -> void:
 	_ok(str(_plots()[0].get("care_event", "")) != Growth.CARE_THIRSTY
 		and float(_plots()[0].get("water_level", 0.0)) > 0.9,
 		"dropped on the thirsty bed, the cloud rains and the bed drinks")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == before_rain_save,
+		"the cloud's water and care progress rotate the save exactly once")
+	var persisted: Dictionary = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var persisted_farm: Dictionary = persisted.get("farm", {})
+	var persisted_plots: Array = persisted_farm.get("plots", [])
+	_ok(str(persisted_plots[0].get("care_event", "")) != Growth.CARE_THIRSTY
+			and float(persisted_plots[0].get("water_level", 0.0)) > 0.9
+			and int(persisted_farm.get("dailies", {}).get("progress", {})
+				.get("water", 0)) == 1,
+		"the save contains cloud water and today's matching water task")
+	SaveManager.load_game()
+	var reloaded_farm: Dictionary = SaveManager.data.get("farm", {})
+	var reloaded_plots: Array = reloaded_farm.get("plots", [])
+	_ok(not reloaded_plots.is_empty()
+			and str(reloaded_plots[0].get("care_event", "")) != Growth.CARE_THIRSTY
+			and float(reloaded_plots[0].get("water_level", 0.0)) > 0.9
+			and int(reloaded_farm.get("dailies", {}).get("progress", {})
+				.get("water", 0)) == 1,
+		"a full save reload retains cloud water and today's matching water task")
 	await get_tree().create_timer(0.7).timeout
 	_ok(world.get_node_or_null("RainCloud") == null, "...and the cloud is spent")
 	world.call("go_home")
+	farm = SaveManager.data["farm"]
+	plots = farm["plots"]
 	for index in range(plots.size()):
 		plots[index] = Farm.fresh_plot(index)
 	farm["plots"] = plots
