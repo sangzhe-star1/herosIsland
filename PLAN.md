@@ -568,10 +568,10 @@ These are yours to make. Nothing below has been changed without asking.
   and 208 warnings.
 - **Latest remote plan check (10 October):** fetched
   `origin/claude/stoic-bell-a41pfu` at `69892a9` and `origin/main` at
-  `b71cc6c`. The feature branch is an ancestor of `main`, which has 62 commits
+  `f8ee4ce`. The feature branch is an ancestor of `main`, which has 63 commits
   beyond it; the planned merge is complete and there are no feature-only
-  commits to integrate. The earlier notes with 47 and 60 later commits record
-  prior fetches, not the current tip.
+  commits to integrate. The earlier notes with 47, 60, and 62 later commits
+  record prior fetches, not the current tip.
 - **Harvest-progress boundary (10 October):** the claimed receipt now gates
   XP, daily harvest progress, recipe unlocks, and the first-market hint in
   `farm_harvest_progress_controller.gd`. It mutates the live save in memory;
