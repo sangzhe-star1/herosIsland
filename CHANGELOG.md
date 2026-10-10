@@ -1,5 +1,12 @@
 # Changelog
 
+## 刷子存档只认实际地块变化 — 10 October 2026
+
+- 连续动作控制器现在分开记录“本笔划尝试过”和“地块确实变了”；只有后者进入抬手时的一次存档决策。
+- 菜园刷种遇到没有可用种子的异常/迁移存档时，不再制造空操作存档或重绘。
+- FarmWorldProbe 在 16:9、4:3 下共通过 792 项，包含菜园场景的空种子刷种回归；`tools_check.py`：0 errors、208 warnings。
+- 隔离完整烟测通过：30 passed、0 skipped；GardenProbe 934 项、GardenTouchProbe 1,865 项、FarmWorldProbe 792 项，SaveProbe 通过。
+
 ## 批量笔划完成与一次存档决策 — 10 October 2026
 
 - `continuous_action_controller.gd` 增加 `finish()`，一次返回已处理地块数和是否需要提交，并清空该笔的去重集合；`garden_screen.gd` 只在有实际工作时保存一次。

@@ -2190,6 +2190,7 @@ func _on_stroke_swept(index: int) -> void:
 		return
 	var plots := _plots()
 	var plot: Dictionary = plots[index]
+	var before: Dictionary = plot.duplicate(true)
 	match _tools.selected:
 		"shovel":
 			plot = PlotTilling.till(plot)
@@ -2212,6 +2213,12 @@ func _on_stroke_swept(index: int) -> void:
 				AudioManager.play_sfx("res://assets/audio/pop.ogg")
 				if bool(receipt.get("golden", false)):
 					_celebrate_golden(index)
+	# Eligibility reserves this bed for the current stroke, but the gesture only
+	# earns a save when its transition actually changed the plot. This catches a
+	# stale state or an empty seed choice without writing or redrawing a no-op.
+	if plot == before:
+		return
+	_stroke.record_applied(index)
 	plots[index] = plot
 	SaveManager.data["farm"]["plots"] = plots
 	# The bed changes under the brush as it passes -- that is the whole show --

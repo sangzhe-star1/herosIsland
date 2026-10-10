@@ -258,8 +258,10 @@ These are yours to make. Nothing below has been changed without asking.
   settles inventory plus the plot together. The claim path no longer mutates
   the persistent list before the 64-entry retention helper can run. Stroke
   completion now returns one explicit save decision and starts the next stroke
-  with clean bookkeeping. Focused probes and 16:9/4:3 overflow shots pass; the
-  branch is not merged yet.
+  with clean bookkeeping. Eligibility and committed work are now separate: a
+  brush bed is counted only after its plot state changes, so an empty seed
+  choice cannot cause a no-op save or redraw. FarmWorldProbe passes 792 checks
+  across 16:9 and 4:3; the branch is not merged yet.
 - **Needs the player's device/save:** test hen and mill timers, cloud discovery,
   dog-versus-farming preference on the iPad; exercise `normalise_farm()` with a
   genuine older iPad save before changing save-version fields. These need
@@ -272,12 +274,12 @@ These are yours to make. Nothing below has been changed without asking.
   30 passed and 0 skipped after the care, planting, and tilling controller
   extractions and touch fix.
 - **Latest feature-branch full verification:** `./tests/run_smoke.sh` passed
-  30 probes with 0 skipped in the isolated QA project at `840ea39`, after the
-  harvest transaction extraction. GardenProbe asked 934 questions,
-  GardenTouchProbe 1,865, FarmWorldProbe 781, and SaveProbe passed.
-- **Latest stroke-lifecycle verification:** FarmWorldProbe asked 784 questions
-  across both screen shapes and passed after the explicit finish summary was
-  added; `tools_check.py` reports 0 errors and 208 warnings.
+  30 probes with 0 skipped in the isolated QA project after the no-op brush
+  commit guard. GardenProbe asked 934 questions, GardenTouchProbe 1,865,
+  FarmWorldProbe 792, and SaveProbe passed.
+- **Latest stroke-lifecycle verification:** FarmWorldProbe asked 792 questions
+  across both screen shapes, including an empty-seed no-op through the live
+  garden screen; `tools_check.py` reports 0 errors and 208 warnings.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.

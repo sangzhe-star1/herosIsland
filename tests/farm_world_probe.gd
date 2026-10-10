@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 784
+const CHECKS_EXPECTED := 792
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -358,15 +358,18 @@ func _the_stroke_bookkeeping_refuses_seconds() -> void:
 	_ok(not stroke.may_apply(tools, plots, 0),
 		"and the done list alone refuses the second visit -- the bed still "
 		+ "reads as ripe, so nothing else here could have said no")
-	_ok(stroke.applied == 1, "one bed worked, whatever the finger did")
+	_ok(stroke.applied == 0,
+		"eligibility reserves the bed but does not claim work before a transition")
 	var first_finish: Dictionary = stroke.finish()
-	_ok(int(first_finish.get("applied", 0)) == 1
-			and bool(first_finish.get("did_work", false))
+	_ok(int(first_finish.get("applied", -1)) == 0
+			and not bool(first_finish.get("did_work", true))
 			and stroke.applied == 0,
-		"finishing returns one save decision and clears the old stroke")
+		"an attempted no-op closes without saving and clears the old stroke")
 	_ok(stroke.may_apply(tools, plots, 0),
 		"a NEW stroke may work the same bed again -- once per stroke, not "
 		+ "once per childhood")
+	_ok(stroke.record_applied(0), "a changed bed is recorded as real work")
+	_ok(not stroke.record_applied(0), "one bed cannot add work twice")
 	_ok(not stroke.may_apply(tools, plots, -1)
 			and not stroke.may_apply(tools, plots, 9),
 		"and a bed that does not exist is never worked")
@@ -1420,6 +1423,33 @@ func _the_seed_brush_plants_what_he_chose() -> void:
 		"sweeping back over a planted bed changes nothing")
 	await _tap((_tool_button(Tools.HAND) as Button).position + Vector2(48, 38))
 	_ok(_tools_state().selected == Tools.HAND, "and he can put the hand back")
+
+	# A damaged or migrating save may have no unlocked crop even though the
+	# eligibility table sees a tilled bed. That is an attempt, not work: it must
+	# not claim a commit or schedule a redraw.
+	var unlocked_value: Variant = SaveManager.data["farm"].get("unlocked_crops", [])
+	var old_unlocked: Array = unlocked_value.duplicate() if unlocked_value is Array else []
+	SaveManager.data["farm"]["unlocked_crops"] = []
+	_set_bed(2, {"state": Farm.TILLED, "plant_cycle_id": 7})
+	await _redraw()
+	_tools_state().selected = "seed"
+	_world().brush_armed = true
+	_garden.set("_rebuild_queued", false)
+	var stroke: Stroke = _garden.get("_stroke")
+	stroke.begin()
+	var before: Dictionary = _plots()[2].duplicate(true)
+	_garden.call("_on_stroke_swept", 2)
+	var completion: Dictionary = stroke.finish()
+	_ok(stroke.applied == 0 and not bool(completion.get("did_work", true)),
+		"an empty seed choice does not report a successful brush commit")
+	_ok(_plots()[2] == before,
+		"the failed seed attempt leaves the turned bed untouched")
+	_ok(not bool(_garden.get("_rebuild_queued")),
+		"a no-op seed stroke does not schedule a farm redraw")
+	SaveManager.data["farm"]["unlocked_crops"] = old_unlocked
+	_tools_state().selected = Tools.HAND
+	_world().brush_armed = false
+	await _redraw()
 
 
 func _grass_pans_and_buildings_answer_with_a_tool_in_hand() -> void:
