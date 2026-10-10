@@ -720,7 +720,8 @@ These are yours to make. Nothing below has been changed without asking.
   and the shovel action. GardenTouchProbe passed 1,993 checks across 16:9 and
   4:3, including the full six-step lesson and break-card touch flow. The small
   harvest-challenge tally is now 12px and leaves a safe inset while its card
-  breathes. `garden_screen.gd` is 2,578 lines; `tools_check.py` reports 0 errors
+  breathes. The waiting-harvest title and Barn switch text also shrink to 20px
+  and 16px. `garden_screen.gd` is 2,578 lines; `tools_check.py` reports 0 errors
   and 208 warnings. The full smoke suite was not rerun for this presentation
   extraction.
 - **Phase 7 save compatibility regression:** GardenProbe now builds the exact

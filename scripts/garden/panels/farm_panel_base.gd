@@ -59,7 +59,7 @@ func panel_sheet(view: Vector2, title_key: String, wide: float, tall: float, on_
 
 	var title: Control
 	if title_key in ["garden.warehouse_title", "garden.waiting_harvest_title"]:
-		title = UiKit.title(I18n.t(title_key), 22, Color(0.29, 0.24, 0.16))
+		title = UiKit.title(I18n.t(title_key), 20, Color(0.29, 0.24, 0.16))
 		title.name = "BarnCollectionTitle"
 		title.position = origin + Vector2(28.0, 8.0)
 		title.size = Vector2(wide - 130.0, 28.0)

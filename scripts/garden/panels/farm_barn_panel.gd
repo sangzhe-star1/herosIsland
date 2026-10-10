@@ -174,7 +174,7 @@ func build(view: Vector2) -> void:
 	if barn_show_overflow:
 		var back := chip_button(I18n.t("garden.barn"), Color(0.98, 0.91, 0.73), Vector2(112.0, 60.0))
 		back.name = "BarnStorageSwitch"
-		back.add_theme_font_size_override("font_size", 18)
+		back.add_theme_font_size_override("font_size", 16)
 		back.position = origin + Vector2(wide - 140.0, 38.0)
 		back.pressed.connect(func(): screen.call("_open_panel", "barn"))
 		play.add_child(back)
