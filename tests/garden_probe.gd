@@ -41,6 +41,7 @@ const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const FacilityAction := preload("res://scripts/garden/farm_facility_action_controller.gd")
+const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 
 ## The fewest questions this probe is allowed to have asked by the time it
 ## prints its verdict.
@@ -57,7 +58,7 @@ const FacilityAction := preload("res://scripts/garden/farm_facility_action_contr
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 756
+const CHECKS_EXPECTED := 765
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -87,6 +88,7 @@ func _ready() -> void:
 	_the_harvest_ledger_claim_keeps_its_bound()
 	_harvest_transaction_settles_storage_and_plot_together()
 	_the_next_task_controller_keeps_garden_priorities()
+	_the_farm_tick_controller_only_reports_meaningful_changes()
 	_the_lesson_controller_tracks_the_bed_and_action()
 	_a_planting_cycle_never_repeats()
 	_an_old_save_keeps_the_beds_it_already_had()
@@ -2072,6 +2074,59 @@ func _the_next_task_controller_keeps_garden_priorities() -> void:
 		"an untouched bed points to the shovel action")
 	_ok(NextTask.select([], {}, {}, [], tools).is_empty(),
 		"an empty farm with no deliverable order has no invented task")
+
+
+## The clock may redraw bed art for a growing inch, but furniture changes only
+## for a new stage, care request, ripe crop, or basket receipt.
+func _the_farm_tick_controller_only_reports_meaningful_changes() -> void:
+	var growing := Farm.fresh_plot(0)
+	growing["state"] = Farm.GROWING
+	growing["crop_id"] = "carrot"
+	growing["growth_stage"] = 1
+	growing["growth_progress"] = 0.25
+	var before := FarmTick.capture([growing])
+	var unchanged := FarmTick.resolve(before, [growing])
+	_ok(not bool(unchanged.get("needs_rebuild", true))
+			and unchanged.get("ripened_indices", []).is_empty(),
+		"an unchanged clock beat leaves furniture and ripe feedback alone")
+
+	var inch := growing.duplicate(true)
+	inch["growth_progress"] = 0.26
+	var inched := FarmTick.resolve(before, [inch])
+	_ok(not bool(inched.get("needs_rebuild", true))
+			and not bool(inched.get("meaning_changed", true)),
+		"sub-stage growth does not rebuild the ribbon or hint furniture")
+	_ok(str(inched.get("visual", "")) != str(before.get("visual", "")),
+		"sub-stage growth still changes the bed's own visual signature")
+
+	var taller := inch.duplicate(true)
+	taller["growth_stage"] = 2
+	var stage_change := FarmTick.resolve(before, [taller])
+	_ok(bool(stage_change.get("needs_rebuild", false))
+			and stage_change.get("ripened_indices", []).is_empty(),
+		"a new growth stage rebuilds furniture without a false ripe celebration")
+
+	var ripe := taller.duplicate(true)
+	ripe["state"] = Farm.READY
+	var ripe_result := FarmTick.resolve(before, [ripe])
+	_ok(bool(ripe_result.get("needs_rebuild", false))
+			and bool(ripe_result.get("meaning_changed", false)),
+		"ripeness is a meaningful state change")
+	_ok(ripe_result.get("ripened_indices", []) == [0],
+		"the first ripe transition reports its bed index once")
+	var already_ripe := FarmTick.resolve(FarmTick.capture([ripe]), [ripe])
+	_ok(already_ripe.get("ripened_indices", []).is_empty(),
+		"a bed already ripe before the beat never celebrates twice")
+
+	var tipped := FarmTick.resolve(before, [growing], 2)
+	_ok(bool(tipped.get("needs_rebuild", false))
+			and tipped.get("ripened_indices", []).is_empty(),
+		"a basket refill rebuilds the shelf without inventing a ripe bed")
+
+	var care := growing.duplicate(true)
+	care["care_event"] = Growth.CARE_WEEDS
+	_ok(bool(FarmTick.resolve(before, [care]).get("needs_rebuild", false)),
+		"a new care request changes the garden's meaning")
 
 
 ## The lesson follows the bed he actually planted, says only an available

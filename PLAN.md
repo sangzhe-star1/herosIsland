@@ -213,7 +213,10 @@ These are yours to make. Nothing below has been changed without asking.
    mill, cow shed, and beehive now use
    `scripts/garden/farm_facility_action_controller.gd` for their shared press
    decisions (collect, wait, start, or missing input); `garden_screen.gd` keeps
-   the sound, crop prompt, save, and receipt animation.
+   the sound, crop prompt, save, and receipt animation. The quiet clock's
+   before/after plot signatures, furniture-rebuild decision, and newly ripe
+   bed indices now live in `scripts/garden/farm_tick_controller.gd`; the
+   screen keeps the timer, world refresh, celebration, and visual effects.
 4. **The 3D direction needs a stop line that holds.** The plan in
    `docs/GARDEN_HARVEST_3D_EVOLUTION_PLAN.md` ran fifteen runtime-3D trials on
    3 and 4 October and its own art gate rejected every one; the 2.5D renders
@@ -368,6 +371,14 @@ These are yours to make. Nothing below has been changed without asking.
   16:9 and 4:3, including real world presses on both data-led pens. FarmShot
   rendered and was visually checked at 1280×720 and 1024×768. `tools_check.py`
   reports 0 errors and the same 208 existing warnings.
+- **PR #13 integrated:** the timed facility action boundary merged to `main`
+  as `32aafa0`; local `main` was fast-forwarded to the same `origin/main`
+  commit and verified clean.
+- **Farm clock-beat boundary:** `farm_tick_controller.gd` now owns the plot
+  fingerprints, the decision to rebuild screen furniture, and newly ripe bed
+  indices. GardenProbe passed 1,050 checks; GardenTouchProbe passed 1,883
+  checks across 16:9 and 4:3; `tools_check.py` reports 0 errors and 208
+  existing warnings. The full smoke suite was not rerun for this extraction.
 - **Latest focused harvest verification:** FarmShot passed 78 overflow checks
   at each of 16:9 and 4:3, including the complete seed rack; `tools_check.py`
   reports 0 errors and 208 warnings.
