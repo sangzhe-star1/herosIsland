@@ -1,18 +1,18 @@
 extends RefCounted
-## The bear's farm, computed rather than stored, and the four promises around
-## the one strawberry he shares.
+## Neighbour farms, computed rather than stored. The bear has his own quiet
+## strawberry and return-visit story; rabbit and puppy share the same crop/help
+## loop through the data-driven helpers below.
 ##
 ##     const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 ##
-## WHY THE BEAR'S FARM IS ARITHMETIC
+## WHY THESE FARMS ARE ARITHMETIC
 ##
 ## The bear has no save file. What his beds look like is a function of the
 ## clock: each one cycles through its crop's real growth on a fixed offset, so
 ## the farm is alive -- come back after lunch and things have moved -- while
-## nothing about it can be lost, corrupted, or need migrating. The three facts
-## that ARE stored (in farm.npc.bear) are the three that concern the CHILD:
-## which share-cycle he picked in, whether he still owes the watering, and
-## when the bear last dropped by.
+## nothing about it can be lost, corrupted, or need migrating. The bear's
+## share cycle, help promise, and return visit live in farm.npc.bear; rabbit
+## and puppy only store their share cycle and help promise.
 ##
 ## THE SHARE CYCLE IS A GROWTH CLOCK, NOT A CALENDAR
 ##
@@ -131,6 +131,116 @@ static func friendship() -> int:
 		.get("npc_friendship", {}).get("bear", 0))
 
 
+## The rabbit and puppy use the same gentle share-and-help loop as the bear,
+## but have no sneak crop or bear-specific return visit. Their farm layouts
+## and share crops are authored in npc_farms.json; only the child's promise
+## and friendship live in the save.
+static func friend_state(npc_id: String) -> Dictionary:
+	return Farm.normalise_npc(
+		SaveManager.data.get("farm", {}).get("npc")).get(npc_id, {})
+
+
+static func friend_share_period(npc_id: String) -> int:
+	var farm_def: Dictionary = GameData.get_npc_farm(npc_id)
+	if farm_def.is_empty():
+		return 0
+	var crop_id := str(farm_def.get("share_crop", ""))
+	return maxi(600, int(GameData.crop_total_seconds(crop_id)))
+
+
+static func friend_cycle(npc_id: String, now: int) -> int:
+	var period := friend_share_period(npc_id)
+	return maxi(0, now) / period if period > 0 else -1
+
+
+static func can_pick_friend_share(npc_id: String, now: int) -> bool:
+	if GameData.get_npc_farm(npc_id).is_empty():
+		return false
+	var state := friend_state(npc_id)
+	return not bool(state.get("help_owed", false)) \
+		and friend_cycle(npc_id, now) > int(state.get("last_share_cycle", -1))
+
+
+static func record_friend_share(npc_id: String, now: int) -> bool:
+	if not can_pick_friend_share(npc_id, now):
+		return false
+	var farm: Dictionary = SaveManager.data["farm"]
+	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
+	npc[npc_id]["last_share_cycle"] = friend_cycle(npc_id, now)
+	npc[npc_id]["help_owed"] = true
+	farm["npc"] = npc
+	return true
+
+
+static func record_friend_help(npc_id: String) -> bool:
+	var farm: Dictionary = SaveManager.data["farm"]
+	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
+	if not npc.has(npc_id) or not bool(npc[npc_id].get("help_owed", false)):
+		return false
+	npc[npc_id]["help_owed"] = false
+	farm["npc"] = npc
+	var friends: Dictionary = farm.get("npc_friendship", {})
+	friends[npc_id] = int(friends.get(npc_id, 0)) + 1
+	farm["npc_friendship"] = friends
+	return true
+
+
+static func friend_friendship(npc_id: String) -> int:
+	return int(SaveManager.data.get("farm", {})
+		.get("npc_friendship", {}).get(npc_id, 0))
+
+
+## The guest entry is written only after the child has finished helping, so
+## reopening the same farm cannot mint visit milestones or friendship.
+static func record_friend_visit(npc_id: String, now: int) -> Dictionary:
+	var farm: Dictionary = SaveManager.data["farm"]
+	var entry := {"who": npc_id, "kind": "guest", "shared": 1,
+		"watered": 1, "star": 1, "at": now}
+	_grant_milestone(npc_id, entry)
+	Farm.remember_visit(farm, entry)
+	return entry
+
+
+## Like bear_beds(), but driven by the selected friend's static farm data.
+## A share crop is extra produce; the ordinary beds never get depleted.
+static func friend_beds(npc_id: String, now: int) -> Array:
+	var farm_def: Dictionary = GameData.get_npc_farm(npc_id)
+	if farm_def.is_empty():
+		return []
+	var out: Array = []
+	var beds: Array = farm_def.get("beds", [])
+	var share_crop := str(farm_def.get("share_crop", "carrot"))
+	var period := friend_share_period(npc_id)
+	var state := friend_state(npc_id)
+	for i in range(beds.size()):
+		var def: Dictionary = beds[i]
+		var is_share := bool(def.get("share", false))
+		var crop_id := share_crop if is_share else str(def.get("crop", "carrot"))
+		var total := maxi(1, int(GameData.crop_total_seconds(crop_id)))
+		var plot: Dictionary = Farm.fresh_plot(i)
+		plot["crop_id"] = crop_id
+		plot["share"] = is_share
+		plot["help_target"] = bool(def.get("help_target", false))
+		if is_share:
+			if can_pick_friend_share(npc_id, now):
+				plot["state"] = Farm.READY
+				plot["growth_stage"] = Farm.STAGES - 1
+			else:
+				var fraction := float(now % period) / float(period) if period > 0 else 0.0
+				_grow_to(plot, crop_id, fraction)
+		elif bool(plot["help_target"]) and bool(state.get("help_owed", false)):
+			plot["state"] = Farm.NEEDS_CARE
+			plot["care_event"] = Growth.CARE_THIRSTY
+			plot["water_level"] = 0.0
+			plot["growth_stage"] = 2
+		else:
+			var phase := clampf(float(def.get("phase", 0.5)), 0.02, 0.95)
+			_grow_to(plot, crop_id,
+				fmod(phase + float(now) / float(total * 4), 0.96))
+		out.append(plot)
+	return out
+
+
 ## What the bear's beds look like at `now`: a list of plot-shaped dictionaries
 ## PlotView can draw, plus two flags of our own (share / help_target).
 ##
@@ -191,8 +301,8 @@ static func _grow_to(plot: Dictionary, crop_id: String, fraction: float) -> void
 		int(clampf(fraction, 0.0, 0.95) * float(total)))
 	for key in grown.keys():
 		plot[key] = grown[key]
-	# The bear's beds never nag: whatever jobs the arithmetic raised on the
-	# way, the bear has already seen to them.
+	# A neighbour's ordinary beds never accumulate care nags from arithmetic;
+	# they are a deterministic picture of a cared-for farm.
 	plot["care_event"] = ""
 	if str(plot.get("state", "")) == Farm.NEEDS_CARE:
 		plot["state"] = Farm.GROWING

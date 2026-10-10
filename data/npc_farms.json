@@ -1,5 +1,5 @@
 {
-  "_comment": "NPC 农场。状态由时间算出来，不随机；小熊没有仓库、没有产量账本。",
+  "_comment": "NPC 农场。状态由时间算出来，不随机；朋友没有仓库或产量账本。分享作物是额外收成，帮助只记录在孩子的存档里。",
   "farms": [
     {
       "id": "bear",
@@ -31,6 +31,36 @@
           "crop": "strawberry",
           "sneak": true
         }
+      ]
+    },
+    {
+      "id": "rabbit",
+      "icon": "rabbit",
+      "name_key": "friend.rabbit",
+      "character_model": "rabbit",
+      "share_crop": "lettuce",
+      "beds": [
+        {"crop": "carrot", "phase": 0.25},
+        {"crop": "strawberry", "phase": 0.61},
+        {"crop": "peas", "phase": 0.43},
+        {"crop": "lettuce", "share": true},
+        {"crop": "carrot", "phase": 0.72},
+        {"crop": "lettuce", "help_target": true}
+      ]
+    },
+    {
+      "id": "puppy",
+      "icon": "dog",
+      "name_key": "friend.puppy",
+      "character_model": "dog",
+      "share_crop": "corn",
+      "beds": [
+        {"crop": "carrot", "phase": 0.34},
+        {"crop": "corn", "phase": 0.55},
+        {"crop": "pumpkin", "phase": 0.23},
+        {"crop": "corn", "share": true},
+        {"crop": "strawberry", "phase": 0.66},
+        {"crop": "carrot", "help_target": true}
       ]
     }
   ]

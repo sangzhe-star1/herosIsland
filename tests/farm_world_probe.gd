@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 736
+const CHECKS_EXPECTED := 781
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -59,6 +59,7 @@ func _ok(condition: bool, description: String) -> void:
 func _ready() -> void:
 	ProbeLifecycle.isolate_desktop_pointer(self)
 	print("\n=== farm world probe ===")
+	_an_old_npc_save_gains_friend_defaults()
 	_the_layout_is_legal()
 	_the_stroke_bookkeeping_refuses_seconds()
 	_golden_state_is_a_visual_input()
@@ -124,6 +125,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_barn_roof_is_bought_once(view)
 	# --- 阶段 4: the bear's door, the visitor board, and the dog ---
 	await _the_bear_door_waits_for_the_first_harvest()
+	await _friend_farm_buttons_are_available()
 	await _the_visitor_board_reads_and_clears(view)
 	await _the_dog_minds_his_own_business()
 	# --- 阶段 5: the stones, the ladder, and the market's one lesson ---
@@ -134,6 +136,8 @@ func _run_on_a(window: Vector2i) -> void:
 	# The bear's own farm is another scene; it gets the glass to itself,
 	# exactly as it would in the game.
 	await _a_visit_to_the_bears_farm()
+	await _a_visit_to_a_friends_farm("rabbit")
+	await _a_visit_to_a_friends_farm("puppy")
 
 
 # --- the fixture ----------------------------------------------------------
@@ -1949,6 +1953,101 @@ func _a_visit_to_the_bears_farm() -> void:
 	bear.queue_free()
 	await get_tree().process_frame
 	GameClock.clear_test_now()
+
+
+func _friend_farm_buttons_are_available() -> void:
+	_garden.call("_open_panel", "gift")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _capture_probe_screen("friend_door")
+	for button_name in ["VisitBearFarmButton", "VisitRabbitFarmButton",
+			"VisitPuppyFarmButton"]:
+		_ok(_find_named(_garden, button_name) is Button,
+			"the friends door exposes %s" % button_name)
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+
+
+func _an_old_npc_save_gains_friend_defaults() -> void:
+	var legacy := {"bear": {"last_share_cycle": 8, "help_owed": false,
+		"last_visit_at": 42, "last_sneak_cycle": 7, "sneak_owed": true}}
+	var migrated: Dictionary = Farm.normalise_npc(legacy)
+	_ok(int(migrated["bear"]["last_share_cycle"]) == 8
+		and bool(migrated["bear"]["sneak_owed"])
+		and migrated.has("rabbit") and migrated.has("puppy")
+		and int(migrated["rabbit"]["last_share_cycle"]) == -1
+		and not bool(migrated["puppy"]["help_owed"]),
+		"an older farm keeps bear state and receives empty rabbit/puppy state")
+
+
+## Rabbit and puppy use the same no-loss share loop: one deterministic crop,
+## one help promise, then one friendship and one guest log entry.
+func _a_visit_to_a_friends_farm(who: String) -> void:
+	_fresh_farm()
+	var scene_path := "res://scenes/garden/RabbitFarm.tscn" \
+		if who == "rabbit" else "res://scenes/garden/PuppyFarm.tscn"
+	var friend_farm: Node = load(scene_path).instantiate()
+	add_child(friend_farm)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _capture_probe_screen("%s_farm" % who)
+
+	var definition: Dictionary = GameData.get_npc_farm(who)
+	var beds: Array = NpcFarm.friend_beds(who, GameClock.now_unix())
+	var share_index := -1
+	var help_index := -1
+	for i in range(beds.size()):
+		var plot: Dictionary = beds[i]
+		if bool(plot.get("share", false)):
+			share_index = i
+		if bool(plot.get("help_target", false)):
+			help_index = i
+	_ok(beds.size() == 6 and share_index >= 0 and help_index >= 0
+		and ResourceLoader.exists("res://assets/harvest_3d/runtime/friends/%s.glb"
+		% str(definition.get("character_model", ""))),
+		"%s's farm has six beds, a share crop, a help bed, and a 3D friend" % who)
+	_ok(friend_farm.get("_friend_model") != null,
+		"%s's 3D character loads inside the farm scene" % who)
+	_ok(friend_farm.get("_star") != null,
+		"%s's extra share crop is marked with a star" % who)
+
+	var crop_id := str(definition.get("share_crop", ""))
+	var before := Barn.count(crop_id)
+	await _tap(friend_farm.call("_bed_centre", share_index))
+	_ok(Barn.count(crop_id) == before + 1
+		and bool(NpcFarm.friend_state(who).get("help_owed", false)),
+		"taking %s's share records exactly one extra crop and the help promise" % who)
+	await _tap(friend_farm.call("_bed_centre", share_index))
+	_ok(Barn.count(crop_id) == before + 1,
+		"a second tap cannot take another crop from %s" % who)
+	await _tap(friend_farm.call("_bed_centre", help_index))
+	var farm: Dictionary = SaveManager.data["farm"]
+	var log: Array = farm.get("visit_log", [])
+	_ok(not bool(NpcFarm.friend_state(who).get("help_owed", true))
+		and NpcFarm.friend_friendship(who) == 1,
+		"helping %s clears the promise and awards one friendship" % who)
+	_ok(not log.is_empty() and str(log[0].get("who", "")) == who
+		and str(log[0].get("kind", "")) == "guest",
+		"the finished %s visit appears on the shared visitor board" % who)
+	_ok(int(friend_farm.get("presses")) == 3,
+		"the %s farm dispatches three real taps exactly once each" % who)
+
+	friend_farm.queue_free()
+	await get_tree().process_frame
+	GameClock.clear_test_now()
+
+
+func _capture_probe_screen(label: String) -> void:
+	await RenderingServer.frame_post_draw
+	var image: Image = get_viewport().get_texture().get_image()
+	var folder := ProjectSettings.globalize_path("user://friend_farm_shots")
+	DirAccess.make_dir_recursive_absolute(folder)
+	var shape := _shape.replace("x", "_")
+	var path := folder.path_join("%s_%s.png" % [label, shape])
+	var saved := image.save_png(path) if image != null and not image.is_empty() \
+		else ERR_INVALID_DATA
+	_ok(saved == OK and ProbeLifecycle.image_has_content(image),
+		"%s has a rendered screenshot for %s" % [label, _shape])
 
 
 # --- 阶段 5: the stones, the ladder, and the market's one lesson -----------

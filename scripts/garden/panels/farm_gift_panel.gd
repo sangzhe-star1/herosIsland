@@ -15,41 +15,62 @@ func build(view: Vector2) -> void:
 	var wide := 680.0
 	var tall := 490.0
 	var origin: Vector2 = screen.call("_panel_sheet", view, "garden.gift_basket_title", wide, tall)
-	var farm: Dictionary = screen.call("_farm")
 	var basket: Dictionary = screen.get("_gift_basket") if screen.get("_gift_basket") != null else {}
 
-	# 1. Bear Door Top Card: option to visit the bear
+	# 1. Friend farm doors. All three friends share the same visit rules;
+	# the selected scene provides the friend-specific layout and crops.
 	var door_card := Panel.new()
-	door_card.name = "BearDoorCard"
+	door_card.name = "FriendFarmDoorCard"
 	door_card.add_theme_stylebox_override("panel", UiKit.panel_style(Color(1.0, 0.97, 0.90), 18))
 	door_card.position = Vector2(origin.x + 20.0, origin.y + 60.0)
-	door_card.custom_minimum_size = Vector2(wide - 40.0, 80.0)
-	door_card.size = Vector2(wide - 40.0, 80.0)
+	door_card.custom_minimum_size = Vector2(wide - 40.0, 96.0)
+	door_card.size = Vector2(wide - 40.0, 96.0)
 	play.add_child(door_card)
 
-	var bear_face := HarvestArt.prop_badge("bear", 56.0, "BearDoorFace")
-	if bear_face == null:
-		bear_face = UiKit.picture("teddy", 56.0)
-	if bear_face != null:
-		bear_face.position = door_card.position + Vector2(16.0, 12.0)
-		play.add_child(bear_face)
-
-	var door_prompt := UiKit.title(I18n.t("garden.gift_welcome"), 16, Color(0.35, 0.28, 0.18))
-	door_prompt.position = door_card.position + Vector2(86.0, 26.0)
-	door_prompt.size = Vector2(400.0, 26.0)
+	var door_prompt := UiKit.title(I18n.t("garden.friend_farm_invite"), 16, Color(0.35, 0.28, 0.18))
+	door_prompt.position = door_card.position + Vector2(14.0, 4.0)
+	door_prompt.size = Vector2(door_card.size.x - 28.0, 24.0)
 	door_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	play.add_child(door_prompt)
 
-	var visit_btn := chip_button(I18n.t("garden.gift_visit_btn"), Color(0.88, 0.56, 0.22), Vector2(120.0, 48.0))
-	visit_btn.name = "VisitBearFarmButton"
-	visit_btn.position = door_card.position + Vector2(door_card.size.x - 136.0, 16.0)
-	visit_btn.pressed.connect(func():
-		AudioManager.play_sfx("res://assets/audio/door.ogg")
-		SceneManager.goto_scene("res://scenes/garden/BearFarm.tscn"))
-	play.add_child(visit_btn)
+	var friends := ["bear", "rabbit", "puppy"]
+	var scene_paths := {
+		"bear": "res://scenes/garden/BearFarm.tscn",
+		"rabbit": "res://scenes/garden/RabbitFarm.tscn",
+		"puppy": "res://scenes/garden/PuppyFarm.tscn",
+	}
+	var button_width := (door_card.size.x - 36.0) / 3.0
+	for i in range(friends.size()):
+		var who: String = friends[i]
+		var prop_key := "dog" if who == "puppy" else who
+		var button := chip_button("", Color(0.98, 0.92, 0.78), Vector2(button_width, 56.0))
+		button.name = "Visit%sFarmButton" % who.capitalize()
+		button.position = door_card.position + Vector2(12.0 + float(i) * (button_width + 6.0), 32.0)
+		button.pressed.connect(_visit_friend.bind(str(scene_paths[who])))
+		play.add_child(button)
+
+		var face := HarvestArt.prop_badge(prop_key, 44.0, "%sFarmFace" % who.capitalize())
+		if face == null and who == "bear":
+			face = UiKit.picture("teddy", 44.0)
+		if face != null:
+			face.position = button.position + Vector2(6.0, 6.0)
+			play.add_child(face)
+		var name_key := str(GameData.get_npc_farm(who).get("name_key", "friend." + who))
+		var friend_name := UiKit.title(I18n.t(name_key), 15, Color(0.35, 0.28, 0.18))
+		friend_name.position = button.position + Vector2(54.0, 4.0)
+		friend_name.size = Vector2(button_width - 60.0, 22.0)
+		friend_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		friend_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		play.add_child(friend_name)
+		var visit_label := UiKit.title(I18n.t("garden.friend_farm_visit_short"), 13, Color(0.62, 0.45, 0.20))
+		visit_label.position = button.position + Vector2(54.0, 27.0)
+		visit_label.size = Vector2(button_width - 60.0, 20.0)
+		visit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		visit_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		play.add_child(visit_label)
 
 	# 2. Gift Basket Packing Section
-	var pack_y := origin.y + 154.0
+	var pack_y := origin.y + 168.0
 	var shelf_panel := Panel.new()
 	shelf_panel.name = "GiftShelfPanel"
 	shelf_panel.add_theme_stylebox_override("panel", screen.call("_quiet_surface_style",
@@ -161,6 +182,11 @@ func build(view: Vector2) -> void:
 	send_btn.disabled = total_items == 0
 	send_btn.pressed.connect(Callable(self, "_on_send_pressed"))
 	play.add_child(send_btn)
+
+
+func _visit_friend(scene_path: String) -> void:
+	AudioManager.play_sfx("res://assets/audio/door.ogg")
+	SceneManager.goto_scene(scene_path)
 
 
 func _add_to_basket(crop_id: String) -> void:

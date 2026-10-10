@@ -289,7 +289,9 @@ static func default_npc() -> Dictionary:
 		"last_visit_at": 0,
 		# 悄悄摘一颗：摘过哪个生长周期、小熊还欠着哪一次"什么都没说，
 		# 多分你一颗"。normalise_npc 会给旧存档补上这两个默认值。
-		"last_sneak_cycle": -1, "sneak_owed": false}}
+		"last_sneak_cycle": -1, "sneak_owed": false},
+		"rabbit": {"last_share_cycle": -1, "help_owed": false},
+		"puppy": {"last_share_cycle": -1, "help_owed": false}}
 
 
 ## The npc block sits three levels deep, which is one past what _migrate can

@@ -121,3 +121,23 @@ PYTHONDONTWRITEBYTECODE=1 python3 tests/qa_run.py \
 5. 点右上作物/播放图标直接进入下一关；点旁边四格图标回选，最后两页可进入11–16关。第16关三单依次换顾客，勇敢模式最后一单有金色胡萝卜礼物篮。
 
 后续美术余项：小熊、机器人、小狗顾客仍沿用原有符号，和新兔兔3D头像有风格差异；本轮没有声称全角色美术已统一。
+
+## 后续闭环：兔兔与小狗的好友农场（2026-10-10）
+
+状态：**已完成，等玩家实际试玩。** 两位伙伴此前已有订单、每日来访与访客里程碑，但只有小熊可以进入好友农场；现在三位朋友都能从礼篮/好友门面板进入各自农场。
+
+- `data/npc_farms.json` 为兔兔与小狗提供不同的六块地、分享作物和角色模型配置。农场由游戏时钟确定性生成，不保存朋友的产量，也没有真实损失。
+- 兔兔分享生菜，小狗分享玉米。摘下带星作物后只把一份额外收成放入孩子仓库；帮助浇水完成承诺，才记一颗友谊星和一条“去做客”记录。重复点按不会重复收成、友谊或里程碑。
+- 复用同一好友农场场景和 `PlotView`；兔兔继续使用既有 GLB，小狗从已有 Blender 几何脚本按同一冻结摄影棚导出 GLB。源文件与重建方式在 [小狗资产说明](../assets/harvest_3d/source/farm_friends_20261004/dog/README.md)。
+- 隔离存档的 `FarmWorldProbe` 已扩展至 **781 项**，覆盖旧存档补默认值、三个入口、兔兔和小狗的真实触摸采摘/浇水流程、重复操作保护与两种屏幕比例。
+- 双比例画面：[好友入口 16:9](qa/friend_farms_20261010/friend_door_16x9.png)、[好友入口 4:3](qa/friend_farms_20261010/friend_door_4x3.png)、[兔兔 16:9](qa/friend_farms_20261010/rabbit_16x9.png)、[兔兔 4:3](qa/friend_farms_20261010/rabbit_4x3.png)、[小狗 16:9](qa/friend_farms_20261010/puppy_16x9.png)、[小狗 4:3](qa/friend_farms_20261010/puppy_4x3.png)。
+
+定向复跑：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 tests/qa_run.py \
+  --project /opt/heroesIsland \
+  --name friend-farms \
+  --godot /Applications/Godot.app/Contents/MacOS/Godot \
+  -- --rendering-driver opengl3 res://tests/FarmWorldProbe.tscn
+```
