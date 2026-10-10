@@ -36,6 +36,7 @@ const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const GardenScreen := preload("res://scripts/garden/garden_screen.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const Undo := preload("res://scripts/garden/farm_undo_controller.gd")
+const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
 const Lesson := preload("res://scripts/garden/farm_lesson_controller.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
@@ -55,7 +56,7 @@ const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 734
+const CHECKS_EXPECTED := 748
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -120,6 +121,7 @@ func _ready() -> void:
 	_the_shop_sells_a_crop_exactly_once()
 	_the_shop_grows_with_the_farm()
 	_the_undo_controller_keeps_its_window_and_reverses_safe_purchases()
+	_the_barn_upgrade_controller_settles_costs_overflow_and_undo()
 	_the_market_pays_once_and_only_for_what_is_there()
 	# --- 阶段 4: the bear, the shared strawberry, and the visitor board ---
 	_the_bears_farm_is_arithmetic_and_kindness()
@@ -1455,6 +1457,68 @@ func _the_undo_controller_keeps_its_window_and_reverses_safe_purchases() -> void
 		"a worked bed cannot be taken away by its old receipt")
 	_ok(Coins.balance() == coins_before,
 		"a refused plot return cannot print a refund")
+
+
+## The barn's single roof purchase accepts all of its costs or none, moves the
+## waiting basket after expansion, refuses duplicates, and offers one undo.
+func _the_barn_upgrade_controller_settles_costs_overflow_and_undo() -> void:
+	_fresh_save()
+	var farm: Dictionary = SaveManager.data["farm"]
+	SaveManager.data["rewards"]["coins"] = 100
+	Barn.put("plank", Undo.UPGRADE_PLANKS - 1, "inventory")
+	var missing_planks := BarnUpgrade.settle(farm, 1000)
+	_ok(str(missing_planks.get("reason", "")) == "missing_planks",
+		"two planks politely refuse the roof")
+	_ok(Coins.balance() == 100
+		and int(farm.get("warehouse_cap", 0)) == Farm.WAREHOUSE_START,
+		"a refused roof takes no coins and leaves the barn alone")
+
+	Barn.put("plank", 1, "inventory")
+	SaveManager.data["rewards"]["coins"] = Undo.UPGRADE_COINS - 1
+	var missing_coins := BarnUpgrade.settle(farm, 2000)
+	_ok(str(missing_coins.get("reason", "")) == "missing_coins",
+		"being one coin short refuses the roof")
+	_ok(Coins.balance() == Undo.UPGRADE_COINS - 1
+		and Barn.count("plank", "inventory") == Undo.UPGRADE_PLANKS
+		and int(farm.get("warehouse_cap", 0)) == Farm.WAREHOUSE_START,
+		"the short purse keeps every plank and the old roof")
+
+	SaveManager.data["rewards"]["coins"] = 100
+	Barn.put("carrot", Farm.WAREHOUSE_START)
+	Barn.put("corn", 5, Barn.BASKET)
+	var purchase := BarnUpgrade.settle(farm, 3000)
+	var receipt: Dictionary = purchase.get("undo", {})
+	_ok(bool(purchase.get("upgraded", false))
+		and int(purchase.get("tipped", 0)) == 5,
+		"the roof purchase succeeds and tips five waiting crops inside")
+	_ok(int(farm.get("warehouse_cap", 0)) == Farm.WAREHOUSE_UPGRADED,
+		"the once-only purchase raises the roof")
+	_ok(Coins.balance() == 100 - Undo.UPGRADE_COINS
+		and Barn.count("plank", "inventory") == 0,
+		"the purchase takes exactly sixty coins and three planks")
+	_ok(Barn.count("carrot") == Farm.WAREHOUSE_START
+		and Barn.count("corn") == 5
+		and Barn.count("corn", Barn.BASKET) == 0,
+		"existing goods stay put while the full basket moves in")
+	_ok(Undo.is_open(receipt, 3000),
+		"a successful roof comes with its regret window")
+
+	var duplicate := BarnUpgrade.settle(farm, 3001)
+	_ok(str(duplicate.get("reason", "")) == "already_upgraded",
+		"a second settlement finds there is no second roof")
+	_ok(Coins.balance() == 100 - Undo.UPGRADE_COINS
+		and Barn.count("plank", "inventory") == 0,
+		"a duplicate settlement takes neither payment again")
+
+	var returned := Undo.settle(receipt, 4000)
+	_ok(bool(returned.get("changed", false))
+		and int(farm.get("warehouse_cap", 0)) == Farm.WAREHOUSE_START,
+		"the regret window returns the roof")
+	_ok(Coins.balance() == 100
+		and Barn.count("plank", "inventory") == Undo.UPGRADE_PLANKS,
+		"the full coin and plank cost comes back")
+	_ok(Barn.count("corn") == 5,
+		"the goods moved in before undo stay safely in the barn")
 
 
 ## The shop's whole contract, without a screen in the way: a crop is bought

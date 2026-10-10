@@ -58,25 +58,51 @@ func _ok(condition: bool, description: String) -> void:
 
 func _ready() -> void:
 	ProbeLifecycle.isolate_desktop_pointer(self)
-	print("\n=== farm world probe ===")
-	_an_old_npc_save_gains_friend_defaults()
-	_the_layout_is_legal()
-	_the_stroke_bookkeeping_refuses_seconds()
-	_golden_state_is_a_visual_input()
-	for shape in SHAPES:
-		_shape = "%dx%d" % [shape.x, shape.y]
-		await _run_on_a(shape)
+	var barn_upgrade_only := OS.get_cmdline_user_args().has(
+		"--barn-upgrade-only")
+	print("\n=== %s ===" % ("farm barn upgrade probe" if barn_upgrade_only
+		else "farm world probe"))
+	if barn_upgrade_only:
+		for shape in SHAPES:
+			await _run_barn_upgrade_on(shape)
+	else:
+		_an_old_npc_save_gains_friend_defaults()
+		_the_layout_is_legal()
+		_the_stroke_bookkeeping_refuses_seconds()
+		_golden_state_is_a_visual_input()
+		for shape in SHAPES:
+			_shape = "%dx%d" % [shape.x, shape.y]
+			await _run_on_a(shape)
 
-	if _asked < CHECKS_EXPECTED:
+	var expected := 17 * SHAPES.size() if barn_upgrade_only else CHECKS_EXPECTED
+	if _asked < expected:
 		_failures.append("this probe only asked %d questions and expected at "
-			% _asked + "least %d -- a section was skipped in silence"
-			% CHECKS_EXPECTED)
+			% _asked + "least %d -- a section was skipped in silence" % expected)
 	for failure in _failures:
 		print("FAIL  %s" % failure)
 	print("asked %d questions" % _asked)
-	print("FARM WORLD PROBE %s\n"
-		% ("PASSED" if _failures.is_empty() else "FAILED"))
+	var label := "FARM BARN UPGRADE PROBE" if barn_upgrade_only \
+		else "FARM WORLD PROBE"
+	print("%s %s\n" % [label,
+		"PASSED" if _failures.is_empty() else "FAILED"])
 	get_tree().quit(1 if _failures.size() > 0 else 0)
+
+
+## Keep the roof's real confirm, payment, and regret flow cheap to run on both
+## tablet shapes without stepping through every unrelated farm interaction.
+func _run_barn_upgrade_on(window: Vector2i) -> void:
+	get_window().size = window
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	_shape = "%dx%d" % [window.x, window.y]
+	print("-- barn window %s -> viewport %s" % [str(window), str(view)])
+	_fresh_farm()
+	_open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _the_barn_roof_is_bought_once(view)
+	await _close()
 
 
 func _run_on_a(window: Vector2i) -> void:
