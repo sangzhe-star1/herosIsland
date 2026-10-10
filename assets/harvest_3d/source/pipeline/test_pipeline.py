@@ -14,6 +14,7 @@
   7. texture coverage/seams and projected anchor metadata resist bad inputs
 """
 import json
+import hashlib
 import re
 import subprocess
 import sys
@@ -69,9 +70,22 @@ runtime_crops = re.findall(r'"(\w+)"', re.search(r'const CROP_IDS := \[(.*?)\]',
 runtime_props = re.findall(r'"(\w+)"', re.search(r'const PROP_IDS := \[(.*?)\]', art, re.S).group(1))
 ok(sorted(runtime_crops) == recipe_crops, 'harvest_visual_art.gd CROP_IDS differ from the crop recipes')
 recipe_props = {k for k, r in recipes.items() if r['kind'] == 'prop'}
-# soil_cover is a frozen-profile GLB render (soil_cover_candidate), not a recipe yet.
 ok(recipe_props <= set(runtime_props),
    'props with a recipe but unknown to the runtime: %s' % sorted(recipe_props - set(runtime_props)))
+soil_cover = recipes.get('soil_cover', {})
+ok(soil_cover.get('model') == 'from_glb'
+   and soil_cover.get('params', {}).get('file') == '../soil_cover_candidate/soil_cover.glb'
+   and soil_cover.get('install') == 'props/soil_cover.png'
+   and soil_cover.get('shadow', {}).get('baked') is False
+   and soil_cover.get('ortho_scale') == 2.6,
+   'soil_cover must use its fingerprinted GLB, frozen-profile framing, and runtime-owned shadow')
+soil_cover_glb = (HERE / str(soil_cover.get('params', {}).get('file', ''))).resolve()
+profile = HERE.parent / 'catalog_profile_candidate' / 'inputs' / 'frozen_render_profile.blend'
+recorded_hashes = re.findall(r'SHA-256 ([0-9a-f]{64})', soil_cover.get('_source', ''))
+ok(soil_cover_glb.is_file() and profile.is_file() and len(recorded_hashes) == 2
+   and recorded_hashes == [hashlib.sha256(soil_cover_glb.read_bytes()).hexdigest(),
+                           hashlib.sha256(profile.read_bytes()).hexdigest()],
+   'soil_cover source/profile fingerprints must match the GLB and frozen Blender profile')
 for rid, r in recipes.items():
     if r.get('install'):
         ok((GAME / 'assets/harvest_3d' / r['install']).exists(),

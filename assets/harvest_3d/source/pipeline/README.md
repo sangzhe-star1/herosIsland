@@ -1,15 +1,17 @@
 # Harvest sprite pipeline
 
-One studio, one recipe per asset, one command. It reproduces every crop the
-game ships to the pixel (0 or 1 differing pixels of 262,144, measured against
-`../../crops/*.png`), so it can replace the fifteen one-off Blender scripts
-that produced them: those scripts carry thirteen cameras between them and no
-two candidates were guaranteed to sit on the same ground line.
+One studio, one recipe per asset, one command. There are now 73 recipes for
+the shipped crops and farm props. It reproduces every crop to the pixel (0 or
+1 differing pixels of 262,144, measured against `../../crops/*.png`), so it
+can replace the fifteen one-off Blender scripts that produced them: those
+scripts carry thirteen cameras between them and no two candidates were
+guaranteed to sit on the same ground line.
 
-It runs wherever Blender's Python runs. On the Mac that is Blender itself; in
-the sandbox it is `pip install bpy` (Blender 5.0 as a Python module, CPU
-Cycles, 47 s for all nineteen sprites on four cores). The audit and the
-self-test need only Pillow.
+It runs wherever Blender's Python runs. The original crop-only sandbox run
+used `pip install bpy` (Blender 5.0 as a Python module, CPU Cycles, 47 s for
+19 sprites on four cores). On 10 October, Blender 5.2.2 on the Mac rendered
+all 73 current recipes in about a minute; the generated set passed the Pillow
+audit with zero failures. The audit and the self-test need only Pillow.
 
 ## Files
 
@@ -32,7 +34,7 @@ cd /opt/heroesIsland                                   # or the sandbox checkout
 P=assets/harvest_3d/source/pipeline
 blender -b -P $P/build.py -- --only carrot             # Mac: one asset
 python3 $P/build.py -- --only carrot                   # sandbox, after: pip install bpy pillow
-python3 $P/build.py                                    # all 19 → source/rendered/
+python3 $P/build.py                                    # all 73 → source/rendered/
 python3 $P/build.py -- --install                       # and copy into ../../crops, ../../props
 python3 $P/build.py -- --glb --blend                   # also GLBs and the .blend
 python3 $P/build.py -- --rig legacy                    # the old softbox look, for comparison
@@ -83,8 +85,9 @@ baked into GLB textures; the PNG and editable `.blend` retain that shading.
   "crops have a baked shadow" is therefore true.
 - **Props.** `basket_empty` is the whole-plant basket GLB (the same file the
   runtime ships) at its own 1.94 m span; the recipe uses `from_glb` plus
-  `ortho_scale`. `soil_cover` still comes from the frozen GLB profile in
-  `soil_cover_candidate/`. `soil_grass_patch` had no recorded source and was lit by
+  `ortho_scale`. `soil_cover` now also uses `from_glb`, with its source and
+  frozen-profile hashes recorded in the recipe; its real contact mound stays
+  runtime-owned. `soil_grass_patch` had no recorded source and was lit by
   the old softbox rig (muddy soil, dark grass, nothing like the crops standing
   on it); it was re-rendered through the frozen profile and installed, so the
   whole set now shares one light.

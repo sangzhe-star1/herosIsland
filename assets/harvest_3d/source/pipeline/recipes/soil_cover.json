@@ -1,0 +1,18 @@
+{
+  "id": "soil_cover",
+  "kind": "prop",
+  "model": "from_glb",
+  "params": {
+    "file": "../soil_cover_candidate/soil_cover.glb"
+  },
+  "shadow": {
+    "baked": false,
+    "size": [
+      1.54,
+      0.44
+    ]
+  },
+  "install": "props/soil_cover.png",
+  "ortho_scale": 2.6,
+  "_source": "soil_cover_candidate/soil_cover.glb (SHA-256 573f96e7f88fd005b0308a516c07471658a5fb081fd34c7f63ba39095809f8cc), through the frozen profile (SHA-256 4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512); runtime owns the contact mound shadow"
+}
