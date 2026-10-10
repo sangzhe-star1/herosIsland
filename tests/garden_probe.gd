@@ -78,7 +78,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1148
+const CHECKS_EXPECTED := 1154
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -151,7 +151,7 @@ func _ready() -> void:
 	_the_undo_controller_keeps_its_window_and_reverses_safe_purchases()
 	_the_pending_undo_state_expires_and_consumes_once()
 	_the_planting_transaction_commits_one_shared_cycle()
-	_the_planted_cycle_survives_disk_reload_and_harvests_once()
+	_the_planted_crop_survives_care_harvest_and_order_reloads()
 	_the_barn_upgrade_controller_settles_costs_overflow_and_undo()
 	_the_market_pays_once_and_only_for_what_is_there()
 	_the_market_retries_refused_sales_and_bounds_its_receipt_ledger()
@@ -1812,9 +1812,9 @@ func _the_planting_transaction_commits_one_shared_cycle() -> void:
 		"the target lesson carrot receives its fast cycle without a gold roll")
 
 
-## The cycle written by the planting transaction must survive the real disk
-## path, become the harvest id after reload, and remain paid exactly once.
-func _the_planted_cycle_survives_disk_reload_and_harvests_once() -> void:
+## One short lesson carrot crosses planting, disk load, thirsty care, ripening,
+## harvest, and a story order without losing its cycle or paying twice.
+func _the_planted_crop_survives_care_harvest_and_order_reloads() -> void:
 	GameClock.set_test_now(NOON, 0)
 	_fresh_save()
 	var farm: Dictionary = SaveManager.data["farm"]
@@ -1828,7 +1828,7 @@ func _the_planted_cycle_survives_disk_reload_and_harvests_once() -> void:
 	plots[0] = bed
 	farm["plots"] = plots
 	var planted: Dictionary = PlantingTransaction.settle(farm, 0, "carrot",
-		NOON, false, -1, "carrot", 6, 0.5)
+		NOON, true, 0, "carrot", 6, -1.0)
 	_ok(bool(planted.get("planted", false))
 		and int(farm["plots"][0].get("plant_cycle_id", 0)) == 1,
 		"the disk-path fixture starts exactly one planted cycle")
@@ -1845,23 +1845,53 @@ func _the_planted_cycle_survives_disk_reload_and_harvests_once() -> void:
 				disk_plot = disk_plots[0]
 	_ok(str(disk_plot.get("crop_id", "")) == "carrot"
 		and int(disk_plot.get("plant_cycle_id", 0)) == 1
-		and int(disk_plot.get("planted_at", 0)) == NOON,
-		"the written save contains the crop, cycle id, and planting timestamp")
+		and int(disk_plot.get("planted_at", 0)) == NOON
+		and int(disk_plot.get("growth_override_seconds", 0)) == 6
+		and not bool(disk_plot.get("golden", true)),
+		"the written save contains the lesson carrot's cycle, timestamp, and timing")
 
 	SaveManager.load_game()
 	farm = SaveManager.data["farm"]
 	var loaded: Dictionary = farm["plots"][0]
 	_ok(str(loaded.get("crop_id", "")) == "carrot"
 		and int(loaded.get("plant_cycle_id", 0)) == 1
-		and int(loaded.get("planted_at", 0)) == NOON,
-		"a real reload preserves the planting facts needed by harvest")
-	loaded["state"] = Farm.READY
-	loaded["growth_stage"] = Farm.STAGES
-	loaded["growth_progress"] = 1.0
-	loaded["care_event"] = ""
+		and int(loaded.get("planted_at", 0)) == NOON
+		and int(loaded.get("growth_override_seconds", 0)) == 6,
+		"a real reload preserves the lesson planting before it starts growing")
+
+	GameClock.set_test_now(NOON + 4, 0)
+	SaveManager.load_game()
+	farm = SaveManager.data["farm"]
+	loaded = farm["plots"][0]
+	_ok(str(loaded.get("state", "")) == Farm.NEEDS_CARE
+		and str(loaded.get("care_event", "")) == Growth.CARE_THIRSTY
+		and int(loaded.get("plant_cycle_id", 0)) == 1,
+		"loading at the thirst boundary waits for care without losing the cycle")
+	var watered: Dictionary = PlotCare.apply(loaded, NOON + 4)
+	loaded = watered.get("plot", loaded)
 	plots = farm["plots"]
 	plots[0] = loaded
 	farm["plots"] = plots
+	_ok(str(watered.get("action", "")) == PlotCare.WATER
+		and str(loaded.get("state", "")) == Farm.GROWING
+		and is_equal_approx(float(loaded.get("water_level", 0.0)), 1.0)
+		and int(loaded.get("plant_cycle_id", 0)) == 1,
+		"watering resumes the same saved cycle and resets its growth anchor")
+	SaveManager.save_game()
+
+	GameClock.set_test_now(NOON + 6, 0)
+	SaveManager.load_game()
+	farm = SaveManager.data["farm"]
+	loaded = farm["plots"][0]
+	_ok(str(loaded.get("state", "")) == Farm.READY
+		and int(loaded.get("growth_stage", 0)) == Farm.STAGES - 1
+		and int(loaded.get("plant_cycle_id", 0)) == 1,
+		"two seconds after care the reloaded carrot ripens on schedule "
+		+ "(state=%s stage=%d anchor=%d farm_seen=%d)" % [
+			str(loaded.get("state", "")),
+			int(loaded.get("growth_stage", 0)),
+			int(loaded.get("last_updated_at", 0)),
+			int(farm.get("last_seen_at", 0))])
 	var harvest_id := PlotHarvest.transaction_id(loaded)
 	var yield_before := Barn.count("carrot") + Barn.count("carrot", Barn.BASKET)
 	var harvest: Dictionary = HarvestTransaction.settle(loaded, farm)
@@ -1890,6 +1920,39 @@ func _the_planted_cycle_survives_disk_reload_and_harvests_once() -> void:
 		and int(farm["plots"][0].get("plant_cycle_id", 0)) == 1
 		and str(farm["plots"][0].get("state", "")) == Farm.TILLED,
 		"the paid receipt and the next cycle id both survive another disk round trip")
+
+	var order: Dictionary = GameData.garden_orders[0]
+	var order_id := str(order.get("id", ""))
+	var order_price := int(order.get("rewards", {}).get("coins", 0))
+	var order_coins_before := Coins.balance()
+	var orders: Dictionary = SaveManager.data["farm_orders"]
+	var delivered: Dictionary = OrderDelivery.settle(order, orders)
+	_ok(bool(delivered.get("settled", false))
+		and int(delivered.get("paid", 0)) == order_price
+		and order_id in (orders.get("delivered", []) as Array),
+		"the harvested carrots complete their story order and record its receipt")
+	_ok(Barn.count("carrot") == 0
+		and Coins.balance() == order_coins_before + order_price
+		and Barn.count("plank", "inventory") == 1,
+		"one delivery consumes the harvest and pays its coins and thank-you gift")
+	SaveManager.save_game()
+	SaveManager.load_game()
+	farm = SaveManager.data["farm"]
+	orders = SaveManager.data["farm_orders"]
+	_ok(order_id in (orders.get("delivered", []) as Array)
+		and Barn.count("carrot") == 0
+		and Coins.balance() == order_coins_before + order_price,
+		"the order receipt, empty basket, and reward survive the disk reload")
+	var requirements: Dictionary = order.get("requirements", {})
+	for item_id in requirements.keys():
+		Barn.put(str(item_id), int(requirements[item_id]))
+	var repeat_delivery := OrderDelivery.settle(order, orders)
+	_ok(not bool(repeat_delivery.get("settled", true))
+		and str(repeat_delivery.get("reason", "")) == "already_delivered"
+		and Barn.count("carrot") == int(requirements.get("carrot", 0))
+		and Coins.balance() == order_coins_before + order_price
+		and Barn.count("plank", "inventory") == 1,
+		"a repeated order after reload preserves the new basket and cannot repay")
 	GameClock.clear_test_now()
 
 
