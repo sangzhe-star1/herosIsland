@@ -79,6 +79,7 @@ const FarmHeaderPanel := preload("res://scripts/garden/panels/farm_header_panel.
 const FarmGiftPanel := preload("res://scripts/garden/panels/farm_gift_panel.gd")
 const FarmSeedRackPanel := preload("res://scripts/garden/panels/farm_seed_rack_panel.gd")
 const FarmToolRackPanel := preload("res://scripts/garden/panels/farm_tool_rack_panel.gd")
+const FarmPanelBase := preload("res://scripts/garden/panels/farm_panel_base.gd")
 
 const SEED_TILE := FarmSeedRackPanel.TILE_SIZE
 ## The old 96px header plus 168px shelf left less than two thirds of a 16:9
@@ -2151,41 +2152,11 @@ func _order_thanks(order: Dictionary) -> void:
 
 # --- the shop, the market box, and the barn's own door --------------------
 
-## A button that is exactly the size it is asked to be. UiKit.big_button
-## carries its own minimum size and shadow for full-screen choices; inside a
-## panel's rows it balloons over its neighbours -- the first cut of the shop
-## had two 买下 stacked into one green blob hanging off the sheet.
+## Compatibility seam for the remaining screen-owned confirm cards. Panel
+## controls share one implementation with the extracted panel family.
 func _chip_button(text: String, fill: Color, box: Vector2) -> Button:
-	var b := Button.new()
-	b.flat = false
-	b.focus_mode = Control.FOCUS_NONE
-	b.text = text
-	var bold := UiKit.bold_font()
-	if bold != null:
-		b.add_theme_font_override("font", bold)
-	var font_sz: int = int(roundf(box.y * 0.40))
-	if text.length() >= 4:
-		font_sz = mini(font_sz, 16)
-	elif text.length() >= 3:
-		font_sz = mini(font_sz, 17)
-	else:
-		font_sz = mini(font_sz, 19)
-	b.add_theme_font_size_override("font_size", font_sz)
-	var is_dark := fill.get_luminance() < 0.62
-	var text_col := Palette.ON_COLOR if is_dark else Color(0.20, 0.17, 0.13)
-	b.add_theme_color_override("font_color", text_col)
-	b.add_theme_color_override("font_hover_color", text_col)
-	b.add_theme_color_override("font_pressed_color", text_col)
-	b.add_theme_color_override("font_focus_color", text_col)
-	b.add_theme_color_override("font_disabled_color", Color(0.55, 0.53, 0.48))
-	b.add_theme_stylebox_override("normal", UiKit.chip_style(fill, 16))
-	b.add_theme_stylebox_override("hover", UiKit.chip_style(Palette.lift(fill), 16))
-	b.add_theme_stylebox_override("pressed", UiKit.chip_style(fill.darkened(0.08), 16))
-	b.add_theme_stylebox_override("focus", UiKit.chip_style(fill, 16))
-	b.add_theme_stylebox_override("disabled", UiKit.chip_style(Color(0.88, 0.86, 0.82), 16))
-	b.custom_minimum_size = box
-	b.size = box
-	return b
+	var panels := FarmPanelBase.new(self)
+	return panels.chip_button(text, fill, box)
 
 
 ## The scaffolding every panel shares: a sheet over the farm, a title, and a
@@ -2197,61 +2168,14 @@ func _chip_button(text: String, fill: Color, box: Vector2) -> Button:
 ## board hang this in their top-right corner; the only thing that varies is
 ## where the corner is and what closing means.
 func _sheet_close(at: Vector2, on_pressed: Callable) -> Button:
-	var shut := Button.new()
-	shut.flat = false
-	shut.focus_mode = Control.FOCUS_NONE
-	shut.text = "X"
-	shut.add_theme_font_size_override("font_size", 26)
-	for slot in ["font_color", "font_hover_color", "font_pressed_color",
-			"font_focus_color"]:
-		shut.add_theme_color_override(slot, Palette.ON_COLOR)
-	shut.position = at
-	shut.custom_minimum_size = Vector2(60, 60)
-	shut.size = Vector2(60, 60)
-	for look in ["normal", "hover", "pressed", "focus"]:
-		shut.add_theme_stylebox_override(look,
-			UiKit.chip_style(Palette.SLATE, 16))
-	shut.pressed.connect(on_pressed)
-	_play.add_child(shut)
-	# It stands over the farm now, not over the paper: a press on it must
-	# not also reach the bed underneath.
-	if _world != null and is_instance_valid(_world):
-		_world.add_blocker(shut)
-	return shut
+	var panels := FarmPanelBase.new(self)
+	return panels.sheet_close(at, on_pressed)
 
 
 func _panel_sheet(view: Vector2, title_key: String, wide: float,
 		tall: float) -> Vector2:
-	var origin := Vector2(view.x * 0.5 - wide * 0.5, TOP_BAR + 16.0)
-	var sheet := Panel.new()
-	sheet.add_theme_stylebox_override("panel",
-		UiKit.panel_style(Color(0.99, 0.97, 0.90), 28))
-	if title_key in ["garden.warehouse_title", "garden.waiting_harvest_title"]:
-		sheet.name = "BarnCollectionPanel"
-		sheet.add_theme_stylebox_override("panel", _inventory_surface())
-	sheet.position = origin
-	sheet.custom_minimum_size = Vector2(wide, tall)
-	sheet.size = Vector2(wide, tall)
-	_play.add_child(sheet)
-	if _world != null and is_instance_valid(_world):
-		_world.add_blocker(sheet)
-
-	var title := UiKit.title(I18n.t(title_key), 22, Color(0.29, 0.24, 0.16)) \
-		if title_key in ["garden.warehouse_title", "garden.waiting_harvest_title"] else UiKit.title(I18n.t(title_key), 24, Color(0.26, 0.22, 0.17))
-	title.position = origin + Vector2(28, 12)
-	title.size = Vector2(wide - 130.0, 32)
-	if title_key in ["garden.warehouse_title", "garden.waiting_harvest_title"]:
-		title.name = "BarnCollectionTitle"
-		title.position = origin + Vector2(28.0, 8.0)
-		title.size.y = 28.0
-	_play.add_child(title)
-
-	# The way out of the paper: same dark slate as the back button, at the
-	# thumb floor the touch probe measures (60px, 3:1), and quiet about it --
-	# a 26-point letter in a tight little pill instead of a slab that shouts
-	# over the heading it sits beside. See _sheet_close.
-	_sheet_close(origin + Vector2(wide + 14.0, 0.0), _close_panels)
-	return origin
+	var panels := FarmPanelBase.new(self)
+	return panels.panel_sheet(view, title_key, wide, tall, _close_panels)
 
 
 ## "X分" under an hour, "X时" from there up. Every crop's time is a whole
@@ -2277,29 +2201,8 @@ func _grow_time_text(seconds: int) -> String:
 ## the caller owns the page variable and the clamp.
 func _pager(origin: Vector2, wide: float, tall: float, page: int,
 		pages: int, flip: Callable) -> void:
-	if pages <= 1:
-		return
-	if page > 0:
-		var back := _chip_button("<", Color(0.99, 0.96, 0.88), Vector2(60, 76))
-		back.position = Vector2(origin.x - 74.0, origin.y + tall * 0.5 - 38.0)
-		back.pressed.connect(func():
-			AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
-			flip.call(-1))
-		_play.add_child(back)
-		if _world != null and is_instance_valid(_world):
-			_world.add_blocker(back)
-		_panel_buttons["page_back"] = back
-	if page < pages - 1:
-		var next := _chip_button(">", Color(0.99, 0.96, 0.88), Vector2(60, 76))
-		next.position = Vector2(origin.x + wide + 14.0,
-			origin.y + tall * 0.5 - 38.0)
-		next.pressed.connect(func():
-			AudioManager.play_sfx("res://assets/audio/card_flip.ogg")
-			flip.call(+1))
-		_play.add_child(next)
-		if _world != null and is_instance_valid(_world):
-			_world.add_blocker(next)
-		_panel_buttons["page_next"] = next
+	var panels := FarmPanelBase.new(self)
+	panels.pager(origin, wide, tall, page, pages, flip)
 
 
 ## The seed shop: six rows a page, and on every row the three numbers the red
