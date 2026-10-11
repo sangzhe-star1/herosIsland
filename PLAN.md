@@ -1116,6 +1116,12 @@ These are yours to make. Nothing below has been changed without asking.
   the screen-space destination for plot, seed, and order cues and creates the
   temporary teaching finger. `garden_screen.gd` is down to 1,981 lines.
   GardenTouchProbe passed 2,031 checks across both aspect ratios.
+- **Friend farm scope audit (10 October):** adding rabbit and puppy farms is
+  already complete in the current tree (`175c5cd`): the data defines bear,
+  rabbit, puppy, and robot; all four have doors, and `FarmWorldProbe` exercises
+  the real share/help/visit loop for rabbit, puppy, and robot. The earlier
+  suggestion to add these two farms again was stale, so no duplicate scenes or
+  save rules are needed.
 
 ---
 
