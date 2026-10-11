@@ -114,6 +114,12 @@ passed 2,055 checks, FarmWorldProbe 957, and the synthetic migration and save
 probes passed. The iPad save has not yet been exported, so its real-save
 migration audit and real-device playtest remain open.
 
+Also on 11 October, the screen's post-settlement collection sequence was
+centralized for timed facilities and pond catches, while source controllers
+still settle inventory. The updated GardenTouchProbe passed 2,055 checks and
+FarmLifeProbe 81; static checks remain clean. The 31/31 smoke result above is
+from immediately before this small orchestration extraction.
+
 ---
 
 ## Phase 7 — The farm as a place — **complete 10 October**

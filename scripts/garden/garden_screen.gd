@@ -710,10 +710,20 @@ func _collect_facility_produce(facility_id: String, receipt: Dictionary,
 		return
 	var at: Vector2 = _world.facility_screen_position(facility_id) \
 		if _world != null and is_instance_valid(_world) else Vector2(640, 360)
+	_present_collection_receipt(receipt, at, 0, voice)
+
+
+## Complete every farm collection the same way after its owner has settled the
+## inventory: save once, answer once, fly the truthful receipt, then redraw.
+## Timed makers and the pond now share this boundary; their source-specific
+## action and optional voice stay at the call site.
+func _present_collection_receipt(receipt: Dictionary, from_at: Vector2,
+		stored_default: int = 0, voice: String = "") -> void:
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/found.ogg")
-	AudioManager.say(voice)
-	_show_receipt_flights(receipt, at)
+	if voice != "":
+		AudioManager.say(voice)
+	_show_receipt_flights(receipt, from_at, stored_default)
 	_harvested_something = true
 	_queue_rebuild()
 
@@ -775,13 +785,9 @@ func _on_bear_visit_finished(_index: int) -> void:
 
 
 func _on_fish_caught(info: Dictionary) -> void:
-	SaveManager.save_game()
-	AudioManager.play_sfx("res://assets/audio/found.ogg")
 	var pond_pos := Vector2(1362.0, 612.0)
 	var at: Vector2 = _world.camera.world_to_screen(pond_pos) if _world != null and is_instance_valid(_world) else Vector2(640, 360)
-	_show_receipt_flights(info, at, 1)
-	_harvested_something = true
-	_queue_rebuild()
+	_present_collection_receipt(info, at, 1)
 	if bool(info.get("unlocked_ducklings", false)):
 		AudioManager.say("praise_3")
 
