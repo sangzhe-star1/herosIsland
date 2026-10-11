@@ -1122,6 +1122,12 @@ These are yours to make. Nothing below has been changed without asking.
   the real share/help/visit loop for rabbit, puppy, and robot. The earlier
   suggestion to add these two farms again was stale, so no duplicate scenes or
   save rules are needed.
+- **Current-head regression pass (10 October, `4752d20`):** the complete
+  isolated smoke suite passed 30/30 with 0 skipped after the task-focus and
+  lesson-pointer view moves. Within it, GardenProbe passed 1,226 checks,
+  GardenTouchProbe passed 2,031 checks across 16:9 and 4:3, FarmWorldProbe and
+  SaveProbe passed, and `tools_check.py` reported 0 errors with 208 existing
+  warnings. The actual iPad save and hands-on pacing session remain open.
 
 ---
 
