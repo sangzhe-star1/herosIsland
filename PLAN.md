@@ -400,10 +400,11 @@ These are yours to make. Nothing below has been changed without asking.
   lost farm keys, and confirmed the source hash stayed unchanged; eight fields
   changed during normal farm settlement and remain flagged for human review.
   This adds a real local-save rehearsal but does not replace the iPad backup.
-- **Latest iOS preflight (10 October):** current project export and generic
-  iOS arm64 Debug build succeeded. The iPad simulator build still fails because
-  the exported Godot simulator library contains x86_64 only, despite its
-  XCFramework metadata listing arm64. No physical iPad is connected. See the
+- **Latest iOS preflight (10 October, `efa0945`):** current project export and
+  generic iOS arm64 Debug build succeeded; the app binary is confirmed arm64.
+  The iPad simulator build still fails because the exported Godot simulator
+  library contains x86_64 only, despite its XCFramework metadata listing
+  arm64. No physical iPad is connected. See the
   [play-test sheet](docs/GARDEN_PLAYTEST_SHEET.md) for commands and diagnostics.
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
