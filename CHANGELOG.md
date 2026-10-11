@@ -1,5 +1,11 @@
 # Changelog
 
+## 收成回执统一飞行并修正鸭宝宝动画释放 — 11 October 2026
+
+- 定时设施和池塘钓鱼现在共用同一收成飞行动画入口，按回执中的实存与溢出数量准确飞入仓库和收成篮；鱼获保留原有的默认入库数量。
+- GardenTouchProbe 在 16:9 与 4:3 各通过 2,035 项；新增真实池塘触控，覆盖满仓时第 5 条鱼进入篮子、鸭宝宝孵化和可见溢出飞行。后续换场景时已释放的鸭宝宝曾让景物动画控制器报错；现在先验证节点、清理失效引用，并在双画幅 FarmLifeProbe 中通过 81 项。
+- FarmWorldProbe 双画幅通过 957 项；完整隔离 smoke 通过 31/31、0 skipped，QA runner 单测通过 16/16；`tools_check.py` 报告 0 errors、208 条既有 warnings；`git diff --check` 通过。
+
 ## 菜园面板访问状态归入面板控制器 — 11 October 2026
 
 - `FarmPanelStateController` 现在拥有面板访问期的页码、确认卡、待送礼篮子和待出售篮子；`GardenScreen` 保留兼容属性，并继续持有当前面板的节点引用。

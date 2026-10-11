@@ -713,19 +713,31 @@ func _collect_facility_produce(facility_id: String, receipt: Dictionary,
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/found.ogg")
 	AudioManager.say(voice)
-	var stored := int(receipt.get("stored", 0))
-	var spilled := int(receipt.get("spilled", 0))
-	if stored > 0:
-		_collection_feedback.show_flight(_harvest_feedback_layer(), self,
-			receipt, stored, _barn_button_at, "warehouse", "HarvestFlight",
-			Callable(self, "_crop_picture"), at + Vector2(0, -20))
-	if spilled > 0:
-		_collection_feedback.show_flight(_harvest_feedback_layer(), self,
-			receipt, spilled, _spill_flight_destination(), "harvest_basket",
-			"HarvestSpillFlight", Callable(self, "_crop_picture"),
-			at + Vector2(0, -20))
+	_show_receipt_flights(receipt, at)
 	_harvested_something = true
 	_queue_rebuild()
+
+
+## One receipt has one truthful route into the barn and overflow basket,
+## whether it came from a pen, the mill, or the pond. The transaction still
+## owns stored/spilled amounts; this screen only animates those exact counts.
+func _show_receipt_flights(receipt: Dictionary, from_at: Vector2,
+		stored_default: int = 0) -> void:
+	var stored := int(receipt.get("stored", stored_default))
+	var spilled := int(receipt.get("spilled", 0))
+	if stored <= 0 and spilled <= 0:
+		return
+	var layer := _harvest_feedback_layer()
+	var picture_builder := Callable(self, "_crop_picture")
+	var start := from_at + Vector2(0, -20)
+	if stored > 0:
+		_collection_feedback.show_flight(layer, self, receipt, stored,
+			_barn_button_at, "warehouse", "HarvestFlight", picture_builder,
+			start)
+	if spilled > 0:
+		_collection_feedback.show_flight(layer, self, receipt, spilled,
+			_spill_flight_destination(), "harvest_basket", "HarvestSpillFlight",
+			picture_builder, start)
 
 
 ## The rain cloud he dragged over a thirsty bed let go: the bed drinks by
@@ -767,17 +779,7 @@ func _on_fish_caught(info: Dictionary) -> void:
 	AudioManager.play_sfx("res://assets/audio/found.ogg")
 	var pond_pos := Vector2(1362.0, 612.0)
 	var at: Vector2 = _world.camera.world_to_screen(pond_pos) if _world != null and is_instance_valid(_world) else Vector2(640, 360)
-	var stored := int(info.get("stored", 1))
-	var spilled := int(info.get("spilled", 0))
-	if stored > 0:
-		_collection_feedback.show_flight(_harvest_feedback_layer(), self,
-			info, stored, _barn_button_at, "warehouse", "HarvestFlight",
-			Callable(self, "_crop_picture"), at + Vector2(0, -20))
-	if spilled > 0:
-		_collection_feedback.show_flight(_harvest_feedback_layer(), self,
-			info, spilled, _spill_flight_destination(), "harvest_basket",
-			"HarvestSpillFlight", Callable(self, "_crop_picture"),
-			at + Vector2(0, -20))
+	_show_receipt_flights(info, at, 1)
 	_harvested_something = true
 	_queue_rebuild()
 	if bool(info.get("unlocked_ducklings", false)):

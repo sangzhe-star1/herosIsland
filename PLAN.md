@@ -98,11 +98,12 @@ launched on an iPad Pro simulator. This restored a launch check, but the
 software-rendered simulator did not finish the full touch probe, so this is
 not an iPad playtest. The device and real-save checks remain open; see
 `docs/GARDEN_PLAYTEST_SHEET.md` for the exact result and limitation.
-After the 11 October panel-state extraction, the complete isolated smoke suite
-passes 31/31 with 0 skips; FarmWorldProbe passes 957 checks, GardenTouchProbe
-2,031 across 16:9 and 4:3, and SaveMigrationAuditProbe and SaveProbe pass.
-The runner unit suite passes 16/16. `python3 tools_check.py` reports 0 errors
-and 208 existing warnings. The actual iPad and real-save checks remain open.
+After the 11 October panel-state extraction and collection-flight follow-up,
+the complete isolated smoke suite passes 31/31 with 0 skips; FarmWorldProbe
+passes 957 checks, GardenTouchProbe 2,035, and FarmLifeProbe 81 across 16:9
+and 4:3; SaveMigrationAuditProbe and SaveProbe pass. The runner unit suite
+passes 16/16. `python3 tools_check.py` reports 0 errors and 208 existing
+warnings. The actual iPad and real-save checks remain open.
 
 ---
 
@@ -362,13 +363,23 @@ These are yours to make. Nothing below has been changed without asking.
 
 ## Current follow-through — 11 October 2026
 
+- **Collection receipt presentation and scenery cleanup:** facility produce and
+  pond fish now share one flight helper for exact stored and overflow amounts.
+  A real pond tap fills a full barn's overflow basket with the fifth fish,
+  displays the receipt flight, and hatches the ducklings. Rebuilding after that
+  unlock exposed scenery animations retaining freed duckling sprites; the
+  controller now validates and prunes those references before input or motion
+  updates. GardenTouchProbe passes 2,035 checks and FarmLifeProbe passes 81
+  across 16:9 and 4:3; `tools_check.py` reports 0 errors and 208 existing
+  warnings. `./tests/run_smoke.sh` passes 31/31 with 0 skips.
+
 - **Panel visit state boundary:** `FarmPanelStateController` now owns route-
   local pages, purchase/upgrade confirmations, and uncommitted market and gift
   baskets. `GardenScreen` keeps compatibility properties for existing panels
   and probes, plus the live view-node references. A stale close callback cannot
   clear another route's basket; reopening market preserves only its current
   visit, while switching routes or closing discards uncommitted interaction
-  state. FarmWorldProbe passes 957 checks and GardenTouchProbe passes 2,031
+  state. FarmWorldProbe passes 957 checks and GardenTouchProbe passes 2,035
   across 16:9 and 4:3. Friend-gift screenshots were checked in both ratios;
   the complete smoke suite passes 31/31 with 0 skips, the runner unit suite
   passes 16/16, and `tools_check.py` reports 0 errors and 208 existing

@@ -28,13 +28,30 @@ func add(sprite: Control, kind: String, spec: Dictionary) -> void:
 		"path": spec.get("path", []), "leg": 0, "t": 0.0})
 
 
+func _live_sprite(life: Dictionary) -> Control:
+	var candidate: Variant = life.get("sprite")
+	if not is_instance_valid(candidate):
+		return null
+	var sprite := candidate as Control
+	if sprite == null or sprite.is_queued_for_deletion():
+		return null
+	return sprite
+
+
+func _prune_invalid_sprites() -> void:
+	for index in range(_alive.size() - 1, -1, -1):
+		var life: Dictionary = _alive[index]
+		if _live_sprite(life) == null:
+			_alive.remove_at(index)
+
+
 ## The sprite under a press, if it is one that answers (duck, hen). The hop
 ## is a short impulse the bob/peck motion rides on top of.
 func poke_at(screen_at: Vector2) -> String:
+	_prune_invalid_sprites()
 	for life in _alive:
-		var sprite: Control = life["sprite"]
-		if not is_instance_valid(sprite) \
-				or str(life["kind"]) in ["flutter", "firefly", "scarecrow", "lantern"]:
+		var sprite := _live_sprite(life)
+		if sprite == null or str(life["kind"]) in ["flutter", "firefly", "scarecrow", "lantern"]:
 			continue
 		var local_at := sprite.get_global_transform_with_canvas().affine_inverse() * screen_at
 		var hit: Rect2 = life["hit"]
@@ -45,12 +62,14 @@ func poke_at(screen_at: Vector2) -> String:
 
 
 func poke_kind(kind: String) -> void:
+	_prune_invalid_sprites()
 	for life in _alive:
-		var sprite: Control = life["sprite"]
-		if is_instance_valid(sprite):
-			var pid := str(sprite.get_meta("prop_id", ""))
-			if pid == kind or (kind == "duck" and pid == "duckling"):
-				_hop(life)
+		var sprite := _live_sprite(life)
+		if sprite == null:
+			continue
+		var pid := str(sprite.get_meta("prop_id", ""))
+		if pid == kind or (kind == "duck" and pid == "duckling"):
+			_hop(life)
 
 
 func _hop(life: Dictionary) -> void:
@@ -82,8 +101,11 @@ func _rest(life: Dictionary, sprite: Control) -> void:
 
 
 func _greeting_tick(life: Dictionary, delta: float, moving: bool) -> void:
-	var heart: Control = life.get("greeting")
-	if heart == null or not is_instance_valid(heart):
+	var heart_value: Variant = life.get("greeting")
+	if not is_instance_valid(heart_value):
+		return
+	var heart := heart_value as Control
+	if heart == null:
 		return
 	life["greeting_left"] = maxf(0.0, float(life["greeting_left"]) - delta)
 	if float(life["greeting_left"]) <= 0.0:
@@ -97,12 +119,13 @@ func _greeting_tick(life: Dictionary, delta: float, moving: bool) -> void:
 
 
 func _process(delta: float) -> void:
+	_prune_invalid_sprites()
 	var moving := Juice.motion_enabled()
 	if moving:
 		_t += delta
 	for life in _alive:
-		var sprite: Control = life["sprite"]
-		if not is_instance_valid(sprite):
+		var sprite := _live_sprite(life)
+		if sprite == null:
 			continue
 		_greeting_tick(life, delta, moving)
 		_rest(life, sprite)

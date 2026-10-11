@@ -21,6 +21,7 @@ const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
 const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
+const PondManager := preload("res://scripts/garden/farm_pond_manager.gd")
 const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_panel.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
@@ -41,7 +42,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 2019
+const CHECKS_EXPECTED := 2023
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -130,6 +131,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_hens_turn_corn_into_eggs()
 	await _the_mill_turns_wheat_into_flour()
 	await _the_data_led_pens_share_the_facility_press_path()
+	await _the_pond_receipt_reaches_the_basket_on_a_real_tap()
 	await _a_drag_from_the_dog_is_a_throw()
 	await _the_cloud_waters_the_bed_it_is_dropped_on()
 	await _the_bear_comes_back_to_a_thirsty_bed()
@@ -2616,6 +2618,47 @@ func _the_data_led_pens_share_the_facility_press_path() -> void:
 	_garden.call("_rebuild")
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+## Fishing is a real touch on the pond; its receipt must animate into the same
+## uncapped overflow basket as every other farm output when the barn is full.
+func _the_pond_receipt_reaches_the_basket_on_a_real_tap() -> void:
+	_garden.call("_close_panels")
+	_fresh_garden()
+	var farm: Dictionary = SaveManager.data["farm"]
+	var capacity := Barn.cap()
+	farm["tutorial_completed"] = true
+	farm["warehouse"] = {"carrot": capacity}
+	farm["harvest_basket"] = {}
+	farm["fish_caught_total"] = PondManager.DUCKLING_THRESHOLD - 1
+	GameClock.set_test_now(NOON, 0)
+	SaveManager.save_game()
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var world: Node = _garden.get("_world")
+	world.call("look_at_world", PondManager.POND_CENTER)
+	world.call("_start_fishing_ring")
+	world.set("_fishing_elapsed", PondManager.RING_DURATION * 0.75)
+	var ring: Node2D = world.get("_pond_ring")
+	ring.progress = 0.75
+	ring.active = true
+	var pond_water: Vector2 = _camera().world_to_screen(
+		PondManager.POND_CENTER + Vector2(35.0, -30.0))
+	_garden.remove_meta("last_harvest_flight")
+	_garden.set_meta("harvest_flights", [])
+	await _tap(pond_water)
+
+	_ok(int(SaveManager.data["farm"].get("fish_caught_total", 0))
+			== PondManager.DUCKLING_THRESHOLD
+			and Barn.count("fish", Barn.BASKET) == 1
+			and (world.get("_ducklings") as Array).size() == 3,
+		"a real pond tap records the fifth fish, fills the basket, and hatches the ducklings")
+	var flight: Dictionary = _garden.get_meta("last_harvest_flight", {})
+	_ok(str(flight.get("crop_id", "")) == "fish"
+			and str(flight.get("destination", "")) == "harvest_basket"
+			and _find_named(_garden, "HarvestSpillFlight_fish") is Control,
+		"the fish spill receipt takes the shared flight into its visible basket")
 
 
 ## At level eight the real well hit target pays once; a repeat only gives the

@@ -8,7 +8,7 @@ const World := preload("res://scripts/garden/farm_world_controller.gd")
 const DogSprite := preload("res://scripts/garden/farm_dog_sprite.gd")
 const Lifecycle := preload("res://tests/probe_lifecycle.gd")
 const SHAPES := [Vector2i(1280, 720), Vector2i(1024, 768)]
-const CHECKS_EXPECTED := 60
+const CHECKS_EXPECTED := 62
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -85,6 +85,7 @@ func _run_shape(shape: Vector2i) -> void:
 		_world.queue_free()
 		return
 	_life.set_process(false)
+	_freed_scenery_is_pruned()
 	var rabbit := _entry("rabbit")
 	_ok(not rabbit.is_empty(), "rabbit is actually placed, not skipped by target protection")
 	if rabbit.is_empty():
@@ -162,6 +163,18 @@ func _old_input_paths_keep_priority() -> void:
 	await get_tree().process_frame
 	await _press(_world.call("facility_screen_position", "well"), false)
 	_ok(_facility_hits == ["well"], "pressing a facility still belongs to the facility")
+
+
+func _freed_scenery_is_pruned() -> void:
+	var before: int = (_life.get("_alive") as Array).size()
+	var sprite := Control.new()
+	sprite.size = Vector2(8.0, 8.0)
+	_life.add_child(sprite)
+	_life.call("add", sprite, "bob", {})
+	sprite.free()
+	_life.call("_process", 0.016)
+	_ok((_life.get("_alive") as Array).size() == before,
+		"freed scenery sprites are pruned before the next animation update")
 
 
 func _existing_animals_still_answer() -> void:
