@@ -36,12 +36,12 @@ func _page_button(direction: String) -> Button:
 
 
 func _surface(fill: Color, edge: Color) -> StyleBoxFlat:
-	return screen.call("_quiet_surface_style", fill, 16, edge, 1, 8)
+	return quiet_surface_style(fill, 16, edge, 1, 8)
 
 
 func build(view: Vector2, shelf_height: float) -> void:
 	var shelf := Panel.new()
-	var shelf_style: StyleBoxFlat = screen.call("_quiet_surface_style",
+	var shelf_style: StyleBoxFlat = quiet_surface_style(
 		Color(0.97, 0.93, 0.83), 0, Color(0.68, 0.49, 0.23, 0.50))
 	shelf_style.border_width_top = 2
 	shelf.add_theme_stylebox_override("panel", shelf_style)
@@ -56,8 +56,8 @@ func build(view: Vector2, shelf_height: float) -> void:
 	# layer of their own.
 	var tool_deck := Panel.new()
 	tool_deck.name = "GardenToolDeck"
-	tool_deck.add_theme_stylebox_override("panel", screen.call(
-		"_quiet_surface_style", Color(0.87, 0.77, 0.57, 0.30), 20,
+	tool_deck.add_theme_stylebox_override("panel", quiet_surface_style(
+		Color(0.87, 0.77, 0.57, 0.30), 20,
 		Color(0.65, 0.46, 0.21, 0.25), 1))
 	tool_deck.position = Vector2(12.0, view.y - shelf_height + 2.0)
 	tool_deck.custom_minimum_size = Vector2(minf(560.0, view.x - 24.0), 64.0)
@@ -77,8 +77,8 @@ func build(view: Vector2, shelf_height: float) -> void:
 	var lane_y: float = screen.call("_seed_lane_y", view)
 	var seed_deck := Panel.new()
 	seed_deck.name = "GardenSeedDeck"
-	seed_deck.add_theme_stylebox_override("panel", screen.call(
-		"_quiet_surface_style", Color(0.87, 0.77, 0.57, 0.30), 20,
+	seed_deck.add_theme_stylebox_override("panel", quiet_surface_style(
+		Color(0.87, 0.77, 0.57, 0.30), 20,
 		Color(0.65, 0.46, 0.21, 0.25), 1))
 	seed_deck.position = Vector2(12.0, lane_y - 32.0)
 	seed_deck.custom_minimum_size = Vector2(
@@ -103,10 +103,10 @@ func build(view: Vector2, shelf_height: float) -> void:
 		slot.position = -TILE_SIZE * 0.5
 		slot.size = TILE_SIZE
 		slot.add_theme_stylebox_override("panel",
-			screen.call("_inventory_surface", true, crop_id == chosen))
+			inventory_surface(true, crop_id == chosen))
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tile.add_child(slot)
-		var art: Control = screen.call("_crop_picture", crop_id, 46.0,
+		var art: Control = crop_picture(crop_id, 46.0,
 			"SeedPicture_%s" % crop_id)
 		if art != null:
 			art.position = Vector2(-23.0, -23.0)
@@ -117,8 +117,8 @@ func build(view: Vector2, shelf_height: float) -> void:
 			selected.position = Vector2(TILE_SIZE.x * 0.5 - 23.0,
 				-TILE_SIZE.y * 0.5 + 4.0)
 			selected.size = Vector2(19.0, 19.0)
-			selected.add_theme_stylebox_override("panel", screen.call(
-				"_quiet_surface_style", Color(0.36, 0.42, 0.19), 8,
+			selected.add_theme_stylebox_override("panel", quiet_surface_style(
+				Color(0.36, 0.42, 0.19), 8,
 				Color(0.36, 0.42, 0.19), 0, 0))
 			selected.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			tile.add_child(selected)
@@ -151,8 +151,8 @@ func build(view: Vector2, shelf_height: float) -> void:
 	var has_next := page < pages - 1
 	var pager_deck := Panel.new()
 	pager_deck.name = "GardenSeedPagerDeck"
-	pager_deck.add_theme_stylebox_override("panel", screen.call(
-		"_quiet_surface_style", Color(0.87, 0.77, 0.57, 0.30), 18,
+	pager_deck.add_theme_stylebox_override("panel", quiet_surface_style(
+		Color(0.87, 0.77, 0.57, 0.30), 18,
 		Color(0.65, 0.46, 0.21, 0.25), 1))
 	pager_deck.position = Vector2(pager_x - 2.0, lane_y - 32.0)
 	pager_deck.custom_minimum_size = Vector2(132.0 if has_back and has_next else 64.0,

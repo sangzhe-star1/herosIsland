@@ -94,7 +94,7 @@ func build(view: Vector2) -> void:
 
 		var x := at.x + 86.0
 		for crop_id in wants.keys():
-			var art: Control = screen.call("_crop_picture", str(crop_id), 34.0)
+			var art: Control = crop_picture(str(crop_id), 34.0)
 			if art != null:
 				art.position = Vector2(x, y + 16.0 + detail_lift)
 				art.mouse_filter = Control.MOUSE_FILTER_IGNORE

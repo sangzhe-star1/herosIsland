@@ -225,7 +225,7 @@ func _challenge_door(view: Vector2) -> void:
 				shows = str(crop.get("id", ""))
 	var art: Control
 	if shows != "star":
-		art = screen.call("_crop_picture", shows, 32.0)
+		art = crop_picture(shows, 32.0)
 	else:
 		art = UiKit.picture(art_ref, 32.0)
 	preview.set_meta("shows", shows)
@@ -240,6 +240,4 @@ func _challenge_door(view: Vector2) -> void:
 
 func _surface(fill: Color, radius: int, edge: Color,
 		edge_width: int, content_margin: int) -> StyleBoxFlat:
-	var style: StyleBoxFlat = screen.call("_quiet_surface_style", fill,
-		radius, edge, edge_width, content_margin)
-	return style
+	return quiet_surface_style(fill, radius, edge, edge_width, content_margin)

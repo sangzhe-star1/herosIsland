@@ -1022,6 +1022,17 @@ These are yours to make. Nothing below has been changed without asking.
   existing warnings. Real iPad save migration and child playtesting remain
   pending until a device backup and hands-on play session are available.
   The full isolated smoke suite was not rerun for this focused extraction.
+- **Shared farm style and art boundary (10 October):**
+  `FarmPanelBase` now owns the common farm surface materials, inventory
+  treatment, fitted crop/produce art, tool pictures, and tool tile states.
+  Panels and the saved-decoration view call the inherited helpers directly;
+  `garden_screen.gd` keeps the one crop-picture adapter still used by collection
+  animations. GardenTouchProbe passed 2,019 checks and FarmWorldProbe passed
+  923 across 16:9 and 4:3. FarmShot rendered and passed visual review with the
+  tool drawer open at 1280×720 and 1024×768. `garden_screen.gd` is down from
+  2,156 to 2,081 lines; `tools_check.py` reports 0 errors and 208 existing
+  warnings. Real iPad save migration and child playtesting remain pending.
+  The full isolated smoke suite was not rerun for this scoped UI extraction.
 
 ---
 

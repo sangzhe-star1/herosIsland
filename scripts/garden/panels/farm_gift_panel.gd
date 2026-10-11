@@ -73,7 +73,7 @@ func build(view: Vector2) -> void:
 	var pack_y := origin.y + 168.0
 	var shelf_panel := Panel.new()
 	shelf_panel.name = "GiftShelfPanel"
-	shelf_panel.add_theme_stylebox_override("panel", screen.call("_quiet_surface_style",
+	shelf_panel.add_theme_stylebox_override("panel", quiet_surface_style(
 		Color(0.96, 0.94, 0.88, 0.7), 20, Color(0.65, 0.55, 0.40, 0.3), 1, 8))
 	shelf_panel.position = Vector2(origin.x + 20.0, pack_y)
 	shelf_panel.custom_minimum_size = Vector2(wide - 40.0, 250.0)

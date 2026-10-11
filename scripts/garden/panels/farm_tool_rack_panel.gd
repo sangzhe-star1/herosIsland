@@ -35,8 +35,8 @@ func build(view: Vector2, shelf_height: float) -> void:
 		drawer.custom_minimum_size = DRAWER_SIZE
 		drawer.size = DRAWER_SIZE
 		drawer.mouse_filter = Control.MOUSE_FILTER_STOP
-		drawer.add_theme_stylebox_override("panel", screen.call(
-			"_quiet_surface_style", Color(0.97, 0.93, 0.83), 20,
+		drawer.add_theme_stylebox_override("panel", quiet_surface_style(
+			Color(0.97, 0.93, 0.83), 20,
 			Color(0.68, 0.49, 0.23, 0.50), 1, 10))
 		play.add_child(drawer)
 		drawer_grid = GridContainer.new()
@@ -125,12 +125,12 @@ func _tool_button(tool: Dictionary, tool_controller: Variant,
 	var fill := Color(0.98, 0.94, 0.83) if live else Color(0.91, 0.88, 0.81)
 	var edge := Color(0.48, 0.34, 0.14) if held \
 		else Color(0.69, 0.52, 0.28, 0.42)
-	var normal = screen.call("_tool_tile_style", fill, edge, held)
-	var hover = screen.call("_tool_tile_style", fill.lightened(0.025),
+	var normal := tool_tile_style(fill, edge, held)
+	var hover := tool_tile_style(fill.lightened(0.025),
 		edge, held, not held)
-	var pressed = screen.call("_tool_tile_style", fill.darkened(0.025),
+	var pressed := tool_tile_style(fill.darkened(0.025),
 		edge, held, not held)
-	var disabled = screen.call("_tool_tile_style",
+	var disabled := tool_tile_style(
 		Color(0.91, 0.88, 0.81), Color(0.69, 0.62, 0.48, 0.28), false)
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
@@ -140,7 +140,7 @@ func _tool_button(tool: Dictionary, tool_controller: Variant,
 	button.tooltip_text = I18n.t(tool_controller.label_key(tool_id))
 	button.disabled = not live
 	button.modulate = Color(1.0, 1.0, 1.0, 1.0 if live else 0.82)
-	var art: Control = screen.call("_tool_picture", tool, 30.0)
+	var art: Control = tool_picture(tool, 30.0)
 	if art != null:
 		art.name = "GardenToolIcon"
 		art.position = Vector2(21.0, 2.0)
@@ -183,15 +183,15 @@ func _more_button(expanded: bool) -> Button:
 	var edge := Color(0.48, 0.34, 0.14) if expanded \
 		else Color(0.69, 0.52, 0.28, 0.42)
 	button.add_theme_stylebox_override("normal",
-		screen.call("_tool_tile_style", fill, edge, expanded))
+		tool_tile_style(fill, edge, expanded))
 	button.add_theme_stylebox_override("hover",
-		screen.call("_tool_tile_style", fill.lightened(0.025), edge,
+		tool_tile_style(fill.lightened(0.025), edge,
 			expanded, not expanded))
 	button.add_theme_stylebox_override("pressed",
-		screen.call("_tool_tile_style", fill.darkened(0.025), edge,
+		tool_tile_style(fill.darkened(0.025), edge,
 			expanded, not expanded))
 	button.add_theme_stylebox_override("focus",
-		screen.call("_tool_tile_style", fill, edge, expanded))
+		tool_tile_style(fill, edge, expanded))
 	var tooltip_key := "garden.tools_less" if expanded else "garden.tools_more"
 	button.tooltip_text = I18n.t(tooltip_key)
 	for i in range(4):

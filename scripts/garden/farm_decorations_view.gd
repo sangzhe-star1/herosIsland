@@ -128,4 +128,4 @@ func poke(at: Vector2) -> void:
 
 
 func _door_style(fill: Color, edge: Color) -> StyleBoxFlat:
-	return screen.call("_quiet_surface_style", fill, 16, edge, 1)
+	return quiet_surface_style(fill, 16, edge, 1)

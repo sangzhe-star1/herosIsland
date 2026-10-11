@@ -30,7 +30,7 @@ func build_shelf(view: Vector2) -> void:
 	var card := Panel.new()
 	card.name = "GardenBarnCard"
 	card.add_theme_stylebox_override("panel",
-		screen.call("_inventory_surface", true))
+		inventory_surface(true))
 	card.position = at
 	card.custom_minimum_size = box
 	card.size = box
@@ -98,7 +98,7 @@ func _build_spilled_basket(view: Vector2) -> void:
 	rim.position = at + Vector2(-6.0, -10.0)
 	rim.size = Vector2(42.0, 38.0)
 	rim.add_theme_stylebox_override("panel",
-		screen.call("_inventory_surface", true))
+		inventory_surface(true))
 	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	play.add_child(rim)
 	var pile := HarvestArt.prop_badge("basket_empty", 30.0,
@@ -112,7 +112,7 @@ func _build_spilled_basket(view: Vector2) -> void:
 		play.add_child(pile)
 	var x := at.x - 8.0 - float(mini(spilled.size(), 2)) * 66.0
 	for pair in spilled.slice(0, 2):
-		var art: Control = screen.call("_crop_picture", str(pair[0]), 26.0,
+		var art: Control = crop_picture(str(pair[0]), 26.0,
 			"OverflowPicture_%s" % str(pair[0]))
 		if art != null:
 			art.position = Vector2(x, at.y - 4.0)
@@ -129,7 +129,7 @@ func _build_spilled_basket(view: Vector2) -> void:
 		more_badge.position = at + Vector2(-6.0, -20.0)
 		more_badge.size = Vector2(40.0, 22.0)
 		more_badge.add_theme_stylebox_override("panel",
-			screen.call("_quiet_surface_style", Color(1.0, 0.91, 0.68),
+			quiet_surface_style(Color(1.0, 0.91, 0.68),
 				9, Color(0.60, 0.45, 0.22), 1, 0))
 		more_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		play.add_child(more_badge)
@@ -226,14 +226,14 @@ func build(view: Vector2) -> void:
 		slot.position = origin + Vector2(30.0 + (index % 4) * 162.0,
 			108.0 + int(index / 4) * 66.0)
 		slot.size = Vector2(154.0, 60.0)
-		slot.add_theme_stylebox_override("panel", screen.call("_inventory_surface", true))
+		slot.add_theme_stylebox_override("panel", inventory_surface(true))
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if extra_items != null:
 			slot.position = Vector2(4.0 + (index % 4) * 158.0, 2.0 + int(index / 4) * 66.0)
 			extra_items.add_child(slot)
 		else:
 			play.add_child(slot)
-		var art: Control = screen.call("_crop_picture", crop_id, 40.0, "BarnPicture_%s" % crop_id)
+		var art: Control = crop_picture(crop_id, 40.0, "BarnPicture_%s" % crop_id)
 		if art != null:
 			art.position = Vector2(6.0, 10.0)
 			slot.add_child(art)

@@ -6,6 +6,7 @@ extends RefCounted
 
 const Palette := preload("res://scripts/ui/palette.gd")
 const UiKit := preload("res://scripts/ui/ui_kit.gd")
+const FarmArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const TOP_BAR := 68.0
 
 var screen: Node
@@ -17,6 +18,82 @@ func _init(p_screen: Node) -> void:
 	screen = p_screen
 	play = screen.get("_play") as Control
 	world = screen.get("_world") as Node
+
+
+## A low-relief surface that gives the farm's separate reading lanes one
+## material without adding another card style for each panel.
+func quiet_surface_style(fill: Color, radius: int, edge: Color,
+		edge_width: int = 0, content_margin: int = 20) -> StyleBoxFlat:
+	var style := UiKit.panel_style(fill, radius)
+	style.shadow_size = 0
+	style.shadow_offset = Vector2.ZERO
+	style.set_content_margin_all(content_margin)
+	if edge_width > 0:
+		style.border_color = edge
+		style.set_border_width_all(edge_width)
+	return style
+
+
+## The collection tray and its items share one warm material.
+func inventory_surface(inset: bool = false, selected: bool = false) -> StyleBoxFlat:
+	var fill := Color(0.97, 0.92, 0.80) if inset else Color(1.0, 0.97, 0.88)
+	var edge := Color(0.72, 0.55, 0.29, 0.42)
+	if selected:
+		fill = Color(1.0, 0.89, 0.61)
+		edge = Color(0.48, 0.34, 0.14)
+	var style := quiet_surface_style(fill, 16 if inset else 24, edge,
+		2 if selected else 1, 0)
+	style.border_width_bottom = 3 if inset else 2
+	style.shadow_color = Color(0.35, 0.22, 0.08, 0.12)
+	style.shadow_size = 2
+	style.shadow_offset = Vector2(0, 2)
+	return style
+
+
+## Crop and produce art use the same fitted renders throughout the farm.
+func crop_picture(crop_id: String, box: float,
+		node_name: String = "GardenCropPicture", golden: bool = false) -> Control:
+	var art: Control
+	if crop_id in ["egg", "flour", "milk", "honey", "fish"]:
+		art = FarmArt.prop_badge(crop_id, box, node_name)
+	else:
+		if golden:
+			art = FarmArt.crop_badge("golden_" + crop_id, box, node_name)
+		if art == null:
+			art = FarmArt.crop_badge(crop_id, box, node_name)
+	if art == null:
+		art = UiKit.picture(str(GameData.get_crop(crop_id).get("icon", "seed")), box)
+	if art != null:
+		art.name = node_name
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return art
+
+
+func tool_picture(tool: Dictionary, box: float) -> Control:
+	var tool_id := str(tool.get("id", ""))
+	var prop := {"shovel": "tool_trowel", "water": "tool_watering_can",
+		"basket": "basket_empty"}
+	var art: Control
+	if prop.has(tool_id):
+		art = FarmArt.prop_badge(str(prop[tool_id]), box, "GardenToolIcon")
+	if art == null:
+		art = UiKit.picture(str(tool.get("icon", "star")), box)
+	if art != null:
+		art.name = "GardenToolIcon"
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return art
+
+
+## Tool choices use the same quiet surface and selected-state outline.
+func tool_tile_style(fill: Color, edge: Color, selected: bool,
+		hovered: bool = false) -> StyleBoxFlat:
+	var edge_width := 2 if selected else (1 if hovered else 0)
+	var style := quiet_surface_style(fill, 16, edge, edge_width)
+	style.border_width_bottom = 3
+	if selected:
+		style.shadow_size = 4
+		style.shadow_offset = Vector2(0, 2)
+	return style
 
 
 func block_world(node: Control) -> void:
@@ -49,8 +126,7 @@ func panel_sheet(view: Vector2, title_key: String, wide: float, tall: float, on_
 	sheet.add_theme_stylebox_override("panel", UiKit.panel_style(Color(0.99, 0.97, 0.90), 28))
 	if title_key in ["garden.warehouse_title", "garden.waiting_harvest_title"]:
 		sheet.name = "BarnCollectionPanel"
-		if screen.has_method("_inventory_surface"):
-			sheet.add_theme_stylebox_override("panel", screen.call("_inventory_surface"))
+		sheet.add_theme_stylebox_override("panel", inventory_surface())
 	sheet.position = origin
 	sheet.custom_minimum_size = Vector2(wide, tall)
 	sheet.size = Vector2(wide, tall)

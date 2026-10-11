@@ -499,84 +499,9 @@ func _queue_rebuild(release_frames: int = 1) -> void:
 		_rebuild()
 
 
-## The garden needs surfaces to separate reading lanes, not a second row of
-## cards.  Keep that low-relief material in one helper so the header and dock
-## can share it without inventing another UI family for each little panel.
-func _quiet_surface_style(fill: Color, radius: int, edge: Color,
-		edge_width: int = 0, content_margin: int = 20) -> StyleBoxFlat:
-	var style := UiKit.panel_style(fill, radius)
-	style.shadow_size = 0
-	style.shadow_offset = Vector2.ZERO
-	style.set_content_margin_all(content_margin)
-	if edge_width > 0:
-		style.border_color = edge
-		style.set_border_width_all(edge_width)
-	return style
-
-
-## The collection tray and its items share one warm material. This is local
-## to the farm; other screens keep UiKit's existing theme and interactions.
-func _inventory_surface(inset: bool = false, selected: bool = false) -> StyleBoxFlat:
-	var fill := Color(0.97, 0.92, 0.80) if inset else Color(1.0, 0.97, 0.88)
-	var edge := Color(0.72, 0.55, 0.29, 0.42)
-	if selected:
-		fill = Color(1.0, 0.89, 0.61)
-		edge = Color(0.48, 0.34, 0.14)
-	var style := _quiet_surface_style(fill, 16 if inset else 24, edge, 2 if selected else 1, 0)
-	style.border_width_bottom = 3 if inset else 2
-	style.shadow_color = Color(0.35, 0.22, 0.08, 0.12)
-	style.shadow_size = 2
-	style.shadow_offset = Vector2(0, 2)
-	return style
-
-
-## Inventory pictures use the same Blender renders as the garden, fitted to
-## their visible alpha bounds so a flour sack and a carrot read at equal size.
 func _crop_picture(crop_id: String, box: float,
 		node_name: String = "GardenCropPicture", golden: bool = false) -> Control:
-	var art: Control
-	if crop_id in ["egg", "flour", "milk", "honey", "fish"]:
-		art = HarvestArt.prop_badge(crop_id, box, node_name)
-	else:
-		if golden:
-			art = HarvestArt.crop_badge("golden_" + crop_id, box, node_name)
-		if art == null:
-			art = HarvestArt.crop_badge(crop_id, box, node_name)
-	if art == null:
-		art = UiKit.picture(str(GameData.get_crop(crop_id).get("icon", "seed")), box)
-	if art != null:
-		art.name = node_name
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return art
-
-
-func _tool_picture(tool: Dictionary, box: float) -> Control:
-	var tool_id := str(tool.get("id", ""))
-	var prop := {"shovel": "tool_trowel", "water": "tool_watering_can",
-		"basket": "basket_empty"}
-	var art: Control
-	if prop.has(tool_id):
-		art = HarvestArt.prop_badge(str(prop[tool_id]), box, "GardenToolIcon")
-	if art == null:
-		art = UiKit.picture(str(tool.get("icon", "star")), box)
-	if art != null:
-		art.name = "GardenToolIcon"
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return art
-
-
-## A tool is a choice inside the shared dock, rather than seven little cards.
-## The selected one still gets a firm warm outline and a tiny lift; hover gets
-## only a hairline so it cannot compete with the single gold task ribbon.
-func _tool_tile_style(fill: Color, edge: Color, selected: bool,
-		hovered: bool = false) -> StyleBoxFlat:
-	var edge_width := 2 if selected else (1 if hovered else 0)
-	var style := _quiet_surface_style(fill, 16, edge, edge_width)
-	style.border_width_bottom = 3
-	if selected:
-		style.shadow_size = 4
-		style.shadow_offset = Vector2(0, 2)
-	return style
+	return FarmPanelBase.new(self).crop_picture(crop_id, box, node_name, golden)
 
 
 ## A tiny, derived answer to "what now?". It deliberately has no save field:

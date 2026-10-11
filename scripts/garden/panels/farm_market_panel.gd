@@ -25,7 +25,7 @@ func build(view: Vector2) -> void:
 	shelf.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shelf.position = origin + Vector2(18.0, 72.0)
 	shelf.size = Vector2(414.0, 372.0)
-	shelf.add_theme_stylebox_override("panel", screen.call("_quiet_surface_style",
+	shelf.add_theme_stylebox_override("panel", quiet_surface_style(
 		Color(0.93, 0.91, 0.81, 0.64), 22, Color(0.57, 0.53, 0.40, 0.28), 1, 10))
 	play.add_child(shelf)
 
@@ -34,7 +34,7 @@ func build(view: Vector2) -> void:
 	receipt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	receipt.position = origin + Vector2(440.0, 72.0)
 	receipt.size = Vector2(322.0, 372.0)
-	receipt.add_theme_stylebox_override("panel", screen.call("_quiet_surface_style",
+	receipt.add_theme_stylebox_override("panel", quiet_surface_style(
 		Color(0.99, 0.96, 0.86, 0.76), 22, Color(0.77, 0.62, 0.34, 0.38), 1, 10))
 	play.add_child(receipt)
 
@@ -227,7 +227,7 @@ func ensure_market_row(crop_id: String) -> void:
 	row.name = "MarketBoxRow_%s" % crop_id
 	row.mouse_filter = Control.MOUSE_FILTER_PASS
 	row.custom_minimum_size = Vector2(274.0, 50.0)
-	row.add_theme_stylebox_override("panel", screen.call("_quiet_surface_style",
+	row.add_theme_stylebox_override("panel", quiet_surface_style(
 		Color(1.0, 0.99, 0.93), 13, Color(0.67, 0.58, 0.39, 0.24), 1, 4))
 	rows_list.add_child(row)
 	var line := HBoxContainer.new()
