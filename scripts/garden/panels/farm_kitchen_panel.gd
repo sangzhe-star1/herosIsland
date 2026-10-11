@@ -9,7 +9,8 @@ const PANEL_PAGE := 6
 func build(view: Vector2) -> void:
 	var wide := 660.0
 	var tall := 470.0
-	var origin: Vector2 = screen.call("_panel_sheet", view, "garden.kitchen_title", wide, tall)
+	var origin: Vector2 = panel_sheet(view, "garden.kitchen_title", wide, tall,
+		Callable(screen, "_close_panels"))
 	var known: Array = []
 	for recipe in Recipes.all():
 		if Recipes.is_unlocked(str(recipe.get("id", ""))):
@@ -18,7 +19,7 @@ func build(view: Vector2) -> void:
 	var page := clampi(int(screen.get("_kitchen_page")), 0, maxi(pages - 1, 0))
 	screen.set("_kitchen_page", page)
 
-	screen.call("_pager", origin, wide, tall, page, pages, func(step: int):
+	pager(origin, wide, tall, page, pages, func(step: int):
 		screen.set("_kitchen_page", int(screen.get("_kitchen_page")) + step)
 		screen.set("_confirm_cook", "")
 		screen.call("_queue_rebuild"))

@@ -14,7 +14,8 @@ const BASKET_LIMIT := 3
 func build(view: Vector2) -> void:
 	var wide := 680.0
 	var tall := 490.0
-	var origin: Vector2 = screen.call("_panel_sheet", view, "garden.gift_basket_title", wide, tall)
+	var origin: Vector2 = panel_sheet(view, "garden.gift_basket_title", wide, tall,
+		Callable(screen, "_close_panels"))
 	var basket: Dictionary = screen.get("_gift_basket") if screen.get("_gift_basket") != null else {}
 
 	# 1. Friend farm doors. All three friends share the same visit rules;

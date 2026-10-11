@@ -12,7 +12,8 @@ func build(view: Vector2) -> void:
 
 	var wide := 620.0
 	var tall := 410.0
-	var origin: Vector2 = screen.call("_panel_sheet", view, "garden.challenge_levels", wide, tall)
+	var origin: Vector2 = panel_sheet(view, "garden.challenge_levels", wide, tall,
+		Callable(screen, "_close_panels"))
 	for slot in range(ROWS):
 		var index := page * ROWS + slot
 		if index >= levels.size():
@@ -52,6 +53,6 @@ func build(view: Vector2) -> void:
 	page_label.size = Vector2(wide - 56.0, 26.0)
 	page_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	play.add_child(page_label)
-	screen.call("_pager", origin, wide, tall, page, pages, func(step: int):
+	pager(origin, wide, tall, page, pages, func(step: int):
 		screen.set("_challenge_page", clampi(int(screen.get("_challenge_page")) + step, 0, pages - 1))
 		screen.call("_queue_rebuild"))

@@ -157,7 +157,8 @@ func build(view: Vector2) -> void:
 	var title_key := "garden.waiting_harvest_title" if barn_show_overflow else "garden.warehouse_title"
 	var contents := Barn.contents(Barn.BASKET if barn_show_overflow else Barn.WAREHOUSE)
 	var tall := 456.0 if contents.size() > 16 else 390.0
-	var origin: Vector2 = screen.call("_panel_sheet", view, title_key, wide, tall)
+	var origin: Vector2 = panel_sheet(view, title_key, wide, tall,
+		Callable(screen, "_close_panels"))
 	var basket := HarvestArt.prop_badge("basket_empty", 36.0, "BarnHeaderBasket")
 	if basket != null:
 		basket.position = origin + Vector2(28.0, 52.0)

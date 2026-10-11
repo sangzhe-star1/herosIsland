@@ -11,7 +11,8 @@ const Shapes := preload("res://scripts/world/shapes.gd")
 func build(view: Vector2) -> void:
 	var wide := 780.0
 	var tall := 460.0
-	var origin: Vector2 = screen.call("_panel_sheet", view, "garden.market_title", wide, tall)
+	var origin: Vector2 = panel_sheet(view, "garden.market_title", wide, tall,
+		Callable(screen, "_close_panels"))
 
 	var market_rows: Dictionary = screen.get("_market_rows")
 	market_rows.clear()

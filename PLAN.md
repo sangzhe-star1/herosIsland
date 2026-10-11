@@ -1033,6 +1033,20 @@ These are yours to make. Nothing below has been changed without asking.
   2,156 to 2,081 lines; `tools_check.py` reports 0 errors and 208 existing
   warnings. Real iPad save migration and child playtesting remain pending.
   The full isolated smoke suite passed 30/30 with no skips on `fd0c33e`.
+- **Shared panel builder entry boundary (10 October):**
+  Farm panels now call inherited `FarmPanelBase.panel_sheet()`, `pager()`, and
+  `chip_button()` directly; the screen's four forwarding adapters are removed,
+  reducing `garden_screen.gd` by 36 lines to 2,045. GardenTouchProbe passed
+  2,019 checks across 16:9 and 4:3. Focused shop-buy (34), market-sale (20),
+  and barn-upgrade (34) checks passed across both shapes, and
+  `tools_check.py` reports 0 errors with 208 existing warnings.
+  The full FarmWorldProbe is not verified: the working-tree long run logged
+  missing-confirm-button script errors in 4:3; the baseline long run timed out
+  after 400 seconds in the 16:9 friend-farm segment before reaching those
+  cases. The same shop and barn flows pass independently in both shapes, so a
+  serial full-probe rerun remains an open verification item. The full isolated
+  smoke suite was not rerun. Real iPad save migration and child playtesting
+  remain pending.
 
 ---
 

@@ -1539,31 +1539,6 @@ func _order_customer_art(order: Dictionary, box: float) -> Control:
 
 # --- the shop, the market box, and the barn's own door --------------------
 
-## Compatibility seam for the remaining screen-owned confirm cards. Panel
-## controls share one implementation with the extracted panel family.
-func _chip_button(text: String, fill: Color, box: Vector2) -> Button:
-	var panels := FarmPanelBase.new(self)
-	return panels.chip_button(text, fill, box)
-
-
-## The scaffolding every panel shares: a sheet over the farm, a title, and a
-## way out in the corner a way out is always in. Registered as a blocker so
-## pressing the paper can never reach the ground behind it.
-## The way out of a sheet of paper, written once: sixty pixels of dark slate
-## (the thumb floor the touch probe measures), one light letter, a corner
-## radius that matches the paper's own. Both the market family and the order
-## board hang this in their top-right corner; the only thing that varies is
-## where the corner is and what closing means.
-func _sheet_close(at: Vector2, on_pressed: Callable) -> Button:
-	var panels := FarmPanelBase.new(self)
-	return panels.sheet_close(at, on_pressed)
-
-
-func _panel_sheet(view: Vector2, title_key: String, wide: float,
-		tall: float) -> Vector2:
-	var panels := FarmPanelBase.new(self)
-	return panels.panel_sheet(view, title_key, wide, tall, _close_panels)
-
 
 ## "X分" under an hour, "X时" from there up. Every crop's time is a whole
 ## number of one or the other on purpose -- crops.json is checked for it.
@@ -1579,17 +1554,6 @@ func _grow_time_text(seconds: int) -> String:
 	if seconds < 3600:
 		return "%d分" % int(round(seconds / 60.0))
 	return "%d时" % int(round(seconds / 3600.0))
-
-
-## Side arrows for a sheet with more rows than glass: the world map's page
-## language shrunk to a panel. Arrows stand OUTSIDE the paper, vertically
-## centred, and only the one that goes somewhere is drawn -- an arrow that
-## shakes its head is a lock wearing a different hat. `flip` receives -1/+1;
-## the caller owns the page variable and the clamp.
-func _pager(origin: Vector2, wide: float, tall: float, page: int,
-		pages: int, flip: Callable) -> void:
-	var panels := FarmPanelBase.new(self)
-	panels.pager(origin, wide, tall, page, pages, flip)
 
 
 ## The seed shop: six rows a page, and on every row the three numbers the red

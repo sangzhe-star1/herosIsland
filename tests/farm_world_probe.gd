@@ -76,16 +76,20 @@ func _ready() -> void:
 		"--barn-upgrade-only")
 	var market_sale_only := OS.get_cmdline_user_args().has(
 		"--market-sale-only")
-	var focused_probe := barn_upgrade_only or market_sale_only
+	var shop_buy_only := OS.get_cmdline_user_args().has("--shop-buy-only")
+	var focused_probe := barn_upgrade_only or market_sale_only or shop_buy_only
 	var probe_name := "farm barn upgrade probe" if barn_upgrade_only \
-		else "farm market sale probe" if market_sale_only else "farm world probe"
+		else "farm market sale probe" if market_sale_only \
+		else "farm shop buy probe" if shop_buy_only else "farm world probe"
 	print("\n=== %s ===" % probe_name)
 	if focused_probe:
 		for shape in SHAPES:
 			if barn_upgrade_only:
 				await _run_barn_upgrade_on(shape)
-			else:
+			elif market_sale_only:
 				await _run_market_sale_on(shape)
+			else:
+				await _run_shop_buy_on(shape)
 	else:
 		_an_old_npc_save_gains_friend_defaults()
 		_the_layout_is_legal()
@@ -101,7 +105,7 @@ func _ready() -> void:
 			_shape = "%dx%d" % [shape.x, shape.y]
 			await _run_on_a(shape)
 
-	var focused_checks := 17 if barn_upgrade_only else 10
+	var focused_checks := 17 if barn_upgrade_only or shop_buy_only else 10
 	var expected := focused_checks * SHAPES.size() if focused_probe \
 		else CHECKS_EXPECTED
 	if _asked < expected:
@@ -112,7 +116,7 @@ func _ready() -> void:
 	print("asked %d questions" % _asked)
 	var label := "FARM BARN UPGRADE PROBE" if barn_upgrade_only \
 		else "FARM MARKET SALE PROBE" if market_sale_only \
-		else "FARM WORLD PROBE"
+		else "FARM SHOP BUY PROBE" if shop_buy_only else "FARM WORLD PROBE"
 	print("%s %s\n" % [label,
 		"PASSED" if _failures.is_empty() else "FAILED"])
 	get_tree().quit(1 if _failures.size() > 0 else 0)
@@ -149,6 +153,21 @@ func _run_market_sale_on(window: Vector2i) -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await _the_market_box_sells_the_pile_he_dragged(view)
+	await _close()
+
+
+func _run_shop_buy_on(window: Vector2i) -> void:
+	get_window().size = window
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var view: Vector2 = get_viewport().get_visible_rect().size
+	_shape = "%dx%d" % [window.x, window.y]
+	print("-- shop window %s -> viewport %s" % [str(window), str(view)])
+	_fresh_farm()
+	_open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await _the_shop_asks_before_it_takes(view)
 	await _close()
 
 

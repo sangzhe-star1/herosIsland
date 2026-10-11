@@ -181,8 +181,7 @@ func _challenge_door(view: Vector2) -> void:
 	# breathing-scale frame instead of drifting away from the visible surface.
 	door.add_child(press)
 
-	var choose: Button = screen.call("_chip_button", "",
-		Color(0.97, 0.91, 0.68), CHOOSER_BOX)
+	var choose: Button = chip_button("", Color(0.97, 0.91, 0.68), CHOOSER_BOX)
 	choose.name = "HarvestChallengeChooser"
 	choose.tooltip_text = I18n.t("garden.choose_challenge")
 	choose.position = door.position + Vector2(CHALLENGE_BOX.x + GAP, 0.0)

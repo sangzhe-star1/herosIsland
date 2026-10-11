@@ -11,7 +11,8 @@ const Barn := preload("res://scripts/garden/inventory_manager.gd")
 func build(view: Vector2) -> void:
 	var wide := 640.0
 	var tall := 510.0
-	var origin: Vector2 = screen.call("_panel_sheet", view, "garden.visit_title", wide, tall)
+	var origin: Vector2 = panel_sheet(view, "garden.visit_title", wide, tall,
+		Callable(screen, "_close_panels"))
 	var farm: Dictionary = screen.call("_farm")
 	var log: Array = farm.get("visit_log", [])
 	var templates: Dictionary = GameData.farm_visit_texts
