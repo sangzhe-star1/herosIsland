@@ -105,6 +105,15 @@ and 4:3; SaveMigrationAuditProbe and SaveProbe pass. The runner unit suite
 passes 16/16. `python3 tools_check.py` reports 0 errors and 208 existing
 warnings. The actual iPad and real-save checks remain open.
 
+On 11 October, GardenTouchProbe gained a full touch-driven journey from tilling
+through planting, watering, harvest and bear-order delivery, including a save
+reload; its two-shape run passed 2,055 checks, and it also passed in the smoke
+run. That run later stopped in the full FarmWorldProbe warehouse-upgrade
+sequence when `confirm_upgrade` was absent; the focused upgrade probe passes 34
+checks across both shapes. Reconfirm the full FarmWorld path before calling the
+current smoke run complete. The iPad save has not yet been exported, so its
+migration audit and the real-device playtest remain open.
+
 ---
 
 ## Phase 7 — The farm as a place — **complete 10 October**

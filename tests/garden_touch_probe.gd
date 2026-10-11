@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 2023
+const CHECKS_EXPECTED := 2043
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -142,6 +142,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _brush_selection_stays_fixed_until_lift()
 	await _undo_button_returns_a_seed_on_the_live_screen()
 	await _the_wishing_well_pays_once_per_day()
+	await _the_core_farm_loop_runs_through_real_touches()
 
 	_close()
 
@@ -2659,6 +2660,96 @@ func _the_pond_receipt_reaches_the_basket_on_a_real_tap() -> void:
 			and str(flight.get("destination", "")) == "harvest_basket"
 			and _find_named(_garden, "HarvestSpillFlight_fish") is Control,
 		"the fish spill receipt takes the shared flight into its visible basket")
+
+
+## The core garden loop must work as one child's journey, not only as separate
+## controller and button tests: turn soil, drag a seed, tend the thirsty bed,
+## harvest what grew, and hand those same goods to the friend who asked.
+func _the_core_farm_loop_runs_through_real_touches() -> void:
+	_close()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_fresh_garden()
+	var farm: Dictionary = SaveManager.data["farm"]
+	farm["tutorial_completed"] = true
+	farm["last_seen_at"] = NOON
+	farm["clock_high_water"] = NOON
+	farm["warehouse"] = {}
+	farm["harvest_basket"] = {}
+	farm["paid_harvests"] = []
+	SaveManager.save_game()
+	_open()
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	await _tap(_bed(0))
+	_ok(Farm.is_tilled(_plots()[0]),
+		"the full loop starts when a real touch turns one empty bed")
+	await _finger(_seed_tile(0), _bed(0) + Vector2(22.0, -18.0))
+	var planted: Dictionary = _plots()[0]
+	_ok(str(planted.get("crop_id", "")) == "carrot"
+			and int(planted.get("plant_cycle_id", 0)) == 1
+			and int(planted.get("planted_at", 0)) == NOON,
+		"dragging the seed onto that bed starts the saved carrot cycle")
+
+	var carrot: Dictionary = GameData.get_crop("carrot")
+	var thirsty_at := int(carrot.get("thirst_seconds", 0))
+	GameClock.set_test_now(NOON + thirsty_at, 0)
+	_garden.call("_garden_tick_once")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(str(_plots()[0].get("state", "")) == Farm.NEEDS_CARE
+			and str(_plots()[0].get("care_event", "")) == Growth.CARE_THIRSTY,
+		"the real planting reaches the data's scheduled thirsty state")
+	var watered_cycle := int(_plots()[0].get("plant_cycle_id", 0))
+	await _tap(_bed(0))
+	_ok(str(_plots()[0].get("state", "")) == Farm.GROWING
+			and int(_plots()[0].get("plant_cycle_id", 0)) == watered_cycle
+			and int(SaveManager.data["farm"].get("dailies", {})
+				.get("progress", {}).get("water", 0)) == 1,
+		"a real water touch resumes the same cycle and records today's care")
+
+	GameClock.set_test_now(NOON + thirsty_at + 600, 0)
+	_garden.call("_garden_tick_once")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var expected_yield := int(carrot.get("harvest_amount", 0))
+	_ok(Farm.is_ready(_plots()[0]),
+		"the watered carrot ripens after its remaining data-driven growth time")
+	var harvest_id := "farm_harvest_plot_1_1"
+	await _tap(_bed(0))
+	_ok(str(_plots()[0].get("crop_id", "")) == ""
+			and int(SaveManager.data["farm"].get("warehouse", {})
+				.get("carrot", 0)) == expected_yield
+			and harvest_id in SaveManager.data["farm"].get("paid_harvests", []),
+		"a real harvest touch stores the exact yield and claims this planting once")
+
+	await _open_the_board()
+	var order := _order_card("bear_carrots")
+	_ok(order != null and not order.disabled
+			and Barn.count("carrot") >= expected_yield,
+		"the grown carrots make the matching bear order available to press")
+	var coins_before := Coins.balance()
+	if order != null:
+		await _tap(order.get_global_rect().get_center())
+	var farm_orders: Dictionary = SaveManager.data.get("farm_orders", {})
+	var delivered: Array = farm_orders.get("delivered", [])
+	_ok("bear_carrots" in delivered
+			and Coins.balance() == coins_before + 12
+			and Barn.count("carrot") == 0
+			and Barn.count("plank", "inventory") == 1,
+		"touching the bear's card pays for those carrots and its one thank-you")
+
+	_close()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	SaveManager.load_game()
+	var saved_orders: Dictionary = SaveManager.data.get("farm_orders", {})
+	_ok("bear_carrots" in saved_orders.get("delivered", [])
+			and Coins.balance() == coins_before + 12
+			and Barn.count("carrot") == 0
+			and Barn.count("plank", "inventory") == 1,
+		"reopening the isolated save keeps the whole loop's once-paid result")
 
 
 ## At level eight the real well hit target pays once; a repeat only gives the

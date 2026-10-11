@@ -1,5 +1,11 @@
 # Changelog
 
+## 真实触控走完种植到好友订单 — 11 October 2026
+
+- GardenTouchProbe 新增双画幅整段旅程：真实触控翻土、拖入胡萝卜种子、按作物数据推进到缺水、浇水、成熟后收获，再触碰熊的订单卡交货；关闭并重载后确认金币、作物和感谢木板只结算一次。
+- GardenTouchProbe 定向运行通过 2,055 项；完整 smoke 中 GardenTouchProbe 也通过。其后的 FarmWorldProbe 在仓库升级长流程中因缺少 `confirm_upgrade` 按钮触发脚本错误；独立仓库升级探针两画幅 34 项通过。全量 smoke 需待 FarmWorld 用例修复/复核后再确认。
+- `tools_check.py`：0 errors、208 条既有 warnings；`git diff --check` 通过。真实 iPad 存档尚未导出，迁移审计和实机试玩保持待办。
+
 ## 收成回执统一飞行并修正鸭宝宝动画释放 — 11 October 2026
 
 - 定时设施和池塘钓鱼现在共用同一收成飞行动画入口，按回执中的实存与溢出数量准确飞入仓库和收成篮；鱼获保留原有的默认入库数量。
