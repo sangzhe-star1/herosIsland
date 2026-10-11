@@ -1,5 +1,11 @@
 # Changelog
 
+## 首次种植教学会话生命周期独立管理 — 10 October 2026
+
+- 新增 `FarmLessonSessionController`，拥有首次教学的状态、欢迎停顿、半秒生长结算和完成标记；`garden_screen.gd` 保留步骤判定、讲解语音与目标指向。
+- `GardenTouchProbe` 双画幅通过 2,013 项，完整覆盖六步教学和首单存档；`GardenProbe` 通过 1,212 项；`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。
+- `garden_screen.gd` 从 2,292 行降至 2,248 行。本次为定向回归，未重跑全量 smoke；全量 30/30 的最近一次结果记录在上一条变更中。
+
 ## 每日进度反馈归入通知视图并收紧挑战计数布局 — 10 October 2026
 
 - `FarmProgressNoticeView` 现在也负责每日任务完成提示音与全部星标的称赞语音；`garden_screen.gd` 只把进度回执交给通知视图。FarmWorldProbe 新增 6 条计数检查，双画幅共通过 923 项。

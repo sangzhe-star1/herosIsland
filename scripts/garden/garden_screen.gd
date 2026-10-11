@@ -84,6 +84,7 @@ const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_p
 const FarmViewControlsPanel := preload("res://scripts/garden/panels/farm_view_controls_panel.gd")
 const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
 const FarmLessonView := preload("res://scripts/garden/farm_lesson_view.gd")
+const FarmLessonSession := preload("res://scripts/garden/farm_lesson_session_controller.gd")
 const FarmProgressNoticeView := preload("res://scripts/garden/farm_progress_notice_view.gd")
 const FarmPanelState := preload("res://scripts/garden/farm_panel_state_controller.gd")
 
@@ -98,13 +99,6 @@ const SHELF := FarmBarnPanel.SHELF_HEIGHT
 ## dense possession row. The usual whole seed collection fits at once.
 const PANEL_PAGE := 6
 
-## How often the garden re-settles itself while the first lesson is running --
-## twice a second, because the lesson's carrot is done in six seconds, and a
-## child who puts a seed in and then watches four patches of earth do nothing
-## for ever has been told a lie by the game at the first thing it ever asked
-## him to do. After the lesson the garden keeps a slower beat: GARDEN_TICK.
-const LESSON_TICK := 0.5
-
 ## How often the garden asks the clock again once the lesson is over. Growth is
 ## still worked out from timestamps and nothing accumulates frame by frame --
 ## the tick only re-runs the same arithmetic the entry settle runs, so a bed
@@ -114,11 +108,6 @@ const LESSON_TICK := 0.5
 ## rather than as a machine polling, fast enough that a stage boundary lands
 ## within half a minute of its time.
 const GARDEN_TICK := 20.0
-
-## A beat between "this is our garden" and "turn the soil over", so the two
-## lines do not land on top of each other. Long enough to hear the first one,
-## short enough that a child does not start tapping to see if it is broken.
-const WELCOME_BEAT := 2.0
 
 ## How long a plot stays untappable after being picked. Long enough to cover
 ## the crops flying into the barn, short enough that a child who taps twice on
@@ -256,26 +245,29 @@ var _rest_offered := false
 ## nudges, then shows, then does the hard part -- the same escalation the
 ## thirty main levels use, so the garden does not teach a second language.
 var _hints: Hints
-## True from the child's first step into the garden until he hands the first
-## basket over. Not a node: the lesson is six moments spread across a whole
-## visit, not an animation with a lifetime -- see _teach_the_first_planting.
-var _lesson_running := false
+## The first planting is a visit-long session, not a temporary animation.
+var _lesson_session := FarmLessonSession.new()
+## Compatibility seams for the screen's callers and the touch probe.
+var _lesson_running: bool:
+	get: return _lesson_session.running
+	set(value): _lesson_session.running = value
 ## Whether the garden's quiet clock is running. One loop per screen, started
 ## once on entry; the lesson's faster tick rides alongside it.
 var _garden_tick_running := false
-## The step whose line has already been spoken. A rebuild happens after every
-## action and the lesson is re-read on each one, so without this the same
-## sentence would land three times while he watched a carrot grow.
-var _lesson_said := ""
+## The last step whose line has been spoken; redraws do not repeat it.
+var _lesson_said: String:
+	get: return _lesson_session.said
+	set(value): _lesson_session.said = value
 ## The market's one pointing finger, waiting for the rebuild. The finger is a
 ## Control, and the rebuild that follows the harvest frees every Control --
 ## so the harvest QUEUES it and the rebuild plants it after sweeping, or the
 ## child gets a finger that lives one frame. (The first lesson solves the
 ## same problem with its tick; one flag is enough for one moment.)
 var _market_finger_queued := false
-## Seconds the tutorial carrot takes, replacing its real 30 minutes for the
-## length of the lesson and never written to crops.json.
-var _tutorial_growth := 0
+## The tutorial carrot's per-plant override, never written to crops.json.
+var _tutorial_growth: int:
+	get: return _lesson_session.tutorial_growth
+	set(value): _lesson_session.tutorial_growth = value
 ## What the beds looked like when they were last drawn. Written by _rebuild,
 ## read by the lesson's tick -- the difference between "a second went by" and
 ## "something the child can see has changed".
@@ -1965,20 +1957,7 @@ func _undo_pressed() -> void:
 ## that changed the crop would leave every later carrot fast too, and the
 ## override lives on the plot where it belongs.
 func _teach_the_first_planting() -> void:
-	var plan: Dictionary = GameData.garden_tutorial
-	var crop_id := str(plan.get("crop_id", "carrot"))
-	_tutorial_growth = int(GameData.get_crop(crop_id).get(
-		"tutorial_growth_override", 0))
-	_lesson_running = true
-
-	# The greeting is the one line that is not about a job, so it is the one
-	# line the garden cannot ask for. Everything after it is.
-	_lesson_said = "welcome"
-	_say_the_step("welcome")
-	_lesson_tick()
-	await get_tree().create_timer(WELCOME_BEAT).timeout
-	if _lesson_running and is_inside_tree():
-		_lesson_advance()
+	await _lesson_session.teach(self)
 
 
 ## Say the step the garden is asking for, if it is not the one already said.
@@ -1986,13 +1965,7 @@ func _teach_the_first_planting() -> void:
 ## Called from _rebuild(), which runs after every action and after every tick
 ## that changed something -- so this is asked far more often than it answers.
 func _lesson_advance() -> void:
-	if not _lesson_running:
-		return
-	var step := _lesson_step()
-	if step == "" or step == _lesson_said:
-		return
-	_lesson_said = step
-	_say_the_step(step)
+	_lesson_session.advance(self)
 
 
 ## Which of the six steps the garden is currently asking for, or "" for none.
@@ -2103,19 +2076,6 @@ func _point_at(what: String) -> void:
 ## while the lesson runs, and stops the moment it ends. The screen is only
 ## rebuilt when a plot actually looks different, which is why a ripe carrot
 ## waiting to be picked costs nothing.
-func _lesson_tick() -> void:
-	while _lesson_running and is_inside_tree():
-		await get_tree().create_timer(LESSON_TICK).timeout
-		if not _lesson_running or not is_inside_tree():
-			return
-		# Planting and care actions persist their time anchors. Growth is derived
-		# from those anchors on load, so the half-second lesson animation can
-		# settle in memory without rewriting the whole save on every beat.
-		SaveManager.settle_farm(false)
-		if FarmTick.visual_signature(_plots()) != _beds_looked_like:
-			_queue_rebuild()
-
-
 ## The garden's quiet clock. One beat every GARDEN_TICK seconds until the
 ## screen goes away. The lesson runs its own, much faster, tick -- the two
 ## never run in the same second on purpose, so the lesson's pointing finger
@@ -2165,11 +2125,7 @@ func _garden_tick_once() -> void:
 
 ## Written down the moment the lesson ends, and never asked again.
 func _the_lesson_is_over() -> void:
-	if not _lesson_running:
-		return
-	_lesson_running = false
-	var farm := _farm()
-	farm["tutorial_completed"] = true
+	_lesson_session.finish(self)
 
 
 ## The first seed on the rack -- the one the finger points at.

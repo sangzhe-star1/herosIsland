@@ -295,8 +295,10 @@ These are yours to make. Nothing below has been changed without asking.
    owns its layout, button states, and world blockers while calling back to the
    screen only to queue a rebuild.
    Teaching fingers, hint highlights, and the break card now live in
-   `scripts/garden/farm_lesson_view.gd`; the screen keeps lesson state, voice,
-   timing, completion saves, hint choices, and the shovel action.
+   `scripts/garden/farm_lesson_view.gd`. `FarmLessonSessionController` owns the
+   first-visit state, welcome beat, fast growth settle, and completion flag;
+   the screen keeps step selection, voice, target placement, hint choices, and
+   the shovel action.
    Recipe-learned cards, the level-eight celebration, and short toast banners
    now live in `scripts/garden/farm_progress_notice_view.gd`; screen call sites
    still decide when each notice is earned. `garden_screen.gd` is 2,462 lines.
@@ -987,6 +989,15 @@ These are yours to make. Nothing below has been changed without asking.
   `garden_screen.gd` is 2,292 lines. Real iPad save migration and child
   playtesting remain pending until a device backup and hands-on play session
   are available.
+- **First-planting lesson session boundary (10 October):**
+  `FarmLessonSessionController` now owns the visit-long state, greeting beat,
+  half-second growth settle, and completion flag. `garden_screen.gd` retains
+  lesson-step queries, voice, and finger targets, and is down to 2,248 lines.
+  GardenTouchProbe passed 2,013 checks across 16:9 and 4:3, including the full
+  six-step lesson and its single-save completion; GardenProbe passed 1,212
+  checks. `tools_check.py` reports 0 errors and 208 existing warnings.
+  The focused probes passed; the full smoke suite was not rerun for this
+  extraction.
 
 ---
 
