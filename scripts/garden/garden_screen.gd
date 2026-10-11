@@ -1861,12 +1861,9 @@ func _respond_to_level_award(levels: Array) -> void:
 		return
 	if int(levels[1]) <= int(levels[0]):
 		return
-	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
-	AudioManager.say("farm_level_up")
-	if Juice.motion_enabled() and _play != null and is_instance_valid(_play):
-		Juice.burst(_play, Vector2(190.0, TOP_BAR * 0.55), 16)
-	if int(levels[0]) < 8 and int(levels[1]) >= 8:
-		_show_master_farmer_celebration()
+	FarmProgressNoticeView.new(self).level_up(
+		_harvest_feedback_layer(), get_viewport_rect().size,
+		int(levels[0]) < 8 and int(levels[1]) >= 8)
 	# The chip redraws with the screen; the town (orchard corner, star
 	# badges over the stones) redraws itself on the world's next refresh.
 	_queue_rebuild()

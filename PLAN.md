@@ -412,12 +412,14 @@ These are yours to make. Nothing below has been changed without asking.
   lost farm keys, and confirmed the source hash stayed unchanged; eight fields
   changed during normal farm settlement and remain flagged for human review.
   This adds a real local-save rehearsal but does not replace the iPad backup.
-- **Latest iOS preflight (10 October, `efa0945`):** current project export and
-  generic iOS arm64 Debug build succeeded; the app binary is confirmed arm64.
-  The iPad simulator build still fails because the exported Godot simulator
-  library contains x86_64 only, despite its XCFramework metadata listing
-  arm64. No physical iPad is connected. See the
-  [play-test sheet](docs/GARDEN_PLAYTEST_SHEET.md) for commands and diagnostics.
+- **Latest iOS preflight (10 October, `26526e0`):** unsigned iOS arm64 Debug
+  build passed. The Godot 4.7.1 simulator template's arm64 XCFramework slice
+  was missing; compiling the matching arm64 simulator library and merging it
+  with x86_64 restored Xcode simulator build, install, and app launch. The
+  full FarmWorldProbe and a focused market probe did not finish under the
+  simulator's software GLES renderer. This is a launch preflight, not a touch
+  pass or iPad playtest. No physical iPad is connected and the real save has
+  not been exported. See the [play-test sheet](docs/GARDEN_PLAYTEST_SHEET.md).
 - **Needs a human recording session:** record the remaining farm lines listed
   in `docs/VOICE_SCRIPT.md` on the Mac.
 - **Latest merged-tree verification:** immediately before PR #2 was merged,
@@ -771,7 +773,7 @@ These are yours to make. Nothing below has been changed without asking.
   with `garden_screen.gd`. GardenProbe passed 1,173 checks and GardenTouchProbe
   passed 1,993 across 16:9 and 4:3. `tools_check.py` reports 0 errors and 208
   warnings; the full smoke suite was not rerun for this presentation extraction.
-  `garden_screen.gd` is 2,462 lines.
+  At that extraction, `garden_screen.gd` was 2,462 lines.
 - **Brush transition settlement (10 October):**
   `ContinuousActionController.apply_once()` now keeps per-stroke eligibility,
   the deep state-change check, applied-bed count, and plot-array update in one
@@ -965,6 +967,15 @@ These are yours to make. Nothing below has been changed without asking.
   ratios; captures are in `docs/qa/garden_view_controls_20261010/`.
   `tools_check.py` reports 0 errors and 208 existing warnings, and the current
   isolated `./tests/run_smoke.sh` passed all 30 probes with 0 skipped.
+- **Level-up feedback delivery (10 October):** `FarmProgressNoticeView` now
+  owns the level-up sound, voice, burst, and level-eight celebration dispatch;
+  `garden_screen.gd` keeps the level-change decision and rebuild. FarmWorldProbe
+  passed 917 checks across 16:9 and 4:3, including no-op, level-eight, repeated
+  notice, and unchanged-save cases. The complete isolated suite passed 30/30
+  with 0 skipped; `tools_check.py` reports 0 errors and 208 warnings.
+  FarmShot rendered and passed visual review at 1280×720 and 1024×768 through
+  the real level-award path.
+  `garden_screen.gd` is 2,300 lines.
 
 ---
 

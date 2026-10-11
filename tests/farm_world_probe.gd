@@ -56,7 +56,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 904
+const CHECKS_EXPECTED := 917
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -206,6 +206,7 @@ func _run_on_a(window: Vector2i) -> void:
 	# --- 阶段 5: the stones, the ladder, and the market's one lesson ---
 	await _the_stones_ask_before_they_move()
 	await _the_barn_full_moment_points_at_the_market()
+	_the_level_up_uses_the_progress_notice_view()
 
 	await _close()
 	# The bear's own farm is another scene; it gets the glass to itself,
@@ -305,6 +306,28 @@ func _golden_refresh_updates_the_live_plot() -> void:
 	_plots()[0] = original
 	_world().refresh(_plots())
 	await get_tree().process_frame
+
+
+## Screen events decide when an award happened; the notice view owns how it
+## sounds and appears, including the level-eight card, without editing progress.
+func _the_level_up_uses_the_progress_notice_view() -> void:
+	var layer := _garden.call("_harvest_feedback_layer") as CanvasLayer
+	var saved_level := int(SaveManager.data["farm"].get("farm_level", 1))
+	_garden.call("_respond_to_level_award", [8, 8])
+	_ok(layer.get_node_or_null("MasterCelebration") == null,
+		"a level that did not rise shows no milestone celebration")
+	_garden.call("_respond_to_level_award", [7, 8])
+	_ok(layer.get_node_or_null("MasterCelebration") != null,
+		"crossing level eight routes the celebration through the notice view")
+	_garden.call("_respond_to_level_award", [7, 8])
+	var celebrations := 0
+	for child in layer.get_children():
+		if child.name == "MasterCelebration":
+			celebrations += 1
+	_ok(celebrations == 1,
+		"replayed milestone feedback replaces its card instead of stacking")
+	_ok(int(SaveManager.data["farm"].get("farm_level", 1)) == saved_level,
+		"showing an award does not change saved farm progress")
 
 
 ## Design coordinates to window pixels. The 4:3 tablet's window is 1024x768

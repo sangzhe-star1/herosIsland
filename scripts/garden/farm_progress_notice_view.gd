@@ -2,6 +2,18 @@ extends "res://scripts/garden/panels/farm_panel_base.gd"
 ## Non-modal notices for recipe knowledge, farm milestones, and small discoveries.
 
 
+## A level award is an event the screen has already decided to show. Keep its
+## sound, voice, burst, and level-eight card together with the other notices.
+func level_up(layer: CanvasLayer, view: Vector2,
+		crossed_master_farmer: bool) -> void:
+	AudioManager.play_sfx("res://assets/audio/power_up.ogg")
+	AudioManager.say("farm_level_up")
+	if Juice.motion_enabled() and play != null and is_instance_valid(play):
+		Juice.burst(play, Vector2(190.0, TOP_BAR * 0.55), 16)
+	if crossed_master_farmer:
+		master_farmer(layer, view)
+
+
 func recipe_learned(recipe: Dictionary, layer: CanvasLayer,
 		view: Vector2) -> void:
 	var wide := 520.0

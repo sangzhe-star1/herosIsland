@@ -1,5 +1,12 @@
 # Changelog
 
+## 升级庆祝反馈归入进度通知视图 — 10 October 2026
+
+- `FarmProgressNoticeView` 现在统一处理农场升级音效、语音、粒子和 8 级庆祝卡；`garden_screen.gd` 继续判断是否升级并安排农场重绘。
+- FarmWorldProbe 新增双画幅回归，覆盖无等级变化不弹庆祝卡、升至 8 级显示卡片、重复事件不叠卡，以及展示不改存档；共通过 917 项。
+- FarmShot 的 `master_celebration` 模式改走真实升级事件入口；1280×720 和 1024×768 两张图均成功生成并目视复核。
+- `./tests/run_smoke.sh`：30 passed、0 skipped；`tools_check.py`：0 errors、208 warnings；`git diff --check` 通过。
+
 ## 定时设施触发链统一到一个入口 — 10 October 2026
 
 - `FacilityAction.press()` 按设施 ID 统一分派鸡舍、牛棚、蜂箱和风车，并把规则规格与动作结果一起返回；`garden_screen.gd` 以一个 `_tap_facility()` 处理开始、等待、缺料和收取，规格数据提供反馈语音和风车启动音效。

@@ -37,6 +37,7 @@ extends Node
 ## friends: rabbit in the real farm, answering one real touch with a heart.
 ## friends_orders: new friend commissions, with a fillable rabbit picnic.
 ## friend_thanks: that picnic actually delivered through the visible card.
+## master_celebration: the real screen level-award path crossing into level 8.
 ## challenge_picker: replay panel; SHOT_PAGE selects its page.
 ## challenge_complete: sixteen-star harvest shelf for the compact-header shot.
 ## inventory_full/empty/upgrade: the collection sheet, including all sixteen
@@ -296,7 +297,7 @@ func _ready() -> void:
 			scene.call("_tap_building", "workshop")
 			await get_tree().process_frame
 		elif what == "master_celebration":
-			scene.call("_show_master_farmer_celebration")
+			scene.call("_respond_to_level_award", [7, 8])
 			await get_tree().process_frame
 		elif what == "kitchen":
 			scene.call("_tap_building", "workshop")
