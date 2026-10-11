@@ -193,8 +193,8 @@ These are yours to make. Nothing below has been changed without asking.
    eligibility, the actual-change check, the work count, and the plot-array
    update. It also returns a one-shot completion summary and clears the stroke
    state; the screen persists once only when that summary says work occurred.
-   The screen still owns tool-specific context, XP/daily/recipe events, and
-   visual side effects.
+   The screen still owns tool-specific context and visual side effects; care
+   actions report their daily events through its presentation path.
    The farm's three hint levels now resolve in
    `scripts/garden/farm_hint_action_controller.gd`; screen callbacks still
    connect `HintDirector` and provide the live view/plot context.
@@ -207,7 +207,12 @@ These are yours to make. Nothing below has been changed without asking.
    rules with Barn's stored-plus-spilled result, so claim, storage, and plot
    reset happen through one settlement boundary. The extraction fixed a real-
    path bug where `RewardManager.record()` pre-appended to the save array and
-   caused the 64-entry retention helper to skip trimming. Continue one
+   caused the 64-entry retention helper to skip trimming. On 10 October,
+   `FarmHarvestTransactionController.settle()` also composed the progress
+   controller, so a claimed receipt now carries storage, bed reset, XP, dated
+   daily progress, recipe unlocks, and the first-market flag together; the
+   screen presents those events while its tap/stroke owner still performs the
+   single disk commit. Continue one
    cohesive boundary at a time, with touch and overflow probes guarding both
    16:9 and 4:3 behavior. The next-task priority query now lives in
    `scripts/garden/farm_next_task_controller.gd`; the screen keeps ribbon
@@ -1077,6 +1082,15 @@ These are yours to make. Nothing below has been changed without asking.
   warnings. `origin/main` was current before this follow-up. The iPad save has
   not been exported, so the actual-device migration audit and child playtest
   remain open.
+- **Harvest-settlement composition (10 October):** the existing
+  `FarmHarvestTransactionController` now composes `FarmHarvestProgressController`
+  after a successful claim, so the returned receipt contains storage, reset
+  plot, XP, daily tally, recipe unlock, and market-hint state together. The
+  screen keeps presentation and the outer tap/stroke retains the one-save
+  boundary. GardenProbe passed 1,224 checks, GardenTouchProbe passed 2,031 in
+  both aspect ratios, and the full isolated suite passed 30/30. `tools_check.py`
+  reports 0 errors and 208 existing warnings. The actual iPad save remains
+  unavailable; migration audit and hands-on playtesting stay open.
 
 ---
 

@@ -57,7 +57,6 @@ const DailyClaim := preload("res://scripts/garden/farm_daily_claim_controller.gd
 const DailyProgress := preload("res://scripts/garden/farm_daily_progress_controller.gd")
 const BarnUpgrade := preload("res://scripts/garden/farm_barn_upgrade_controller.gd")
 const HarvestTransaction := preload("res://scripts/garden/farm_harvest_transaction_controller.gd")
-const HarvestProgress := preload("res://scripts/garden/farm_harvest_progress_controller.gd")
 const OrderDelivery := preload("res://scripts/garden/farm_order_delivery_controller.gd")
 const OrderBoard := preload("res://scripts/garden/farm_order_board_controller.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
@@ -1096,7 +1095,8 @@ func _report_a_paid_duplicate(plot_id: String, cycle: int) -> void:
 
 func _harvest_core(plot: Dictionary) -> Dictionary:
 	var farm := _farm()
-	var transaction: Dictionary = HarvestTransaction.settle(plot, farm)
+	var transaction: Dictionary = HarvestTransaction.settle(plot, farm,
+		GameClock.now_date())
 	if not bool(transaction.get("claimed", false)):
 		# A repeat. The tap-while-animating and restart-after-save repeats
 		# arrive on a bed that is already reset; nothing to do. But a READY
@@ -1112,23 +1112,22 @@ func _harvest_core(plot: Dictionary) -> Dictionary:
 	var plot_id := str(transaction.get("plot_id", ""))
 	var crop_id := str(transaction.get("crop_id", ""))
 	var picked := int(transaction.get("amount", 0))
-	# The receipt already passed the once-only gate. Settle every durable harvest
-	# follow-up together so the final screen save includes them with the goods.
-	var progress := HarvestProgress.settle(transaction, GameClock.now_date())
-	var level_event: Array = progress.get("levels", [])
+	# The transaction has already settled storage, the bed, and every durable
+	# harvest follow-up in memory. This page now only answers those events.
+	var level_event: Array = transaction.get("levels", [])
 	_respond_to_level_award(level_event)
 
 	_harvesting[plot_id] = true
-	var daily_event: Dictionary = progress.get("daily", {})
+	var daily_event: Dictionary = transaction.get("daily", {})
 	_respond_to_daily_progress(daily_event)
-	var learned: Array = progress.get("learned_recipes", [])
+	var learned: Array = transaction.get("learned_recipes", [])
 	if not learned.is_empty():
 		_recipe_learned_card(learned[0])
 
 	# The one other thing this garden ever teaches: the first time the barn
 	# gets close to full, say the market's name once and point at its box.
 	# A flag, not a schedule -- taught is taught, exactly like the lesson.
-	if bool(progress.get("market_taught", false)):
+	if bool(transaction.get("market_taught", false)):
 		AudioManager.say("farm_market_hint")
 		_market_finger_queued = true
 

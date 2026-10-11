@@ -1,18 +1,21 @@
 extends RefCounted
-## Settle the saved state for one harvest before the page plays its feedback.
+## Settle every durable change for one harvest before the page plays feedback.
 ##
-## Existing controllers own the once-only gate and the plot transitions. This
-## boundary orders them with Barn's stored-plus-spilled receipt so a caller
-## cannot collect the crop without also resetting the bed, or reset it before
-## the claim has succeeded.
+## Existing controllers own the once-only gate, plot transition, and progress
+## rules. This boundary orders those changes with Barn's stored-plus-spilled
+## receipt so a caller cannot collect a crop without also resetting the bed and
+## recording the follow-up progress. It mutates the live save but never writes
+## it; the tap or stroke owns the single complete disk commit.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const PlotHarvest := preload("res://scripts/garden/farm_plot_harvest_controller.gd")
 const HarvestLedger := preload("res://scripts/garden/farm_harvest_ledger_controller.gd")
+const HarvestProgress := preload("res://scripts/garden/farm_harvest_progress_controller.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
 
-static func settle(plot: Dictionary, farm: Dictionary) -> Dictionary:
+static func settle(plot: Dictionary, farm: Dictionary,
+		today: String = "") -> Dictionary:
 	var plot_id := str(plot.get("plot_id", ""))
 	var cycle := int(plot.get("plant_cycle_id", 0))
 	var crop_id := str(plot.get("crop_id", ""))
@@ -39,7 +42,7 @@ static func settle(plot: Dictionary, farm: Dictionary) -> Dictionary:
 	var landed: Dictionary = Barn.store_harvest(crop_id, amount)
 	var reset: Dictionary = PlotHarvest.after_harvest(plot)
 	_apply_plot_state(plot, reset)
-	return {
+	var receipt := {
 		"claimed": true,
 		"transaction_id": str(claim.get("key", "")),
 		"plot_id": plot_id,
@@ -49,6 +52,9 @@ static func settle(plot: Dictionary, farm: Dictionary) -> Dictionary:
 		"spilled": int(landed.get("spilled", 0)),
 		"golden": golden,
 	}
+	var progress_date := today if today != "" else GameClock.now_date()
+	receipt.merge(HarvestProgress.settle(receipt, progress_date), true)
+	return receipt
 
 
 static func _apply_plot_state(plot: Dictionary, fresh: Dictionary) -> void:

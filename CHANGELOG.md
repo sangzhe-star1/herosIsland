@@ -1,5 +1,11 @@
 # Changelog
 
+## 收成交易一次结清仓库与农场进度 — 10 October 2026
+
+- `FarmHarvestTransactionController.settle()` 现在把一次性领取、仓库/溢出入账、地块复位、农场经验、每日收成进度、菜谱解锁和首次市场提示合成一个收成回执。`GardenScreen` 只处理回执对应的声音与视觉反馈，点收或刷收的外层入口仍负责一次最终写盘。
+- GardenProbe 通过 1,224 项，新增断言验证同一交易包含经验和当日进度、重复领取不重复结算、控制器不抢先轮转备份；GardenTouchProbe 双画幅通过 2,031 项。
+- `./tests/run_smoke.sh`：30 passed、0 skipped；`tools_check.py`：0 errors、208 条既有 warnings；`git diff --check` 通过。真实 iPad 存档尚未导出，设备审计仍待备份。
+
 ## 农场奖励交易统一为一次完整存档 — 10 October 2026
 
 - 许愿井、市场出售、访客喂食与 NPC 到访里程碑改为先完成日期/账本、物品、友情和金币变更，再由外层交易统一保存。`give_to_friend()` 与里程碑奖励保留默认即时保存，独立调用的原有语义不变。

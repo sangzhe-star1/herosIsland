@@ -2569,7 +2569,16 @@ func _harvest_transaction_settles_storage_and_plot_together() -> void:
 	ripe["plant_cycle_id"] = 5
 	ripe["golden"] = true
 	var amount := int(GameData.get_crop("carrot").get("harvest_amount", 1))
-	var receipt: Dictionary = HarvestTransaction.settle(ripe, farm)
+	var before_xp := Level.xp()
+	var progress_date := "2026-10-10"
+	var backup_marker := "harvest-settlement-leaves-save-to-caller"
+	var backup := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	_ok(backup != null, "the composed harvest transaction can observe save ownership")
+	if backup != null:
+		backup.store_string(backup_marker)
+		backup.close()
+	var receipt: Dictionary = HarvestTransaction.settle(ripe, farm,
+		progress_date)
 	_ok(bool(receipt.get("claimed", false))
 			and str(receipt.get("transaction_id", "")) == "farm_harvest_plot_1_5",
 		"a ripe planting claims its own stable transaction before storage")
@@ -2582,6 +2591,16 @@ func _harvest_transaction_settles_storage_and_plot_together() -> void:
 			and int(receipt.get("stored", 0)) + int(receipt.get("spilled", 0)) == amount
 			and Barn.count("carrot") + Barn.count("carrot", Barn.BASKET) == amount,
 		"storage plus overflow equals the full yield of one claimed harvest")
+	var daily: Dictionary = receipt.get("daily", {})
+	var daily_save: Dictionary = daily.get("dailies", {})
+	var daily_progress: Dictionary = daily_save.get("progress", {})
+	_ok(Level.xp() == before_xp + GameData.farm_xp_for("harvest")
+			and str(daily_save.get("date", "")) == progress_date
+			and int(daily_progress.get("harvest", 0))
+			== mini(amount, Dailies.target("harvest")),
+		"the claimed transaction includes its XP and dated daily progress")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == backup_marker,
+		"the composed harvest transaction still leaves its one disk write to the caller")
 
 	farm["paid_harvests"] = ["farm_harvest_plot_1_5",
 		"farm_harvest_plot_1_6", "farm_harvest_plot_1_7"]
@@ -2590,7 +2609,10 @@ func _harvest_transaction_settles_storage_and_plot_together() -> void:
 	duplicate["crop_id"] = "carrot"
 	duplicate["plant_cycle_id"] = 5
 	var before := Barn.count("carrot") + Barn.count("carrot", Barn.BASKET)
-	var repeat: Dictionary = HarvestTransaction.settle(duplicate, farm)
+	var xp_after_claim := Level.xp()
+	var dailies_after_claim: Dictionary = farm.get("dailies", {}).duplicate(true)
+	var repeat: Dictionary = HarvestTransaction.settle(duplicate, farm,
+		progress_date)
 	_ok(not bool(repeat.get("claimed", true))
 			and bool(repeat.get("duplicate_freed", false)),
 		"a merged already-paid crop is freed without a second claim")
@@ -2599,6 +2621,9 @@ func _harvest_transaction_settles_storage_and_plot_together() -> void:
 		"duplicate recovery advances past every already-paid cycle")
 	_ok(Barn.count("carrot") + Barn.count("carrot", Barn.BASKET) == before,
 		"freeing a merged duplicate adds no crop yield")
+	_ok(Level.xp() == xp_after_claim
+			and farm.get("dailies", {}) == dailies_after_claim,
+		"a duplicate claim cannot award XP or daily harvest progress again")
 
 	farm["warehouse"] = {"corn": Barn.cap()}
 	farm["harvest_basket"] = {}
