@@ -4,7 +4,7 @@
 
 - 钓鱼判定区、池塘涟漪和鱼获回执飞行起点统一读取 `farm_world_dressing.json` 中的 pond 坐标，移池塘时不再留下旧坐标上的不可见钓鱼区或漂移的反馈。
 - GardenProbe 通过 1,228 项；GardenTouchProbe 在 16:9 与 4:3 双画幅通过 2,057 项，并临时移动实际池塘后用真实触控确认命中及鱼获飞行起点同步移动。`tools_check.py` 为 0 errors、208 条既有 warnings，`git diff --check` 通过。
-- 本次未重跑完整 smoke；最近一次完整隔离 smoke 为本变更前的 31/31、0 skipped。真实 iPad 存档尚未导出，迁移审计仍待设备备份。
+- 后续在推送提交 `dc0a11d` 上完成完整隔离 smoke：31 passed、0 skipped；QA runner 单测通过 16/16。真实 iPad 存档尚未导出，迁移审计仍待设备备份。
 
 ## 草莓株身可读性双画幅 A/B — 11 October 2026
 

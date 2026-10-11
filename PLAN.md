@@ -396,8 +396,9 @@ These are yours to make. Nothing below has been changed without asking.
   passed 2,057 across 16:9 and 4:3 after moving the live pond and confirming a
   real tap and receipt origin at the new position. `tools_check.py` reports
   0 errors and 208 existing warnings; `git diff --check` passes. The full
-  isolated smoke suite was not rerun for this follow-up. The iPad save has not
-  been exported, so the real-device migration audit remains pending.
+  isolated smoke suite now passes 31/31 with 0 skips on the pushed head;
+  `tests/test_qa_run.py` passes 16/16. The iPad save has not been exported, so
+  the real-device migration audit remains pending.
 
 - **Panel visit state boundary:** `FarmPanelStateController` now owns route-
   local pages, purchase/upgrade confirmations, and uncommitted market and gift
