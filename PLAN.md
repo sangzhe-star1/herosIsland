@@ -1,6 +1,6 @@
 # Little Heroes Growth Island — development plan
 
-First written 22 July 2026. Status brought up to date 10 October 2026.
+First written 22 July 2026. Status brought up to date 11 October 2026.
 Living document; revise as reality intervenes.
 
 ---
@@ -19,7 +19,7 @@ behind. `CHANGELOG.md` is the record, one section per round.
 | Levels | 14 | 67 |
 | Templates with levels | 4 | 14 |
 | Home screen doors | 2, and a disabled Hero House button | 5 |
-| Smoke checkpoints | 1 script | 31, all green |
+| Smoke checkpoints | 1 script | 31 on last full coverage; FarmWorld and GardenTouch green after latest refactor |
 | `tools_check.py` | new | 0 errors, 208 warnings |
 
 ---
@@ -98,9 +98,12 @@ launched on an iPad Pro simulator. This restored a launch check, but the
 software-rendered simulator did not finish the full touch probe, so this is
 not an iPad playtest. The device and real-save checks remain open; see
 `docs/GARDEN_PLAYTEST_SHEET.md` for the exact result and limitation.
-The desktop baseline on this head still passes: `./tests/run_smoke.sh` reports
-30 passed, 0 skipped; `python3 tools_check.py` reports 0 errors and 208
-existing warnings.
+The last complete desktop coverage passed all 31 smoke checkpoints with 0
+skips. After the 11 October panel-state extraction, its two directly affected
+probes pass again: FarmWorldProbe 957 and GardenTouchProbe 2,031 across 16:9
+and 4:3; the runner unit suite passes 16/16. `python3 tools_check.py` reports
+0 errors and 208 existing warnings. The full suite has not been rerun after
+that extraction. The actual iPad and real-save checks remain open.
 
 ---
 
@@ -358,7 +361,17 @@ These are yours to make. Nothing below has been changed without asking.
    Folding them into one is a small change, but it touches every existing save,
    so it wants a test on a real old save first.
 
-## Current follow-through — 10 October 2026
+## Current follow-through — 11 October 2026
+
+- **Panel visit state boundary:** `FarmPanelStateController` now owns route-
+  local pages, purchase/upgrade confirmations, and uncommitted market and gift
+  baskets. `GardenScreen` keeps compatibility properties for existing panels
+  and probes, plus the live view-node references. A stale close callback cannot
+  clear another route's basket; reopening market preserves only its current
+  visit, while switching routes or closing discards uncommitted interaction
+  state. FarmWorldProbe passes 957 checks and GardenTouchProbe passes 2,031
+  across 16:9 and 4:3. Friend-gift screenshots were checked in both ratios;
+  `tools_check.py` reports 0 errors and 208 existing warnings.
 
 - **Remote plan check:** fetched `origin/main` and
   `origin/claude/stoic-bell-a41pfu`; the remote feature branch is already an

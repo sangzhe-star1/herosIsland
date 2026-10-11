@@ -1,5 +1,11 @@
 # Changelog
 
+## 菜园面板访问状态归入面板控制器 — 11 October 2026
+
+- `FarmPanelStateController` 现在拥有面板访问期的页码、确认卡、待送礼篮子和待出售篮子；`GardenScreen` 保留兼容属性，并继续持有当前面板的节点引用。
+- 打开其他面板会清除旧确认和不相干的暂存篮子；同一面板重开保留该次市场篮子，礼物门的 `gift` / `bear_door` 别名共用一份篮子，旧面板的迟到关闭回调不会清除当前访问。
+- FarmWorldProbe 双画幅通过 957 项，GardenTouchProbe 双画幅通过 2,031 项；两比例好友礼篮截图已检查。`tools_check.py` 报告 0 errors、208 条既有 warnings。
+
 ## 下一步卡片接管自己的聚焦反馈 — 10 October 2026
 
 - `FarmNextTaskPanel` 现在处理按下后的镜头定位、目标地块提示圈、轻量冲击波和种植栏弹跳。订单卡仍只把镜头带到委托板并显示原有手指，不会自动打开或交付。

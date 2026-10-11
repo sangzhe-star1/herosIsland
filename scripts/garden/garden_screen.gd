@@ -148,7 +148,11 @@ var _orders_open: bool:
 var _challenges_open: bool:
 	get:
 		return _panel_state.is_open("challenges")
-var _challenge_page := 0
+var _challenge_page: int:
+	get:
+		return _panel_state.challenge_page
+	set(value):
+		_panel_state.challenge_page = value
 var _shop_open: bool:
 	get:
 		return _panel_state.is_open("shop")
@@ -173,25 +177,62 @@ var _kitchen_open: bool:
 var _gift_open: bool:
 	get:
 		return _panel_state.is_open("gift")
-var _gift_basket: Dictionary = {}
-var _confirm_cook := ""
+var _gift_basket: Dictionary:
+	get:
+		return _panel_state.gift_basket
+	set(value):
+		_panel_state.gift_basket = value
+var _confirm_cook: String:
+	get:
+		return _panel_state.confirm_cook
+	set(value):
+		_panel_state.confirm_cook = value
 ## Shop, recipe and kitchen sheets show six rows at a time. The rack holds
 ## all fourteen familiar seeds and keeps the same pager for future additions.
 ## Each sheet returns to its first page when its door opens.
-var _shop_page := 0
-var _book_page := 0
-var _kitchen_page := 0
+var _shop_page: int:
+	get:
+		return _panel_state.shop_page
+	set(value):
+		_panel_state.shop_page = value
+var _book_page: int:
+	get:
+		return _panel_state.book_page
+	set(value):
+		_panel_state.book_page = value
+var _kitchen_page: int:
+	get:
+		return _panel_state.kitchen_page
+	set(value):
+		_panel_state.kitchen_page = value
 var _rack_page := 0
 ## Which crop's confirm card is up in the shop ("" for none).
-var _confirm_crop := ""
+var _confirm_crop: String:
+	get:
+		return _panel_state.confirm_crop
+	set(value):
+		_panel_state.confirm_crop = value
 ## Whether the barn's upgrade confirm card is up.
-var _confirm_upgrade := false
+var _confirm_upgrade: bool:
+	get:
+		return _panel_state.confirm_upgrade
+	set(value):
+		_panel_state.confirm_upgrade = value
 ## Which expansion slot's confirm card is up, -1 for none.
-var _confirm_expand := -1
+var _confirm_expand: int:
+	get:
+		return _panel_state.confirm_expand
+	set(value):
+		_panel_state.confirm_expand = value
 ## What he has dragged into the market box this visit: crop_id -> count.
 ## Nothing leaves the barn until 卖掉 is pressed -- closing the panel forgets
-## this and loses NOTHING.
-var _market_sell: Dictionary = {}
+## this and loses NOTHING. The panel-state controller owns this uncommitted
+## basket; the screen keeps only the current view's row nodes below.
+var _market_sell: Dictionary:
+	get:
+		return _panel_state.market_sell
+	set(value):
+		_panel_state.market_sell = value
 ## One stepper row per crop in the box, keyed by crop id: {"row": Node,
 ## "count": Label}. Rows live in the receipt's scroll area; a rebuild frees
 ## them with the panel, then `_market_panel` repopulates from the basket.
@@ -787,37 +828,19 @@ func _tap_wishing_well() -> void:
 
 
 ## Open one door and shut the rest. The panel-state controller owns route
-## exclusivity; this screen resets route-specific data and handles feedback.
+## exclusivity and visit data; this screen clears stale view references and
+## handles feedback.
 func _open_panel(which: String) -> void:
 	_panel_state.open(which)
-	_challenge_page = 0
-	# A door always opens on its first page -- a shop remembered mid-flip
-	# reads as a shop with rows missing.
-	_shop_page = 0
-	_book_page = 0
-	_kitchen_page = 0
-	_confirm_crop = ""
-	_confirm_cook = ""
-	_confirm_expand = -1
-	_confirm_upgrade = false
 	_market_ui = null
 	if which != "market":
-		_market_sell = {}
 		_market_rows = {}
-	if which != "gift" and which != "bear_door":
-		_gift_basket = {}
 	AudioManager.play_sfx("res://assets/audio/door.ogg")
 	_queue_rebuild()
 
 
 func _close_panels() -> void:
 	_panel_state.close()
-	_gift_basket = {}
-	_confirm_cook = ""
-	_confirm_crop = ""
-	_confirm_expand = -1
-	_confirm_upgrade = false
-	_market_sell = {}
 	_market_rows = {}
 	_market_ui = null
 	_queue_rebuild()

@@ -56,7 +56,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 951
+const CHECKS_EXPECTED := 957
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -99,6 +99,7 @@ func _ready() -> void:
 		_tool_action_controller_owns_plot_transitions()
 		_tool_selection_is_owned_by_its_controller()
 		_panel_routes_remain_exclusive()
+		_panel_visit_state_is_scoped_to_its_route()
 		_building_action_routes_and_unlocks_are_shared()
 		_golden_state_is_a_visual_input()
 		for shape in SHAPES:
@@ -831,6 +832,52 @@ func _panel_routes_remain_exclusive() -> void:
 	_ok(panels.open("unknown") == "" and not panels.any_open()
 			and not panels.barn_show_overflow,
 		"an invalid route clears stale sheet state instead of stacking panels")
+
+
+func _panel_visit_state_is_scoped_to_its_route() -> void:
+	_shape = "farm panel visit state"
+	var panels = PanelState.new()
+	panels.open("market")
+	panels.challenge_page = 3
+	panels.shop_page = 2
+	panels.book_page = 4
+	panels.kitchen_page = 1
+	panels.confirm_crop = "potato"
+	panels.confirm_cook = "soup"
+	panels.confirm_upgrade = true
+	panels.confirm_expand = 5
+	panels.market_sell = {"carrot": 2}
+	panels.gift_basket = {"apple": 1}
+	panels.open("market")
+	_ok(panels.challenge_page == 0 and panels.shop_page == 0
+			and panels.book_page == 0 and panels.kitchen_page == 0
+			and panels.confirm_crop == "" and panels.confirm_cook == ""
+			and not panels.confirm_upgrade and panels.confirm_expand == -1
+			and panels.market_sell == {"carrot": 2}
+			and panels.gift_basket.is_empty(),
+		"opening a route resets pages and confirmations while preserving only its uncommitted market visit")
+	_ok(not panels.close("orders") and panels.is_open("market")
+			and panels.market_sell == {"carrot": 2},
+		"a stale close cannot clear the active market visit")
+
+	panels.gift_basket = {"apple": 1}
+	panels.open("gift")
+	_ok(panels.is_open("gift") and panels.gift_basket == {"apple": 1}
+			and panels.market_sell.is_empty(),
+		"opening the gift route retains its basket and drops the market visit")
+	panels.open("bear_door")
+	_ok(panels.is_open("gift") and panels.gift_basket == {"apple": 1},
+		"the bear-door alias keeps the same gift-basket visit")
+	panels.open("visits")
+	_ok(panels.gift_basket.is_empty(),
+		"leaving the gift route discards its uncommitted basket")
+	panels.confirm_crop = "tomato"
+	panels.confirm_expand = 2
+	panels.market_sell = {"corn": 1}
+	panels.close()
+	_ok(panels.confirm_crop == "" and panels.confirm_expand == -1
+			and panels.market_sell.is_empty() and panels.gift_basket.is_empty(),
+		"closing the active sheet clears its route-local interaction state")
 
 
 ## Building presses resolve to one progression decision before the screen
