@@ -50,8 +50,9 @@ worlds and 34 levels; 光之战士 has 15 duels; the Star Garden has the farm pl
    the local Tingting voice filled 45 missing level and farm clips through
    `tools/make_voice.command`; the generator skips existing files. VoiceCheck
    passes for all 67 level intros and all shared lines. Two existing level
-   clips still describe old gameplay and need corrected replacement audio;
-   five unwired Hero House lines remain intentionally pending. Replacing
+   gameplay-mismatched clips were replaced with corrected XiaoxiaoNeural audio
+   using the documented rate and pitch; five unwired Hero House lines remain
+   intentionally pending. Replacing
    synthesized clips with your own voice is still the best upgrade available;
    `docs/VOICE_SCRIPT.md` has every line.
 3. **His drawings as the hero** — the skin seam and the drop-in character
