@@ -1100,6 +1100,12 @@ These are yours to make. Nothing below has been changed without asking.
   isolated smoke suite passed 30/30 with no skips. `tools_check.py` reports
   0 errors and 208 existing warnings. The iPad save has not been exported;
   device migration review and child playtesting remain pending.
+- **Robot friend save-merge regression (10 October):** the two-device migration
+  probe now covers an old tablet with robot watering still owed alongside an
+  imported tablet whose newer cycle is complete. The completion high-water
+  remains closed through merge and save/reload. Isolated GardenProbe passed
+  1,226 checks (two added); this synthetic fixture does not replace the real
+  iPad-save audit, which remains pending export.
 
 ---
 

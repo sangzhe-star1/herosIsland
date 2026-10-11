@@ -170,7 +170,7 @@ func _ready() -> void:
 	_the_market_day_announcement_and_price_doubling_work()
 	_the_bear_return_transaction_keeps_the_visit_pending_until_water()
 	_the_bear_comes_back_and_gift_basket_work()
-	_two_tablets_agree_about_the_bear()
+	_two_tablets_merge_friend_progress_monotonically()
 	# --- 阶段 5: the ladder and the land ---
 	_the_farm_grows_up_by_arithmetic()
 	_the_seventh_bed_is_bought_once()
@@ -3126,9 +3126,9 @@ func _the_regular_gets_his_milestones_once() -> void:
 		"the milestone claim vanished across a save round-trip")
 
 
-## Two tablets, one bear. The merge must never un-make a promise, un-pick a
+## Two tablets, one farm. The merge must never un-make a promise, un-pick a
 ## cycle, or lose a visit either tablet saw.
-func _two_tablets_agree_about_the_bear() -> void:
+func _two_tablets_merge_friend_progress_monotonically() -> void:
 	# Phase 7 saves only carried booleans. Reconstruct a completed high-water
 	# mark from an old false flag so the first import after upgrading cannot
 	# reopen a promise that was already fulfilled on the other tablet.
@@ -3161,6 +3161,10 @@ func _two_tablets_agree_about_the_bear() -> void:
 	npc["bear"]["sneak_owed"] = true
 	npc["rabbit"]["last_share_cycle"] = 2
 	npc["rabbit"]["help_owed"] = true
+	# The new robot friend uses the same high-water merge contract. This device
+	# still owes cycle 11; the imported device has already completed cycle 13.
+	npc["robot"]["last_share_cycle"] = 11
+	npc["robot"]["help_owed"] = true
 	npc["bear"]["last_visit_at"] = 1000
 	farm["npc"] = npc
 	farm["npc_friendship"] = {"bear": 1}
@@ -3172,7 +3176,8 @@ func _two_tablets_agree_about_the_bear() -> void:
 		"npc": {"bear": {"last_share_cycle": 5, "help_owed": false,
 			"last_visit_at": 900, "last_sneak_cycle": 8,
 			"sneak_owed": false},
-			"rabbit": {"last_share_cycle": 3, "help_owed": true}},
+			"rabbit": {"last_share_cycle": 3, "help_owed": true},
+			"robot": {"last_share_cycle": 13, "help_owed": false}},
 		"npc_friendship": {"bear": 4},
 		"visit_log": [
 			{"who": "bear", "watered": 1, "star": 1, "at": 1000},
@@ -3199,6 +3204,12 @@ func _two_tablets_agree_about_the_bear() -> void:
 	_ok(int(merged_rabbit.get("last_share_cycle", -1)) == 3
 			and bool(merged_rabbit.get("help_owed", false)),
 		"a newer rabbit share keeps its still-owed watering promise")
+	var merged_robot: Dictionary = Farm.normalise_npc(
+		SaveManager.data["farm"].get("npc")).get("robot", {})
+	_ok(int(merged_robot.get("last_share_cycle", -1)) == 13
+			and int(merged_robot.get("help_completed_cycle", -1)) == 13
+			and not bool(merged_robot.get("help_owed", true)),
+		"an imported completed robot cycle cannot be reopened by the older tablet")
 	_ok(int(merged.get("last_visit_at", 0)) == 1000,
 		"the visit clock keeps the later stamp")
 	_ok(int(SaveManager.data["farm"]["npc_friendship"].get("bear", 0)) == 4,
@@ -3211,6 +3222,13 @@ func _two_tablets_agree_about_the_bear() -> void:
 		"news on either tablet is still news")
 	_ok(not bool(SaveManager.data["farm"].get("bear_return_visit_pending", true)),
 		"a completed return visit on either tablet clears the older request")
+	SaveManager.save_game()
+	SaveManager.load_game()
+	var robot_after_reload: Dictionary = Farm.normalise_npc(
+		SaveManager.data["farm"].get("npc")).get("robot", {})
+	_ok(int(robot_after_reload.get("help_completed_cycle", -1)) == 13
+			and not bool(robot_after_reload.get("help_owed", true)),
+		"the robot's merged completion high-water survives a save round-trip")
 
 
 # --- 阶段 5: the ladder and the land ---------------------------------------

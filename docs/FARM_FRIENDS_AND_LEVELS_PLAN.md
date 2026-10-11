@@ -149,8 +149,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 tests/qa_run.py \
 - `data/npc_farms.json` 定义机器人的六块地、胡萝卜分享和玉米浇水目标；不会保存机器人的库存，也不会扣孩子的物品。
 - `RobotFarm.tscn` 复用 `FriendFarmScreen`；模型来自项目冻结 Blender 摄影棚，图标和 GLB 共用一套造型，制作记录在 [机器人资产说明](../assets/harvest_3d/source/farm_friends_20261010/robot/README.md)。
 - 礼篮的好友门以四个等宽卡片展示小熊、兔兔、小狗和机器人；各卡片保留 56px 高触控区，并缩小副标签字号以适配现有面板。
-- 旧存档通过 `Farm.normalise_npc()` 获得空白机器人状态；`GardenProbe` 通过 **1,224 项**，`FarmWorldProbe` 通过 **951 项**，覆盖迁移、模型加载、真实触摸分享/浇水、重复领取保护和好友门两种画幅布局。
+- 旧存档通过 `Farm.normalise_npc()` 获得空白机器人状态；双设备合并会取机器人浇水完成周期的高水位，旧设备的欠浇标记不能重开已完成周期，写盘重载后仍保持。GardenProbe 现通过 **1,226 项**，`FarmWorldProbe` 通过 **951 项**，覆盖旧字段归一化、合并、模型加载、真实触摸分享/浇水、重复领取保护和好友门两种画幅布局。
 - 双画幅画面：[四位好友门 16:9](qa/friend_farms_20261010/friend_door_robot_16x9.png)、[四位好友门 4:3](qa/friend_farms_20261010/friend_door_robot_4x3.png)、[机器人农场 16:9](qa/friend_farms_20261010/robot_farm_16x9.png)、[机器人农场 4:3](qa/friend_farms_20261010/robot_farm_4x3.png)。
 - 真实 iPad 存档审计尚待用户导出备份；本轮隔离探针不替代真实迁移审计。
 
-Blender 机器人配方渲染审计 0 失败；资产管线 **75 recipes / 68 models / 100 palette entries** 与 18 项契约测试通过；完整隔离 smoke **30/30、0 skipped**。`tools_check.py` 为 0 errors、208 条既有 warnings。真实 iPad 存档尚未导出，迁移审计仍待用户备份。
+Blender 机器人配方渲染审计 0 失败；资产管线 **75 recipes / 68 models / 100 palette entries** 与 18 项契约测试通过；此前完整隔离 smoke **30/30、0 skipped**。本次合并补充的 GardenProbe 隔离复验通过 1,226 项。`tools_check.py` 基线为 0 errors、208 条既有 warnings。真实 iPad 存档尚未导出，迁移审计仍待用户备份。
