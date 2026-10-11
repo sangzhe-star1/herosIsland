@@ -1213,6 +1213,11 @@ func _the_decorating_door_and_its_furniture() -> void:
 					"a decoration accepts input -- furniture must never "
 					+ "swallow a tap meant for a plot")
 		_ok(shown == 3, "saved 3 decorations, the farm shows %d" % shown)
+	var unchanged_layer := layer
+	_garden.call("_draw_decorations")
+	await get_tree().process_frame
+	_ok(_find_named(_garden, "Decorations") == unchanged_layer,
+		"an unchanged saved arrangement keeps its live decoration layer")
 
 	# 三期阶段 3：家具会答话，但排在最后。一件摆在 0 号地正中的家具，
 	# 点下去必须还是地在答（翻土）、家具一动不动；一件摆在空草地上的，
@@ -4565,9 +4570,19 @@ func _the_challenge_door_shows_what_is_next(view: Vector2) -> void:
 	next_card = _find_named(scene, "ChallengeNext")
 	door = _find_named(scene, "HarvestChallenge")
 	count = _find_named(scene, "ChallengeCount")
-	_ok(count is Label and (count as Label).text == "%d/%d" % [levels.size(), levels.size()]
-		and _control_contains(door, count) and _controls_are_separate(next_card, count, 2.0),
-		"the complete sixteen-of-sixteen count stays readable inside the small entrance")
+	var complete_count := "%d/%d" % [levels.size(), levels.size()]
+	var count_text_ok := count is Label and (count as Label).text == complete_count
+	var count_inside := _control_contains(door, count)
+	var count_clear := _controls_are_separate(next_card, count, 2.0)
+	if not (count_text_ok and count_inside and count_clear):
+		print("DBG completed challenge header: text_ok=%s inside=%s clear=%s door=%s preview=%s count=%s" % [
+			str(count_text_ok), str(count_inside), str(count_clear),
+			str((door as Control).get_global_rect()) if door is Control else "<missing>",
+			str((next_card as Control).get_global_rect()) if next_card is Control else "<missing>",
+			str((count as Control).get_global_rect()) if count is Control else "<missing>"])
+	_ok(count_text_ok, "a completed harvest shelf reads %s" % complete_count)
+	_ok(count_inside, "the complete harvest count stays inside its card")
+	_ok(count_clear, "the complete harvest count stays clear of the star preview")
 	var complete_was_busy := bool(SceneManager.get("_busy"))
 	SceneManager.set("_busy", true)
 	if next_card is Control:

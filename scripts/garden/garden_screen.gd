@@ -1577,38 +1577,9 @@ func _deco_door(view: Vector2) -> void:
 var _deco_drawn := ""
 
 
-func _drop_decorations(old: Node) -> void:
-	_deco_drawn = ""
-	if old != null:
-		old.name = "DecorationsGone"
-		old.queue_free()
-
-
 func _draw_decorations() -> void:
-	if _world == null or not is_instance_valid(_world):
-		return
-	var old: Node = _world.get_node_or_null("Decorations")
-	var room_id := str(level_data.get("config", {}).get("deco_room", ""))
-	var room: Dictionary = GameData.get_level(room_id) if room_id != "" else {}
-	if room.is_empty():
-		_drop_decorations(old)
-		return
-	var key := str(room.get("config", {}).get("canvas_id", room_id))
-	var placed: Array = SaveManager.get_creation(key)
-	if placed.is_empty():
-		_drop_decorations(old)
-		return
-	# Same arrangement, same furniture. The decorations used to be thrown
-	# away and redrawn on every rebuild: a wiggle in flight was cut off by
-	# the rebuild that followed the poke, and the idle bob restarted from
-	# zero every time anything happened.
-	var stamp := JSON.stringify(placed) + str(get_viewport_rect().size)
-	if stamp == _deco_drawn and old != null:
-		return
-	_drop_decorations(old)
-	_deco_drawn = stamp
-	FarmDecorationsView.new(self).draw_saved(placed,
-		get_viewport_rect().size)
+	_deco_drawn = FarmDecorationsView.new(self).refresh_saved(
+		get_viewport_rect().size, _deco_drawn)
 
 
 ## 三期阶段 3：家具会答话，但永远排在最后。

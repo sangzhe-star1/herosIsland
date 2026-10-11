@@ -4,6 +4,38 @@ extends "res://scripts/garden/panels/farm_panel_base.gd"
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 
 
+## Refresh the passive world layer only when its saved contents or canvas change.
+## Keep the signature here with the view that owns the layer; GardenScreen
+## retains only the last signature so it can cheaply request a refresh.
+func refresh_saved(canvas: Vector2, previous_stamp: String) -> String:
+	if world == null or not is_instance_valid(world):
+		return previous_stamp
+	var old := world.get_node_or_null("Decorations")
+	var level_data: Dictionary = screen.get("level_data")
+	var room_id := str(level_data.get("config", {}).get("deco_room", ""))
+	var room: Dictionary = GameData.get_level(room_id) if room_id != "" else {}
+	if room.is_empty():
+		_drop_saved(old)
+		return ""
+	var key := str(room.get("config", {}).get("canvas_id", room_id))
+	var placed: Array = SaveManager.get_creation(key)
+	if placed.is_empty():
+		_drop_saved(old)
+		return ""
+	var stamp := JSON.stringify(placed) + str(canvas)
+	if stamp == previous_stamp and old != null:
+		return stamp
+	_drop_saved(old)
+	draw_saved(placed, canvas)
+	return stamp
+
+
+func _drop_saved(old: Node) -> void:
+	if old != null:
+		old.name = "DecorationsGone"
+		old.queue_free()
+
+
 func build_door(view: Vector2, shelf_height: float) -> void:
 	var level_data: Dictionary = screen.get("level_data")
 	var room_id := str(level_data.get("config", {}).get("deco_room", ""))

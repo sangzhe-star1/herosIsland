@@ -920,6 +920,17 @@ These are yours to make. Nothing below has been changed without asking.
   `docs/qa/garden_challenge_header_20261010/`. `GardenTouchProbe` passed 1,995
   checks, `FarmWorldProbe` passed 907, and `tools_check.py` reports 0 errors
   and 208 existing warnings.
+- **Saved-decoration view boundary (10 October):** `FarmDecorationsView` now
+  reads the saved room arrangement, invalidates its signature when contents or
+  canvas size change, and preserves the live layer when nothing changed.
+  `garden_screen.gd` keeps only a short refresh callback and is down to 2,367
+  lines. The touch probe now explicitly checks that unchanged furniture keeps
+  its live layer; `GardenTouchProbe` passed 2,001 checks across 16:9 and 4:3,
+  including that no decoration intercepts a crop tap and emptying the garden
+  does not affect the hero-base shelf. `tools_check.py` reports 0 errors and
+  208 existing warnings. `FarmShot` also rendered and passed the saved-furniture
+  poke case at 1280x720 and 1024x768; the captures are in
+  `docs/qa/garden_decor_view_20261010/`.
 
 ---
 
