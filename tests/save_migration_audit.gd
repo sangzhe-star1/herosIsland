@@ -113,6 +113,8 @@ func _build_report(source: Dictionary, normalized: Dictionary, live: Dictionary,
 	var lost_farm_keys: Array[String] = []
 	var added_farm_keys: Array[String] = []
 	var changed_farm_keys: Array[String] = []
+	var farm_change_paths := _json_change_paths(
+		source_farm, final_farm, "farm")
 	for key in source_farm.keys():
 		if key == "harvest_checkpoint":
 			if normalized.has("harvest_checkpoint"):
@@ -172,6 +174,7 @@ func _build_report(source: Dictionary, normalized: Dictionary, live: Dictionary,
 		"lost_farm_keys": lost_farm_keys,
 		"added_farm_keys": added_farm_keys,
 		"changed_farm_keys": changed_farm_keys,
+		"farm_change_paths": farm_change_paths,
 		"human_review_required": not source_farm_shape_ok \
 			or not lost_farm_keys.is_empty() or not changed_farm_keys.is_empty(),
 		"checks": checks,
@@ -230,6 +233,48 @@ func _same_json_value(actual: Variant, expected: Variant) -> bool:
 			and typeof(expected) in [TYPE_INT, TYPE_FLOAT]:
 		return is_equal_approx(float(actual), float(expected))
 	return actual == expected
+
+
+## Explain migration differences by field path without copying save values into
+## the report. This lets a human review defaults and runtime settlement without
+## dumping a child's inventory or plot contents into the console.
+func _json_change_paths(before: Variant, after: Variant,
+		path: String) -> Array[String]:
+	var changes: Array[String] = []
+	_append_json_change_paths(before, after, path, changes)
+	return changes
+
+
+func _append_json_change_paths(before: Variant, after: Variant, path: String,
+		changes: Array[String]) -> void:
+	if before is Dictionary and after is Dictionary:
+		var keys: Array = before.keys()
+		for key in after.keys():
+			if not key in keys:
+				keys.append(key)
+		keys.sort()
+		for key in keys:
+			var child_path := "%s.%s" % [path, str(key)]
+			if not before.has(key):
+				changes.append("%s (added)" % child_path)
+			elif not after.has(key):
+				changes.append("%s (removed)" % child_path)
+			else:
+				_append_json_change_paths(before[key], after[key], child_path,
+					changes)
+		return
+	if before is Array and after is Array:
+		var shared := mini(before.size(), after.size())
+		for index in range(shared):
+			_append_json_change_paths(before[index], after[index],
+				"%s[%d]" % [path, index], changes)
+		for index in range(shared, before.size()):
+			changes.append("%s[%d] (removed)" % [path, index])
+		for index in range(shared, after.size()):
+			changes.append("%s[%d] (added)" % [path, index])
+		return
+	if not _same_json_value(before, after):
+		changes.append(path)
 
 
 func _is_number(value: Variant) -> bool:

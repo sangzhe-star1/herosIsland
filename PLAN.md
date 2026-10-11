@@ -19,7 +19,7 @@ behind. `CHANGELOG.md` is the record, one section per round.
 | Levels | 14 | 67 |
 | Templates with levels | 4 | 14 |
 | Home screen doors | 2, and a disabled Hero House button | 5 |
-| Smoke checkpoints | 1 script | 30, all green |
+| Smoke checkpoints | 1 script | 31, all green |
 | `tools_check.py` | new | 0 errors, 208 warnings |
 
 ---
@@ -32,7 +32,7 @@ rendered and looked at at 1280×720 and at iPad 4:3.
 ## Phase 1 — Make verification cheap — **done**
 
 `./tests/run_smoke.sh` boots every scene and every level headlessly and runs
-29 checkpoints, most of them feature probes in `tests/`. `tests/shots.sh`
+31 checkpoints, most of them feature probes in `tests/`. `tests/shots.sh`
 renders every screen to PNG. The house rule since then: every fix leaves a
 check behind, and the check is broken once on purpose to prove it goes red.
 
@@ -1136,6 +1136,16 @@ These are yours to make. Nothing below has been changed without asking.
   unchanged. Their 25 leaf changes are only facility/NPC cycle defaults,
   robot defaults, and clock/plot settlement timestamps. These are current Mac
   saves; the iPad backup is still needed for the older-device migration audit.
+- **Value-free migration field paths (10 October):** the save audit now lists
+  nested farm additions, removals, and changed paths without printing saved
+  values. The contract probe covers dictionaries, arrays, and numeric
+  int/float equivalence. It was also exercised against the isolated Mac save,
+  its backup, and a synthetic legacy save; all retained their source hashes
+  and the legacy fixture preserved its nested harvest checkpoint. The actual
+  iPad save remains unavailable pending export. On 11 October the full 31-item
+  smoke coverage also passed with no skips: the first 21 checks passed in the
+  initial run, then FarmWorldProbe passed on its own and the remaining 10
+  checks passed in a continuation run. QA runner unit tests passed 16/16.
 
 ---
 

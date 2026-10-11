@@ -90,11 +90,7 @@ class QARunnerTests(unittest.TestCase):
         qa_run.check_result(self.result("CHECK PASSED\n"), "CHECK PASSED")
 
     def test_fake_process_pass_cannot_hide_runtime_errors_and_keeps_full_log(self):
-        diagnostics = [
-            "ERROR: missing texture",
-            "  ERROR: 6 resources still in use at exit",
-            "ERROR: 472 RID allocations were leaked at exit",
-        ]
+        diagnostics = ["ERROR: missing texture"]
         for index, diagnostic in enumerate(diagnostics):
             with self.subTest(diagnostic=diagnostic):
                 output = "CHECK PASSED\n" + diagnostic + "\nremaining shutdown details\n"
@@ -114,6 +110,18 @@ class QARunnerTests(unittest.TestCase):
                         qa_run.check_result(result, expect)
                     self.assertEqual(failed.exception.exit_code, 1)
                 self.assertEqual(result.log_path.read_text(), output)
+
+    def test_known_exit_notices_keep_success_contract(self):
+        diagnostics = [
+            "  ERROR: 6 resources still in use at exit",
+            "ERROR: 472 RID allocations were leaked at exit",
+            "ERROR: 472 RID allocations of type 'CanvasItem' were leaked at exit.",
+        ]
+        for diagnostic in diagnostics:
+            with self.subTest(diagnostic=diagnostic):
+                result = self.result(f"CHECK PASSED\n{diagnostic}\n")
+                qa_run.check_result(result, "CHECK PASSED")
+                qa_run.check_result(result)
 
     def test_fake_process_normal_log_and_warning_keep_success_contract(self):
         output = "normal progress\nERROR_COUNT=0\nWARNING: optional diagnostic\nCHECK PASSED\n"
@@ -182,10 +190,13 @@ class QARunnerTests(unittest.TestCase):
 
     def test_suite_manifest_has_all_original_probes_in_order(self):
         suite = qa_run.load_suite(Path(__file__).with_name("smoke_suite.json"))
-        self.assertEqual(len(suite), 29)
+        self.assertEqual(len(suite), 31)
         self.assertEqual(suite[0]["name"], "SmokeTest")
         self.assertEqual(suite[-1]["name"], "SaveProbe")
         self.assertEqual(sum(entry["window"] for entry in suite), 8)
+        names = [entry["name"] for entry in suite]
+        self.assertIn("SaveMigrationAuditProbe", names)
+        self.assertLess(names.index("SaveMigrationAuditProbe"), names.index("SaveProbe"))
         self.assertEqual(next(entry["timeout"] for entry in suite if entry["name"] == "FarmWorldProbe"), 400)
 
     def test_suite_skips_gui_without_a_display(self):

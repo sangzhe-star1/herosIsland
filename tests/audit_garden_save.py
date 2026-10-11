@@ -107,6 +107,13 @@ def main() -> int:
         print(f"Normalized isolated copy: {normalized_path}")
         print(json.dumps(report.get("checks", {}), ensure_ascii=False, indent=2))
         print(f"Basic checks passed: {report.get('basic_checks_passed', False)}")
+        print(f"Lost farm keys: {report.get('lost_farm_keys', [])}")
+        print(f"Added farm keys: {report.get('added_farm_keys', [])}")
+        print(f"Changed farm keys: {report.get('changed_farm_keys', [])}")
+        change_paths = report.get("farm_change_paths", [])
+        print(f"Farm field change paths ({len(change_paths)}):")
+        for path in change_paths:
+            print(f"  - {path}")
         if report.get("human_review_required", True):
             print("Human review required: inspect changed/lost farm keys before using the normalized copy.")
         if not report.get("basic_checks_passed", False):

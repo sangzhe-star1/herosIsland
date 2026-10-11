@@ -23,8 +23,11 @@ pass `--output-dir /absolute/path/outside/the/repository`.
 The audit deliberately does not decide that every changed field is safe. Farm
 growth and basket settlement normally run when a save is opened, and old
 unknown farm keys need a human review. Check `migration_report.json`, especially
-`checks`, `human_review_required`, `lost_farm_keys`, `changed_farm_keys`, and the
-before/after plot and warehouse summaries. A passing `checks` object means the
-basic preservation rules held; it does not replace reviewing farm changes or
-playing the result on the device. The runner prints the source file's SHA-256
-before and after the run and confirms it stayed unchanged.
+`checks`, `human_review_required`, `lost_farm_keys`, `added_farm_keys`,
+`changed_farm_keys`, and `farm_change_paths`, plus the before/after plot and
+warehouse summaries. `farm_change_paths` lists nested field paths and whether
+a field was added or removed, without writing any saved values to the report or
+console. A passing `checks` object means the basic preservation rules held; it
+does not replace reviewing farm changes or playing the result on the device.
+The runner prints the source file's SHA-256 before and after the run and
+confirms it stayed unchanged.

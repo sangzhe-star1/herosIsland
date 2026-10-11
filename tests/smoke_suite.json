@@ -302,6 +302,16 @@
       "window": false
     },
     {
+      "name": "SaveMigrationAuditProbe",
+      "args": [
+        "--headless",
+        "res://tests/SaveMigrationAuditProbe.tscn"
+      ],
+      "expect": "SAVE MIGRATION AUDIT PATH PROBE PASSED",
+      "timeout": 240,
+      "window": false
+    },
+    {
       "name": "SaveProbe",
       "args": [
         "--headless",

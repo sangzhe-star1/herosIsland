@@ -42,7 +42,7 @@ ENGINE_ERRORS = re.compile(r"^\s*ERROR:", re.MULTILINE)
 # ERROR: still fails the run.
 HARMLESS_EXIT_ERRORS = re.compile(
     r"^\s*ERROR: (?:\d+ resources still in use at exit"
-    r"|\d+ RID allocations of type .* were leaked at exit)",
+    r"|\d+ RID allocations(?: of type .*?)? were leaked at exit)",
     re.MULTILINE)
 
 

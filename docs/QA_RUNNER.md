@@ -32,11 +32,11 @@ python3 -B tests/qa_run.py --name harvest-coverage --timeout 300 \
 ./tests/run_smoke.sh
 ```
 
-`tests/smoke_suite.json` 保留原29场景的顺序、成功标记和运行参数。全部场景串行共享一份副本和独立存档；`GardenProbe` 保持靠后，`SaveProbe` 最后运行，以保留原有存档重置约定。
+`tests/smoke_suite.json` 保留原30项场景的顺序、成功标记和运行参数，并追加存档审计路径检查；当前共31项。全部场景串行共享一份副本和独立存档；`GardenProbe` 保持靠后，新增的 `SaveMigrationAuditProbe` 在其后、`SaveProbe` 前运行，`SaveProbe` 仍最后运行以保留原有存档重置约定。
 
 清单默认每项240秒，`FarmWorldProbe` 400秒，`HarvestTouchProbe`、`TabletProbe`、`HomeProbe` 300秒。传入 `--timeout` 会覆盖每项上限及导入上限，未传入时导入仍为120秒。
 
-其中8项需要窗口。无 `DISPLAY` 的 Linux 使用 `xvfb-run` 和软件 OpenGL；若没有 xvfb，会明确跳过这些项目。最终输出 `Suite finished: N passed, M skipped`；有跳过时仍可能exit 0，**完整29项验收要求29 passed、0 skipped**。本轮只实际运行菜园相关探针和截图，完整29场景尚未复跑。
+其中8项需要窗口。无 `DISPLAY` 的 Linux 使用 `xvfb-run` 和软件 OpenGL；若没有 xvfb，会明确跳过这些项目。最终输出 `Suite finished: N passed, M skipped`；有跳过时仍可能exit 0，**完整验收要求31 passed、0 skipped**。`SaveMigrationAuditProbe` 只核对迁移报告的无值字段路径，不读写存档。
 
 ## 截图和多次运行
 
