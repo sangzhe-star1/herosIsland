@@ -18,7 +18,7 @@ func build(view: Vector2) -> void:
 		Callable(screen, "_close_panels"))
 	var basket: Dictionary = screen.get("_gift_basket") if screen.get("_gift_basket") != null else {}
 
-	# 1. Friend farm doors. All three friends share the same visit rules;
+	# 1. Friend farm doors. All four friends share the same visit rules;
 	# the selected scene provides the friend-specific layout and crops.
 	var door_card := Panel.new()
 	door_card.name = "FriendFarmDoorCard"
@@ -34,38 +34,43 @@ func build(view: Vector2) -> void:
 	door_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	play.add_child(door_prompt)
 
-	var friends := ["bear", "rabbit", "puppy"]
+	var friends := ["bear", "rabbit", "puppy", "robot"]
 	var scene_paths := {
 		"bear": "res://scenes/garden/BearFarm.tscn",
 		"rabbit": "res://scenes/garden/RabbitFarm.tscn",
 		"puppy": "res://scenes/garden/PuppyFarm.tscn",
+		"robot": "res://scenes/garden/RobotFarm.tscn",
 	}
-	var button_width := (door_card.size.x - 36.0) / 3.0
+	var button_gap := 4.0
+	var side_inset := 12.0
+	var button_width := (door_card.size.x - side_inset * 2.0
+		- button_gap * float(friends.size() - 1)) / float(friends.size())
 	for i in range(friends.size()):
 		var who: String = friends[i]
-		var prop_key := "dog" if who == "puppy" else who
+		var prop_key := "dog" if who == "puppy" else "robot_friend" if who == "robot" else who
 		var button := chip_button("", Color(0.98, 0.92, 0.78), Vector2(button_width, 56.0))
 		button.name = "Visit%sFarmButton" % who.capitalize()
-		button.position = door_card.position + Vector2(12.0 + float(i) * (button_width + 6.0), 32.0)
+		button.position = door_card.position + Vector2(
+			side_inset + float(i) * (button_width + button_gap), 32.0)
 		button.pressed.connect(_visit_friend.bind(str(scene_paths[who])))
 		play.add_child(button)
 
-		var face := HarvestArt.prop_badge(prop_key, 44.0, "%sFarmFace" % who.capitalize())
+		var face := HarvestArt.prop_badge(prop_key, 38.0, "%sFarmFace" % who.capitalize())
 		if face == null and who == "bear":
 			face = UiKit.picture("teddy", 44.0)
 		if face != null:
-			face.position = button.position + Vector2(6.0, 6.0)
+			face.position = button.position + Vector2(4.0, 9.0)
 			play.add_child(face)
 		var name_key := str(GameData.get_npc_farm(who).get("name_key", "friend." + who))
-		var friend_name := UiKit.title(I18n.t(name_key), 15, Color(0.35, 0.28, 0.18))
-		friend_name.position = button.position + Vector2(54.0, 4.0)
-		friend_name.size = Vector2(button_width - 60.0, 22.0)
+		var friend_name := UiKit.title(I18n.t(name_key), 13, Color(0.35, 0.28, 0.18))
+		friend_name.position = button.position + Vector2(43.0, 6.0)
+		friend_name.size = Vector2(button_width - 47.0, 20.0)
 		friend_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		friend_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		play.add_child(friend_name)
-		var visit_label := UiKit.title(I18n.t("garden.friend_farm_visit_short"), 13, Color(0.62, 0.45, 0.20))
-		visit_label.position = button.position + Vector2(54.0, 27.0)
-		visit_label.size = Vector2(button_width - 60.0, 20.0)
+		var visit_label := UiKit.title(I18n.t("garden.friend_farm_visit_short"), 11, Color(0.62, 0.45, 0.20))
+		visit_label.position = button.position + Vector2(43.0, 28.0)
+		visit_label.size = Vector2(button_width - 47.0, 18.0)
 		visit_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		visit_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		play.add_child(visit_label)

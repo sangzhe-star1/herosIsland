@@ -1091,6 +1091,15 @@ These are yours to make. Nothing below has been changed without asking.
   both aspect ratios, and the full isolated suite passed 30/30. `tools_check.py`
   reports 0 errors and 208 existing warnings. The actual iPad save remains
   unavailable; migration audit and hands-on playtesting stay open.
+- **Robot friend farm (10 October):** `RobotFarm.tscn` uses the existing friend-
+  farm scene and data-driven bed rules; the four-friend door remains within its
+  card at 16:9 and 4:3, with 56px button height. A full-body robot GLB and its
+  matching door sprite were generated in the frozen Blender studio. GardenProbe
+  passed 1,224 checks, FarmWorldProbe passed 951 checks, the Blender asset audit
+  had 0 failures, the pipeline contract suite passed 18 tests, and the full
+  isolated smoke suite passed 30/30 with no skips. `tools_check.py` reports
+  0 errors and 208 existing warnings. The iPad save has not been exported;
+  device migration review and child playtesting remain pending.
 
 ---
 

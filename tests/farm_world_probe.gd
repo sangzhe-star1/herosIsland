@@ -56,7 +56,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 923
+const CHECKS_EXPECTED := 951
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -233,6 +233,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _a_visit_to_the_bears_farm()
 	await _a_visit_to_a_friends_farm("rabbit")
 	await _a_visit_to_a_friends_farm("puppy")
+	await _a_visit_to_a_friends_farm("robot")
 
 
 # --- the fixture ----------------------------------------------------------
@@ -2628,9 +2629,24 @@ func _friend_farm_buttons_are_available() -> void:
 	await get_tree().process_frame
 	await _capture_probe_screen("friend_door")
 	for button_name in ["VisitBearFarmButton", "VisitRabbitFarmButton",
-			"VisitPuppyFarmButton"]:
+			"VisitPuppyFarmButton", "VisitRobotFarmButton"]:
 		_ok(_find_named(_garden, button_name) is Button,
 			"the friends door exposes %s" % button_name)
+	_garden.call("_close_panels")
+	await get_tree().process_frame
+	_garden.call("_open_panel", "gift")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var door := _find_named(_garden, "FriendFarmDoorCard") as Control
+	for button_name in ["VisitBearFarmButton", "VisitRabbitFarmButton",
+			"VisitPuppyFarmButton", "VisitRobotFarmButton"]:
+		var button := _find_named(_garden, button_name) as Button
+		if door != null and button != null:
+			var relative := button.get_global_rect().position - door.get_global_rect().position
+			_ok(button.size.x >= 140.0 and button.size.y >= 52.0
+				and relative.x >= 0.0
+				and relative.x + button.size.x <= door.size.x,
+				"%s fits the friend door with a tablet-sized touch target" % button_name)
 	_garden.call("_close_panels")
 	await get_tree().process_frame
 
@@ -2642,17 +2658,23 @@ func _an_old_npc_save_gains_friend_defaults() -> void:
 	_ok(int(migrated["bear"]["last_share_cycle"]) == 8
 		and bool(migrated["bear"]["sneak_owed"])
 		and migrated.has("rabbit") and migrated.has("puppy")
+		and migrated.has("robot")
 		and int(migrated["rabbit"]["last_share_cycle"]) == -1
-		and not bool(migrated["puppy"]["help_owed"]),
-		"an older farm keeps bear state and receives empty rabbit/puppy state")
+		and not bool(migrated["puppy"]["help_owed"])
+		and not bool(migrated["robot"]["help_owed"]),
+		"an older farm keeps bear state and receives empty friend state")
 
 
-## Rabbit and puppy use the same no-loss share loop: one deterministic crop,
-## one help promise, then one friendship and one guest log entry.
+## Rabbit, puppy and robot use the same no-loss share loop: one deterministic
+## crop, one help promise, then one friendship and one guest log entry.
 func _a_visit_to_a_friends_farm(who: String) -> void:
 	_fresh_farm()
-	var scene_path := "res://scenes/garden/RabbitFarm.tscn" \
-		if who == "rabbit" else "res://scenes/garden/PuppyFarm.tscn"
+	var scene_paths := {
+		"rabbit": "res://scenes/garden/RabbitFarm.tscn",
+		"puppy": "res://scenes/garden/PuppyFarm.tscn",
+		"robot": "res://scenes/garden/RobotFarm.tscn",
+	}
+	var scene_path := str(scene_paths[who])
 	var friend_farm: Node = load(scene_path).instantiate()
 	add_child(friend_farm)
 	await get_tree().process_frame

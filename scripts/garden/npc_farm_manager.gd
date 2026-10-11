@@ -1,7 +1,7 @@
 extends RefCounted
 ## Neighbour farms, computed rather than stored. The bear has his own quiet
-## strawberry and return-visit story; rabbit and puppy share the same crop/help
-## loop through the data-driven helpers below.
+## strawberry and return-visit story; rabbit, puppy and robot share the same
+## crop/help loop through the data-driven helpers below.
 ##
 ##     const NpcFarm := preload("res://scripts/garden/npc_farm_manager.gd")
 ##
@@ -12,7 +12,7 @@ extends RefCounted
 ## the farm is alive -- come back after lunch and things have moved -- while
 ## nothing about it can be lost, corrupted, or need migrating. The bear's
 ## share cycle, help promise, and return visit live in farm.npc.bear; rabbit
-## and puppy only store their share cycle and help promise.
+## and other friends only store their share cycle and help promise.
 ##
 ## THE SHARE CYCLE IS A GROWTH CLOCK, NOT A CALENDAR
 ##

@@ -297,6 +297,8 @@ static func default_npc() -> Dictionary:
 		"rabbit": {"last_share_cycle": -1, "help_owed": false,
 			"help_completed_cycle": -1},
 		"puppy": {"last_share_cycle": -1, "help_owed": false,
+			"help_completed_cycle": -1},
+		"robot": {"last_share_cycle": -1, "help_owed": false,
 			"help_completed_cycle": -1}}
 
 

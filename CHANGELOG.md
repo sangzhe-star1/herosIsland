@@ -1,5 +1,12 @@
 # Changelog
 
+## 小机器人好友农场 — 10 October 2026
+
+- 小机器人现在有一座可拜访的六块地农场，分享胡萝卜、帮助浇玉米；复用现有好友农场规则，旧存档自动补齐机器人状态。
+- 以项目冻结 Blender 摄影棚生成全身模型和配套门牌图；入口更新为四位好友等宽卡片，字号收紧、每个点击区保持 56px 高。双画幅截图和重建命令见 `docs/FARM_FRIENDS_AND_LEVELS_PLAN.md`。
+- GardenProbe 通过 1,224 项，FarmWorldProbe 在 16:9 与 4:3 下通过 951 项；Blender 资产审计 0 失败，资产管线 75 recipes / 68 models / 100 palette entries 和 18 项契约测试通过；完整隔离 smoke 为 30/30、0 skipped；`tools_check.py` 为 0 errors、208 条既有 warnings。
+- 真实 iPad 存档尚未导出，存档迁移审计与孩子实机试玩仍待设备样本和试玩时段。
+
 ## 收成交易一次结清仓库与农场进度 — 10 October 2026
 
 - `FarmHarvestTransactionController.settle()` 现在把一次性领取、仓库/溢出入账、地块复位、农场经验、每日收成进度、菜谱解锁和首次市场提示合成一个收成回执。`GardenScreen` 只处理回执对应的声音与视觉反馈，点收或刷收的外层入口仍负责一次最终写盘。

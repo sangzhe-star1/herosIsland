@@ -1,0 +1,16 @@
+{
+  "id": "robot_friend",
+  "kind": "prop",
+  "model": "robot_friend",
+  "params": {},
+  "ortho_scale": 2.9,
+  "shadow": {
+    "baked": true,
+    "size": [
+      0.52,
+      0.32
+    ]
+  },
+  "install": "props/robot_friend.png",
+  "_note": "Full-body farm friend companion. Its matching GLB is installed separately to runtime/friends/robot.glb for the visitable robot farm."
+}

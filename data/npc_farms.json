@@ -62,6 +62,21 @@
         {"crop": "strawberry", "phase": 0.66},
         {"crop": "carrot", "help_target": true}
       ]
+    },
+    {
+      "id": "robot",
+      "icon": "robot_friend",
+      "name_key": "friend.robot",
+      "character_model": "robot",
+      "share_crop": "carrot",
+      "beds": [
+        {"crop": "carrot", "phase": 0.38},
+        {"crop": "corn", "phase": 0.57},
+        {"crop": "tomato", "phase": 0.31},
+        {"crop": "carrot", "share": true},
+        {"crop": "peas", "phase": 0.48},
+        {"crop": "corn", "help_target": true}
+      ]
     }
   ]
 }

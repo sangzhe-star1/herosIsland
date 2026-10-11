@@ -3137,6 +3137,7 @@ func _two_tablets_agree_about_the_bear() -> void:
 			"last_sneak_cycle": 8, "sneak_owed": false},
 		"rabbit": {"last_share_cycle": 4, "help_owed": true},
 		"puppy": {"last_share_cycle": 3, "help_owed": false},
+		"robot": {"last_share_cycle": 6, "help_owed": true},
 	})
 	_ok(int(legacy_npc["bear"].get("help_completed_cycle", -1)) == 5
 			and not bool(legacy_npc["bear"].get("help_owed", true))
@@ -3146,8 +3147,10 @@ func _two_tablets_agree_about_the_bear() -> void:
 	_ok(int(legacy_npc["rabbit"].get("help_completed_cycle", -1)) == -1
 			and bool(legacy_npc["rabbit"].get("help_owed", false))
 			and int(legacy_npc["puppy"].get("help_completed_cycle", -1)) == 3
-			and not bool(legacy_npc["puppy"].get("help_owed", true)),
-		"legacy owed and completed friend states remain distinct after migration")
+			and not bool(legacy_npc["puppy"].get("help_owed", true))
+			and int(legacy_npc["robot"].get("help_completed_cycle", -1)) == -1
+			and bool(legacy_npc["robot"].get("help_owed", false)),
+		"legacy owed and completed friend states, including robot, remain distinct after migration")
 
 	_fresh_save()
 	var farm: Dictionary = SaveManager.data["farm"]
