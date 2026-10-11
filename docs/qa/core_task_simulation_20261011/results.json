@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-11",
+  "godot": "/Applications/Godot.app/Contents/MacOS/Godot",
+  "method": "scripted real-input simulation; each probe used a fresh QASession and unique user://",
+  "cases": [
+    {
+      "name": "garden_touch",
+      "scene": "res://tests/GardenTouchProbe.tscn",
+      "marker": "GARDEN TOUCH PROBE PASSED",
+      "exit_code": 0,
+      "log": "garden_touch.log",
+      "observed_summary": [
+        "asked 2057 questions",
+        "GARDEN TOUCH PROBE PASSED"
+      ]
+    },
+    {
+      "name": "harvest_touch",
+      "scene": "res://tests/HarvestTouchProbe.tscn",
+      "marker": "HARVEST TOUCH PROBE PASSED",
+      "exit_code": 0,
+      "log": "harvest_touch.log",
+      "observed_summary": [
+        "questions asked with a thumb: 2317",
+        "HARVEST TOUCH PROBE PASSED"
+      ]
+    },
+    {
+      "name": "friend_order_delivery_4x3",
+      "scene": "res://tests/FarmShot.tscn",
+      "marker": "FARM FRIENDS SHOT PASSED",
+      "exit_code": 0,
+      "log": "friend_order_delivery_4x3.log",
+      "observed_summary": [
+        "FARM FRIENDS SHOT PASSED"
+      ]
+    },
+    {
+      "name": "overflow_basket_4x3",
+      "scene": "res://tests/FarmShot.tscn",
+      "marker": "OVERFLOW SHOT PASSED",
+      "exit_code": 0,
+      "log": "overflow_basket_4x3.log",
+      "observed_summary": [
+        "asked 46 questions",
+        "OVERFLOW SHOT PASSED"
+      ]
+    }
+  ]
+}
