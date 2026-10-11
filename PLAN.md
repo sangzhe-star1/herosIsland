@@ -1032,7 +1032,7 @@ These are yours to make. Nothing below has been changed without asking.
   tool drawer open at 1280×720 and 1024×768. `garden_screen.gd` is down from
   2,156 to 2,081 lines; `tools_check.py` reports 0 errors and 208 existing
   warnings. Real iPad save migration and child playtesting remain pending.
-  The full isolated smoke suite was not rerun for this scoped UI extraction.
+  The full isolated smoke suite passed 30/30 with no skips on `fd0c33e`.
 
 ---
 

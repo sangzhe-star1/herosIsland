@@ -4,7 +4,7 @@
 
 - `FarmPanelBase` 现在统一提供低浮雕表面、仓库材质、作物/产物图片、工具图标和工具按钮状态样式；菜园屏幕保留收成动画需要的作物图片兼容入口，各面板和装饰视图直接复用基类实现。
 - GardenTouchProbe 双画幅通过 2,019 项，FarmWorldProbe 双画幅通过 923 项；工具抽屉与种子栏在 1280×720、1024×768 均渲染并目视检查。
-- `garden_screen.gd` 从 2,156 行降至 2,081 行；`tools_check.py` 为 0 errors、208 条既有 warnings，`git diff --check` 通过。本轮未重跑全量 smoke。
+- `garden_screen.gd` 从 2,156 行降至 2,081 行；`tools_check.py` 为 0 errors、208 条既有 warnings，`git diff --check` 通过。全量隔离 smoke 在 `fd0c33e` 上通过 30/30、0 跳过。
 
 ## 好友订单感谢提示归入进度通知视图 — 10 October 2026
 
