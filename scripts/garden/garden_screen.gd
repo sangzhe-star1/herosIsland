@@ -85,6 +85,7 @@ const FarmViewControlsPanel := preload("res://scripts/garden/panels/farm_view_co
 const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
 const FarmLessonView := preload("res://scripts/garden/farm_lesson_view.gd")
 const FarmLessonSession := preload("res://scripts/garden/farm_lesson_session_controller.gd")
+const FarmHintActions := preload("res://scripts/garden/farm_hint_action_controller.gd")
 const FarmProgressNoticeView := preload("res://scripts/garden/farm_progress_notice_view.gd")
 const FarmPanelState := preload("res://scripts/garden/farm_panel_state_controller.gd")
 
@@ -2150,51 +2151,17 @@ func _rack_tile_centre(index: int) -> Vector2:
 ## The ribbon and the dog read this exact priority from FarmToolController too:
 ## ripe food first, then care, then planting the soil he already turned.
 func _the_plot_that_wants_something() -> int:
-	return Tools.next_action_index(_plots(), _harvesting)
+	return FarmHintActions.next_plot(self)
 
 
 ## Help, step one: say it again, and make the thing glow.
 func _nudge() -> void:
-	var task := _next_task()
-	if str(task.get("kind", "")) == "deliver":
-		# The basket is already full: the child needs to notice the visitor
-		# board, not be sent looking for another patch of dirt.
-		AudioManager.say("garden_tut_order")
-		if _world != null and is_instance_valid(_world):
-			FarmLessonView.new(self).highlight(
-				_world.facility_screen_position("orders"))
-		return
-	var index := _the_plot_that_wants_something()
-	if index < 0:
-		return
-	var plots := _plots()
-	match str(plots[index].get("state", "")):
-		Farm.READY: AudioManager.say("garden_tut_harvest")
-		Farm.NEEDS_CARE:
-			# "Give it some water" for a caterpillar sent him to the
-			# watering can. The line follows the badge.
-			match str(plots[index].get("care_event", "")):
-				Growth.CARE_WEEDS: AudioManager.say("harvest_pull_up")
-				Growth.CARE_BUG: AudioManager.say("harvest_shoo_bug")
-				_: AudioManager.say("garden_tut_water")
-		Farm.EMPTY: AudioManager.say("garden_tut_till")
-		_: AudioManager.say("garden_tut_plant")
-	FarmLessonView.new(self).highlight(_bed_centre(index))
+	FarmHintActions.nudge(self)
 
 
 ## Help, step two: show the finger doing it.
 func _show_the_move() -> void:
-	if str(_next_task().get("kind", "")) == "deliver":
-		# Reuse the normal order-board finger. It points at the physical board
-		# while it is shut, then at the matching card after it opens.
-		_point_at("order")
-		return
-	var index := _the_plot_that_wants_something()
-	if index < 0:
-		return
-	var bed := _bed_centre(index)
-	var state := str(_plots()[index].get("state", ""))
-	FarmLessonView.new(self).show_move(state, bed, _seed_rack_centre())
+	FarmHintActions.show_move(self)
 
 
 ## Help, step three: do the hard part, and leave the last move to him.
@@ -2205,27 +2172,7 @@ func _show_the_move() -> void:
 ## water or weeds there is only one move, so this stops at showing it again:
 ## doing it would be doing the whole thing.
 func _do_the_hard_part() -> void:
-	if str(_next_task().get("kind", "")) == "deliver":
-		# The last hint may prepare an empty patch, but it must never hand an
-		# order in for the child. Showing the board again keeps the final thank-
-		# you as his action.
-		_show_the_move()
-		return
-	var index := _the_plot_that_wants_something()
-	if index < 0:
-		return
-	var plots := _plots()
-	if str(plots[index].get("state", "")) != Farm.EMPTY:
-		_show_the_move()
-		return
-	var result: Dictionary = _tools.apply_to_plot("shovel", plots[index])
-	if result.is_empty():
-		return
-	plots[index] = result.get("plot", plots[index])
-	SaveManager.data["farm"]["plots"] = plots
-	SaveManager.save_game()
-	AudioManager.play_sfx("res://assets/audio/drag_snap.ogg")
-	_queue_rebuild()
+	FarmHintActions.do_hard_part(self)
 
 
 ## "The garden is looked after. Shall we go and do something else?"

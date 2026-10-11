@@ -41,7 +41,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 2013
+const CHECKS_EXPECTED := 2017
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -111,6 +111,7 @@ func _run_on_a(window: Vector2i) -> void:
 	await _the_kitchen_asks_before_ingredients_leave()
 	await _fourteen_seeds_take_turns()
 	await _the_next_step_and_barn_shortcut_are_honest()
+	await _the_strongest_plot_hint_prepares_but_does_not_plant()
 	await _a_ripe_bed_comes_out_when_pulled()
 	await _the_garden_moves_while_he_watches()
 	await _the_board_never_runs_dry()
@@ -1833,6 +1834,12 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 	_ok(_tutorial_count() == before_hints + 1,
 		"a fillable order is guided to the existing visitor board")
 	_clear_tutorials()
+	var voice := AudioManager.get_node_or_null("Voice") as AudioStreamPlayer
+	var order_hint := load("res://assets/audio/voice/level/garden_tut_order.ogg") as AudioStream
+	_garden.call("_nudge")
+	await get_tree().process_frame
+	_ok(voice != null and order_hint != null and voice.stream == order_hint,
+		"the first hint speaks about the board for a fillable order")
 	var delivered_before: Array = SaveManager.data["farm_orders"]["delivered"].duplicate()
 	_garden.call("_do_the_hard_part")
 	await get_tree().process_frame
@@ -1860,6 +1867,29 @@ func _the_next_step_and_barn_shortcut_are_honest() -> void:
 			"pressing the shelf barn opens the existing barn panel")
 	_garden.call("_close_panels")
 	await get_tree().process_frame
+
+
+## The final hint may turn a bare patch, but planting stays in the child's hand.
+func _the_strongest_plot_hint_prepares_but_does_not_plant() -> void:
+	_garden.call("_close_panels")
+	_fresh_garden()
+	SaveManager.data["farm"]["tutorial_completed"] = true
+	_garden.call("_rebuild")
+	for frame in range(3):
+		await get_tree().process_frame
+	var plots: Array = _plots()
+	var target := -1
+	for index in range(plots.size()):
+		if str(plots[index].get("state", "")) == Farm.EMPTY:
+			target = index
+			break
+	_garden.call("_do_the_hard_part")
+	for frame in range(3):
+		await get_tree().process_frame
+	var after: Array = _plots()
+	_ok(target >= 0 and str(after[target].get("state", "")) == Farm.TILLED
+		and str(after[target].get("crop_id", "")) == "",
+		"the strongest plot hint turns one empty bed and leaves planting to the child")
 
 
 ## Seed tiles standing on the rack right now.  Find each one at the screen's

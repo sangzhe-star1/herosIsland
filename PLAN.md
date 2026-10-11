@@ -195,6 +195,9 @@ These are yours to make. Nothing below has been changed without asking.
    state; the screen persists once only when that summary says work occurred.
    The screen still owns tool-specific context, XP/daily/recipe events, and
    visual side effects.
+   The farm's three hint levels now resolve in
+   `scripts/garden/farm_hint_action_controller.gd`; screen callbacks still
+   connect `HintDirector` and provide the live view/plot context.
    On 10 October, transaction-ID creation, post-harvest soil reset, and
    paid-duplicate recovery were extracted to
    `scripts/garden/farm_plot_harvest_controller.gd`; once-only harvest claims
@@ -998,6 +1001,16 @@ These are yours to make. Nothing below has been changed without asking.
   checks. `tools_check.py` reports 0 errors and 208 existing warnings.
   The focused probes passed; the full smoke suite was not rerun for this
   extraction.
+- **Farm hint-action boundary (10 October):**
+  `FarmHintActionController` now resolves the three-stage reminder, gesture,
+  and hard-part hint against the live order and plot state. The screen keeps
+  the `HintDirector` callback seams. GardenTouchProbe passed 2,017 checks
+  across 16:9 and 4:3, including the order voice, the no-auto-delivery rule,
+  and the rule that the strongest plot hint tills but does not plant.
+  FarmShot rendered and passed visual review at 1280×720 and 1024×768.
+  `garden_screen.gd` is down to 2,195 lines; `tools_check.py` reports 0 errors
+  and 208 existing warnings. The focused probe passed; the full smoke suite
+  was not rerun for this extraction.
 
 ---
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 菜园三段提示升级链独立管理 — 10 October 2026
+
+- 新增 `FarmHintActionController`，统一从当前可做任务和地块状态解析提醒、示范与代做动作；屏幕继续接收 `HintDirector` 回调并操作实时世界。
+- GardenTouchProbe 双画幅通过 2,017 项，新增实际语音和翻土断言：订单提醒播出订单板语音，最强地块提示只翻土、不代播种；既有订单分支确认不会代孩子交付。
+- FarmShot 农场页在 1280×720 与 1024×768 均成功渲染并目视检查；提示反馈本身由触控探针通过真实场景入口覆盖。
+- `garden_screen.gd` 从 2,248 行降至 2,195 行；`tools_check.py` 为 0 errors、208 warnings，`git diff --check` 通过。本次跑了专项探针，未重跑全量 smoke。
+
 ## 首次种植教学会话生命周期独立管理 — 10 October 2026
 
 - 新增 `FarmLessonSessionController`，拥有首次教学的状态、欢迎停顿、半秒生长结算和完成标记；`garden_screen.gd` 保留步骤判定、讲解语音与目标指向。
