@@ -1047,6 +1047,16 @@ These are yours to make. Nothing below has been changed without asking.
   serial full-probe rerun remains an open verification item. The full isolated
   smoke suite was not rerun. Real iPad save migration and child playtesting
   remain pending.
+- **Quiet farm-clock settlement boundary (10 October):**
+  `FarmTickController.settle()` now owns the quiet beat's before-state
+  snapshot, timestamp settlement, basket transfer, save-on-transfer rule, and
+  resulting rebuild/ripen decision. `garden_screen.gd` keeps the timer and
+  visual feedback. GardenTouchProbe passed 2,019 checks across 16:9 and 4:3,
+  including the real tick path's no-op save check, stage crossing, ripe crop,
+  basket refill, and backup generation; GardenProbe passed 1,212 checks.
+  `tools_check.py` reports 0 errors and 208 existing warnings. The full smoke
+  suite was not rerun. Real iPad save migration and child playtesting remain
+  pending.
 
 ---
 

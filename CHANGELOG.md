@@ -1,5 +1,11 @@
 # Changelog
 
+## 农场安静时钟结算收进时钟控制器 — 10 October 2026
+
+- `FarmTickController` 现在统一执行每次安静时钟结算：记录地块前态、按时间结算生长、把篮子溢出收回仓库，并只在库存实际转移时保存一次；控制器返回新地块、成熟床位和家具重建判断。`GardenScreen` 保留计时器、世界刷新、成熟反馈和重建。
+- GardenTouchProbe 在 16:9/4:3 通过 2,019 项，覆盖无变化时不写盘、成长阶段变化、成熟反馈以及篮子转移后的备份轮转；GardenProbe 通过 1,212 项。`tools_check.py` 为 0 errors、208 条既有 warnings，`git diff --check` 通过。
+- 全量隔离 smoke 未重跑；真实 iPad 存档迁移和孩子实机试玩仍待设备备份与试玩时段。
+
 ## 面板直接调用共享基类入口 — 10 October 2026
 
 - 农场面板现在直接调用继承自 `FarmPanelBase` 的纸张、分页与按钮工厂；删除 `garden_screen.gd` 中 4 个仅作转发的适配方法，屏幕减少 36 行。

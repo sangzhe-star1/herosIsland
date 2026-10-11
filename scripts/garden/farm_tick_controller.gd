@@ -4,6 +4,24 @@ extends RefCounted
 ## the garden furniture has a new fact to show and which beds just ripened.
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
+const Barn := preload("res://scripts/garden/inventory_manager.gd")
+
+
+## Settle one quiet clock beat as a single persistence boundary. Crop state is
+## derived from timestamps and stays recoverable without a write; a basket
+## refill changes stored inventory and is the only beat that must save now.
+static func settle(before_plots: Array) -> Dictionary:
+	var before := capture(before_plots)
+	var basket_before := Barn.total(Barn.BASKET)
+	SaveManager.settle_farm(false)
+	var tipped := maxi(basket_before - Barn.total(Barn.BASKET), 0)
+	if tipped > 0:
+		SaveManager.save_game()
+	var plots: Array = SaveManager.data.get("farm", {}).get("plots", [])
+	var result := resolve(before, plots, tipped)
+	result["plots"] = plots
+	result["tipped"] = tipped
+	return result
 
 
 static func capture(plots: Array) -> Dictionary:

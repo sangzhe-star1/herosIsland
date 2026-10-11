@@ -1947,18 +1947,10 @@ func _garden_tick() -> void:
 ## to have room for it at last. The celebration is for him: a bed that ripened
 ## while he stood there says so, once, and then leaves the choice to him.
 func _garden_tick_once() -> void:
-	var before := FarmTick.capture(_plots())
-	# Plot growth and care are derived from persisted time anchors, so a clock
-	# beat only updates them in memory. Basket movement changes stored goods and
-	# is the one quiet-beat result that needs an immediate save.
-	var basket_before := Barn.total(Barn.BASKET)
-	SaveManager.settle_farm(false)
-	var tipped := maxi(basket_before - Barn.total(Barn.BASKET), 0)
-	if tipped > 0:
-		SaveManager.save_game()
+	var result := FarmTick.settle(_plots())
+	var plots: Array = result.get("plots", _plots())
 	if _world != null and is_instance_valid(_world):
-		_world.refresh(_plots())
-	var result := FarmTick.resolve(before, _plots(), tipped)
+		_world.refresh(plots)
 	_beds_looked_like = str(result.get("visual", ""))
 	if not bool(result.get("needs_rebuild", false)):
 		return
