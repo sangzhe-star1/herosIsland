@@ -109,7 +109,9 @@ func _build_meadow(view: Vector2) -> void:
 	sky.sky_material = sky_mat
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	environment.ambient_light_energy = 0.34
+	# Keep the bright toy-farm palette, but leave enough headroom for cream fur
+	# and painted character colours to retain their shape under the sun.
+	environment.ambient_light_energy = 0.22
 	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	var environment_node := WorldEnvironment.new()
 	environment_node.environment = environment
@@ -118,7 +120,7 @@ func _build_meadow(view: Vector2) -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-35.0, -28.0, 0.0)
 	sun.light_color = Color(1.0, 0.96, 0.90)
-	sun.light_energy = 0.76
+	sun.light_energy = 0.54
 	sun.shadow_enabled = true
 	root.add_child(sun)
 

@@ -8,10 +8,13 @@ import math
 
 def build(S, P):
     uv, tube, block, M = S.uv, S.tube, S.block, S.M
-    fur = S.material('Rabbit | warm ivory fur', (.92, .87, .76), .93)
+    # A warmer, slightly deeper ivory keeps the face and body readable under
+    # Godot's brighter real-time farm lighting. The studio render stays soft,
+    # while the in-world model no longer clips to near-white.
+    fur = S.material('Rabbit | toasted ivory fur', (.25, .17, .10), .93)
     inner = S.material('Rabbit | peach inner ear', (.89, .47, .43), .88)
-    apron = S.material('Rabbit | garden teal linen', (.13, .44, .40), .92)
-    seam = S.material('Rabbit | mint apron stitches', (.62, .78, .58), .92)
+    apron = S.material('Rabbit | garden teal linen', (.10, .28, .25), .92)
+    seam = S.material('Rabbit | mint apron stitches', (.36, .52, .34), .92)
     basket = S.material('Rabbit | woven honey basket', (.65, .39, .19), .9)
     rim = S.material('Rabbit | basket rim', (.86, .59, .30), .9)
 

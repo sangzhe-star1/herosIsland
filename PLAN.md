@@ -898,6 +898,17 @@ These are yours to make. Nothing below has been changed without asking.
   crop was still growing in place. The corrected shot passed and was visually
   checked at 1280×720 and 1024×768; images are in
   `docs/qa/golden_harvest_20261010/`.
+- **Friend-farm character readability (10 October):** the rabbit's fur and
+  apron now use warmer, lower-value colours, and the puppy has separate honey
+  and cream fur materials. Friend-farm ambient and sun light were reduced so
+  the live GLBs keep their painted colours. Blender rebuilt the source
+  `.blend`, GLB and PNG exports; its audit passed 2 sprites with 0 failures.
+  The asset-pipeline suite passed all 18 contract tests and audited all 74
+  recipes; `tools_check.py` reports 0 errors and 208 existing warnings.
+  `FarmWorldProbe` passed 907 checks at 16:9 and 4:3. Updated screenshots are
+  in `docs/qa/friend_farms_20261010/`. The real iPad save migration remains
+  pending because no backup has been exported yet; synthetic migration and
+  two-device merge coverage remain green.
 
 ---
 

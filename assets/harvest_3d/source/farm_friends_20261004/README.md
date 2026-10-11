@@ -2,13 +2,13 @@
 
 2026-10-04，本地 Blender 5.2.2 LTS，以项目冻结正交摄影棚生成。完整任务与关卡计划见 [FARM_FRIENDS_AND_LEVELS_PLAN.md](../../../../docs/FARM_FRIENDS_AND_LEVELS_PLAN.md)。
 
-- `exports/harvest_studio.blend`：可编辑兔兔模型、青色围裙、挎篮、胡萝卜和举手姿势；材质在本地程序生成。
+- `exports/harvest_studio.blend`：可编辑兔兔模型、沉稳青绿围裙、挎篮、胡萝卜和举手姿势；材质在本地程序生成。毛色调成暖灰象牙色，避免游戏农场里的实时阳光把兔兔冲成白色。
 - `exports/sprites/rabbit.png`：512×512 RGBA，已安装到 `../../props/rabbit.png`。
 - `exports/sprites/rabbit.glb`：真实模型几何，不含摄影棚相机、灯光或程序化阴影辅助片；目标引擎提供光照。
 - `exports/manifest.json` 与 `exports/contact_sheet.png`：导出契约、小尺寸审查。
 - 生成源码 `../pipeline/models/rabbit.py`，配方 `../pipeline/recipes/rabbit.json`。
 
-游戏地图仍使用渲染PNG；呼吸、招呼及爱心由既有 FarmSceneryLife 表现。订单和关卡头像调用共享 prop_badge，按透明边界适配，未另画一套头像。
+游戏地图仍使用渲染PNG；呼吸、招呼及爱心由既有 FarmSceneryLife 表现。订单和关卡头像调用共享 prop_badge，按透明边界适配，未另画一套头像。运行时 GLB 已同步到 `assets/harvest_3d/runtime/friends/rabbit.glb`；截图在 `docs/qa/friend_farms_20261010/`，包含 16:9 与 4:3 两种窗口。
 
 ```bash
 cd /opt/heroesIsland
