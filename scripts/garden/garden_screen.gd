@@ -1599,7 +1599,8 @@ func _deliver(order: Dictionary) -> void:
 		AudioManager.say("praise_2")
 		_harvested_something = true
 		_offer_a_break()
-		_order_thanks(order)
+		FarmProgressNoticeView.new(self).order_thanks(order,
+			_harvest_feedback_layer(), get_viewport_rect().size)
 	if _hints != null:
 		_hints.progress()
 	_queue_rebuild()
@@ -1609,46 +1610,6 @@ func _order_customer_art(order: Dictionary, box: float) -> Control:
 	if str(order.get("customer_icon", "")) == "res://assets/harvest_3d/props/rabbit.png":
 		return HarvestArt.prop_badge("rabbit", box, "RabbitOrderPortrait")
 	return UiKit.picture(str(order.get("customer_icon", "heart")), box)
-
-
-## A friend's response is feedback, never a dialog to dismiss. The existing
-## collection layer keeps it alive through the paid order's redraw.
-func _order_thanks(order: Dictionary) -> void:
-	var key := str(order.get("thanks_key", ""))
-	if key.is_empty():
-		return
-	var layer := _harvest_feedback_layer()
-	var old := layer.get_node_or_null("OrderThanks")
-	if old != null:
-		old.name = "ExpiredOrderThanks"
-		old.queue_free()
-	var card := Panel.new()
-	card.name = "OrderThanks"
-	card.set_meta("order_id", str(order.get("id", "")))
-	card.add_theme_stylebox_override("panel", UiKit.panel_style(
-		Color(1.0, 0.98, 0.89, 0.98), 20))
-	card.position = Vector2((get_viewport_rect().size.x - 450.0) * 0.5, TOP_BAR + 14.0)
-	card.size = Vector2(450.0, 64.0)
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(card)
-	var face := _order_customer_art(order, 44.0)
-	if face != null:
-		face.position = Vector2(12.0, 10.0)
-		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		card.add_child(face)
-	var words := UiKit.title(I18n.t(key), 18, Color(0.34, 0.31, 0.23))
-	words.name = "OrderThanksText"
-	words.position = Vector2(68.0, 10.0)
-	words.size = Vector2(370.0, 44.0)
-	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(words)
-	Juice.pop(card, 0.05)
-	var lifetime := card.create_tween()
-	lifetime.tween_interval(3.0)
-	lifetime.tween_property(card, "modulate:a", 0.0, 0.25)
-	lifetime.tween_callback(card.queue_free)
 
 
 # --- the shop, the market box, and the barn's own door --------------------

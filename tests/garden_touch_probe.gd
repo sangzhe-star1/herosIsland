@@ -41,7 +41,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 2017
+const CHECKS_EXPECTED := 2019
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -4940,6 +4940,9 @@ func _friends_have_purposes_and_say_thanks(view: Vector2) -> void:
 		"the thank-you is non-blocking in reduced-motion mode")
 	_ok(thanks_text is Label and (thanks_text as Label).text == I18n.t(str(rabbit.get("thanks_key", ""))),
 		"the friend's thanks match the completed request")
+	_ok(thanks is Control
+		and str((thanks as Control).get_meta("order_id", "")) == str(rabbit.get("id", "")),
+		"the thanks notice stays attached to the friend request that was paid")
 	var close := _find_button_labelled(_garden, "X")
 	var remaining: Node = _find_named(_garden, "OrderCard_rabbit_seed_share")
 	_ok(_controls_are_separate(thanks, close, 2.0) and _controls_are_separate(thanks, remaining, 2.0),

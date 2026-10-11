@@ -1009,8 +1009,19 @@ These are yours to make. Nothing below has been changed without asking.
   and the rule that the strongest plot hint tills but does not plant.
   FarmShot rendered and passed visual review at 1280×720 and 1024×768.
   `garden_screen.gd` is down to 2,195 lines; `tools_check.py` reports 0 errors
-  and 208 existing warnings. The focused probe passed; the full smoke suite
-  was not rerun for this extraction.
+  and 208 existing warnings. The focused probe passed; the full isolated smoke
+  suite subsequently passed 30/30 with no skips on `f908c70`.
+- **Friend-order thanks notice boundary (10 October):**
+  `FarmProgressNoticeView` now owns the non-blocking friend thank-you card and
+  its fade-out on the collection feedback layer. `garden_screen.gd` keeps the
+  once-only settlement and save order, then delegates the presentation.
+  GardenTouchProbe passed 2,019 checks across 16:9 and 4:3, including real
+  delivery, paid-order identity, readable thanks, and repeated-delivery safety.
+  FarmShot rendered and passed visual review at 1280×720 and 1024×768.
+  `garden_screen.gd` is 2,156 lines; `tools_check.py` reports 0 errors and 208
+  existing warnings. Real iPad save migration and child playtesting remain
+  pending until a device backup and hands-on play session are available.
+  The full isolated smoke suite was not rerun for this focused extraction.
 
 ---
 

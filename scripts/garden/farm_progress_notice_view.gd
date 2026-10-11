@@ -24,6 +24,45 @@ func daily_progress(receipt: Dictionary) -> void:
 		AudioManager.say("praise_3")
 
 
+## A friend's thanks is feedback, never a dialog to dismiss. Keep it on the
+## collection layer so the paid order's board redraw cannot remove it.
+func order_thanks(order: Dictionary, layer: CanvasLayer, view: Vector2) -> void:
+	var key := str(order.get("thanks_key", ""))
+	if key.is_empty() or layer == null or not is_instance_valid(layer):
+		return
+	var old := layer.get_node_or_null("OrderThanks")
+	if old != null:
+		old.name = "ExpiredOrderThanks"
+		old.queue_free()
+	var card := Panel.new()
+	card.name = "OrderThanks"
+	card.set_meta("order_id", str(order.get("id", "")))
+	card.add_theme_stylebox_override("panel", UiKit.panel_style(
+		Color(1.0, 0.98, 0.89, 0.98), 20))
+	card.position = Vector2((view.x - 450.0) * 0.5, TOP_BAR + 14.0)
+	card.size = Vector2(450.0, 64.0)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(card)
+	var face := screen.call("_order_customer_art", order, 44.0) as Control
+	if face != null:
+		face.position = Vector2(12.0, 10.0)
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(face)
+	var words := UiKit.title(I18n.t(key), 18, Color(0.34, 0.31, 0.23))
+	words.name = "OrderThanksText"
+	words.position = Vector2(68.0, 10.0)
+	words.size = Vector2(370.0, 44.0)
+	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(words)
+	Juice.pop(card, 0.05)
+	var lifetime := card.create_tween()
+	lifetime.tween_interval(3.0)
+	lifetime.tween_property(card, "modulate:a", 0.0, 0.25)
+	lifetime.tween_callback(card.queue_free)
+
+
 func recipe_learned(recipe: Dictionary, layer: CanvasLayer,
 		view: Vector2) -> void:
 	var wide := 520.0

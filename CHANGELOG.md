@@ -1,5 +1,11 @@
 # Changelog
 
+## 好友订单感谢提示归入进度通知视图 — 10 October 2026
+
+- `FarmProgressNoticeView` 接管好友订单的非阻塞感谢卡和淡出生命周期；`garden_screen.gd` 仍在保存一次性订单交易后再委托显示。
+- GardenTouchProbe 在 16:9 与 4:3 下通过 2,019 项，覆盖实触交付、已付款订单归属、感谢文案、非阻塞布局和防重复付款；FarmShot 的 1280×720 与 1024×768 画面均生成并目视检查。
+- `garden_screen.gd` 为 2,156 行；`tools_check.py` 为 0 errors、208 条既有 warnings。此次是定向回归；完整隔离 smoke 的 30/30 结果已在前一提交 `f908c70` 验证。
+
 ## 菜园三段提示升级链独立管理 — 10 October 2026
 
 - 新增 `FarmHintActionController`，统一从当前可做任务和地块状态解析提醒、示范与代做动作；屏幕继续接收 `HintDirector` 回调并操作实时世界。
