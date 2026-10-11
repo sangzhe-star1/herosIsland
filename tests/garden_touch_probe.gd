@@ -4664,18 +4664,7 @@ func _care_has_moves_of_its_own() -> void:
 	scene.call("_rebuild")
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var world_care: Node = scene.get("_world")
-	print("DBG care ctx: garden_valid=%s world=%s finger=%s locked=%s blockers=%s level_id=%s" % [
-		str(is_instance_valid(_garden)), str(world_care != null),
-		str(world_care.get("_finger") if world_care else "?"),
-		str(world_care.get("locked") if world_care else "?"),
-		str((world_care.get("blockers") as Array).size() if world_care else "?"),
-		str(GameManager.current_level_id)])
 	await _finger(_bed(0), _bed(0) + Vector2(0.0, 120.0))
-	print("DBG care after pour: state=%s care='%s' dailies_water=%s" % [
-		str(_plots()[0].get("state")),
-		str(_plots()[0].get("care_event", "")),
-		str(SaveManager.data["farm"].get("dailies", {}).get("progress", {}).get("water", 0))])
 	_ok(str(_plots()[0].get("state", "")) == Farm.GROWING
 			and str(_plots()[0].get("care_event", "")) == "",
 		"pouring down onto a thirsty bed waters it")
@@ -4778,23 +4767,12 @@ func _care_has_moves_of_its_own() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var world_t: Node = scene.get("_world")
-	var bed_t: Vector2 = _bed(0)
-	print("DBG final tap: bed=%s inside=%s blocked=%s under=%s wants=%s state=%s care='%s'" % [
-		str(bed_t),
-		str(world_t.get("camera").call("inside", bed_t)),
-		str(world_t.call("_blocked", bed_t)),
-		str(world_t.call("bed_under", bed_t)),
-		str(world_t.get("gesture_bed_check").call(0)),
-		str(_plots()[0].get("state")), str(_plots()[0].get("care_event", ""))])
 	# The camera has wandered (the failed-move pans); walk it back to the bed
 	# the way the world walks to the expansion slots, then tap.
 	world_t.call("look_at_world", Layout.plot_at(0))
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await _tap(_bed(0))
-	var after_t: Dictionary = _plots()[0]
-	print("DBG final after: state=%s care='%s'" % [
-		str(after_t.get("state")), str(after_t.get("care_event", ""))])
 	_ok(str(_plots()[0].get("care_event", "")) == "",
 		"a plain tap still waters, weeds and shoos -- no wrong tap here")
 

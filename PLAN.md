@@ -930,7 +930,11 @@ These are yours to make. Nothing below has been changed without asking.
   does not affect the hero-base shelf. `tools_check.py` reports 0 errors and
   208 existing warnings. `FarmShot` also rendered and passed the saved-furniture
   poke case at 1280x720 and 1024x768; the captures are in
-  `docs/qa/garden_decor_view_20261010/`.
+  `docs/qa/garden_decor_view_20261010/`. The isolated `./tests/run_smoke.sh`
+  then passed all 30 probes with 0 skipped. Four unconditional diagnostic
+  prints in the touch probe were removed; its 2,001 checks passed again after
+  that cleanup. The remaining duplicate-harvest warnings are intentional
+  assertions of the once-only receipt guard.
 
 ---
 
