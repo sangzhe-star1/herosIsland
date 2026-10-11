@@ -1851,38 +1851,10 @@ func _step_data(step_id: String) -> Dictionary:
 	return {}
 
 
-## The finger, for one step.
-##
-## Transient on purpose: it goes into the play area, so the next rebuild takes
-## it away with everything else and nothing outside this function has to
-## remember it is there. That is also what fixes an old bug -- the lesson used
-## to be one long-lived node holding the "it is finished" signal, so a child who
-## tapped a bed while it was still playing had it freed underneath him and the
-## garden never wrote down that he had been taught. It taught him again the next
-## day, and the day after that.
+## Keep the existing screen callback for hint directors; the lesson view
+## resolves named targets and owns the transient finger nodes.
 func _point_at(what: String) -> void:
-	if _play == null or not is_instance_valid(_play):
-		return
-	var bed := _bed_centre(maxi(_lesson_plot(), 0))
-	var look_at := bed
-	var act_at := bed
-	match what:
-		"seed":
-			# The one action in the garden that is a drag, shown as one: the
-			# finger travels from the rack into the earth.
-			look_at = _seed_rack_centre()
-		"order":
-			# Shut board: point at the BOARD, which is a building on the farm,
-			# and let him open it. A finger on a card that is not on the screen
-			# is a finger on nothing, and a child who follows it and taps
-			# nothing concludes the game is broken -- the same accident the
-			# seed rack's spotlight had before it was aimed properly.
-			var card: Vector2 = _order_card_centre(_an_order_he_can_fill()) \
-				if _orders_open else _world.facility_screen_position("orders")
-			look_at = card
-			act_at = card
-	FarmLessonView.new(self).point_to(look_at, act_at,
-		1.4 if what == "seed" else (1.3 if what == "order" else 1.2))
+	FarmLessonView.new(self).point_at(what)
 
 
 ## Grow the garden while he is watching -- for the length of the lesson only.

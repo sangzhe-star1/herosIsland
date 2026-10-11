@@ -306,8 +306,9 @@ These are yours to make. Nothing below has been changed without asking.
    Teaching fingers, hint highlights, and the break card now live in
    `scripts/garden/farm_lesson_view.gd`. `FarmLessonSessionController` owns the
    first-visit state, welcome beat, fast growth settle, and completion flag;
-   the screen keeps step selection, voice, target placement, hint choices, and
-   the shovel action.
+   the screen keeps step selection, voice, hint choices, and the shovel action.
+   The lesson view resolves named plot/seed/order targets to live screen
+   coordinates and constructs the temporary teaching finger.
    Recipe-learned cards, the level-eight celebration, and short toast banners
    now live in `scripts/garden/farm_progress_notice_view.gd`; screen call sites
    still decide when each notice is earned. `garden_screen.gd` is 2,462 lines.
@@ -1111,6 +1112,10 @@ These are yours to make. Nothing below has been changed without asking.
   the ribbon's press feedback, including moving the farm camera to the selected
   bed or visitor board. Delivery still leaves the board closed and the basket
   untouched. GardenTouchProbe passed 2,031 checks across 16:9 and 4:3.
+- **Lesson pointer target boundary (10 October):** `FarmLessonView` now resolves
+  the screen-space destination for plot, seed, and order cues and creates the
+  temporary teaching finger. `garden_screen.gd` is down to 1,981 lines.
+  GardenTouchProbe passed 2,031 checks across both aspect ratios.
 
 ---
 

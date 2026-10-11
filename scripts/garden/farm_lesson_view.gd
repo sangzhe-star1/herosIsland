@@ -17,6 +17,32 @@ func point_to(look_at: Vector2, act_at: Vector2, hold: float,
 	hand.play()
 
 
+## Resolve the lesson's named target into the live farm's glass coordinates,
+## then draw its finger. The screen keeps the tutorial step and voice.
+func point_at(what: String) -> void:
+	if play == null or not is_instance_valid(play):
+		return
+	var bed: Vector2 = screen.call("_bed_centre",
+		maxi(int(screen.call("_lesson_plot")), 0))
+	var look_at := bed
+	var act_at := bed
+	match what:
+		"seed":
+			# Planting is the one lesson action shown as a drag into the bed.
+			look_at = screen.call("_seed_rack_centre")
+		"order":
+			if bool(screen.get("_orders_open")):
+				var order_id := str(screen.call("_an_order_he_can_fill"))
+				look_at = screen.call("_order_card_centre", order_id)
+			else:
+				if world == null or not is_instance_valid(world):
+					return
+				look_at = world.call("facility_screen_position", "orders")
+			act_at = look_at
+	point_to(look_at, act_at,
+		1.4 if what == "seed" else (1.3 if what == "order" else 1.2))
+
+
 func show_move(state: String, bed: Vector2, seed: Vector2) -> void:
 	var start := bed
 	var finish := bed
