@@ -1420,6 +1420,12 @@ func _order_delivery_controller_settles_story_and_recurring_orders() -> void:
 		Barn.put(str(item_id), int(story_wants[item_id]))
 	var story_price := int(story.get("rewards", {}).get("coins", 0))
 	var coins_before := Coins.balance()
+	SaveManager.save_game()
+	var before_story_delivery := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
+	var backup := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	if backup != null:
+		backup.store_string("order-must-not-save-before-farm-progress")
+		backup.close()
 	var orders: Dictionary = SaveManager.data["farm_orders"]
 	var story_receipt := OrderDelivery.settle(story, orders)
 	_ok(bool(story_receipt.get("settled", false)),
@@ -1434,6 +1440,19 @@ func _order_delivery_controller_settles_story_and_recurring_orders() -> void:
 		"the story reward is paid exactly once")
 	_ok(Barn.count("plank", "inventory") == 1,
 		"the first delivery also grants its one thank-you plank")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP)
+			== "order-must-not-save-before-farm-progress",
+		"the controller leaves disk untouched until the screen has updated farm progress")
+	SaveManager.save_game()
+	var persisted_order: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var persisted_data: Dictionary = persisted_order if persisted_order is Dictionary else {}
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == before_story_delivery
+			and story_id in persisted_data.get("farm_orders", {}).get("delivered", [])
+			and int(persisted_data.get("rewards", {}).get("coins", 0))
+				== coins_before + story_price
+			and int(persisted_data.get("inventory", {}).get("plank", 0)) == 1,
+		"one caller commit contains the order receipt, reward, and thank-you gift")
 
 	# Even if an old card is invoked again after the child has rebuilt its basket,
 	# the delivered ledger is checked before anything is taken.
@@ -4280,6 +4299,12 @@ func _daily_claim_controller_settles_completed_jobs_once() -> void:
 	var farm: Dictionary = SaveManager.data["farm"]
 	var today := "2098-04-12"
 	var coins_before := Coins.balance()
+	SaveManager.save_game()
+	var before_claim := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
+	var claim_backup := FileAccess.open(SaveManager.SAVE_BACKUP, FileAccess.WRITE)
+	if claim_backup != null:
+		claim_backup.store_string("daily-claim-must-wait-for-screen-commit")
+		claim_backup.close()
 	var incomplete: Dictionary = DailyClaim.claim(farm, task, today)
 	_ok(int(incomplete.get("paid", 0)) == 0
 		and not bool(incomplete.get("claimed", false)),
@@ -4296,6 +4321,20 @@ func _daily_claim_controller_settles_completed_jobs_once() -> void:
 	_ok(Dailies.claimed(farm.get("dailies", {}), task)
 		and Coins.balance() == coins_before + int(task.get("coins", 0)),
 		"the once key and payment are both recorded on the farm")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP)
+			== "daily-claim-must-wait-for-screen-commit",
+		"the claim controller waits for the screen to commit the finished day")
+	SaveManager.data["farm"] = farm
+	SaveManager.save_game()
+	var persisted_claim: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var persisted_data: Dictionary = persisted_claim if persisted_claim is Dictionary else {}
+	var persisted_dailies: Dictionary = persisted_data.get("farm", {}).get("dailies", {})
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == before_claim
+			and Dailies.claimed(persisted_dailies, task)
+			and int(persisted_data.get("rewards", {}).get("coins", 0))
+			== coins_before + int(task.get("coins", 0)),
+		"one caller commit saves the date rollover, claim receipt, and coins together")
 	var duplicate: Dictionary = DailyClaim.claim(farm, task, today)
 	_ok(int(duplicate.get("paid", 0)) == 0
 		and Coins.balance() == coins_before + int(task.get("coins", 0)),

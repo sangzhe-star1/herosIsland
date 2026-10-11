@@ -33,13 +33,15 @@ var last_recorded_source: String = ""
 ##
 ## Returns the coins actually paid: 0 means "already paid for" or "nothing to
 ## pay", and both are things the caller should be able to see.
+## `persist` defaults true for standalone callers. A caller inside a larger
+## state transaction passes false and owns that transaction's one final save.
 func grant(source: String, coins: int, once_key: String,
-		already_paid: Array) -> int:
+		already_paid: Array, persist: bool = true) -> int:
 	if coins <= 0:
 		return 0
 	if not record(source, once_key, already_paid):
 		return 0
-	Coins.earn(coins, source)
+	Coins.earn(coins, source, persist)
 	last_coins_earned = coins
 	return coins
 

@@ -4876,6 +4876,12 @@ func _friends_have_purposes_and_say_thanks(view: Vector2) -> void:
 	SaveManager.data["farm"]["farm_xp"] = 200
 	SaveManager.data["farm"]["warehouse"] = {"carrot": 2, "strawberry": 2}
 	SaveManager.data["farm"]["harvest_basket"] = {}
+	var water_task := Dailies.task_by_id("water")
+	var today := GameClock.now_date()
+	var ready_dailies := Dailies.roll(SaveManager.data["farm"], today)
+	ready_dailies["progress"]["water"] = Dailies.target("water")
+	ready_dailies["claimed"] = []
+	SaveManager.data["farm"]["dailies"] = ready_dailies
 	SaveManager.data["settings"]["reduce_motion"] = true
 	_garden.call("_open_panel", "orders")
 	await get_tree().process_frame
@@ -4951,6 +4957,26 @@ func _friends_have_purposes_and_say_thanks(view: Vector2) -> void:
 	_garden.call("_deliver", rabbit)
 	_ok(Coins.balance() == before + int(rabbit.get("rewards", {}).get("coins", 0)),
 		"a repeated friend delivery cannot pay a second time")
+	for frame in range(3):
+		await get_tree().process_frame
+	var daily_job: Node = _find_named(_garden, "DailyJob_water")
+	_ok(daily_job is Button and not (daily_job as Button).disabled,
+		"the completed water job offers a real collection button on the order board")
+	var daily_coins_before := Coins.balance()
+	var daily_baseline := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
+	if daily_job is Control:
+		await _tap((daily_job as Control).get_global_rect().get_center())
+	_ok(Coins.balance() == daily_coins_before + int(water_task.get("coins", 0))
+			and Dailies.claimed(SaveManager.data["farm"].get("dailies", {}), water_task),
+		"a real touch pays and records today's finished water job")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == daily_baseline,
+		"the real daily claim writes one complete save after its currency reward")
+	var saved_after_daily: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var saved_daily_data: Dictionary = saved_after_daily if saved_after_daily is Dictionary else {}
+	_ok(Dailies.claimed(saved_daily_data.get("farm", {}).get("dailies", {}), water_task)
+			and int(saved_daily_data.get("rewards", {}).get("coins", 0)) == Coins.balance(),
+		"the daily receipt and paid coins survive the same on-disk generation")
 	SaveManager.data = saved
 	SaveManager.save_game()
 	_garden.call("_close_panels")

@@ -1056,6 +1056,15 @@ These are yours to make. Nothing below has been changed without asking.
   `tools_check.py` reports 0 errors and 208 existing warnings. The complete
   isolated smoke suite on `36de1ff` passed 30/30 with no skips. Real iPad save
   migration and child playtesting remain pending.
+- **Daily and order reward save boundary (10 October):** `RewardManager.grant`
+  and `CurrencyManager.earn` retain immediate saving by default; daily claims
+  and order deliveries now defer that write to the screen's one complete
+  transaction save. GardenProbe passed 1,216 checks, and GardenTouchProbe
+  passed 2,027 over 16:9 and 4:3, including real daily-job collection and
+  backup-generation checks. `tools_check.py` reports 0 errors and 208 existing
+  warnings. The full isolated smoke suite passed 30/30 with no skips. The iPad
+  save has not been exported yet, so migration review and child playtesting
+  remain open.
 
 ---
 

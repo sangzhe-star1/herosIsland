@@ -1,5 +1,11 @@
 # Changelog
 
+## 每日领奖与订单奖励合并为一次完整存档 — 10 October 2026
+
+- `CurrencyManager.earn()` 与 `RewardManager.grant()` 新增默认开启的持久化开关，其他奖励调用点维持原有即时保存。每日任务和订单控制器在交易中关闭中途写盘，由菜园屏幕在日常领取、订单收据、金币及农场进度/教学状态写完后统一保存。
+- GardenProbe 通过 1,216 项；GardenTouchProbe 在 16:9、4:3 下通过 2,027 项，覆盖真实每日领奖按钮、订单触控、备份代次与完整重载。`tools_check.py` 为 0 errors、208 条既有 warnings，`git diff --check` 通过。
+- `./tests/run_smoke.sh` 全量隔离 smoke 通过 30/30、0 跳过；其中 FarmWorldProbe 双画幅 923 项、HarvestTouchProbe 双画幅 2,316 项也通过。真实 iPad 存档尚未导出，存档迁移审计与孩子实机试玩仍待设备存档和试玩时段。
+
 ## FarmWorld 与完整隔离回归复验通过 — 10 October 2026
 
 - 在 `36de1ff` 上重新运行未裁剪的 FarmWorldProbe：16:9 和 4:3 共通过 923 项，耗时 19.8 秒；商店二次购买、仓库扩容确认和好友农场场景均通过。上次 4:3 确认按钮脚本错误本次未重现，不据此推断其先前根因。

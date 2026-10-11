@@ -3,7 +3,9 @@ extends RefCounted
 ##
 ## The screen still owns the lesson, XP, daily progress, animation, and sound.
 ## This boundary owns the part a double press must never repeat: pay the whole
-## basket once, grant the matching reward, and persist its once-only key.
+## basket once, grant the matching reward, and record its once-only key in
+## memory. The screen commits this together with XP, daily progress, and the
+## lesson state in one save before presentation can yield.
 
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
@@ -47,11 +49,12 @@ static func settle(order: Dictionary, orders: Dictionary) -> Dictionary:
 		orders["counts"] = counts
 		paid = RewardManager.grant("garden:order:%s" % order_id,
 			int(order.get("rewards", {}).get("coins", 0)), recurring_key,
-			recurring_paid)
+			recurring_paid, false)
 		orders["recurring_paid"] = recurring_paid
 	else:
 		paid = RewardManager.grant("garden:order:%s" % order_id,
-			int(order.get("rewards", {}).get("coins", 0)), order_id, delivered)
+			int(order.get("rewards", {}).get("coins", 0)), order_id,
+			delivered, false)
 
 	if paid > 0:
 		var gifts: Dictionary = order.get("rewards", {}).get("items", {})

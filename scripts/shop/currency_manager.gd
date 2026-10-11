@@ -49,11 +49,14 @@ static func can_afford(amount: int) -> bool:
 ## Money in. `reason` is not stored -- it is there so every call site has to
 ## say out loud what the child did to deserve it, which is the only defence
 ## against a reward quietly appearing from nowhere.
-static func earn(amount: int, _reason: String = "") -> int:
+## `persist` defaults true. A larger transaction can defer the disk write until
+## all related state has been updated.
+static func earn(amount: int, _reason: String = "", persist: bool = true) -> int:
 	if amount <= 0:
 		return 0
 	SaveManager.data["rewards"][KEY] = balance() + amount
-	SaveManager.save_game()
+	if persist:
+		SaveManager.save_game()
 	SaveManager.progress_changed.emit()
 	return amount
 
