@@ -1,5 +1,11 @@
 # Changelog
 
+## 草莓株身可读性双画幅 A/B — 11 October 2026
+
+- 继续在隔离 `harvest_02` pilot 优化 Blender 草莓株身的屏幕呈现：株身高度从作物图高度的 1.20 倍提高到 1.45 倍；叶片乘色改为温和的 R/G/B 0.82/0.90/0.78。直接提亮的荧绿档已比较并拒绝，r5 GLB 几何未改。
+- Godot 4.7.1 Compatibility 的 16:9 与 4:3 普通、持货、实际送篮六态均通过 `qa_run.py` 的 `content=true` / `save=OK` 门禁；两次送篮都将草莓放入果篮并把订单推进 0/4→1/4。完整截图与复跑方式见 `assets/harvest_3d/source/strawberry_plant_bed_candidate/godot_review_h145/README.md`。
+- 参数只改变隔离 pilot 的可见株身，触控目标、采收、篮子和订单逻辑保持原样。整体空地、作物风格混搭、儿童实玩和 iPad 性能仍未验收，未接入正式页面。
+
 ## 草莓 r5 株体双画幅隔离评审 — 11 October 2026
 
 - 将 3D source-only 草莓株体接入 `Harvest3DIntegratedPilot` 的真实 `harvest_02` 关卡，在 16:9 与 4:3 分别留存普通、持货和送篮截图；两种画幅均通过现有草莓触控、入篮与订单路径，篮中订单从 0/4 变为 1/4。

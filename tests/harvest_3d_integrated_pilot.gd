@@ -999,7 +999,7 @@ func _add_strawberry_body(target: Node2D) -> bool:
 	_object_world.add_child(body)
 	body.position = _ground_point_for_screen(screen)
 	var desired_height := _texture_art_height(art) * _pilot_float(
-		"PILOT_STRAWBERRY_BODY_HEIGHT_FACTOR", 1.20, 0.9, 2.4)
+		"PILOT_STRAWBERRY_BODY_HEIGHT_FACTOR", 1.45, 0.9, 2.4)
 	_model_entries.append({"node": body, "kind": "strawberry_body",
 		"target": target, "height": desired_height,
 		"screen_anchor": screen, "ground_anchor": body.position})
@@ -1516,12 +1516,13 @@ func _tune_candidate_model(root: Node, model_kind: String,
 			tint = Color(0.84, 0.78, 0.69)
 			roughness_floor = 0.94
 		"strawberry_plant":
-			# The candidate is lit again in the live field; mute its pale studio
-			# greens so foliage sits with the existing field and berry materials.
+			# Give the small rosette a clearer, warmer leaf read in the live field.
+			# The earlier blue-muted tint lost too much contrast; the brighter lime
+			# A/B went too far, so these balanced multipliers stay between them.
 			tint = Color(
-				_pilot_float("PILOT_STRAWBERRY_PLANT_TINT_R", 0.62, 0.35, 1.4),
-				_pilot_float("PILOT_STRAWBERRY_PLANT_TINT_G", 0.68, 0.35, 1.4),
-				_pilot_float("PILOT_STRAWBERRY_PLANT_TINT_B", 0.92, 0.35, 1.4))
+				_pilot_float("PILOT_STRAWBERRY_PLANT_TINT_R", 0.82, 0.35, 1.4),
+				_pilot_float("PILOT_STRAWBERRY_PLANT_TINT_G", 0.90, 0.35, 1.4),
+				_pilot_float("PILOT_STRAWBERRY_PLANT_TINT_B", 0.78, 0.35, 1.4))
 			roughness_floor = 0.96
 		"strawberry":
 			# Keep the source asset's authored berry color in this same-source pilot.

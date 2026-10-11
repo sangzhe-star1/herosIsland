@@ -917,3 +917,9 @@ Godot 按实际会话窗口所有权串行运行，应用名与 `user://` 必须
 - 把 Blender 5.2.2 的 source-only `strawberry_plant.glb` 放入真实 `harvest_02` 的 `Harvest3DIntegratedPilot` 可见层；正式 HarvestTarget、触控命中、篮子和订单仍由原系统负责。16:9 与 4:3 各完成普通、持货、送篮三态渲染；六次运行均 `content=true`、`save=OK`，两比例实际送篮都记录 `delivery=true basket=fruit picked={ "strawberry": 1 }`，订单从 0/4 推进到 1/4。
 - 截图、资产审计、重建差异和复现命令集中在 [`godot_review_r5/README.md`](../assets/harvest_3d/source/strawberry_plant_bed_candidate/godot_review_r5/README.md)。草莓 rosette 株体目前是较好的后续候选；连续花床在真实构图中像宽棕色平台，并漏盖 14 个作物锚点中的 1 个，予以拒绝。
 - Blender 重建后株体顶点、法线及有向三角集合一致，只有一个网格的三角索引次序变化；Godot 4.7.1 Compatibility 已实际加载并渲染。此结果仅证明隔离渲染与既有采摘/送篮链路，不能证明儿童辨识度、iPad 性能或正式美术验收。正式页面未改，株体继续留在 source/pilot。
+
+### 11.21 草莓 r5 株身倍率与叶色 A/B（2026-10-11，双比例交互通过；整页仍未过美术门）
+
+- r5 GLB 保持原始字节和 Blender 几何；只调隔离 pilot 呈现参数。叶冠高度由目标作物图的 1.20 倍升至 1.45 倍，让株体在 14 个目标中更容易辨认。原偏蓝档乘色 0.62/0.68/0.92 对比不足；强提亮档 1.05/1.10/0.70 读成荧绿；最终采用温和的 R/G/B 0.82/0.90/0.78。
+- 双比例普通、持货、实际送篮共六次 fresh `qa_run.py`：16:9 为 1280×720，4:3 为 1024×768；每次 `content=true`、`save=OK`，并保持 14 个 targets、14 个 fruits、两只篮子。两次真实触控送篮日志均为 `delivery=true basket=fruit picked={ "strawberry": 1 }`，订单 0/4→1/4；采后株身仍留在地面。
+- [完整六态截图与复跑说明](../assets/harvest_3d/source/strawberry_plant_bed_candidate/godot_review_h145/README.md)。这个呈现参数只提高单个草莓株身的可读性；全页空地、其余作物的 2D/3D 混搭、儿童辨识、设备性能仍待评审。`Harvest3DIntegratedPilot` 的默认仅供隔离候选对照，正式页面与交互没有改动。
