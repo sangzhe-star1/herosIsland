@@ -596,6 +596,10 @@ func _farm_arrival_settlement_commits_one_complete_visit() -> void:
 	var friendship: Dictionary = farm.get("npc_friendship", {})
 	friendship["bear"] = 1
 	farm["npc_friendship"] = friendship
+	SaveManager.data["farm_visitors"] = {
+		"bear": {"visits": 5, "claimed": ["visits_3"]},
+	}
+	var coins_before_arrival := Coins.balance()
 	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
 	npc["bear"]["last_visit_at"] = ARRIVAL - NpcFarm.visit_period()
 	farm["npc"] = npc
@@ -631,6 +635,9 @@ func _farm_arrival_settlement_commits_one_complete_visit() -> void:
 	_ok(int(settled.get("npc", {}).get("bear", {}).get("last_visit_at", 0))
 			== ARRIVAL,
 		"the scheduled visit is stamped at the arrival time")
+	_ok(Coins.balance() == coins_before_arrival + 15
+			and "visits_6" in SaveManager.data["farm_visitors"]["bear"].get("claimed", []),
+		"the sixth-visit coin gift joins the scheduled arrival once")
 	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == before_arrival,
 		"all arrival changes are committed by exactly one save")
 	var persisted: Variant = JSON.parse_string(
@@ -643,7 +650,11 @@ func _farm_arrival_settlement_commits_one_complete_visit() -> void:
 		and int(persisted_farm.get("last_farm_visit_at", 0)) == ARRIVAL
 		and int(persisted_farm.get("npc_friendship", {}).get("bear", 0)) == 2
 		and int(persisted_farm.get("npc", {}).get("bear", {})
-				.get("last_visit_at", 0)) == ARRIVAL,
+				.get("last_visit_at", 0)) == ARRIVAL
+		and int(persisted.get("rewards", {}).get("coins", 0))
+			== coins_before_arrival + 15
+		and "visits_6" in persisted.get("farm_visitors", {}).get("bear", {})
+			.get("claimed", []),
 		"the main save contains the complete arrival transaction")
 	GameClock.clear_test_now()
 
@@ -2166,9 +2177,14 @@ func _the_market_pays_once_and_only_for_what_is_there() -> void:
 		+ 2 * GameData.market_price("tomato")
 	_ok(Market.quote({"carrot": 5, "tomato": 2}) == expected,
 		"the quote is the price list times the pile, nothing else")
+	SaveManager.save_game()
+	var before_market_sale := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 
 	var paid := Market.sell({"carrot": 5, "tomato": 2})
 	_ok(paid == expected, "selling pays exactly the quote")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP)
+			== before_market_sale,
+		"one sale commit rotates the complete pre-sale save directly to backup")
 	_ok(Coins.balance() == expected, "...into the purse")
 	_ok(Barn.count("carrot") == 0 and Barn.count("tomato") == 0,
 		"...and the crops leave the barn")
@@ -3591,6 +3607,8 @@ func _the_visitors_request_and_receive_dishes() -> void:
 	Barn.put("milk", 1)
 	_ok(Recipes.cook("cheese_toast"), "cooked cheese_toast for puppy")
 	_ok(VisitorManager.can_feed_visitor(farm), "can feed puppy now that cheese_toast is in inventory")
+	SaveManager.save_game()
+	var before_visitor_feed := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 
 	var coins_before := Coins.balance()
 	var friends_before: int = int((farm.get("npc_friendship", {}) as Dictionary).get("puppy", 0))
@@ -3602,6 +3620,20 @@ func _the_visitors_request_and_receive_dishes() -> void:
 	_ok(int((farm.get("npc_friendship", {}) as Dictionary).get("puppy", 0)) == friends_before + 1,
 		"friendship with puppy increased by one")
 	_ok(VisitorManager.has_fed_today(farm), "visitor marked as fed for today")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP)
+			== before_visitor_feed,
+		"giving a dish commits its food, friendship, date, and reward once")
+	var saved_feed: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	var saved_feed_data: Dictionary = saved_feed if saved_feed is Dictionary else {}
+	_ok(int(saved_feed_data.get("inventory", {}).get("dish_cheese_toast", 0)) == 0
+			and int(saved_feed_data.get("farm", {}).get("npc_friendship", {})
+				.get("puppy", 0)) == friends_before + 1
+			and str(saved_feed_data.get("farm", {}).get("fed_visitor_date", ""))
+			== GameClock.now_date()
+			and int(saved_feed_data.get("rewards", {}).get("coins", 0))
+			== coins_before + int(tuesday_visitor.get("reward_coins", 15)),
+		"the single visitor save contains the consumed dish, friendship, fed date, and coins")
 
 	# Cannot feed again on the same day
 	Barn.put("dish_cheese_toast", 1, "inventory")

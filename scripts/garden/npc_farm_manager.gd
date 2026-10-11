@@ -202,7 +202,7 @@ static func record_friend_visit(npc_id: String, now: int) -> Dictionary:
 	var farm: Dictionary = SaveManager.data["farm"]
 	var entry := {"who": npc_id, "kind": "guest", "shared": 1,
 		"watered": 1, "star": 1, "at": now}
-	_grant_milestone(npc_id, entry)
+	_grant_milestone(npc_id, entry, false)
 	Farm.remember_visit(farm, entry)
 	return entry
 
@@ -370,7 +370,7 @@ static func maybe_visit(now: int) -> Dictionary:
 
 	farm["npc"] = npc
 
-	_grant_milestone("bear", entry)
+	_grant_milestone("bear", entry, false)
 	if int(entry.get("shared_back", 0)) > 0 \
 			and not entry.has("milestone_key"):
 		# The wink's one line, amber on the board -- unless a real milestone
@@ -393,7 +393,8 @@ static func maybe_visit(now: int) -> Dictionary:
 ## forever, either: milestones are checked with `<=`, so a count that jumped
 ## past one (or data added after the visits happened) still pays on the next
 ## visit.
-static func _grant_milestone(who: String, entry: Dictionary) -> void:
+static func _grant_milestone(who: String, entry: Dictionary,
+		persist: bool = true) -> void:
 	# 记的是"来了几次"，不是友谊星——摘果和帮忙也发星，混着数会让
 	# "第三次来做客"提前到第一次。常客账本自己数自己。
 	var ledger: Dictionary = SaveManager.data.get("farm_visitors", {})
@@ -417,7 +418,7 @@ static func _grant_milestone(who: String, entry: Dictionary) -> void:
 		if int(gift.get("plank", 0)) > 0:
 			Barn.put("plank", int(gift.get("plank", 0)), "inventory")
 		if int(gift.get("coins", 0)) > 0:
-			Coins.earn(int(gift.get("coins", 0)), "visitor_milestone")
+			Coins.earn(int(gift.get("coins", 0)), "visitor_milestone", persist)
 		entry["milestone_key"] = str(milestone.get("key", ""))
 		entry["milestone_icon"] = str(milestone.get("icon", "heart"))
 		return

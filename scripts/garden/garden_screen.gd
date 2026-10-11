@@ -803,7 +803,7 @@ func _tap_wishing_well() -> void:
 		AudioManager.play_sfx("res://assets/audio/water.ogg")
 		_show_toast_message(I18n.t("farm.well_wish_done"), "star")
 		return
-	Coins.earn(int(result.get("coins", 0)), "farm:well_wish")
+	Coins.earn(int(result.get("coins", 0)), "farm:well_wish", false)
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/water.ogg")
 	AudioManager.play_sfx("res://assets/audio/sparkle.ogg")

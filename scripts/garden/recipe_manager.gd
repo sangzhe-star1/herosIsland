@@ -110,7 +110,8 @@ static func cook(recipe_id: String) -> bool:
 
 ## Give one cooked dish to a friend: the dish leaves, the friendship grows by
 ## one star, and the visit board gets an amber thank-you entry.
-static func give_to_friend(who: String, recipe_id: String) -> bool:
+static func give_to_friend(who: String, recipe_id: String,
+		persist: bool = true) -> bool:
 	if not Barn.take(dish_id(recipe_id), 1, "inventory"):
 		return false
 	var farm: Dictionary = SaveManager.data["farm"]
@@ -127,7 +128,8 @@ static func give_to_friend(who: String, recipe_id: String) -> bool:
 		"milestone_key": "garden.dish_thanks",
 		"milestone_icon": "dish",
 	})
-	SaveManager.save_game()
+	if persist:
+		SaveManager.save_game()
 	return true
 
 

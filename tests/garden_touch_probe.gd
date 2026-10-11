@@ -2626,6 +2626,8 @@ func _the_wishing_well_pays_once_per_day() -> void:
 	farm["farm_xp"] = 560
 	farm.erase("last_well_wish_date")
 	GameClock.set_test_now(NOON, 0)
+	SaveManager.save_game()
+	var before_wish_save := FileAccess.get_file_as_string(SaveManager.SAVE_PATH)
 	var balance_before := Coins.balance()
 	_garden.call("_rebuild")
 	await get_tree().process_frame
@@ -2638,6 +2640,16 @@ func _the_wishing_well_pays_once_per_day() -> void:
 			and str(SaveManager.data["farm"].get("last_well_wish_date", ""))
 			== GameClock.now_date(),
 		"a real well press pays two coins and records the active date")
+	_ok(FileAccess.get_file_as_string(SaveManager.SAVE_BACKUP) == before_wish_save,
+		"the well's date and coins rotate the save only once")
+	var saved_wish: Variant = JSON.parse_string(
+		FileAccess.get_file_as_string(SaveManager.SAVE_PATH))
+	_ok(saved_wish is Dictionary
+			and str(saved_wish.get("farm", {}).get("last_well_wish_date", ""))
+			== GameClock.now_date()
+			and int(saved_wish.get("rewards", {}).get("coins", 0))
+			== balance_before + 2,
+		"the well's once key and coins survive the same disk generation")
 	world.call("press_at", world.call("facility_screen_position", "well"))
 	await get_tree().process_frame
 	_ok(Coins.balance() == balance_before + 2,

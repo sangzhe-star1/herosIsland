@@ -1,5 +1,11 @@
 # Changelog
 
+## 农场奖励交易统一为一次完整存档 — 10 October 2026
+
+- 许愿井、市场出售、访客喂食与 NPC 到访里程碑改为先完成日期/账本、物品、友情和金币变更，再由外层交易统一保存。`give_to_friend()` 与里程碑奖励保留默认即时保存，独立调用的原有语义不变。
+- GardenProbe 通过 1,220 项，GardenTouchProbe 在 16:9、4:3 下通过 2,031 项；FarmWorldProbe 两画幅 923 项，HarvestTouchProbe 两画幅 2,316 项。备份代次断言确认每笔奖励只轮转一次，整份存档包含对应状态。
+- `./tests/run_smoke.sh`：30 passed、0 skipped；`tools_check.py`：0 errors、208 条既有 warnings；`git diff --check` 通过。真实 iPad 存档尚未导出，设备迁移审计和孩子实机试玩仍待备份与试玩时段。
+
 ## 每日领奖与订单奖励合并为一次完整存档 — 10 October 2026
 
 - `CurrencyManager.earn()` 与 `RewardManager.grant()` 新增默认开启的持久化开关，其他奖励调用点维持原有即时保存。每日任务和订单控制器在交易中关闭中途写盘，由菜园屏幕在日常领取、订单收据、金币及农场进度/教学状态写完后统一保存。

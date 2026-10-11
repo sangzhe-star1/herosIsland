@@ -55,7 +55,7 @@ static func feed_visitor(farm: Dictionary) -> Dictionary:
 	var dish_id := str(visitor.get("dish_id", ""))
 	var reward_coins := int(visitor.get("reward_coins", 15))
 
-	if not Recipes.give_to_friend(who, dish_id):
+	if not Recipes.give_to_friend(who, dish_id, false):
 		return {}
 
 	# Record fed for today. One date string, not a dictionary that grows by a
@@ -63,7 +63,7 @@ static func feed_visitor(farm: Dictionary) -> Dictionary:
 	farm["fed_visitor_date"] = today_date_key()
 
 	# Award coins
-	Coins.earn(reward_coins)
+	Coins.earn(reward_coins, "farm:visitor", false)
 
 	# The farm_visitors.json milestones (third visit, sixth visit) belong to
 	# NpcFarm._grant_milestone, which keeps that ledger as {visits, claimed}

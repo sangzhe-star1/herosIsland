@@ -1065,6 +1065,18 @@ These are yours to make. Nothing below has been changed without asking.
   warnings. The full isolated smoke suite passed 30/30 with no skips. The iPad
   save has not been exported yet, so migration review and child playtesting
   remain open.
+- **Farm reward save boundary (10 October):** the wishing well, market sale,
+  visitor feeding, and NPC visit milestones now defer their nested coin or
+  recipe writes until the enclosing action has finished updating its date,
+  inventory, friendship, and reward ledger. Their existing screen/controller
+  commits produce one complete backup rotation; standalone recipe and
+  milestone calls keep immediate persistence by default. GardenProbe passed
+  1,220 checks, GardenTouchProbe passed 2,031 across 16:9 and 4:3, FarmWorldProbe
+  passed 923, and HarvestTouchProbe passed 2,316. The full smoke suite passed
+  30/30 with no skips; `tools_check.py` reports 0 errors and 208 existing
+  warnings. `origin/main` was current before this follow-up. The iPad save has
+  not been exported, so the actual-device migration audit and child playtest
+  remain open.
 
 ---
 

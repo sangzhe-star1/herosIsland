@@ -76,6 +76,6 @@ static func sell(basket: Dictionary) -> int:
 	# Barn.pay() is the same call the orders trust, refusing the same way.
 	if not Barn.pay(basket):
 		return 0
-	Coins.earn(worth, "farm:market")
+	Coins.earn(worth, "farm:market", false)
 	SaveManager.save_game()
 	return worth
