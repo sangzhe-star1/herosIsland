@@ -976,6 +976,17 @@ These are yours to make. Nothing below has been changed without asking.
   FarmShot rendered and passed visual review at 1280×720 and 1024×768 through
   the real level-award path.
   `garden_screen.gd` is 2,300 lines.
+- **Daily-progress notice delivery and challenge-counter spacing (10 October):**
+  `FarmProgressNoticeView` now owns the daily completion chimes and final-star
+  praise; `garden_screen.gd` passes it the progress receipt. The completed
+  challenge counter uses 11px type and has clear room inside its compact card.
+  `FarmWorldProbe` passed 923 checks and `GardenTouchProbe` 2,013 across 16:9
+  and 4:3; `HarvestTouchProbe` passed 2,316. `FarmShot` rendered and passed
+  visual review at both ratios. The isolated smoke suite passed 30/30 with no
+  skips, and `tools_check.py` reports 0 errors and 208 existing warnings.
+  `garden_screen.gd` is 2,292 lines. Real iPad save migration and child
+  playtesting remain pending until a device backup and hands-on play session
+  are available.
 
 ---
 

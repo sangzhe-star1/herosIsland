@@ -1,5 +1,11 @@
 # Changelog
 
+## 每日进度反馈归入通知视图并收紧挑战计数布局 — 10 October 2026
+
+- `FarmProgressNoticeView` 现在也负责每日任务完成提示音与全部星标的称赞语音；`garden_screen.gd` 只把进度回执交给通知视图。FarmWorldProbe 新增 6 条计数检查，双画幅共通过 923 项。
+- 丰收挑战完成计数改为 11px，并在 88px 卡片内向右留位；GardenTouchProbe 在 16:9 与 4:3 下通过 2,013 项，覆盖作物预览和播放图标的安全间距。FarmShot 的 16/16 顶栏截图双画幅生成并目视检查通过。
+- 全量隔离 smoke：30 passed、0 skipped；HarvestTouchProbe 2,316 项；`tools_check.py`：0 errors、208 warnings；`git diff --check` 通过。
+
 ## 升级庆祝反馈归入进度通知视图 — 10 October 2026
 
 - `FarmProgressNoticeView` 现在统一处理农场升级音效、语音、粒子和 8 级庆祝卡；`garden_screen.gd` 继续判断是否升级并安排农场重绘。

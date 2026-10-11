@@ -156,12 +156,13 @@ func _challenge_door(view: Vector2) -> void:
 		Vector2.ZERO, Vector2(0.0, 12.0), Vector2(11.0, 6.0)]),
 		Color(0.42, 0.48, 0.24), 0.0)
 	door.add_child(play_icon)
-	var count := UiKit.title("%d/%d" % [done, levels.size()], 12,
+	var count := UiKit.title("%d/%d" % [done, levels.size()], 11,
 		Color(0.34, 0.27, 0.17))
 	count.name = "ChallengeCount"
-	# Keep a safety inset around the full 16/16 label when the card breathes.
-	count.position = Vector2(45.0, 25.0)
-	count.size = Vector2(36.0, 18.0)
+	# Keep a clear gutter after the crop preview while reserving the label's
+	# actual five-character width inside this compact card.
+	count.position = Vector2(43.0, 25.0)
+	count.size = Vector2(42.0, 18.0)
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	door.add_child(count)

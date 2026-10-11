@@ -56,7 +56,7 @@ const NOON := 1_699_963_200
 ## See garden_probe.gd. An empty failure list means nothing came back wrong, not
 ## that anything was asked -- and half of this file finds something on a screen
 ## before questioning it.
-const CHECKS_EXPECTED := 917
+const CHECKS_EXPECTED := 923
 
 var _failures: Array[String] = []
 var _asked := 0
@@ -206,7 +206,7 @@ func _run_on_a(window: Vector2i) -> void:
 	# --- 阶段 5: the stones, the ladder, and the market's one lesson ---
 	await _the_stones_ask_before_they_move()
 	await _the_barn_full_moment_points_at_the_market()
-	_the_level_up_uses_the_progress_notice_view()
+	_progress_feedback_uses_the_progress_notice_view()
 
 	await _close()
 	# The bear's own farm is another scene; it gets the glass to itself,
@@ -310,7 +310,19 @@ func _golden_refresh_updates_the_live_plot() -> void:
 
 ## Screen events decide when an award happened; the notice view owns how it
 ## sounds and appears, including the level-eight card, without editing progress.
-func _the_level_up_uses_the_progress_notice_view() -> void:
+func _progress_feedback_uses_the_progress_notice_view() -> void:
+	var plays_before := int(AudioManager.get("sfx_plays"))
+	_garden.call("_respond_to_daily_progress", {})
+	_ok(int(AudioManager.get("sfx_plays")) == plays_before,
+		"an empty daily receipt does not play a notice chime")
+	_garden.call("_respond_to_daily_progress", {"task_completed": true})
+	var after_task := int(AudioManager.get("sfx_plays"))
+	_ok(after_task == plays_before + 1,
+		"a completed daily task plays its found chime through the notice view")
+	_garden.call("_respond_to_daily_progress", {"all_completed": true})
+	_ok(int(AudioManager.get("sfx_plays")) == after_task + 1,
+		"the last daily star plays its sparkle chime through the notice view")
+
 	var layer := _garden.call("_harvest_feedback_layer") as CanvasLayer
 	var saved_level := int(SaveManager.data["farm"].get("farm_level", 1))
 	_garden.call("_respond_to_level_award", [8, 8])

@@ -339,15 +339,7 @@ func _daily_progress(verb: String, by: int = 1) -> void:
 
 
 func _respond_to_daily_progress(receipt: Dictionary) -> void:
-	if bool(receipt.get("task_completed", false)):
-		AudioManager.play_sfx("res://assets/audio/found.ogg")
-	# The third little star is a small happy discovery, not a countdown alarm:
-	# the same pure all_done() gate drives the visible ribbon and the doubled
-	# rare-crop chance.  Claims are intentionally irrelevant -- caring is what
-	# lit the luck, and a child may collect the coins whenever he finds the board.
-	if bool(receipt.get("all_completed", false)):
-		AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
-		AudioManager.say("praise_3")
+	FarmProgressNoticeView.new(self).daily_progress(receipt)
 
 
 func _on_farm_resumed(changed: bool) -> void:

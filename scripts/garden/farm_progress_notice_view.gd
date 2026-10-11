@@ -14,6 +14,16 @@ func level_up(layer: CanvasLayer, view: Vector2,
 		master_farmer(layer, view)
 
 
+## Daily completion receipts are already gated by the progress controller; this
+## view owns the matching chimes and the last-star praise line.
+func daily_progress(receipt: Dictionary) -> void:
+	if bool(receipt.get("task_completed", false)):
+		AudioManager.play_sfx("res://assets/audio/found.ogg")
+	if bool(receipt.get("all_completed", false)):
+		AudioManager.play_sfx("res://assets/audio/sparkle.ogg")
+		AudioManager.say("praise_3")
+
+
 func recipe_learned(recipe: Dictionary, layer: CanvasLayer,
 		view: Vector2) -> void:
 	var wide := 520.0
