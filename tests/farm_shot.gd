@@ -8,6 +8,8 @@ extends Node
 ##
 ## garden: mid-life farm -- bear door open, news on the board, the dog out
 ##         pointing at a ripe bed, one thirsty, one caterpillar.
+## gold:   a real touch harvests a golden carrot; the star shower is caught
+##         mid-flight, with the same fixture across both tablet shapes.
 ## bear:   the bear's farm with the share star up.
 ## board:  the visitor board open over the farm, its one entry readable.
 ## kitchen: the workshop kitchen at level 5 -- one soup ready to cook, one
@@ -147,6 +149,8 @@ func _ready() -> void:
 			"care_event": Growth.CARE_BUG, "growth_stage": 2,
 			"planted_at": NOON - 3600})
 		plots[4] = _bed(4, {"state": Farm.TILLED})
+		if what == "gold":
+			plots[0]["golden"] = true
 		farm["plots"] = plots
 		if what == "overflow":
 			if OS.get_environment("SHOT_FULL_RACK") == "1":
@@ -507,21 +511,30 @@ func _ready() -> void:
 	if what == "gold":
 		# Pick the golden bed through the real tap path, then hold the shutter
 		# a fifth of a second while the shower is still falling.
-		var world2: Node = scene.get("_world")
 		var bed: Vector2 = scene.call("_bed_centre", 0)
+		var view_size := get_viewport().get_visible_rect().size
+		var window_size := Vector2(get_window().size)
+		var glass := Vector2(bed.x * window_size.x / view_size.x,
+			bed.y * window_size.y / view_size.y)
 		var press2 := InputEventScreenTouch.new()
 		press2.index = 0
 		press2.pressed = true
-		press2.position = bed
+		press2.position = glass
 		Input.parse_input_event(press2)
 		await get_tree().process_frame
 		var lift := InputEventScreenTouch.new()
 		lift.index = 0
 		lift.pressed = false
-		lift.position = bed
+		lift.position = glass
 		Input.parse_input_event(lift)
 		await get_tree().process_frame
 		await get_tree().create_timer(0.22).timeout
+		var after: Dictionary = SaveManager.data["farm"]["plots"][0]
+		if str(after.get("crop_id", "")) != "" or str(after.get("state", "")) != Farm.TILLED:
+			_fixture_failures.append("gold shot touch did not harvest its ripe bed")
+		if Juice.motion_enabled() and scene.find_child(
+				"GoldenHarvestSparkle_0", true, false) == null:
+			_fixture_failures.append("gold shot did not catch a golden-harvest sparkle")
 	if what == "pull":
 		# The gesture moment, caught mid-move: a finger pressed on the ripe
 		# carrot, half way through the pull, camera holding still. The lean

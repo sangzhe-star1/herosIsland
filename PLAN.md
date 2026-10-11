@@ -875,6 +875,13 @@ These are yours to make. Nothing below has been changed without asking.
   `garden_screen.gd` fell from 2,464 to 2,415 lines, and `tools_check.py`
   reports 0 errors and 208 existing warnings. The full smoke suite was not
   rerun for this presentation-only extraction.
+- **Golden-harvest visual fixture (10 October):** the `FarmShot` gold mode now
+  marks its test crop golden, converts the bed's viewport position to window
+  touch coordinates, and fails unless the crop is harvested and its sparkle is
+  present. This fixed a 4:3 false-positive where a screenshot saved while the
+  crop was still growing in place. The corrected shot passed and was visually
+  checked at 1280×720 and 1024×768; images are in
+  `docs/qa/golden_harvest_20261010/`.
 
 ---
 
