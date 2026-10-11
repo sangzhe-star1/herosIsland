@@ -81,6 +81,7 @@ const FarmPanelBase := preload("res://scripts/garden/panels/farm_panel_base.gd")
 const FarmExpansionPanel := preload("res://scripts/garden/panels/farm_expansion_panel.gd")
 const FarmUndoPanel := preload("res://scripts/garden/panels/farm_undo_panel.gd")
 const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_panel.gd")
+const FarmViewControlsPanel := preload("res://scripts/garden/panels/farm_view_controls_panel.gd")
 const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
 const FarmLessonView := preload("res://scripts/garden/farm_lesson_view.gd")
 const FarmProgressNoticeView := preload("res://scripts/garden/farm_progress_notice_view.gd")
@@ -444,7 +445,7 @@ func _rebuild() -> void:
 	_sync_tool_target_halos(task if show_beacon else {})
 	_barn(view)
 	_deco_door(view)
-	_view_buttons(view)
+	FarmViewControlsPanel.new(self).build(view, SHELF)
 	# The shelf is drawn after the top bar. Put this last so its one clear
 	# instruction is visible above the shelf background and never hidden by it.
 	if show_task:
@@ -964,71 +965,6 @@ func _one_step_back() -> void:
 		_close_panels()
 		return
 	quit_level()
-
-
-## One capsule for how close in the farm is drawn: plus above, minus below,
-## a hairline between.
-##
-## Pinching works too, but these are the way it is MEANT to be done: two
-## fingers on a tablet is a gesture a six-year-old performs by accident more
-## often than on purpose, and a control he cannot find is a control he does
-## not have. Greyed rather than hidden at the ends of the range, so the pair
-## does not move about.
-##
-## Bottom-right, just above the shelf, on purpose twice over: it is the
-## corner a tablet-holding thumb already rests near, and it is the one edge
-## of the farm with nothing under it -- the first cut floated two separate
-## squares at the top-right, where they sat on the purse's shoulder and over
-## the expansion stones, and every screenshot read as three things fighting
-## for one corner.
-func _view_buttons(view: Vector2) -> void:
-	var tile := 64.0
-	var pad := 20.0
-	var origin := Vector2(view.x - tile - pad,
-		view.y - SHELF - tile * 2.0 - 1.0 - pad)
-
-	var shell := Panel.new()
-	shell.add_theme_stylebox_override("panel",
-		UiKit.panel_style(Color(1.0, 0.99, 0.94), 22))
-	shell.position = origin
-	shell.custom_minimum_size = Vector2(tile, tile * 2.0 + 1.0)
-	shell.size = Vector2(tile, tile * 2.0 + 1.0)
-	shell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(shell)
-	# The capsule sits over the farm, and Node._input runs before the GUI:
-	# without this, every press on + would also be a tap on the ground
-	# beneath it, and two presses would be the go-home double tap.
-	_world.add_blocker(shell)
-
-	var hairline := ColorRect.new()
-	hairline.color = Color(0.30, 0.27, 0.22, 0.14)
-	hairline.position = origin + Vector2(12, tile)
-	hairline.size = Vector2(tile - 24.0, 1)
-	hairline.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_play.add_child(hairline)
-
-	for step: int in [1, -1]:
-		var button := Button.new()
-		button.flat = true
-		button.focus_mode = Control.FOCUS_NONE
-		button.text = "+" if step > 0 else "−"
-		button.add_theme_font_size_override("font_size", 38)
-		var live := _world != null and _world.can_zoom(step)
-		button.add_theme_color_override("font_color",
-			Color(0.24, 0.21, 0.16) if live else Color(0.72, 0.70, 0.65))
-		button.add_theme_color_override("font_disabled_color",
-			Color(0.72, 0.70, 0.65))
-		button.position = origin if step > 0 else origin + Vector2(0, tile + 1.0)
-		button.custom_minimum_size = Vector2(tile, tile)
-		button.size = Vector2(tile, tile)
-		button.disabled = not live
-		var direction: int = step
-		button.pressed.connect(func():
-			_world.zoom_by(direction)
-			_queue_rebuild())
-		_play.add_child(button)
-		_world.add_blocker(button)
-		_panel_buttons["zoom_in" if step > 0 else "zoom_out"] = button
 
 
 ## Y coordinate shared by the seed pouch and its lesson pointer.

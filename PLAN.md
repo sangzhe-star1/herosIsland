@@ -279,6 +279,9 @@ These are yours to make. Nothing below has been changed without asking.
    and keeps collection settlement. The saved-decoration door, world placement,
    and poke response now live in `FarmDecorationsView`; the screen keeps room
    selection and the rebuild stamp.
+   The bottom-right zoom capsule now lives in `FarmViewControlsPanel`, which
+   owns its layout, button states, and world blockers while calling back to the
+   screen only to queue a rebuild.
    Teaching fingers, hint highlights, and the break card now live in
    `scripts/garden/farm_lesson_view.gd`; the screen keeps lesson state, voice,
    timing, completion saves, hint choices, and the shovel action.
@@ -937,6 +940,18 @@ These are yours to make. Nothing below has been changed without asking.
   checks. The isolated `./tests/run_smoke.sh` passed all 30 probes with 0
   skipped with those assertions included. Remaining duplicate-harvest warnings
   are intentional assertions of the once-only receipt guard.
+- **Farm zoom-control view (10 October):** the bottom-right capsule's two
+  buttons, enabled state, placement, hairline, and farm-input blockers now live
+  in `scripts/garden/panels/farm_view_controls_panel.gd`; the screen keeps the
+  viewport/shelf dimensions and rebuild callback. The view registers no state
+  in the screen's private button dictionary; named `FarmZoomIn` and
+  `FarmZoomOut` controls are inspected directly by the world probe. The first
+  probe run surfaced a missing shop-cancel handle while the old shared registry
+  was involved; after removing that coupling, FarmWorldProbe passed 909 checks
+  across 16:9 and 4:3. `FarmShot` passed and was visually inspected at both
+  ratios; captures are in `docs/qa/garden_view_controls_20261010/`.
+  `tools_check.py` reports 0 errors and 208 existing warnings, and the current
+  isolated `./tests/run_smoke.sh` passed all 30 probes with 0 skipped.
 
 ---
 

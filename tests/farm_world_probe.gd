@@ -1233,8 +1233,11 @@ func _the_furniture_is_not_a_hole_in_the_farm(view: Vector2) -> void:
 	# that happens is the farm mishearing it. Two quick presses: the bed must
 	# not be touched, and the pair must not read as the go-home double tap.
 	var wc: Vector2 = _camera().window.get_center()
-	var plus: Vector2 = ((_garden.get("_panel_buttons"))["zoom_in"] as Button) \
-		.get_global_rect().get_center()
+	var zoom_in := _find_named(_garden, "FarmZoomIn") as Button
+	_ok(zoom_in != null, "the zoom-in control is present")
+	if zoom_in == null:
+		return
+	var plus: Vector2 = zoom_in.get_global_rect().get_center()
 	_camera().zoom = float(Layout.zoom_steps().back())
 	# The taller farm window can clamp an upper-row bed before it reaches the
 	# button. Choose a live bed whose centre can actually get there while the
