@@ -161,7 +161,7 @@ func _challenge_door(view: Vector2) -> void:
 	count.name = "ChallengeCount"
 	# Keep a clear gutter after the crop preview while reserving the label's
 	# actual five-character width inside this compact card.
-	count.position = Vector2(43.0, 25.0)
+	count.position = Vector2(43.0, 24.0)
 	count.size = Vector2(42.0, 18.0)
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count.mouse_filter = Control.MOUSE_FILTER_IGNORE

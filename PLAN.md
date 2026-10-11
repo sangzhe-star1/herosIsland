@@ -107,12 +107,12 @@ warnings. The actual iPad and real-save checks remain open.
 
 On 11 October, GardenTouchProbe gained a full touch-driven journey from tilling
 through planting, watering, harvest and bear-order delivery, including a save
-reload; its two-shape run passed 2,055 checks, and it also passed in the smoke
-run. That run later stopped in the full FarmWorldProbe warehouse-upgrade
-sequence when `confirm_upgrade` was absent; the focused upgrade probe passes 34
-checks across both shapes. Reconfirm the full FarmWorld path before calling the
-current smoke run complete. The iPad save has not yet been exported, so its
-migration audit and the real-device playtest remain open.
+reload; its two-shape run passed 2,055 checks. The completed-harvest count also
+moved up 1 px to remain inside its card at 4:3 despite floating-point rounding.
+The latest complete isolated smoke run passed 31/31 with 0 skips; GardenTouchProbe
+passed 2,055 checks, FarmWorldProbe 957, and the synthetic migration and save
+probes passed. The iPad save has not yet been exported, so its real-save
+migration audit and real-device playtest remain open.
 
 ---
 
