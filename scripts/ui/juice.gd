@@ -28,9 +28,10 @@ static func motion_enabled() -> bool:
 	return not bool(SaveManager.get_setting("reduce_motion", false))
 
 
-## Confetti at a point, in the coordinate space of `parent`.
+## Confetti at a point, in the coordinate space of `parent`. A non-transparent
+## `color` paints every particle with that exact reward color.
 ## Frees itself; callers never need to track it.
-static func burst(parent: Node, at: Vector2, amount: int = 22) -> void:
+static func burst(parent: Node, at: Vector2, amount: int = 22, color: Color = Color.TRANSPARENT) -> void:
 	if parent == null or not is_instance_valid(parent):
 		return
 	if not motion_enabled():
@@ -39,7 +40,7 @@ static func burst(parent: Node, at: Vector2, amount: int = 22) -> void:
 		# but "something happened HERE" still has a picture. Without this,
 		# reduce-motion turned every right answer into a sound alone, which
 		# for a child playing with the volume down is nothing at all.
-		_still_mark(parent, at, CONFETTI_COLORS[0], amount)
+		_still_mark(parent, at, color if color.a > 0.0 else CONFETTI_COLORS[0], amount)
 		return
 
 	var particles := CPUParticles2D.new()
@@ -59,7 +60,7 @@ static func burst(parent: Node, at: Vector2, amount: int = 22) -> void:
 	particles.scale_amount_max = 6.0
 	particles.angular_velocity_min = -220.0
 	particles.angular_velocity_max = 220.0
-	particles.color = CONFETTI_COLORS[randi() % CONFETTI_COLORS.size()]
+	particles.color = color if color.a > 0.0 else CONFETTI_COLORS[randi() % CONFETTI_COLORS.size()]
 
 	# Painted sparkle when the art exists; bare squares until then. The art is
 	# 256px, so the scale drops to keep particles the same size either way.

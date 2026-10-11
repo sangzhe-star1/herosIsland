@@ -36,6 +36,7 @@ func _ready() -> void:
 		window.size = Vector2i(1280, 720)
 	await get_tree().process_frame
 
+	_burst_keeps_explicit_reward_color()
 	await _sorting_answers_every_drop()
 	await _rhythm_answers_a_tap_during_the_phrase()
 	await _puzzle_answers_a_tap_on_a_finished_piece()
@@ -50,6 +51,17 @@ func _ready() -> void:
 	print("asked %d questions" % _asked)
 	print("FEEDBACK PROBE %s\n" % ("PASSED" if _failures.is_empty() else "FAILED"))
 	get_tree().quit(0 if _failures.is_empty() else 1)
+
+
+func _burst_keeps_explicit_reward_color() -> void:
+	var host := Control.new()
+	add_child(host)
+	var gold := Color(1.0, 0.9, 0.4)
+	Juice.burst(host, Vector2.ZERO, 14, gold)
+	var particles := host.get_child(0) as CPUParticles2D
+	_ok(particles != null and particles.color.is_equal_approx(gold),
+		"a custom reward burst color was ignored")
+	host.queue_free()
 
 
 # --- helpers ------------------------------------------------------------------
