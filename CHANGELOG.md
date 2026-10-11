@@ -3,7 +3,7 @@
 ## 设施与池塘收成共用回执完成路径 — 11 October 2026
 
 - `GardenScreen` 将设施产物与鱼获入账后的完成顺序汇到一个入口：单次保存、收成音效、可选设施语音、按回执存入/溢出数量飞行、标记收过并重绘。鱼获仍保留默认存入数量和鸭宝宝解锁祝贺；各来源的结算仍由原控制器完成。
-- 改动后 GardenTouchProbe 双画幅通过 2,055 项，FarmLifeProbe 通过 81 项；`tools_check.py` 为 0 errors、208 条既有 warnings，`git diff --check` 通过。上一个代码状态的完整 smoke 为 31/31、0 skipped，本次抽取后未重跑全套。
+- 改动后 GardenTouchProbe 双画幅通过 2,055 项，FarmLifeProbe 通过 81 项；完整隔离 smoke 通过 31/31、0 skipped。`tools_check.py` 为 0 errors、208 条既有 warnings，`git diff --check` 通过。真实 iPad 存档尚未导出，迁移审计和实机试玩继续待办。
 
 ## 真实触控走完种植到好友订单 — 11 October 2026
 

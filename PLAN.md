@@ -118,7 +118,8 @@ Also on 11 October, the screen's post-settlement collection sequence was
 centralized for timed facilities and pond catches, while source controllers
 still settle inventory. The updated GardenTouchProbe passed 2,055 checks and
 FarmLifeProbe 81; static checks remain clean. The 31/31 smoke result above is
-from immediately before this small orchestration extraction.
+current after this orchestration extraction. The iPad save has not been
+exported, so migration review and hands-on device playtesting remain open.
 
 ---
 
