@@ -19,6 +19,7 @@ const HarvestCrops := preload("res://scripts/harvest/harvest_crops.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
 const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
+const FarmDecorationsView := preload("res://scripts/garden/farm_decorations_view.gd")
 const FarmTick := preload("res://scripts/garden/farm_tick_controller.gd")
 const FarmNextTaskPanel := preload("res://scripts/garden/panels/farm_next_task_panel.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
@@ -40,7 +41,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 1945
+const CHECKS_EXPECTED := 2013
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -1218,6 +1219,39 @@ func _the_decorating_door_and_its_furniture() -> void:
 	await get_tree().process_frame
 	_ok(_find_named(_garden, "Decorations") == unchanged_layer,
 		"an unchanged saved arrangement keeps its live decoration layer")
+	var unchanged_layer_id := unchanged_layer.get_instance_id() \
+		if unchanged_layer != null else 0
+	SaveManager.set_creation("garden", [
+		{"icon": "sprout", "x": 300.0, "y": 250.0, "size": 72.0},
+		{"icon": "heart", "x": 820.0, "y": 460.0, "size": 90.0},
+	])
+	_garden.call("_draw_decorations")
+	await get_tree().process_frame
+	var changed_layer: Node = _find_named(_garden, "Decorations")
+	_ok(changed_layer != null
+			and changed_layer.get_instance_id() != unchanged_layer_id,
+		"a changed saved arrangement replaces its old live layer")
+	_ok(changed_layer != null and changed_layer.get_child_count() == 2,
+		"the changed arrangement draws exactly its two saved pieces")
+	var actual_stamp := str(_garden.get("_deco_drawn"))
+	var actual_canvas: Vector2 = get_viewport().get_visible_rect().size
+	var resized_canvas := actual_canvas + Vector2(0.0, 64.0)
+	var deco_view = FarmDecorationsView.new(_garden)
+	var resized_stamp: String = deco_view.refresh_saved(resized_canvas,
+		actual_stamp)
+	await get_tree().process_frame
+	var resized_layer: Node = _find_named(_garden, "Decorations")
+	_ok(resized_stamp != actual_stamp,
+		"the saved-decoration signature changes when its canvas changes")
+	_ok(resized_layer != null and resized_layer != changed_layer
+			and resized_layer.get_child_count() == 2,
+		"a resized canvas rebuilds both furniture positions")
+	var restored_stamp: String = deco_view.refresh_saved(actual_canvas,
+		resized_stamp)
+	await get_tree().process_frame
+	_ok(restored_stamp == actual_stamp
+			and _find_named(_garden, "Decorations") != resized_layer,
+		"returning to the original canvas restores its saved layout")
 
 	# 三期阶段 3：家具会答话，但排在最后。一件摆在 0 号地正中的家具，
 	# 点下去必须还是地在答（翻土）、家具一动不动；一件摆在空草地上的，
@@ -1273,8 +1307,11 @@ func _the_decorating_door_and_its_furniture() -> void:
 	var base_before: Array = SaveManager.get_creation("base")
 	SaveManager.set_creation("garden", [])
 	_garden.call("_draw_decorations")
+	await get_tree().process_frame
+	_ok(_find_named(_garden, "Decorations") == null,
+		"clearing the saved arrangement removes the passive world layer")
 	_ok(SaveManager.get_creation("base") == base_before,
-		"touching the garden's decorations moved the hero base's shelf")
+		"garden decorations leave the hero-base shelf unchanged")
 
 
 ## 三期阶段 1：加工小屋。先问再扣是这面板的脾气——按「做一份」只竖起

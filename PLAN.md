@@ -925,16 +925,19 @@ These are yours to make. Nothing below has been changed without asking.
   canvas size change, and preserves the live layer when nothing changed.
   `garden_screen.gd` keeps only a short refresh callback and is down to 2,367
   lines. The touch probe now explicitly checks that unchanged furniture keeps
-  its live layer; `GardenTouchProbe` passed 2,001 checks across 16:9 and 4:3,
+  its live layer; `GardenTouchProbe` passed 2,013 checks across 16:9 and 4:3,
   including that no decoration intercepts a crop tap and emptying the garden
   does not affect the hero-base shelf. `tools_check.py` reports 0 errors and
   208 existing warnings. `FarmShot` also rendered and passed the saved-furniture
   poke case at 1280x720 and 1024x768; the captures are in
   `docs/qa/garden_decor_view_20261010/`. The isolated `./tests/run_smoke.sh`
-  then passed all 30 probes with 0 skipped. Four unconditional diagnostic
-  prints in the touch probe were removed; its 2,001 checks passed again after
-  that cleanup. The remaining duplicate-harvest warnings are intentional
-  assertions of the once-only receipt guard.
+  passed all 30 probes with 0 skipped before the latest test-only expansion.
+  Four unconditional diagnostic prints were removed from GardenTouchProbe; its
+  expanded 2,013 checks now cover arrangement changes, canvas-size invalidation
+  and restoration, and empty-layer removal on top of the unchanged-layer,
+  input-isolation, and hero-base-shelf checks. The rerun passed. Remaining
+  duplicate-harvest warnings are intentional assertions of the once-only
+  receipt guard.
 
 ---
 
