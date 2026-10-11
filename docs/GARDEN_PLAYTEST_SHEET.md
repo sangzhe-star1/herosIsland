@@ -55,3 +55,9 @@ python3 tests/audit_garden_save.py --save /absolute/path/to/save_game.json
 - 设备上主要进度是否仍在：
 
 先核实报告中的变化与原档内容，再在设备上用保留的原档副本验证。若发现任何进度缺失，立即停止写回并保留两份文件供进一步分析。
+
+## 本机预检（2026-10-10）
+
+- Godot 4.7.1 的 iOS 工程导出成功，Xcode `generic/platform=iOS` arm64 Debug 编译成功（未签名）；这只确认导出与编译链路，不代表已在真机运行。
+- 本机没有连接实体 iPad。iPad 模拟器安装失败：当前安装的 Godot 模拟器模板库实际只有 x86_64，而本机的 iPad 模拟器要求 arm64；已编译的 x86_64 app 被 iPadOS 拒绝安装。
+- 因此计时、自然发现和旧存档项目仍待实体 iPad 验证；完成后填写本表，不要把模拟器预检当作试玩结果。
