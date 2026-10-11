@@ -1,0 +1,45 @@
+{
+  "source_glb": "assets/harvest_3d/source/strawberry_plant_bed_candidate/rendered_r5/strawberry_plant.glb",
+  "source_sha256": "6a9de7eb7362e73b60d490fc9aaf02c363b33b681dafad7a62149e3b1cc4d349",
+  "profile": "assets/harvest_3d/source/catalog_profile_candidate/inputs/frozen_render_profile.blend",
+  "profile_sha256": "4facaae15f88401f4f7553f12d4ec1e441e2a9597196b38a0b6a6b6fe2ea5512",
+  "fruit_image": "assets/harvest_3d/crops/strawberry.png",
+  "fruit_sha256": "9c965bd5d7cf69cb3d1d21d376dc3d7fd6e0454ecdc8e3190f1004a7f3a8a04a",
+  "rendered_body_sha256": "0adf8359231c2ebe6991c53c8639149f7b3959b5372a5dd4552e741b12064d75",
+  "blender_version": "5.2.2 LTS",
+  "render": {
+    "engine": "CYCLES",
+    "resolution": [
+      512,
+      512
+    ],
+    "ortho": 2.95,
+    "color_management": "Standard",
+    "film_transparent": true,
+    "samples": 48,
+    "seed": 20261011,
+    "device": "CPU",
+    "threads": 1,
+    "leaf_tint": [
+      0.82,
+      0.9,
+      0.78
+    ],
+    "ground_anchor_pixel": [
+      256.0,
+      467.0
+    ],
+    "body_world_size": 150.0,
+    "fruit_ortho": 0.864
+  },
+  "fruit_slot_pixel": [
+    227.645,
+    455.784
+  ],
+  "fruit_center_pixel": [
+    255.368,
+    338.554
+  ],
+  "contact_shadow_baked": false,
+  "interaction_owner": "HarvestTarget"
+}

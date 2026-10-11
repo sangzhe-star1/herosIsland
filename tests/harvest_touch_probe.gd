@@ -1246,7 +1246,8 @@ func _the_matching_basket_stays_marked_without_motion() -> void:
 	var origin := berry.global_position
 	await _stroke(_move_for(berry))
 	var held := _in_hand()
-	_ok(held != null and held.global_position.distance_to(origin + Vector2(0, -46)) < 0.5
+	_ok(held != null and held.global_position.distance_to(
+			origin + held.held_lift_displacement()) < 0.5
 		and held.scale.distance_to(Vector2(1.12, 1.12)) < 0.001
 		and held.z_index >= 2 and held.get_node_or_null("HarvestTargetVisual/HeldCue") != null,
 		"the strawberry is immediately shown in its final held pose")
@@ -1918,7 +1919,9 @@ func _assert_celebration_row_balance(targets: Array, view: Vector2) -> void:
 	var wide := view.x / maxf(view.y, 1.0) >= 1.55
 	var expected_by_phase: Array = []
 	if wide:
-		expected_by_phase = [[1, 3, 4], [2, 3, 1], [3, 2, 0]]
+		# The persistent strawberry rosette counts toward the art footprint, so
+		# the three-row ownership map gives its visual room without changing touch.
+		expected_by_phase = [[3, 1, 4], [1, 4, 1], [2, 3, 0]]
 	else:
 		expected_by_phase = [[2, 2, 2, 2], [2, 1, 2, 1], [1, 1, 2, 1]]
 	var orders: Array = _level.get("_orders")

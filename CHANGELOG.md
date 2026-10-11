@@ -1,5 +1,11 @@
 # Changelog
 
+## Blender 草莓株身接入正式收菜页 — 11 October 2026
+
+- 从现有 r5 rosette GLB 生成透明株身图，通过现有 `HarvestVisualArt` 元数据接入 `harvest_02`；果实、触控、成熟与送篮仍走原组件。单独校准果实与株身比例，避免放大株身时连采摘果实也一起膨胀。
+- 新增 `HarvestPlantShot`：16:9/4:3 普通和真实触控持货四态均通过隔离 Godot 4.7.1 运行；每个普通页找到 9 株，被摘的草莓进入手持状态且株身留场。完整 `HarvestTouchProbe` 双画幅通过 2,317 项，检查新增株身占位后的目标布局与原收菜交互。双画幅截图及 Blender 重建说明见 `docs/qa/strawberry_plant_20261011/`。
+- 此次只验收株身显示和采摘留株；iPad 性能、儿童辨识与整页美术仍待实测。
+
 ## 池塘玩法跟随景物数据坐标 — 11 October 2026
 
 - 钓鱼判定区、池塘涟漪和鱼获回执飞行起点统一读取 `farm_world_dressing.json` 中的 pond 坐标，移池塘时不再留下旧坐标上的不可见钓鱼区或漂移的反馈。

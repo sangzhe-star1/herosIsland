@@ -1,0 +1,18 @@
+{
+  "body": "res://assets/harvest_3d/plants/strawberry_body.png",
+  "fruit": "res://assets/harvest_3d/crops/strawberry.png",
+  "body_world_size": 150.0,
+  "fruit_slot_pixel": [
+    227.645,
+    455.784
+  ],
+  "fruit_center_pixel": [
+    255.368,
+    338.554
+  ],
+  "body_ortho": 2.95,
+  "fruit_ortho": 0.864,
+  "slot_scale": 1.0,
+  "contact_shadow_baked": false,
+  "fruit_source_scale": 1.0
+}

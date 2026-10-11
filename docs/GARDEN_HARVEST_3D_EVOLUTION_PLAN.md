@@ -923,3 +923,10 @@ Godot 按实际会话窗口所有权串行运行，应用名与 `user://` 必须
 - r5 GLB 保持原始字节和 Blender 几何；只调隔离 pilot 呈现参数。叶冠高度由目标作物图的 1.20 倍升至 1.45 倍，让株体在 14 个目标中更容易辨认。原偏蓝档乘色 0.62/0.68/0.92 对比不足；强提亮档 1.05/1.10/0.70 读成荧绿；最终采用温和的 R/G/B 0.82/0.90/0.78。
 - 双比例普通、持货、实际送篮共六次 fresh `qa_run.py`：16:9 为 1280×720，4:3 为 1024×768；每次 `content=true`、`save=OK`，并保持 14 个 targets、14 个 fruits、两只篮子。两次真实触控送篮日志均为 `delivery=true basket=fruit picked={ "strawberry": 1 }`，订单 0/4→1/4；采后株身仍留在地面。
 - [完整六态截图与复跑说明](../assets/harvest_3d/source/strawberry_plant_bed_candidate/godot_review_h145/README.md)。这个呈现参数只提高单个草莓株身的可读性；全页空地、其余作物的 2D/3D 混搭、儿童辨识、设备性能仍待评审。`Harvest3DIntegratedPilot` 的默认仅供隔离候选对照，正式页面与交互没有改动。
+
+### 11.22 Blender 草莓株身接入正式收菜页（2026-10-11，双画幅显示与采摘留株通过）
+
+- 复用 r5 rosette GLB，在冻结渲染档案的相机和柔光下生成独立透明 512×512 被动株身图；果槽 `[227.645, 455.784]` 取自 GLB 相机投影，底部继续使用全项目 `[256, 467]` 地面锚点。果实复用已有 `crops/strawberry.png`，没有创建第二套果实状态或触控节点。
+- 通过现有 `HarvestVisualArt.plant_layout()` 与 `HarvestTarget` 接入正式 `harvest_02`。株身规格为 `body_world_size=150`；将 `fruit_ortho` 单独定为 `0.864`，控制果实和叶冠的比例，避免两者同比放大。Blender 重建脚本、来源 SHA 和渲染规格在 `assets/harvest_3d/source/strawberry_plant_bed_candidate/rendered_2d/`；固定 seed、CPU 单线程后清除运行时 PNG 元数据，两次重建哈希一致（`0adf8359…`）。
+- 新增 `HarvestPlantShot` 对正式关卡验收。16:9 与 4:3 普通态各实例化 9 株；两比例真实触控都能把草莓摘入手中，同时株身仍留在田里，避让横移保持在既有上限内。完整 `HarvestTouchProbe` 双画幅通过 2,317 项；`harvest_08` 把持久株身计入画面占位后，宽屏三阶段行归属更新为 `[3,1,4]`、`[1,4,1]`、`[2,3,0]`，目标间距与可触区域继续通过。四态隔离 `qa_run.py` import/run 全部 exit 0；截图见 [`双画幅普通态与持货态`](../qa/strawberry_plant_20261011/README.md)。
+- 这是把一个小型株身资产接入现有 2.5D 呈现接口，并非整页换成 3D；儿童辨识、iPad 性能、真实设备与整页美术仍要后续评审。连续花床路线继续按 11.20 结论拒绝。双画幅证据见 [`qa/strawberry_plant_20261011/README.md`](qa/strawberry_plant_20261011/README.md)。
