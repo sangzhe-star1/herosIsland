@@ -525,33 +525,6 @@ func _first_pending_order() -> Dictionary:
 	return OrderBoard.first_pending(_orders_for_board(delivered), delivered)
 
 
-func _focus_next_task(task: Dictionary) -> void:
-	AudioManager.play_sfx("res://assets/audio/pop.ogg")
-	if str(task.get("kind", "")) == "deliver":
-		# The visitor board lives in the movable farm, not in the shelf. Move it
-		# into the farm window before drawing the already-existing order finger;
-		# otherwise a child who follows the ribbon only sees a hand pointing off
-		# the glass. Looking is deliberately separate from opening: handing the
-		# order over remains the child's tap on the real board/card.
-		if _world != null and is_instance_valid(_world):
-			_world.look_at_facility("orders")
-		_point_at("order")
-		return
-	var index := int(task.get("index", -1))
-	var plots := _plots()
-	if index < 0 or index >= plots.size() or _world == null \
-			or not is_instance_valid(_world):
-		return
-	_world.look_at_world(Layout.plot_at(index))
-	var plot: Dictionary = plots[index]
-	_world.show_ring(index, plot)
-	Juice.shockwave(_play, _bed_centre(index), 110.0,
-		FarmNextTaskPanel.color_for_task(task).lightened(0.12))
-	if str(task.get("kind", "")) == "plant" and _shelf != null \
-			and is_instance_valid(_shelf):
-		Juice.pop(_shelf, 0.05)
-
-
 ## Where a dragged seed may be let go.
 ##
 ## An invisible Node2D per bed that is turned and empty, sitting on the glass

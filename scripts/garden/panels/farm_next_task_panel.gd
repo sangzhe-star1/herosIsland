@@ -5,6 +5,7 @@ extends "res://scripts/garden/panels/farm_panel_base.gd"
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const NextTask := preload("res://scripts/garden/farm_next_task_controller.gd")
+const Layout := preload("res://scripts/garden/farm_layout.gd")
 const HeroTaskRibbon := preload("res://scripts/ui/hero_task_ribbon.gd")
 
 const RIBBON_AT := Vector2(580.0, 0.0)
@@ -59,8 +60,33 @@ func build(view: Vector2, task: Dictionary, shelf_height: float) -> void:
 	ribbon.set_meta("order_id", str(order.get("id", "")))
 
 	var task_copy := task.duplicate(true)
-	ribbon.pressed.connect(func(): screen.call("_focus_next_task", task_copy))
+	ribbon.pressed.connect(func(): _focus_task(task_copy))
 	play.add_child(ribbon)
+
+
+## The task ribbon owns its own focus feedback: move the camera to the target,
+## mark the bed, and give planting one small bounce without performing the task.
+func _focus_task(task: Dictionary) -> void:
+	AudioManager.play_sfx("res://assets/audio/pop.ogg")
+	if str(task.get("kind", "")) == "deliver":
+		if world != null and is_instance_valid(world):
+			world.call("look_at_facility", "orders")
+		screen.call("_point_at", "order")
+		return
+	var index := int(task.get("index", -1))
+	var plots: Array = screen.call("_plots")
+	if index < 0 or index >= plots.size() \
+			or world == null or not is_instance_valid(world):
+		return
+	world.call("look_at_world", Layout.plot_at(index))
+	var plot: Dictionary = plots[index]
+	world.call("show_ring", index, plot)
+	Juice.shockwave(play, screen.call("_bed_centre", index), 110.0,
+		color_for_task(task).lightened(0.12))
+	var shelf := screen.get("_shelf") as Control
+	if str(task.get("kind", "")) == "plant" and shelf != null \
+			and is_instance_valid(shelf):
+		Juice.pop(shelf, 0.05)
 
 
 func _daily_badge() -> Dictionary:

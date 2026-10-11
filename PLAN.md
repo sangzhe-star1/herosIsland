@@ -293,7 +293,8 @@ These are yours to make. Nothing below has been changed without asking.
    The shared regret toast is now `FarmUndoPanel`; purchase reversal still
    settles through `farm_undo_controller.gd`. The shelf's dense next-action
    card, daily crest, and order preview now live in `FarmNextTaskPanel`; the
-   screen still derives the task and focuses its world target. The barn's
+   screen derives the task, while the panel handles its pressed-state camera
+   focus, bed ring, and small motion feedback. The barn's
    capacity card, overflow summary, shared shelf height, and flight landing
    point now live in `FarmBarnPanel`; the screen supplies the current viewport
    and keeps collection settlement. The saved-decoration door, world placement,
@@ -1106,6 +1107,10 @@ These are yours to make. Nothing below has been changed without asking.
   remains closed through merge and save/reload. Isolated GardenProbe passed
   1,226 checks (two added); this synthetic fixture does not replace the real
   iPad-save audit, which remains pending export.
+- **Next-task focus view boundary (10 October):** `FarmNextTaskPanel` now owns
+  the ribbon's press feedback, including moving the farm camera to the selected
+  bed or visitor board. Delivery still leaves the board closed and the basket
+  untouched. GardenTouchProbe passed 2,031 checks across 16:9 and 4:3.
 
 ---
 
