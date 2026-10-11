@@ -394,7 +394,9 @@ These are yours to make. Nothing below has been changed without asking.
   `farm_world_dressing.json`; moving that art can no longer leave the gameplay
   or feedback behind. GardenProbe passed 1,228 checks, and GardenTouchProbe
   passed 2,057 across 16:9 and 4:3 after moving the live pond and confirming a
-  real tap and receipt origin at the new position. `tools_check.py` reports
+  real tap and receipt origin at the new position. FarmShot now focuses from
+  this same anchor; Godot Compatibility screenshots were reviewed at 16:9 and
+  4:3 in `docs/qa/pond_anchor_20261011/`. `tools_check.py` reports
   0 errors and 208 existing warnings; `git diff --check` passes. The full
   isolated smoke suite now passes 31/31 with 0 skips on the pushed head;
   `tests/test_qa_run.py` passes 16/16. The iPad save has not been exported, so

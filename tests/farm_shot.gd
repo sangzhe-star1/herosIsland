@@ -52,6 +52,7 @@ const Growth := preload("res://scripts/garden/offline_growth.gd")
 const Dailies := preload("res://scripts/garden/farm_daily_manager.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
+const PondManager := preload("res://scripts/garden/farm_pond_manager.gd")
 const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const ProbeLifecycle := preload("res://tests/probe_lifecycle.gd")
@@ -489,7 +490,8 @@ func _ready() -> void:
 	var focus_facility := OS.get_environment("SHOT_FOCUS_FACILITY")
 	if focus_facility != "" and what != "bear" and what != "home":
 		if focus_facility == "pond":
-			(scene.get("_world") as Node).call("look_at_world", Vector2(1362, 612))
+			(scene.get("_world") as Node).call("look_at_world",
+				PondManager.pond_center())
 		elif focus_facility == "scarecrow":
 			(scene.get("_world") as Node).call("look_at_world", Vector2(650, 605))
 		elif focus_facility == "well":
