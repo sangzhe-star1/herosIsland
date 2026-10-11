@@ -16,7 +16,7 @@ behind. `CHANGELOG.md` is the record, one section per round.
 
 | | 22 July, from the first version of this file | Now |
 |---|---|---|
-| Levels | 14 | 59 |
+| Levels | 14 | 67 |
 | Templates with levels | 4 | 14 |
 | Home screen doors | 2, and a disabled Hero House button | 5 |
 | Smoke checkpoints | 1 script | 30, all green |
@@ -38,9 +38,10 @@ check behind, and the check is broken once on purpose to prove it goes red.
 
 ## Phase 2 — Complete the level set — **done, and outgrown**
 
-The four-template plan became fourteen templates in use. The island has five
-worlds and 34 levels; 光之战士 has 15 duels; the Star Garden has the farm plus
-8 harvest levels. See README §4.
+The four-template plan became fourteen game types in use. The five story
+worlds contain 30 levels; Hero Studio and Star Garden add three more; 光之战士
+has 15 duels; the farm has 16 harvest levels; three bonus levels round out
+the 67-level catalogue. See README §4.
 
 ## Phase 3 — The real content pass — **mostly done**
 
@@ -69,7 +70,7 @@ This is now the main loop. Keep recording only:
 
 The one metric that matters is still: *does he ask to play it again tomorrow?*
 
-The "cut" half has not happened yet. With 59 levels, that is now the bigger
+The "cut" half has not happened yet. With 67 levels, that is now the bigger
 risk than missing content.
 
 ## Phase 5 — Depth — **partly done**
@@ -78,7 +79,7 @@ risk than missing content.
   child-safety rules in the house skill.
 - **Monster album** — built, and since 31 July it is also the battle guide:
   each card's weakness is the move that opens that monster.
-- **Star Garden** — built, with its own eight harvest levels.
+- **Star Garden** — built, with its own sixteen harvest levels.
 - **Child profiles** — not built; only if a sibling starts playing.
 - **Story cutscenes** — not built; the end-of-level mini lesson covers part of
   the same need.
@@ -159,8 +160,8 @@ These are yours to make. Nothing below has been changed without asking.
    `collect_energy`, `animal_rescue`, `memory_match`, `monster_battle` and
    `monster_expedition` are from the first version. **Decided 25 September
    2026: they stay.** Giving them levels again is still open.
-2. **The battle track is a third of the game.** `monster_duel` runs 21 of the
-   59 levels. That is fine if it is what he returns to. If it is not, it is
+2. **The battle track is about a third of the game.** `monster_duel` runs 21 of
+   the 67 levels. That is fine if it is what he returns to. If it is not, it is
    the first place to cut.
 3. **`scripts/garden/garden_screen.gd` still carries too many jobs.** The
    panel layer was rebuilt on the current branch and completed on 7 October.
