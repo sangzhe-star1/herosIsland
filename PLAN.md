@@ -1128,6 +1128,14 @@ These are yours to make. Nothing below has been changed without asking.
   GardenTouchProbe passed 2,031 checks across 16:9 and 4:3, FarmWorldProbe and
   SaveProbe passed, and `tools_check.py` reported 0 errors with 208 existing
   warnings. The actual iPad save and hands-on pacing session remain open.
+- **Mac save and backup migration rehearsal (10 October):** the live Mac
+  `save_game.json` and its `save_game.bak` were each copied into separate QA
+  sandboxes and run through normal load, settle, save, and reload. Both are
+  `version=1 / save_version=4`, retain all 38 farm keys and six plots, pass 8/8
+  preservation checks, and have no lost farm keys; both source hashes stayed
+  unchanged. Their 25 leaf changes are only facility/NPC cycle defaults,
+  robot defaults, and clock/plot settlement timestamps. These are current Mac
+  saves; the iPad backup is still needed for the older-device migration audit.
 
 ---
 

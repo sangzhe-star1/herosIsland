@@ -67,7 +67,7 @@ python3 tests/audit_garden_save.py --save /absolute/path/to/save_game.json
 
 - 在当前 `main` 的 `efa0945` 上重新导出到忽略目录 `build/ios-current/HeroesIsland.xcodeproj`。Xcode `generic/platform=iOS` 的未签名 Debug 构建通过，app 二进制确认为 arm64。真机列表仍只有 MacBook Pro，没有连接 iPad。
 - 用这次导出工程复测 `generic/platform=iOS Simulator`：仍因 Godot `libgodot.a` 只有 x86_64 而无法链接 arm64；XCFramework 清单虽列出 arm64 simulator，库的实际切片不含它，最终报 `_main` 未定义。设备版可编译，模拟器和真机运行尚未验证。
-- 额外对本机 Godot 用户目录里的现有 Mac 存档做了隔离审计：源存档 `save_version=4`、38 个农场字段和 6 块地；8/8 项基础保留检查通过、`lost_farm_keys` 为空，原文件 SHA-256 前后相同。审计报告将 8 个结算相关字段标为需人工复核；这不是 iPad 备份，不能替代真实设备旧档验证。
+- 对本机 Godot 用户目录里的当前 Mac 存档及其上一代 `save_game.bak` 分别做了隔离审计：两份均为 `version=1 / save_version=4`、38 个农场字段和 6 块地；各自 8/8 项基础保留检查通过、`lost_farm_keys` 为空，源文件 SHA-256 前后相同。两份报告都将 8 个结算相关农场块标为需人工复核；25 个具体差异仅涉及设施/NPC 新增周期字段、机器人默认状态及时间结算戳，地块作物与阶段未变。这两份都是 Mac 存档，不是 iPad 备份，不能替代真实设备旧档验证。
 
 ## 模拟器模板修复与运行边界（2026-10-10）
 
