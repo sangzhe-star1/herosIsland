@@ -1,5 +1,11 @@
 # Changelog
 
+## FarmWorld 与完整隔离回归复验通过 — 10 October 2026
+
+- 在 `36de1ff` 上重新运行未裁剪的 FarmWorldProbe：16:9 和 4:3 共通过 923 项，耗时 19.8 秒；商店二次购买、仓库扩容确认和好友农场场景均通过。上次 4:3 确认按钮脚本错误本次未重现，不据此推断其先前根因。
+- `./tests/run_smoke.sh`：30 passed、0 skipped；`tools_check.py`：0 errors、208 条既有 warnings；`git diff --check` 通过。
+- FarmWorldProbe 上次一次性失败不再是当前验证结果；真实 iPad 存档迁移仍待设备备份，孩子实机试玩仍待安排。
+
 ## 农场安静时钟结算收进时钟控制器 — 10 October 2026
 
 - `FarmTickController` 现在统一执行每次安静时钟结算：记录地块前态、按时间结算生长、把篮子溢出收回仓库，并只在库存实际转移时保存一次；控制器返回新地块、成熟床位和家具重建判断。`GardenScreen` 保留计时器、世界刷新、成熟反馈和重建。

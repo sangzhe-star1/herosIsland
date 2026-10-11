@@ -1040,13 +1040,12 @@ These are yours to make. Nothing below has been changed without asking.
   2,019 checks across 16:9 and 4:3. Focused shop-buy (34), market-sale (20),
   and barn-upgrade (34) checks passed across both shapes, and
   `tools_check.py` reports 0 errors with 208 existing warnings.
-  The full FarmWorldProbe is not verified: the working-tree long run logged
-  missing-confirm-button script errors in 4:3; the baseline long run timed out
-  after 400 seconds in the 16:9 friend-farm segment before reaching those
-  cases. The same shop and barn flows pass independently in both shapes, so a
-  serial full-probe rerun remains an open verification item. The full isolated
-  smoke suite was not rerun. Real iPad save migration and child playtesting
-  remain pending.
+  A clean, unmodified full FarmWorldProbe rerun on `36de1ff` passed all 923
+  checks across both shapes in 19.8 seconds, including the shop, barn, and
+  friend-farm flows; the earlier 4:3 missing-button errors did not reproduce.
+  The complete isolated smoke suite also passed 30/30 with 0 skipped, and
+  `tools_check.py` reports 0 errors with 208 existing warnings. Real iPad save
+  migration and child playtesting remain pending.
 - **Quiet farm-clock settlement boundary (10 October):**
   `FarmTickController.settle()` now owns the quiet beat's before-state
   snapshot, timestamp settlement, basket transfer, save-on-transfer rule, and
@@ -1054,9 +1053,9 @@ These are yours to make. Nothing below has been changed without asking.
   visual feedback. GardenTouchProbe passed 2,019 checks across 16:9 and 4:3,
   including the real tick path's no-op save check, stage crossing, ripe crop,
   basket refill, and backup generation; GardenProbe passed 1,212 checks.
-  `tools_check.py` reports 0 errors and 208 existing warnings. The full smoke
-  suite was not rerun. Real iPad save migration and child playtesting remain
-  pending.
+  `tools_check.py` reports 0 errors and 208 existing warnings. The complete
+  isolated smoke suite on `36de1ff` passed 30/30 with no skips. Real iPad save
+  migration and child playtesting remain pending.
 
 ---
 
