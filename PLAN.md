@@ -84,11 +84,23 @@ risk than missing content.
 - **Story cutscenes** — not built; the end-of-level mini lesson covers part of
   the same need.
 
-## Phase 6 — Release — **Mac done, tablets documented**
+## Phase 6 — Release — **Mac done, iOS build preflight passed**
 
 `tools/build_mac.command` builds the Mac app. `docs/DEPLOYMENT.md` covers the
 Android and iOS paths. The same rule as before holds: before any build leaves
 the house, replace any licensed character likeness with an original hero.
+
+On 10 October, the unsigned iOS arm64 Debug build passed. The local Godot
+4.7.1 simulator template advertises an arm64 slice it does not contain; a
+matching arm64 simulator library was built from the 4.7.1 source and merged
+into an ignored local XCFramework copy. The app then built, installed and
+launched on an iPad Pro simulator. This restored a launch check, but the
+software-rendered simulator did not finish the full touch probe, so this is
+not an iPad playtest. The device and real-save checks remain open; see
+`docs/GARDEN_PLAYTEST_SHEET.md` for the exact result and limitation.
+The desktop baseline on this head still passes: `./tests/run_smoke.sh` reports
+30 passed, 0 skipped; `python3 tools_check.py` reports 0 errors and 208
+existing warnings.
 
 ---
 

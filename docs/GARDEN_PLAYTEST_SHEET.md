@@ -68,3 +68,27 @@ python3 tests/audit_garden_save.py --save /absolute/path/to/save_game.json
 - 在当前 `main` 的 `efa0945` 上重新导出到忽略目录 `build/ios-current/HeroesIsland.xcodeproj`。Xcode `generic/platform=iOS` 的未签名 Debug 构建通过，app 二进制确认为 arm64。真机列表仍只有 MacBook Pro，没有连接 iPad。
 - 用这次导出工程复测 `generic/platform=iOS Simulator`：仍因 Godot `libgodot.a` 只有 x86_64 而无法链接 arm64；XCFramework 清单虽列出 arm64 simulator，库的实际切片不含它，最终报 `_main` 未定义。设备版可编译，模拟器和真机运行尚未验证。
 - 额外对本机 Godot 用户目录里的现有 Mac 存档做了隔离审计：源存档 `save_version=4`、38 个农场字段和 6 块地；8/8 项基础保留检查通过、`lost_farm_keys` 为空，原文件 SHA-256 前后相同。审计报告将 8 个结算相关字段标为需人工复核；这不是 iPad 备份，不能替代真实设备旧档验证。
+
+## 模拟器模板修复与运行边界（2026-10-10）
+
+- 复核了 Godot 4.7.1 的 XCFramework：`Info.plist` 声明 `arm64 x86_64`，但官方模拟器库实际只有 x86_64。这与 Godot 的 [4.7.1 模拟器切片问题](https://github.com/godotengine/godot/issues/122379)一致。
+- 在被忽略的 `build/ios-current/` 中检出 Godot `4.7.1-stable`（源码提交 `a13da4f`），运行 `scons platform=ios target=template_debug arch=arm64 ios_simulator=yes` 编出 arm64 静态库；用 `lipo -create` 与原 x86_64 库合成临时通用切片。`lipo -archs` 确认为 `x86_64 arm64`。没有把 Godot 源码、生成库或修改后的模板加入项目。
+- 核心复现命令（从仓库根目录运行；完整源码、SCons 虚拟环境和中间输出都留在被忽略的 `build/`）：
+
+  ```bash
+  cd build/ios-current/godot-4.7.1-src
+  ../scons-venv/bin/scons -j8 platform=ios target=template_debug arch=arm64 ios_simulator=yes
+  cd ../../..
+  xcrun lipo -create \
+    build/ios-current/SimulatorX86DerivedData/Build/Products/Debug-iphonesimulator/libgodot.a \
+    build/ios-current/godot-4.7.1-src/bin/libgodot.ios.template_debug.arm64.simulator.a \
+    -output build/ios-current/SimulatorMerged/libgodot.a
+  cp build/ios-current/SimulatorMerged/libgodot.a \
+    build/ios-current/HeroesIsland.xcframework/ios-arm64_x86_64-simulator/libgodot.a
+  lipo -archs build/ios-current/HeroesIsland.xcframework/ios-arm64_x86_64-simulator/libgodot.a
+  ```
+
+- 合并后的模拟器工程由 Xcode 编译成功；普通 app 和唯一 QA bundle `com.family.heroesisland.qafarm` 都成功安装并启动在 iPad Pro 13-inch (M5) / iOS 26.5 Simulator。QA bundle 使用独立 `user://` 容器，未接触正式 app 存档。
+- **触控探针未通过，也未判失败。** 全量 904 项探针运行超过 11 分钟，只写出 `harvest_feedback_1280_720.png` 与 `friend_door_1280_720.png`，没有最终断言标记；后续 `--market-sale-only` 运行超过 6 分钟仍停在灰屏和农场初始化，专用存档没有离开启动状态。采样显示主线程反复耗在 iPad 高分辨率的 GLES 软件栅格化；停止这两次测试以免继续占用机器。模拟器启动画面有上下留黑，不能替代横屏实体设备观察。
+- 因此只确认了导出、链接、安装和启动；**没有确认**模拟器触控探针完整通过、孩子的计时/自然发现体验或真实 iPad 旧档迁移。iPad 备份尚未导出；收到备份后仍按上面的只读源文件审计流程执行，再由人工核对报告。
+- 同一 `main` 提交上的桌面隔离回归：`./tests/run_smoke.sh` 为 30 passed、0 skipped；`python3 tools_check.py` 为 0 errors、208 warnings；文档改动通过 `git diff --check`。
