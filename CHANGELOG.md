@@ -1,5 +1,11 @@
 # Changelog
 
+## 草莓 r5 株体双画幅隔离评审 — 11 October 2026
+
+- 将 3D source-only 草莓株体接入 `Harvest3DIntegratedPilot` 的真实 `harvest_02` 关卡，在 16:9 与 4:3 分别留存普通、持货和送篮截图；两种画幅均通过现有草莓触控、入篮与订单路径，篮中订单从 0/4 变为 1/4。
+- r5 株体比连续花床候选更适合继续验证；花床因画面像一整块棕色平台且覆盖漏掉一个作物锚点而拒绝。株体仍只是隔离美术候选，未接入正式页面。截图与复现说明见 `assets/harvest_3d/source/strawberry_plant_bed_candidate/godot_review_r5/README.md`。
+- Blender 5.2.2 重建后顶点位置、法线和有向三角集合一致；Godot 4.7.1 Compatibility 渲染及每次 `qa_run.py` 的 content/save 门禁通过。未证明儿童辨识度或 iPad 性能；真实设备试玩仍待安排。
+
 ## 设施与池塘收成共用回执完成路径 — 11 October 2026
 
 - `GardenScreen` 将设施产物与鱼获入账后的完成顺序汇到一个入口：单次保存、收成音效、可选设施语音、按回执存入/溢出数量飞行、标记收过并重绘。鱼获仍保留默认存入数量和鸭宝宝解锁祝贺；各来源的结算仍由原控制器完成。
