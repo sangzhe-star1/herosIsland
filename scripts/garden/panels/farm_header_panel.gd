@@ -160,8 +160,8 @@ func _challenge_door(view: Vector2) -> void:
 		Color(0.34, 0.27, 0.17))
 	count.name = "ChallengeCount"
 	# Keep a safety inset around the full 16/16 label when the card breathes.
-	count.position = Vector2(43.0, 25.0)
-	count.size = Vector2(38.0, 18.0)
+	count.position = Vector2(45.0, 25.0)
+	count.size = Vector2(36.0, 18.0)
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	door.add_child(count)

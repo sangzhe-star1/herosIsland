@@ -38,6 +38,7 @@ extends Node
 ## friends_orders: new friend commissions, with a fillable rabbit picnic.
 ## friend_thanks: that picnic actually delivered through the visible card.
 ## challenge_picker: replay panel; SHOT_PAGE selects its page.
+## challenge_complete: sixteen-star harvest shelf for the compact-header shot.
 ## inventory_full/empty/upgrade: the collection sheet, including all sixteen
 ##         foods or its empty state; upgrade captures the real confirmation.
 ## SHOT_PAGE=N flips the mode's paged surface to page N before the shot.
@@ -92,6 +93,13 @@ func _ready() -> void:
 		I18n.set_locale(OS.get_environment("SHOT_LOCALE"))
 	if OS.get_environment("SHOT_REDUCE_MOTION") == "1":
 		SaveManager.set_setting("reduce_motion", true)
+	if what == "challenge_complete":
+		for level: Dictionary in GameData.get_levels_for_mode("harvest"):
+			var level_id := str(level.get("id", ""))
+			SaveManager.data["levels"][level_id] = {"stars": 1,
+				"best_accuracy": 1.0, "attempts": 1, "completed": true,
+				"found_hidden": false}
+		SaveManager.save_game()
 	var farm: Dictionary = SaveManager.data["farm"]
 	farm["tutorial_completed"] = true
 	farm["last_seen_at"] = NOON
@@ -355,6 +363,10 @@ func _ready() -> void:
 			await get_tree().process_frame
 			_daily_check(scene.find_child("ChallengeLevel_harvest_%02d" % (page * 4 + 1), true, false) != null,
 				"the requested replay page contains real level buttons")
+		elif what == "challenge_complete":
+			var count := scene.find_child("ChallengeCount", true, false) as Label
+			_daily_check(count != null and count.text == "16/16",
+				"the completed harvest shelf renders its full count")
 		elif what in ["inventory_full", "inventory_empty", "inventory_upgrade"]:
 			var shortcut := scene.find_child("BarnShortcut", true, false) as Control
 			_daily_check(shortcut != null, "the actual collection shortcut exists")
@@ -575,7 +587,11 @@ func _ready() -> void:
 		print("DAILY BOARD SHOT ", "PASSED" if _fixture_failures.is_empty() else "FAILED")
 	elif not rendered:
 		print("FAIL farm screenshot contains no rendered content")
-	if what in ["friends", "friends_orders", "friend_thanks", "challenge_picker", "rack", "rack_held",
+	if what == "challenge_complete":
+		for failure in _fixture_failures:
+			print("FAIL ", failure)
+		print("FARM HEADER SHOT ", "PASSED" if _fixture_failures.is_empty() and rendered and save_error == OK else "FAILED")
+	elif what in ["friends", "friends_orders", "friend_thanks", "challenge_picker", "rack", "rack_held",
 			"overflow_many", "overflow_collection",
 			"inventory_full", "inventory_empty", "inventory_upgrade"]:
 		for failure in _fixture_failures:

@@ -36,6 +36,7 @@ const Recipes := preload("res://scripts/garden/recipe_manager.gd")
 const Layout := preload("res://scripts/garden/farm_layout.gd")
 const FarmWorld := preload("res://scripts/garden/farm_world_controller.gd")
 const Tools := preload("res://scripts/garden/farm_tool_controller.gd")
+const ToolTargetView := preload("res://scripts/garden/farm_tool_target_view.gd")
 const Stroke := preload("res://scripts/garden/continuous_action_controller.gd")
 const PlotGesture := preload("res://scripts/garden/plot_gesture_controller.gd")
 const PlotAction := preload("res://scripts/garden/farm_plot_action_controller.gd")
@@ -1408,27 +1409,7 @@ func _select_tool(tool_id: String) -> void:
 ## FarmToolController.needs(), the same function that greys tools and gates a
 ## brush stroke, so presentation can never promise a bed the gesture will skip.
 func _sync_tool_target_halos(task: Dictionary = {}) -> void:
-	if _world == null or not is_instance_valid(_world):
-		return
-	var targets: Array = []
-	if _tools.selected != Tools.HAND and not _something_is_open():
-		for i in range(_plots().size()):
-			if _tools.needs(_tools.selected, _plots()[i]):
-				targets.append(i)
-	var primary := int(task.get("index", -1))
-	_world.set_tool_targets(targets, _tool_target_color(_tools.selected), primary)
-
-
-## Reuse the same warm/cool task palette for the in-world target rings. Tool
-## semantics remain in FarmToolController; this only gives each existing kind
-## the visual family children have already learned from the task ribbon.
-func _tool_target_color(tool_id: String) -> Color:
-	match tool_id:
-		"basket": return FarmNextTaskPanel.color_for_task({"kind": "harvest"})
-		"water", "weed", "bug": return FarmNextTaskPanel.color_for_task({"kind": "care"})
-		"seed": return FarmNextTaskPanel.color_for_task({"kind": "plant"})
-		"shovel": return FarmNextTaskPanel.color_for_task({"kind": "till"})
-		_: return Color(1.0, 1.0, 1.0)
+	ToolTargetView.sync(_world, _tools, _plots(), _something_is_open(), task)
 
 
 ## Tapping a seed tile arms the seed brush with that crop, in one move. No

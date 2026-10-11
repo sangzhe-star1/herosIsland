@@ -909,6 +909,17 @@ These are yours to make. Nothing below has been changed without asking.
   in `docs/qa/friend_farms_20261010/`. The real iPad save migration remains
   pending because no backup has been exported yet; synthetic migration and
   two-device merge coverage remain green.
+- **Garden input/view split (10 October):** the selected tool's eligible-bed
+  rings and task colours now live in `farm_tool_target_view.gd`; eligibility
+  still comes from `FarmToolController.needs()`. This trims
+  `garden_screen.gd` from 2,415 to 2,396 lines without changing tool or touch
+  rules. A baseline rerun exposed a 4:3 spacing failure in the completed
+  harvest counter, so its label was narrowed and shifted inside the existing
+  card. The new `FarmShot` completion fixture renders 16/16 at 1280×720 and
+  1024×768; screenshots are in
+  `docs/qa/garden_challenge_header_20261010/`. `GardenTouchProbe` passed 1,995
+  checks, `FarmWorldProbe` passed 907, and `tools_check.py` reports 0 errors
+  and 208 existing warnings.
 
 ---
 
