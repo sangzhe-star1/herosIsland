@@ -13,7 +13,7 @@ var progress := 0.0  # 0.0 to 1.0
 func _draw() -> void:
 	if not active:
 		return
-	var center := PondManager.POND_CENTER
+	var center := PondManager.pond_center()
 	# Water ripple expanding
 	var r1 := 10.0 + progress * 32.0
 	var a1 := clampf((1.0 - progress) * 0.7, 0.0, 0.7)

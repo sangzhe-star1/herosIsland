@@ -12,10 +12,29 @@ extends RefCounted
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
 
 const DUCKLING_THRESHOLD := 5
-const POND_CENTER := Vector2(1362, 612)
 const POND_RADIUS := 54.0
 const RING_DURATION := 1.8
 const RING_TOLERANCE := 0.45
+
+
+## The water art owns its position in farm_world_dressing.json. The hit test,
+## ring, and collection flight all read this same anchor so moving the pond in
+## the world layout cannot leave fishing behind at an empty patch of grass.
+static func pond_center() -> Vector2:
+	var center: Variant = _pond_dressing_center()
+	if center is Vector2:
+		return center
+	return Vector2.ZERO
+
+
+static func _pond_dressing_center() -> Variant:
+	for entry in GameData.farm_dressing.get("props", []):
+		if not entry is Dictionary or str(entry.get("id", "")) != "pond":
+			continue
+		var at: Variant = entry.get("at", [])
+		if at is Array and at.size() >= 2:
+			return Vector2(float(at[0]), float(at[1]))
+	return null
 
 
 static func fish_caught_total(farm: Dictionary) -> int:
@@ -27,7 +46,11 @@ static func has_ducklings(farm: Dictionary) -> bool:
 
 
 static func is_near_pond(world_pos: Vector2) -> bool:
-	return world_pos.distance_to(POND_CENTER) <= (POND_RADIUS + 25.0)
+	var center: Variant = _pond_dressing_center()
+	if not center is Vector2:
+		return false
+	var point: Vector2 = center
+	return world_pos.distance_to(point) <= (POND_RADIUS + 25.0)
 
 
 ## Record catching a fish: adds 1 fresh fish to inventory, updates count,

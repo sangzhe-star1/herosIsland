@@ -42,7 +42,7 @@ const NOON := 1_699_963_200
 ##
 ## Counted across BOTH screen shapes, because a probe that silently ran only one
 ## of them is the same failure wearing a different hat.
-const CHECKS_EXPECTED := 2043
+const CHECKS_EXPECTED := 2045
 
 var _failures: Array[String] = []
 var _garden: Node = null
@@ -405,6 +405,18 @@ func _fresh_garden() -> void:
 	DirAccess.remove_absolute(SaveManager.SAVE_BACKUP)
 	SaveManager.load_game()
 	SaveManager.data["farm"]["last_seen_at"] = NOON
+
+
+## Rebuild the live scene from temporary dressing data, then rebuild it once
+## more from the original source after the touch contract has been checked.
+func _rebuild_world_for_dressing_probe() -> void:
+	var old_world := _garden.get("_world") as Node
+	if old_world != null and is_instance_valid(old_world):
+		old_world.queue_free()
+	_garden.set("_world", null)
+	_garden.call("_rebuild")
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 
 ## The shop panel's real confirm and cancel buttons drive the purchase and
@@ -2634,21 +2646,37 @@ func _the_pond_receipt_reaches_the_basket_on_a_real_tap() -> void:
 	farm["fish_caught_total"] = PondManager.DUCKLING_THRESHOLD - 1
 	GameClock.set_test_now(NOON, 0)
 	SaveManager.save_game()
-	_garden.call("_rebuild")
-	await get_tree().process_frame
-	await get_tree().process_frame
+	var original_dressing: Dictionary = GameData.farm_dressing
+	var moved_dressing: Dictionary = original_dressing.duplicate(true)
+	var original_center := PondManager.pond_center()
+	var moved_center := original_center + Vector2(-360.0, -72.0)
+	for entry_value in moved_dressing.get("props", []):
+		if not entry_value is Dictionary:
+			continue
+		var entry: Dictionary = entry_value
+		if str(entry.get("id", "")) in ["pond", "duck", "firefly"]:
+			var old_at: Array = entry.get("at", [])
+			entry["at"] = [float(old_at[0]) - 360.0,
+				float(old_at[1]) - 72.0]
+	GameData.farm_dressing = moved_dressing
+	await _rebuild_world_for_dressing_probe()
 	var world: Node = _garden.get("_world")
-	world.call("look_at_world", PondManager.POND_CENTER)
+	_ok(PondManager.pond_center().is_equal_approx(moved_center)
+			and not PondManager.is_near_pond(original_center),
+		"the real pond tap follows a moved dressing anchor")
+	world.call("look_at_world", moved_center)
 	world.call("_start_fishing_ring")
 	world.set("_fishing_elapsed", PondManager.RING_DURATION * 0.75)
 	var ring: Node2D = world.get("_pond_ring")
 	ring.progress = 0.75
 	ring.active = true
 	var pond_water: Vector2 = _camera().world_to_screen(
-		PondManager.POND_CENTER + Vector2(35.0, -30.0))
+		moved_center + Vector2(35.0, -30.0))
 	_garden.remove_meta("last_harvest_flight")
 	_garden.set_meta("harvest_flights", [])
 	await _tap(pond_water)
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 	_ok(int(SaveManager.data["farm"].get("fish_caught_total", 0))
 			== PondManager.DUCKLING_THRESHOLD
@@ -2656,10 +2684,16 @@ func _the_pond_receipt_reaches_the_basket_on_a_real_tap() -> void:
 			and (world.get("_ducklings") as Array).size() == 3,
 		"a real pond tap records the fifth fish, fills the basket, and hatches the ducklings")
 	var flight: Dictionary = _garden.get_meta("last_harvest_flight", {})
+	var expected_source: Vector2 = _camera().world_to_screen(moved_center) \
+		+ Vector2(0.0, -20.0)
+	var source_at: Vector2 = flight.get("source_at", Vector2.INF)
 	_ok(str(flight.get("crop_id", "")) == "fish"
 			and str(flight.get("destination", "")) == "harvest_basket"
+			and source_at.distance_to(expected_source) < 0.1
 			and _find_named(_garden, "HarvestSpillFlight_fish") is Control,
-		"the fish spill receipt takes the shared flight into its visible basket")
+		"the fish receipt starts from the moved pond and flies into the visible basket")
+	GameData.farm_dressing = original_dressing
+	await _rebuild_world_for_dressing_probe()
 
 
 ## The core garden loop must work as one child's journey, not only as separate

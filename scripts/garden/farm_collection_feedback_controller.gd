@@ -66,8 +66,10 @@ func show_flight(layer: CanvasLayer, host: Node, receipt: Dictionary,
 	art.set_meta("golden", golden)
 	# A receipt remains queryable after the 0.4-second sprite has left, so a
 	# slow frame or the probe can still verify what flew and where it landed.
+	var start := from_at if from_at.is_finite() else Vector2.ZERO
 	var stamp := {"node": art.name, "crop_id": crop_id, "amount": amount,
-		"destination": destination, "destination_at": destination_at}
+		"source_at": start, "destination": destination,
+		"destination_at": destination_at}
 	host.set_meta("last_harvest_flight", stamp)
 	var flights: Array = host.get_meta("harvest_flights", [])
 	flights.append(stamp)
@@ -76,7 +78,6 @@ func show_flight(layer: CanvasLayer, host: Node, receipt: Dictionary,
 	host.set_meta("harvest_flights", flights)
 	if golden:
 		art.modulate = Color(1.0, 0.85, 0.35)
-	var start := from_at if from_at.is_finite() else Vector2.ZERO
 	art.position = start - Vector2(22, 22)
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(art)

@@ -78,7 +78,7 @@ const PHASE_SEVEN_FARM_KEYS := [
 ##
 ## A floor, set a little under what the probe actually asks, so that adding a
 ## check never means editing this number. It only moves when a section is added.
-const CHECKS_EXPECTED := 1162
+const CHECKS_EXPECTED := 1165
 
 var _failures: Array[String] = []
 ## How many questions actually got asked. See CHECKS_EXPECTED.
@@ -3768,8 +3768,27 @@ func _the_pond_fishing_and_ducklings_work() -> void:
 	# 1. Initial state
 	_ok(PondManager.fish_caught_total(farm) == 0, "fresh save has 0 fish caught")
 	_ok(not PondManager.has_ducklings(farm), "fresh save does not have ducklings")
-	_ok(PondManager.is_near_pond(Vector2(1362, 612)), "pond center is within fishing zone")
+	var original_center := PondManager.pond_center()
+	_ok(PondManager.is_near_pond(original_center), "pond center is within fishing zone")
 	_ok(not PondManager.is_near_pond(Vector2(200, 200)), "far away point is outside fishing zone")
+	var original_dressing: Dictionary = GameData.farm_dressing
+	var moved_dressing: Dictionary = original_dressing.duplicate(true)
+	var moved_center := original_center + Vector2(-360.0, -72.0)
+	for entry_value in moved_dressing.get("props", []):
+		if not entry_value is Dictionary:
+			continue
+		var entry: Dictionary = entry_value
+		if str(entry.get("id", "")) != "pond":
+			continue
+		entry["at"] = [moved_center.x, moved_center.y]
+		break
+	GameData.farm_dressing = moved_dressing
+	_ok(PondManager.pond_center().is_equal_approx(moved_center),
+		"the pond anchor follows the world dressing data")
+	_ok(PondManager.is_near_pond(moved_center)
+			and not PondManager.is_near_pond(original_center),
+		"fishing moves with the pond instead of remaining at the old coordinates")
+	GameData.farm_dressing = original_dressing
 
 	# 2. Catch first fish
 	var r1 := PondManager.catch_fish(farm)

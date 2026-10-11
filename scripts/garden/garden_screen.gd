@@ -28,6 +28,7 @@ extends LevelManager
 
 const Farm := preload("res://scripts/garden/farm_save.gd")
 const Growth := preload("res://scripts/garden/offline_growth.gd")
+const PondManager := preload("res://scripts/garden/farm_pond_manager.gd")
 const PlotCare := preload("res://scripts/garden/farm_plot_care_controller.gd")
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Barn := preload("res://scripts/garden/inventory_manager.gd")
@@ -785,7 +786,7 @@ func _on_bear_visit_finished(_index: int) -> void:
 
 
 func _on_fish_caught(info: Dictionary) -> void:
-	var pond_pos := Vector2(1362.0, 612.0)
+	var pond_pos := PondManager.pond_center()
 	var at: Vector2 = _world.camera.world_to_screen(pond_pos) if _world != null and is_instance_valid(_world) else Vector2(640, 360)
 	_present_collection_receipt(info, at, 1)
 	if bool(info.get("unlocked_ducklings", false)):

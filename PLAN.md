@@ -389,6 +389,16 @@ These are yours to make. Nothing below has been changed without asking.
   across 16:9 and 4:3; `tools_check.py` reports 0 errors and 208 existing
   warnings. `./tests/run_smoke.sh` passes 31/31 with 0 skips.
 
+- **Pond dressing anchor consistency:** fishing range, the ripple ring, and the
+  fish receipt flight now read the pond's position from
+  `farm_world_dressing.json`; moving that art can no longer leave the gameplay
+  or feedback behind. GardenProbe passed 1,228 checks, and GardenTouchProbe
+  passed 2,057 across 16:9 and 4:3 after moving the live pond and confirming a
+  real tap and receipt origin at the new position. `tools_check.py` reports
+  0 errors and 208 existing warnings; `git diff --check` passes. The full
+  isolated smoke suite was not rerun for this follow-up. The iPad save has not
+  been exported, so the real-device migration audit remains pending.
+
 - **Panel visit state boundary:** `FarmPanelStateController` now owns route-
   local pages, purchase/upgrade confirmations, and uncommitted market and gift
   baskets. `GardenScreen` keeps compatibility properties for existing panels
