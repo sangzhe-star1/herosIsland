@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-11",
+  "godot": "/Applications/Godot.app/Contents/MacOS/Godot",
+  "isolation": "tests/qa_run.py QASession, unique user:// directory, serial rendering",
+  "shots": [
+    {
+      "name": "garden_16x9",
+      "scene": "res://tests/FarmShot.tscn",
+      "exit_code": 0,
+      "screenshot": "garden_16x9.png",
+      "screenshot_sha256": "71c85c24c5521df806164a3e8cac0839b0d230d82d39527d5fc1ea1f15838cfc",
+      "log": "garden_16x9.log",
+      "rendered_content_check": "PASS",
+      "verification": "FarmShot exit code asserts rendered content and successful PNG save"
+    },
+    {
+      "name": "market_16x9",
+      "scene": "res://tests/FarmShot.tscn",
+      "exit_code": 0,
+      "screenshot": "market_16x9.png",
+      "screenshot_sha256": "89b3095c9304901a0fee2eed3c52e57823835eb8887fc0be006dd29c25fbd729",
+      "log": "market_16x9.log",
+      "rendered_content_check": "PASS",
+      "verification": "FarmShot exit code asserts rendered content and successful PNG save"
+    },
+    {
+      "name": "harvest_normal_16x9",
+      "scene": "res://tests/Screenshot.tscn",
+      "exit_code": 0,
+      "screenshot": "harvest_normal_16x9.png",
+      "screenshot_sha256": "62406f9c58aa211a90b456945c660943759299920ba712f3f5acf553cd28fd03",
+      "log": "harvest_normal_16x9.log",
+      "rendered_content_check": "PASS",
+      "verification": "screenshot_tool: CONTENT PASSED"
+    },
+    {
+      "name": "harvest_low_motion_16x9",
+      "scene": "res://tests/Screenshot.tscn",
+      "exit_code": 0,
+      "screenshot": "harvest_low_motion_16x9.png",
+      "screenshot_sha256": "9a2e3b9bf8ea8349d0be2973c4568be36749b968dfa806dcc87ea005bea19822",
+      "log": "harvest_low_motion_16x9.log",
+      "rendered_content_check": "PASS",
+      "verification": "screenshot_tool: CONTENT PASSED"
+    },
+    {
+      "name": "garden_4x3",
+      "scene": "res://tests/FarmShot.tscn",
+      "exit_code": 0,
+      "screenshot": "garden_4x3.png",
+      "screenshot_sha256": "02a68f1be8598f1aaadbc9d335afbd74838c4c56dc13cb5d820fe1df0ff84a78",
+      "log": "garden_4x3.log",
+      "rendered_content_check": "PASS",
+      "verification": "FarmShot exit code asserts rendered content and successful PNG save"
+    },
+    {
+      "name": "market_4x3",
+      "scene": "res://tests/FarmShot.tscn",
+      "exit_code": 0,
+      "screenshot": "market_4x3.png",
+      "screenshot_sha256": "1d0e13be8c585e92032266672e4ad1819abde31ae55f3e7646a55050ff32ad75",
+      "log": "market_4x3.log",
+      "rendered_content_check": "PASS",
+      "verification": "FarmShot exit code asserts rendered content and successful PNG save"
+    },
+    {
+      "name": "harvest_normal_4x3",
+      "scene": "res://tests/Screenshot.tscn",
+      "exit_code": 0,
+      "screenshot": "harvest_normal_4x3.png",
+      "screenshot_sha256": "53d85bacbddb23e73e5c2c311a71de6b7e116b03b07324489762b1d5b61f1d65",
+      "log": "harvest_normal_4x3.log",
+      "rendered_content_check": "PASS",
+      "verification": "screenshot_tool: CONTENT PASSED"
+    },
+    {
+      "name": "harvest_low_motion_4x3",
+      "scene": "res://tests/Screenshot.tscn",
+      "exit_code": 0,
+      "screenshot": "harvest_low_motion_4x3.png",
+      "screenshot_sha256": "dd31962c95683be165424cc31cb68412f2752c400cd81488b6e017a2e9ef07db",
+      "log": "harvest_low_motion_4x3.log",
+      "rendered_content_check": "PASS",
+      "verification": "screenshot_tool: CONTENT PASSED"
+    }
+  ]
+}

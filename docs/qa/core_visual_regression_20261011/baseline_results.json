@@ -1,0 +1,79 @@
+{
+  "baseline_commit": "3b1954ae7a7d354adaf7056ea8b83df71484d191",
+  "baseline_label": "parent of the Blender strawberry plant integration commit",
+  "isolation": "current qa_run.py QASession, separate unique user://, serial rendering",
+  "shots": [
+    {
+      "name": "baseline_garden_16x9",
+      "exit_code": 0,
+      "screenshot": "baseline_garden_16x9.png",
+      "screenshot_sha256": "bcfcb29c221419fdfa462a1d731c4ddb24ae042590c83b49d039c583b1ee3e46",
+      "log": "baseline_garden_16x9.log",
+      "rendered_content_check": "PASS",
+      "verification": "FarmShot exit code asserts rendered content and successful PNG save"
+    },
+    {
+      "name": "baseline_market_16x9",
+      "exit_code": 0,
+      "screenshot": "baseline_market_16x9.png",
+      "screenshot_sha256": "7e57a9bb6e332d2fd67a1ba97b49cf965957af5b0c6b2e9671fbeb609a4ef634",
+      "log": "baseline_market_16x9.log",
+      "rendered_content_check": "PASS",
+      "verification": "FarmShot exit code asserts rendered content and successful PNG save"
+    },
+    {
+      "name": "baseline_harvest_normal_16x9",
+      "exit_code": 0,
+      "screenshot": "baseline_harvest_normal_16x9.png",
+      "screenshot_sha256": "5fc57a2f6774827d9b8ff0edc290504316ac45eb7fee718086d27e48eea0c279",
+      "log": "baseline_harvest_normal_16x9.log",
+      "rendered_content_check": "PASS",
+      "verification": "screenshot_tool: CONTENT PASSED"
+    },
+    {
+      "name": "baseline_harvest_low_motion_16x9",
+      "exit_code": 0,
+      "screenshot": "baseline_harvest_low_motion_16x9.png",
+      "screenshot_sha256": "5a1ff330a3edba95ced80a62d606965a1b673963d05e8c79dba5a5b5e310acba",
+      "log": "baseline_harvest_low_motion_16x9.log",
+      "rendered_content_check": "PASS",
+      "verification": "screenshot_tool: CONTENT PASSED"
+    },
+    {
+      "name": "baseline_garden_4x3",
+      "exit_code": 0,
+      "screenshot": "baseline_garden_4x3.png",
+      "screenshot_sha256": "d7a77fb789b80efee3071c36d2ed39f3aa7e15ca6ca4c96bb1e9292051b9461d",
+      "log": "baseline_garden_4x3.log",
+      "rendered_content_check": "PASS",
+      "verification": "FarmShot exit code asserts rendered content and successful PNG save"
+    },
+    {
+      "name": "baseline_market_4x3",
+      "exit_code": 0,
+      "screenshot": "baseline_market_4x3.png",
+      "screenshot_sha256": "8dcc352d54876f6e604567fdee9079e545996599d5fbc1b18d9e7f7dcf7a8c4b",
+      "log": "baseline_market_4x3.log",
+      "rendered_content_check": "PASS",
+      "verification": "FarmShot exit code asserts rendered content and successful PNG save"
+    },
+    {
+      "name": "baseline_harvest_normal_4x3",
+      "exit_code": 0,
+      "screenshot": "baseline_harvest_normal_4x3.png",
+      "screenshot_sha256": "54727839155cb3a808d8c722887dbbb8a8f049aff43ae0d1330d356640b90623",
+      "log": "baseline_harvest_normal_4x3.log",
+      "rendered_content_check": "PASS",
+      "verification": "screenshot_tool: CONTENT PASSED"
+    },
+    {
+      "name": "baseline_harvest_low_motion_4x3",
+      "exit_code": 0,
+      "screenshot": "baseline_harvest_low_motion_4x3.png",
+      "screenshot_sha256": "b40bc548883e077c5128d26c609a5aab91367a6b53e84b8a97770a99255562c8",
+      "log": "baseline_harvest_low_motion_4x3.log",
+      "rendered_content_check": "PASS",
+      "verification": "screenshot_tool: CONTENT PASSED"
+    }
+  ]
+}
