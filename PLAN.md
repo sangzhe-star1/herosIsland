@@ -19,7 +19,7 @@ behind. `CHANGELOG.md` is the record, one section per round.
 | Levels | 14 | 67 |
 | Templates with levels | 4 | 14 |
 | Home screen doors | 2, and a disabled Hero House button | 5 |
-| Smoke checkpoints | 1 script | 31 on last full coverage; FarmWorld and GardenTouch green after latest refactor |
+| Smoke checkpoints | 1 script | 31 passed, 0 skipped after latest refactor |
 | `tools_check.py` | new | 0 errors, 208 warnings |
 
 ---
@@ -98,12 +98,11 @@ launched on an iPad Pro simulator. This restored a launch check, but the
 software-rendered simulator did not finish the full touch probe, so this is
 not an iPad playtest. The device and real-save checks remain open; see
 `docs/GARDEN_PLAYTEST_SHEET.md` for the exact result and limitation.
-The last complete desktop coverage passed all 31 smoke checkpoints with 0
-skips. After the 11 October panel-state extraction, its two directly affected
-probes pass again: FarmWorldProbe 957 and GardenTouchProbe 2,031 across 16:9
-and 4:3; the runner unit suite passes 16/16. `python3 tools_check.py` reports
-0 errors and 208 existing warnings. The full suite has not been rerun after
-that extraction. The actual iPad and real-save checks remain open.
+After the 11 October panel-state extraction, the complete isolated smoke suite
+passes 31/31 with 0 skips; FarmWorldProbe passes 957 checks, GardenTouchProbe
+2,031 across 16:9 and 4:3, and SaveMigrationAuditProbe and SaveProbe pass.
+The runner unit suite passes 16/16. `python3 tools_check.py` reports 0 errors
+and 208 existing warnings. The actual iPad and real-save checks remain open.
 
 ---
 
@@ -371,7 +370,9 @@ These are yours to make. Nothing below has been changed without asking.
   visit, while switching routes or closing discards uncommitted interaction
   state. FarmWorldProbe passes 957 checks and GardenTouchProbe passes 2,031
   across 16:9 and 4:3. Friend-gift screenshots were checked in both ratios;
-  `tools_check.py` reports 0 errors and 208 existing warnings.
+  the complete smoke suite passes 31/31 with 0 skips, the runner unit suite
+  passes 16/16, and `tools_check.py` reports 0 errors and 208 existing
+  warnings.
 
 - **Remote plan check:** fetched `origin/main` and
   `origin/claude/stoic-bell-a41pfu`; the remote feature branch is already an

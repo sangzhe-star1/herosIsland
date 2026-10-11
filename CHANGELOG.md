@@ -4,7 +4,7 @@
 
 - `FarmPanelStateController` 现在拥有面板访问期的页码、确认卡、待送礼篮子和待出售篮子；`GardenScreen` 保留兼容属性，并继续持有当前面板的节点引用。
 - 打开其他面板会清除旧确认和不相干的暂存篮子；同一面板重开保留该次市场篮子，礼物门的 `gift` / `bear_door` 别名共用一份篮子，旧面板的迟到关闭回调不会清除当前访问。
-- FarmWorldProbe 双画幅通过 957 项，GardenTouchProbe 双画幅通过 2,031 项；两比例好友礼篮截图已检查。`tools_check.py` 报告 0 errors、208 条既有 warnings。
+- FarmWorldProbe 双画幅通过 957 项，GardenTouchProbe 双画幅通过 2,031 项；两比例好友礼篮截图已检查。当前提交完整隔离烟测 31/31、0 skipped，QA runner 单测 16/16；`tools_check.py` 报告 0 errors、208 条既有 warnings。
 
 ## 下一步卡片接管自己的聚焦反馈 — 10 October 2026
 
