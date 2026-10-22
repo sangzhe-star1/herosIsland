@@ -213,6 +213,35 @@ static func record_friend_sneak(npc_id: String, now: int) -> bool:
 	return true
 
 
+# --- 换你来数：朋友来摸你 -------------------------------------------------
+#
+# The second half of 一二三木头人, once per share cycle for every friend. The
+# gift is conjured like every friend crop; nothing is owed either way.
+
+static func _cycle_for(npc_id: String, now: int) -> int:
+	return current_cycle(now) if npc_id == "bear" else friend_cycle(npc_id, now)
+
+
+static func _state_for(npc_id: String) -> Dictionary:
+	return bear_state() if npc_id == "bear" else friend_state(npc_id)
+
+
+static func can_tag(npc_id: String, now: int) -> bool:
+	if GameData.get_npc_farm(npc_id).is_empty():
+		return false
+	return _cycle_for(npc_id, now) > int(_state_for(npc_id).get("last_tag_cycle", -1))
+
+
+static func record_tag(npc_id: String, now: int) -> bool:
+	if not can_tag(npc_id, now):
+		return false
+	var farm: Dictionary = SaveManager.data["farm"]
+	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
+	npc[npc_id]["last_tag_cycle"] = _cycle_for(npc_id, now)
+	farm["npc"] = npc
+	return true
+
+
 # --- 友情攒起来：纪念贴纸和好朋友 -------------------------------------------
 #
 # Friendship only ever rises, so both rewards are DERIVED from it rather than

@@ -1497,6 +1497,12 @@ func _merge_farm(theirs: Dictionary) -> void:
 				npc_block[npc_id]["last_sneak_cycle"] = maxi(
 					int(npc_block[npc_id]["last_sneak_cycle"]),
 					int(theirs_npc[npc_id].get("last_sneak_cycle", -1)))
+		# 换你来数 is once per cycle for every friend, the bear included.
+		for npc_id in npc_block.keys():
+			if npc_block[npc_id].has("last_tag_cycle"):
+				npc_block[npc_id]["last_tag_cycle"] = maxi(
+					int(npc_block[npc_id]["last_tag_cycle"]),
+					int(theirs_npc[npc_id].get("last_tag_cycle", -1)))
 		if npc_block["bear"].has("last_sneak_cycle"):
 			var sneak_cycle := maxi(
 				int(npc_block["bear"]["last_sneak_cycle"]),

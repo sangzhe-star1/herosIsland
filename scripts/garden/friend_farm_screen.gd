@@ -10,6 +10,7 @@ const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const PeekView := preload("res://scripts/garden/friend_peek_view.gd")
 const Bond := preload("res://scripts/garden/friend_bond_view.gd")
+const TagView := preload("res://scripts/garden/friend_tag_view.gd")
 
 const BED_COLS := 3
 const BED_FIRST := Vector2(240, 310)
@@ -27,6 +28,7 @@ var presses := 0
 ## 一二三木头人 for the quiet bed. Reset every visit; only the pick is saved.
 var _peek_view: Node2D
 var _sneak_index := -1
+var _tag_view: Node2D
 ## Probe seams onto the shared view.
 var _peek:
 	get: return _peek_view.peek if _peek_view != null else null
@@ -83,6 +85,8 @@ func _build() -> void:
 		_peek_view.name = "FriendPeek"
 		add_child(_peek_view)
 		_peek_view.setup(_friend_model, _bed_centre(_sneak_index), _finish_sneak)
+	_tag_view = null
+	_start_tag()
 
 	_basket_at = Vector2(view.x - 112.0, view.y - 110.0)
 	var basket := UiKit.picture("basket", 54.0)
@@ -190,6 +194,9 @@ func _top_bar(view: Vector2) -> void:
 	elif not NpcFarm.can_pick_friend_share(npc_id, now) \
 			and NpcFarm.can_sneak_friend(npc_id, now):
 		prompt_key = "garden.friend_farm_sneak_hint"
+	elif not NpcFarm.can_pick_friend_share(npc_id, now) \
+			and NpcFarm.can_tag(npc_id, now):
+		prompt_key = "garden.friend_tag_hint"
 	var prompt := UiKit.title(I18n.t(prompt_key), 16, Color(0.38, 0.33, 0.25))
 	prompt.position = Vector2(view.x * 0.5 - 260.0, 58.0)
 	prompt.size = Vector2(520.0, 24.0)
@@ -427,11 +434,71 @@ func _finish_sneak() -> void:
 	AudioManager.play_sfx("res://assets/audio/rustle.ogg")
 	_fly_share_crop(crop_id, _bed_centre(_sneak_index))
 	_refresh_plots(now)
+	_start_tag()
 	var friend_name := I18n.t(str(GameData.get_npc_farm(npc_id).get("name_key", "")))
 	var line := UiKit.title(I18n.t("garden.friend_peek_done") % [friend_name], 22,
 		Color(0.62, 0.42, 0.12))
 	line.name = "FriendPeekDone"
 	line.position = Vector2(viewport_size().x * 0.5 - 260.0, 116.0)
+	line.size = Vector2(520.0, 34.0)
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(line)
+	if Juice.motion_enabled():
+		var fade := line.create_tween()
+		fade.tween_interval(2.2)
+		fade.tween_property(line, "modulate:a", 0.0, 0.35)
+		fade.tween_callback(line.queue_free)
+
+
+# --- 换你来数：朋友来摸你 -------------------------------------------------
+
+const TAG_FROM := Vector3(3.4, 0.0, 0.2)
+const TAG_TO := Vector3(2.9, 0.0, 2.7)
+
+
+## Offered once his own quiet pick is done (or not on offer): roles swap.
+func _start_tag() -> void:
+	if _tag_view != null or not NpcFarm.can_tag(npc_id, GameClock.now_unix()):
+		return
+	if _peek_view != null and not _peek_view.peek.done:
+		return
+	var view := get_viewport_rect().size
+	_tag_view = TagView.new()
+	_tag_view.name = "FriendTag"
+	add_child(_tag_view)
+	_tag_view.setup(_friend_model, TAG_FROM, TAG_TO,
+		Vector2(view.x - 404.0, view.y - 150.0), view, _finish_tag)
+
+
+func _finish_tag() -> void:
+	var now := GameClock.now_unix()
+	if not NpcFarm.record_tag(npc_id, now):
+		return
+	var crop_id := str(GameData.get_npc_farm(npc_id).get("share_crop", "carrot"))
+	Barn.store_harvest(crop_id, 1)
+	preload("res://scripts/garden/recipe_manager.gd").check_barn(false)
+	SaveManager.save_game()
+	AudioManager.play_sfx("res://assets/audio/star.ogg")
+	var view := get_viewport_rect().size
+	var art := UiKit.picture(str(GameData.get_crop(crop_id).get("icon", crop_id)), 54.0)
+	if art != null:
+		art.name = "FriendTagGift"
+		art.position = Vector2(view.x * 0.5 - 27.0, view.y * 0.5 - 27.0)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(art)
+		if Juice.motion_enabled():
+			var flight := art.create_tween()
+			flight.tween_property(art, "position", _basket_at - Vector2(27.0, 27.0), 0.55) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			flight.tween_callback(art.queue_free)
+		else:
+			art.queue_free()
+	var friend_name := I18n.t(str(GameData.get_npc_farm(npc_id).get("name_key", "")))
+	var line := UiKit.title(I18n.t("garden.friend_tag_done") % [friend_name], 22,
+		Color(0.35, 0.52, 0.25))
+	line.name = "FriendTagDone"
+	line.position = Vector2(view.x * 0.5 - 260.0, 116.0)
 	line.size = Vector2(520.0, 34.0)
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE

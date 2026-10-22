@@ -2693,6 +2693,7 @@ func _a_visit_to_the_bears_farm() -> void:
 	# a double it should never have been fed.
 	_ok(int(bear.get("presses")) == 7,
 		"seven taps were dispatched exactly seven times, not fourteen")
+	await _the_friend_counts_with_you(bear, "bear")
 
 	bear.queue_free()
 	await get_tree().process_frame
@@ -2797,12 +2798,68 @@ func _a_visit_to_a_friends_farm(who: String) -> void:
 	_ok(int(friend_farm.get("presses")) == 3,
 		"the %s farm dispatches three real taps exactly once each" % who)
 	await _the_friend_plays_statues(friend_farm, who)
+	await _the_friend_counts_with_you(friend_farm, who)
 	await _friendship_pays_out(friend_farm, who, help_index)
 
 	friend_farm.queue_free()
 	await get_tree().process_frame
 	GameClock.clear_test_now()
 
+
+## 换你来数: after his quiet pick the roles swap. Holding the eye button, the
+## friend tiptoes up; letting go freezes it (and only pauses it); when it
+## arrives it tags him with one conjured crop, once per cycle.
+func _touch_at(at: Vector2, pressed: bool) -> void:
+	var event := InputEventScreenTouch.new()
+	event.index = 0
+	event.pressed = pressed
+	event.position = _glass(at)
+	Input.parse_input_event(event)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _the_friend_counts_with_you(screen: Node, who: String) -> void:
+	var tag: Variant = screen.get("_tag_view")
+	_ok(tag != null and NpcFarm.can_tag(who, GameClock.now_unix()),
+		"after the quiet pick, %s offers to swap roles" % who)
+	if tag == null:
+		return
+	var button := screen.find_child("FriendTagButton", true, false) as Button
+	_ok(button != null and button.size.x >= 120.0, "the eye button is big enough for a thumb")
+	if button == null:
+		return
+	var model: Node3D = tag.get("model")
+	var crop_id := str(GameData.get_npc_farm(who).get("share_crop", ""))
+	var before := Barn.count(crop_id)
+	var at := button.get_global_rect().get_center()
+	var z0 := model.position.z if model != null else 0.0
+
+	await _touch_at(at, true)
+	_ok(bool(tag.get("holding")), "holding the eye starts counting")
+	tag.call("advance", 1.0)
+	var mid := float(tag.get("progress"))
+	_ok(mid > 0.3 and mid < 1.0 and model != null and model.position.z > z0 + 0.5,
+		"while he counts, %s creeps closer" % who)
+	_ok((screen.find_child("FriendTagCounting", true, false) as Label).visible,
+		"counting is shown on screen")
+
+	await _touch_at(at, false)
+	var released := float(tag.get("progress"))
+	tag.call("advance", 0.5)
+	_ok(is_equal_approx(float(tag.get("progress")), released) and released < 1.0
+		and screen.find_child("FriendTagFreeze", true, false) != null,
+		"turning round freezes %s mid-step, and nothing is lost" % who)
+	_ok(Barn.count(crop_id) == before, "no gift before %s arrives" % who)
+
+	await _touch_at(at, true)
+	tag.call("advance", 2.0)
+	await _touch_at(at, false)
+	_ok(bool(tag.get("done")) and Barn.count(crop_id) == before + 1,
+		"%s tags him and gives exactly one %s" % [who, crop_id])
+	_ok(not NpcFarm.can_tag(who, GameClock.now_unix())
+		and screen.find_child("FriendTagButton", true, false) == null,
+		"the swap is spent for this cycle and its button is gone")
 
 ## Friendship only rises, and two moments pay out on the friend's own farm:
 ## at 2 a portrait sticker for the decorating room, at 5 best friends, after

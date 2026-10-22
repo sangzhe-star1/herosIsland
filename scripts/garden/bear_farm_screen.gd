@@ -29,6 +29,7 @@ const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const PeekView := preload("res://scripts/garden/friend_peek_view.gd")
 const Bond := preload("res://scripts/garden/friend_bond_view.gd")
+const TagView := preload("res://scripts/garden/friend_tag_view.gd")
 
 const TOP_BAR := 96.0
 
@@ -63,6 +64,7 @@ var presses := 0
 var _bear_model: Node3D
 var _peek_view: Node2D
 var _sneak_index := -1
+var _tag_view: Node2D
 var _peek:
 	get: return _peek_view.peek if _peek_view != null else null
 var _holding_sneak: bool:
@@ -161,6 +163,8 @@ func _build() -> void:
 		_peek_view.name = "BearPeek"
 		add_child(_peek_view)
 		_peek_view.setup(_bear_model, _bed_centre(_sneak_index), _sneak_the_quiet_one.bind(_sneak_index))
+	_tag_view = null
+	_start_tag()
 
 	_top_bar(view)
 	# A keepsake earned elsewhere (a dish given at home) is handed over here.
@@ -504,6 +508,7 @@ func _sneak_the_quiet_one(index: int) -> void:
 	_plots = NpcFarm.bear_beds(now)
 	(_bed_views[index] as Node2D).call("refresh", _plots[index], true)
 	_fly_3d_strawberry(_bed_centre(index))
+	_start_tag()
 
 
 func _fly_3d_strawberry(from_screen: Vector2) -> void:
@@ -590,3 +595,62 @@ func _process(delta: float) -> void:
 	if _star != null and is_instance_valid(_star) and Juice.motion_enabled():
 		_star.rotation = sin(_t * 1.4) * 0.4
 		_star.position.y += sin(_t * 2.2) * 0.08
+
+
+# --- 换你来数：朋友来摸你 -------------------------------------------------
+
+const TAG_FROM := Vector3(3.4, 0.0, 0.2)
+const TAG_TO := Vector3(2.9, 0.0, 2.7)
+
+
+## Offered once his own quiet pick is done (or not on offer): roles swap.
+func _start_tag() -> void:
+	if _tag_view != null or not NpcFarm.can_tag("bear", GameClock.now_unix()):
+		return
+	if _peek_view != null and not _peek_view.peek.done:
+		return
+	var view := get_viewport_rect().size
+	_tag_view = TagView.new()
+	_tag_view.name = "FriendTag"
+	add_child(_tag_view)
+	_tag_view.setup(_bear_model, TAG_FROM, TAG_TO,
+		Vector2(view.x - 404.0, view.y - 150.0), view, _finish_tag)
+
+
+func _finish_tag() -> void:
+	var now := GameClock.now_unix()
+	if not NpcFarm.record_tag("bear", now):
+		return
+	var crop_id := str(GameData.get_npc_farm("bear").get("share_crop", "carrot"))
+	Barn.store_harvest(crop_id, 1)
+	preload("res://scripts/garden/recipe_manager.gd").check_barn(false)
+	SaveManager.save_game()
+	AudioManager.play_sfx("res://assets/audio/star.ogg")
+	var view := get_viewport_rect().size
+	var art := UiKit.picture(str(GameData.get_crop(crop_id).get("icon", crop_id)), 54.0)
+	if art != null:
+		art.name = "FriendTagGift"
+		art.position = Vector2(view.x * 0.5 - 27.0, view.y * 0.5 - 27.0)
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(art)
+		if Juice.motion_enabled():
+			var flight := art.create_tween()
+			flight.tween_property(art, "position", _basket_at - Vector2(27.0, 27.0), 0.55) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			flight.tween_callback(art.queue_free)
+		else:
+			art.queue_free()
+	var friend_name := I18n.t(str(GameData.get_npc_farm("bear").get("name_key", "")))
+	var line := UiKit.title(I18n.t("garden.friend_tag_done") % [friend_name], 22,
+		Color(0.35, 0.52, 0.25))
+	line.name = "FriendTagDone"
+	line.position = Vector2(view.x * 0.5 - 260.0, 116.0)
+	line.size = Vector2(520.0, 34.0)
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(line)
+	if Juice.motion_enabled():
+		var fade := line.create_tween()
+		fade.tween_interval(2.2)
+		fade.tween_property(line, "modulate:a", 0.0, 0.35)
+		fade.tween_callback(line.queue_free)
