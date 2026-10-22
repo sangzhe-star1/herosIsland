@@ -409,7 +409,7 @@ folder for it to add another.
 Verified on 21 October 2026, on `main`:
 
 ```
-python3 tools_check.py     ->  0 errors, 146 warnings   (warnings are old debt)
+python3 tools_check.py     ->  0 errors, 77 warnings   (warnings are old debt)
 ./tests/run_smoke.sh       ->  Suite finished: 31 passed, 0 skipped
 ```
 

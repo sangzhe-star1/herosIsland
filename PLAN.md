@@ -445,8 +445,7 @@ smoke at 31/31 and does not change what the child sees unless stated.
 
    | Count | Group | What it is | Suggestion |
    |---|---|---|---|
-   | 60 | `level.*` for levels not in levels.json | first-version levels (adventure_valley, bluey_park, …) | safe to delete |
-   | 9 | `world.*` for worlds not in worlds.json | first-version worlds | safe to delete |
+   | ~~69~~ | `level.*` / `world.*` for removed levels and worlds | **deleted 22 October** | — |
    | 20 + 8 + 5 + 2 + 1 | `item.*`, `bin.*`, `sorting.instruction_*`, `rescue.instruction_*`, `collect.*` | text for the seven idle templates | keep while open decision 1 stands |
    | 9 | `shop.*` | shop categories and items not on sale | content call |
    | 7 + 5 + 2 + 1 | `garden.*` (time of day, daily title), `house.*`, `facility.*`, `dog.dug_seed` | written for features that show icons instead | keep, or wire as captions |
@@ -454,12 +453,8 @@ smoke at 31/31 and does not change what the child sees unless stated.
 
 7. **Album cards vs the real fight — done 22 October.** Cards, blurbs and
    the armoured duel hint now name each monster's `opens_on` move;
-   BattleFeelProbe enforces it. **Still open, before recording A1/A2:** a few
-   battle intro lines disagree with `opens_on` — battle_09 赤翼兽 talks about
-   the shield (it opens only on dodge), battle_12 蓝翼甲兽 says "beam it one
-   shot at a time" (it opens only on interrupt), and battle_06/08/10 should
-   be read against their cards. Change the script lines in
-   `docs/VOICE_SCRIPT.md` before recording rather than after.
+   BattleFeelProbe enforces it. **Battle intros fixed 22 October** (script + placeholders), and
+   tools_check now holds them to `opens_on`.
 
 What stays out of scope without asking: deleting levels, templates or asset
 folders; runtime 3D on the farm; any network, account or analytics feature.
