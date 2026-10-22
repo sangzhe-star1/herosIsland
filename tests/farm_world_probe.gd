@@ -2647,7 +2647,36 @@ func _a_visit_to_the_bears_farm() -> void:
 	# 这个玩笑的全部。摘一颗是允许的、拿回家的、不发星也不挨说的；
 	# 一个生长周期只有一颗。
 	var quiet_before := Barn.count("strawberry")
-	await _tap(bear.call("_bed_centre", sneak))
+	# 一二三木头人 at the bear's too: a plain tap only shrugs; a hold while his
+	# back is turned fills the ring, and his look makes it wait.
+	_ok(bear.get("_bear_model") != null, "the bear stands on his own farm in 3D")
+	var quiet_at: Vector2 = bear.call("_bed_centre", sneak)
+	var hold_down := InputEventScreenTouch.new()
+	hold_down.index = 0
+	hold_down.pressed = true
+	hold_down.position = _glass(quiet_at)
+	Input.parse_input_event(hold_down)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var bear_peek: Variant = bear.get("_peek")
+	_ok(bool(bear.get("_holding_sneak")) and bear_peek != null,
+		"pressing the bear's quiet bed starts the careful hold")
+	if bear_peek != null:
+		bear_peek.set("elapsed", 4.0)          # he is looking
+		var waited := float(bear_peek.get("progress"))
+		bear.call("_advance_peek", 0.5)
+		_ok(Barn.count("strawberry") == quiet_before
+			and is_equal_approx(float(bear_peek.get("progress")), waited),
+			"while the bear looks, the ring waits and nothing is picked")
+		bear_peek.set("elapsed", 0.0)          # back turned
+		for _i in range(4):
+			bear.call("_advance_peek", 0.4)
+	var hold_up := InputEventScreenTouch.new()
+	hold_up.index = 0
+	hold_up.pressed = false
+	hold_up.position = _glass(quiet_at)
+	Input.parse_input_event(hold_up)
+	await get_tree().process_frame
 	_ok(Barn.count("strawberry") == quiet_before + 1,
 		"the quiet strawberry is his to take, and kept")
 	_ok(bool(NpcFarm.bear_state().get("sneak_owed", false)),
@@ -2793,7 +2822,7 @@ func _the_friend_plays_statues(friend_farm: Node, who: String) -> void:
 		"%s's farm has a ripe quiet bed with no star" % who)
 	if sneak < 0:
 		return
-	_ok(friend_farm.get_node_or_null("SneakRingBack") != null,
+	_ok(friend_farm.find_child("SneakRingBack", true, false) != null,
 		"the quiet bed shows an empty ring to fill")
 	var crop_id := str(beds[sneak].get("crop_id", ""))
 	var before := Barn.count(crop_id)
@@ -2825,7 +2854,7 @@ func _the_friend_plays_statues(friend_farm: Node, who: String) -> void:
 	friend_farm.call("_advance_peek", 0.5)
 	_ok(is_equal_approx(float(peek.get("progress")), mid),
 		"while %s looks the ring waits -- it neither fills nor empties" % who)
-	_ok(friend_farm.get_node_or_null("FriendPeekFreeze") != null,
+	_ok(friend_farm.find_child("FriendPeekFreeze", true, false) != null,
 		"being seen says 'freeze', the game's word, not a telling-off")
 	_ok(Barn.count(crop_id) == before, "nothing is picked while %s is looking" % who)
 
@@ -2838,7 +2867,7 @@ func _the_friend_plays_statues(friend_farm: Node, who: String) -> void:
 	_ok(not NpcFarm.can_sneak_friend(who, GameClock.now_unix())
 		and int(NpcFarm.friend_state(who).get("last_sneak_cycle", -1)) >= 0,
 		"the quiet bed is spent for this growth cycle and remembered in the save")
-	_ok(friend_farm.get_node_or_null("FriendPeekDone") != null,
+	_ok(friend_farm.find_child("FriendPeekDone", true, false) != null,
 		"%s answers with a smile, not a complaint" % who)
 
 	var up := InputEventScreenTouch.new()

@@ -27,6 +27,7 @@ const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
+const PeekView := preload("res://scripts/garden/friend_peek_view.gd")
 
 const TOP_BAR := 96.0
 
@@ -57,6 +58,17 @@ var _finger := -1
 ## which taps N times and requires exactly N -- the assertion that keeps the
 ## claim above from quietly rotting.
 var presses := 0
+## The bear himself, in 3D, so he can turn his back for 一二三木头人.
+var _bear_model: Node3D
+var _peek_view: Node2D
+var _sneak_index := -1
+var _peek:
+	get: return _peek_view.peek if _peek_view != null else null
+var _holding_sneak: bool:
+	get: return _peek_view != null and bool(_peek_view.holding)
+	set(value):
+		if _peek_view != null:
+			_peek_view.holding = value
 
 var _meadow_3d_vp: SubViewport
 var _meadow_3d_world: Node3D
@@ -138,6 +150,17 @@ func _build() -> void:
 					b_inst.scale = Vector3(1.35, 1.35, 1.35)
 					_basket_3d = b_inst
 
+	_sneak_index = -1
+	for i in range(_plots.size()):
+		if bool(_plots[i].get("sneak", false)):
+			_sneak_index = i
+	_peek_view = null
+	if _sneak_index >= 0 and NpcFarm.can_sneak(GameClock.now_unix()):
+		_peek_view = PeekView.new()
+		_peek_view.name = "BearPeek"
+		add_child(_peek_view)
+		_peek_view.setup(_bear_model, _bed_centre(_sneak_index), _sneak_the_quiet_one.bind(_sneak_index))
+
 	_top_bar(view)
 
 	# Owed from last time: the bear points at the thirsty bed straight away.
@@ -207,6 +230,23 @@ func _build_3d_meadow(view: Vector2) -> void:
 		cam.fov = 39.0
 		cam.current = true
 		world_root.add_child(cam)
+
+		_bear_model = null
+		var bear_path := "res://assets/harvest_3d/runtime/friends/bear.glb"
+		if ResourceLoader.exists(bear_path):
+			var bear_scene: PackedScene = load(bear_path)
+			if bear_scene != null:
+				var body := bear_scene.instantiate() as Node3D
+				if body != null:
+					# The recipe's meshes sit off their root (the sprite's
+					# ground-pivot offset), so turn him about his own middle.
+					_bear_model = Node3D.new()
+					_bear_model.name = "BearCharacter3D"
+					_bear_model.position = Vector3(3.4, 0.0, 0.2)
+					world_root.add_child(_bear_model)
+					_bear_model.add_child(body)
+					var middle := _mesh_middle(body)
+					body.position = Vector3(-middle.x, 0.0, -middle.z)
 
 		_meadow_3d_vp = vp
 		_meadow_3d_world = world_root
@@ -310,18 +350,53 @@ func _unhandled_input(event: InputEvent) -> void:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed and _finger == -1:
 			_finger = touch.index
+			_begin_sneak_hold(touch.position)
 		elif not touch.pressed and touch.index == _finger:
 			_finger = -1
-			_press(touch.position)
+			_release(touch.position)
 	elif event is InputEventMouseButton:
 		var click := event as InputEventMouseButton
 		if click.button_index != MOUSE_BUTTON_LEFT:
 			return
 		if click.pressed and _finger == -1:
 			_finger = -2
+			_begin_sneak_hold(click.position)
 		elif not click.pressed and _finger == -2:
 			_finger = -1
-			_press(click.position)
+			_release(click.position)
+
+
+func _begin_sneak_hold(at: Vector2) -> void:
+	if _peek_view != null and not _peek_view.peek.done \
+			and _bed_under(at) == _sneak_index:
+		_peek_view.holding = true
+
+
+func _release(at: Vector2) -> void:
+	if _holding_sneak:
+		# A hold is a press too; letting go keeps whatever the ring has filled.
+		_holding_sneak = false
+		presses += 1
+		return
+	_press(at)
+
+
+func _advance_peek(delta: float) -> void:
+	if _peek_view != null:
+		_peek_view.advance(delta)
+
+
+static func _mesh_middle(root: Node3D) -> Vector3:
+	var box := AABB()
+	var first := true
+	for node in root.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		var local := root.global_transform.affine_inverse() * mesh.global_transform \
+			if root.is_inside_tree() else mesh.transform
+		var part: AABB = local * mesh.get_aabb()
+		box = part if first else box.merge(part)
+		first = false
+	return box.get_center()
 
 
 func _press(at: Vector2) -> void:
@@ -333,7 +408,9 @@ func _press(at: Vector2) -> void:
 	if bool(plot.get("share", false)):
 		_pick_the_shared_one(index)
 	elif bool(plot.get("sneak", false)):
-		_sneak_the_quiet_one(index)
+		# The ripe one is held while his back is turned (一二三木头人); a tap
+		# gets the same shrug as a bed still growing back.
+		Juice.nudge(_bed_views[index], 8.0)
 	elif bool(plot.get("help_target", false)):
 		_water_for_the_bear(index)
 	else:
@@ -388,16 +465,15 @@ func _pick_the_shared_one(index: int) -> void:
 
 
 ## 悄悄摘一颗。The bed with ripe strawberries and NO star: taking one is
-## allowed, quiet, and unremarked -- no sound of celebration, no voice line,
-## the bear does not turn around. The answer comes later, on his next visit,
+## allowed, quiet, and unremarked -- no sound of celebration, no voice line.
+## It is reached by 一二三木头人 (friend_peek_view.gd): held while his back is
+## turned; when he looks the ring just waits. The answer comes later, on his next visit,
 ## as one extra strawberry and one amber line ("小熊什么都没说，悄悄多分了
 ## 你一颗草莓"). Once per growth cycle, same clock as the share; written
 ## down first, like every pick, so a tablet closed mid-flight still knows.
 func _sneak_the_quiet_one(index: int) -> void:
 	var now := GameClock.now_unix()
 	if not NpcFarm.can_sneak(now):
-		# Still growing back: the bed shrugs, same as any bed of the bear's.
-		Juice.nudge(_bed_views[index], 8.0)
 		return
 	NpcFarm.record_sneak(now)
 	var farm_def: Dictionary = GameData.get_npc_farm("bear")

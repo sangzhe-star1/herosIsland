@@ -8,7 +8,7 @@ const Barn := preload("res://scripts/garden/inventory_manager.gd")
 const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
-const Peek := preload("res://scripts/garden/friend_peek_controller.gd")
+const PeekView := preload("res://scripts/garden/friend_peek_view.gd")
 
 const BED_COLS := 3
 const BED_FIRST := Vector2(240, 310)
@@ -24,13 +24,16 @@ var _basket_at := Vector2.ZERO
 var _finger := -1
 var presses := 0
 ## 一二三木头人 for the quiet bed. Reset every visit; only the pick is saved.
-var _peek = Peek.new()
+var _peek_view: Node2D
 var _sneak_index := -1
-var _holding_sneak := false
-var _sneak_ring: Line2D
-var _sneak_ring_back: Line2D
-var _freeze_label: Label
-const SNEAK_RING_RADIUS := 62.0
+## Probe seams onto the shared view.
+var _peek:
+	get: return _peek_view.peek if _peek_view != null else null
+var _holding_sneak: bool:
+	get: return _peek_view != null and bool(_peek_view.holding)
+	set(value):
+		if _peek_view != null:
+			_peek_view.holding = value
 
 
 func _ready() -> void:
@@ -73,7 +76,12 @@ func _build() -> void:
 	for i in range(_plots.size()):
 		if bool(_plots[i].get("sneak", false)):
 			_sneak_index = i
-	_build_sneak_ring()
+	_peek_view = null
+	if _sneak_index >= 0 and NpcFarm.can_sneak_friend(npc_id, GameClock.now_unix()):
+		_peek_view = PeekView.new()
+		_peek_view.name = "FriendPeek"
+		add_child(_peek_view)
+		_peek_view.setup(_friend_model, _bed_centre(_sneak_index), _finish_sneak)
 
 	_basket_at = Vector2(view.x - 112.0, view.y - 110.0)
 	var basket := UiKit.picture("basket", 54.0)
@@ -385,109 +393,23 @@ func viewport_size() -> Vector2:
 func _process(delta: float) -> void:
 	if _star != null and is_instance_valid(_star) and Juice.motion_enabled():
 		_star.rotation += delta * 0.35
-	_advance_peek(delta)
 
 
 # --- 一二三木头人：悄悄摘一颗 ------------------------------------------------
 
-func _sneak_ready() -> bool:
-	return _sneak_index >= 0 and not _peek.done \
-		and NpcFarm.can_sneak_friend(npc_id, GameClock.now_unix())
-
-
 func _begin_sneak_hold(at: Vector2) -> void:
-	if _sneak_ready() and _bed_under(at) == _sneak_index:
-		_holding_sneak = true
+	if _peek_view != null and not _peek_view.peek.done \
+			and _bed_under(at) == _sneak_index:
+		_peek_view.holding = true
 
 
-## One beat of the game: turn the friend, fill or freeze the ring. Separate
-## from _process so a probe can step the beat without waiting real seconds.
 func _advance_peek(delta: float) -> void:
-	if not _sneak_ready():
-		return
-	var result: String = _peek.step(delta, _holding_sneak)
-	_face_for(_peek.phase(), delta)
-	_draw_sneak_ring()
-	if result == "frozen":
-		_show_freeze()
-	elif result == "done":
-		_finish_sneak()
-
-
-## The friend's back is the whole signal, so it is shown with or without
-## motion: reduced motion snaps between the poses instead of turning.
-func _face_for(phase: String, delta: float) -> void:
-	if _friend_model == null or not is_instance_valid(_friend_model):
-		return
-	var target := 0.0 if phase == Peek.LOOKING else 180.0
-	if phase == Peek.TURNING:
-		target = 180.0 + sin(_peek.elapsed * 28.0) * 12.0
-	if not Juice.motion_enabled():
-		_friend_model.rotation_degrees.y = target
-		return
-	# Time-based easing, so a slow tablet turns as fast as a quick one.
-	_friend_model.rotation_degrees.y = lerpf(
-		_friend_model.rotation_degrees.y, target, 1.0 - exp(-delta * 10.0))
-
-
-func _build_sneak_ring() -> void:
-	_sneak_ring = null
-	_sneak_ring_back = null
-	if not _sneak_ready():
-		return
-	var centre := _bed_centre(_sneak_index) + Vector2(0, -20)
-	_sneak_ring_back = Line2D.new()
-	_sneak_ring_back.name = "SneakRingBack"
-	_sneak_ring_back.width = 10.0
-	_sneak_ring_back.default_color = Color(1.0, 1.0, 1.0, 0.45)
-	_sneak_ring_back.points = _arc(centre, 1.0)
-	add_child(_sneak_ring_back)
-	_sneak_ring = Line2D.new()
-	_sneak_ring.name = "SneakRing"
-	_sneak_ring.width = 10.0
-	_sneak_ring.default_color = Color(0.55, 0.86, 1.0, 0.95)
-	add_child(_sneak_ring)
-
-
-func _arc(centre: Vector2, fraction: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
-	var steps := maxi(2, int(48.0 * fraction) + 1)
-	for i in range(steps):
-		var angle := -PI * 0.5 + TAU * fraction * float(i) / float(steps - 1)
-		points.append(centre + Vector2(cos(angle), sin(angle)) * SNEAK_RING_RADIUS)
-	return points
-
-
-func _draw_sneak_ring() -> void:
-	if _sneak_ring == null or not is_instance_valid(_sneak_ring):
-		return
-	var centre := _bed_centre(_sneak_index) + Vector2(0, -20)
-	_sneak_ring.points = _arc(centre, _peek.progress) if _peek.progress > 0.0 \
-		else PackedVector2Array()
-	# Dim while the friend looks: the ring is waiting, not lost.
-	_sneak_ring.modulate.a = 0.45 if _peek.phase() == Peek.LOOKING else 1.0
-
-
-func _show_freeze() -> void:
-	if _freeze_label != null and is_instance_valid(_freeze_label):
-		return
-	AudioManager.play_sfx("res://assets/audio/pop.ogg")
-	_freeze_label = UiKit.title_on_art(I18n.t("garden.friend_peek_freeze"), 30)
-	_freeze_label.name = "FriendPeekFreeze"
-	_freeze_label.position = _bed_centre(_sneak_index) + Vector2(-140, -150)
-	_freeze_label.size = Vector2(280, 40)
-	_freeze_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_freeze_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_freeze_label)
-	# Owned by the label, so leaving the farm cannot strand a callback.
-	var linger := _freeze_label.create_tween()
-	linger.tween_interval(1.0)
-	linger.tween_callback(_freeze_label.queue_free)
+	if _peek_view != null:
+		_peek_view.advance(delta)
 
 
 func _finish_sneak() -> void:
 	var now := GameClock.now_unix()
-	_holding_sneak = false
 	if not NpcFarm.record_friend_sneak(npc_id, now):
 		return
 	var crop_id := str(_plots[_sneak_index].get("crop_id", "carrot"))
@@ -497,14 +419,7 @@ func _finish_sneak() -> void:
 	# A rustle, not a fanfare -- the same texture as the bear's quiet berry.
 	AudioManager.play_sfx("res://assets/audio/rustle.ogg")
 	_fly_share_crop(crop_id, _bed_centre(_sneak_index))
-	for ring in [_sneak_ring, _sneak_ring_back]:
-		if ring != null and is_instance_valid(ring):
-			ring.queue_free()
-	_sneak_ring = null
-	_sneak_ring_back = null
 	_refresh_plots(now)
-	if _friend_model != null and is_instance_valid(_friend_model):
-		_friend_model.rotation_degrees.y = 0.0
 	var friend_name := I18n.t(str(GameData.get_npc_farm(npc_id).get("name_key", "")))
 	var line := UiKit.title(I18n.t("garden.friend_peek_done") % [friend_name], 22,
 		Color(0.62, 0.42, 0.12))
