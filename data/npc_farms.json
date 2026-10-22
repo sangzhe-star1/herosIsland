@@ -44,7 +44,7 @@
         {"crop": "strawberry", "phase": 0.61},
         {"crop": "peas", "phase": 0.43},
         {"crop": "lettuce", "share": true},
-        {"crop": "carrot", "phase": 0.72},
+        {"crop": "carrot", "sneak": true},
         {"crop": "lettuce", "help_target": true}
       ]
     },
@@ -59,7 +59,7 @@
         {"crop": "corn", "phase": 0.55},
         {"crop": "pumpkin", "phase": 0.23},
         {"crop": "corn", "share": true},
-        {"crop": "strawberry", "phase": 0.66},
+        {"crop": "strawberry", "sneak": true},
         {"crop": "carrot", "help_target": true}
       ]
     },
@@ -74,7 +74,7 @@
         {"crop": "corn", "phase": 0.57},
         {"crop": "tomato", "phase": 0.31},
         {"crop": "carrot", "share": true},
-        {"crop": "peas", "phase": 0.48},
+        {"crop": "peas", "sneak": true},
         {"crop": "corn", "help_target": true}
       ]
     }

@@ -1490,6 +1490,13 @@ func _merge_farm(theirs: Dictionary) -> void:
 				npc_block[npc_id]["last_visit_at"] = maxi(
 					int(npc_block[npc_id].get("last_visit_at", 0)),
 					int(theirs_npc[npc_id].get("last_visit_at", 0)))
+		# A friend's quiet pick is a high-water cycle too; it owes nothing back,
+		# so there is no completion edge to derive.
+		for npc_id in npc_block.keys():
+			if npc_id != "bear" and npc_block[npc_id].has("last_sneak_cycle"):
+				npc_block[npc_id]["last_sneak_cycle"] = maxi(
+					int(npc_block[npc_id]["last_sneak_cycle"]),
+					int(theirs_npc[npc_id].get("last_sneak_cycle", -1)))
 		if npc_block["bear"].has("last_sneak_cycle"):
 			var sneak_cycle := maxi(
 				int(npc_block["bear"]["last_sneak_cycle"]),

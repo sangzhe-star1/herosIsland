@@ -2767,11 +2767,89 @@ func _a_visit_to_a_friends_farm(who: String) -> void:
 		"the finished %s visit appears on the shared visitor board" % who)
 	_ok(int(friend_farm.get("presses")) == 3,
 		"the %s farm dispatches three real taps exactly once each" % who)
+	await _the_friend_plays_statues(friend_farm, who)
 
 	friend_farm.queue_free()
 	await get_tree().process_frame
 	GameClock.clear_test_now()
 
+
+## 一二三木头人: the quiet bed fills only while the friend's back is turned,
+## waits (never empties) while it looks, pays one conjured crop once per
+## cycle, and costs the friend nothing.
+func _the_friend_plays_statues(friend_farm: Node, who: String) -> void:
+	const Peek := preload("res://scripts/garden/friend_peek_controller.gd")
+	# The beat itself: fixed, announced, and longer than the hold.
+	_ok(Peek.phase_at(0.0) == Peek.AWAY and Peek.phase_at(3.2) == Peek.TURNING
+		and Peek.phase_at(4.0) == Peek.LOOKING and Peek.phase_at(Peek.beat()) == Peek.AWAY,
+		"the statues beat is away, a warning turn, then a look, and repeats")
+	_ok(Peek.AWAY_SECONDS + Peek.TURNING_SECONDS > Peek.HOLD_SECONDS,
+		"one turned back is always long enough to finish the quiet pick")
+
+	var beds: Array = friend_farm.get("_plots")
+	var sneak := int(friend_farm.get("_sneak_index"))
+	_ok(sneak >= 0 and bool(beds[sneak].get("sneak", false))
+		and NpcFarm.can_sneak_friend(who, GameClock.now_unix()),
+		"%s's farm has a ripe quiet bed with no star" % who)
+	if sneak < 0:
+		return
+	_ok(friend_farm.get_node_or_null("SneakRingBack") != null,
+		"the quiet bed shows an empty ring to fill")
+	var crop_id := str(beds[sneak].get("crop_id", ""))
+	var before := Barn.count(crop_id)
+	var total_before := Barn.total()
+	var peek: Variant = friend_farm.get("_peek")
+	peek.set("elapsed", 0.0)
+
+	# A real finger goes down on the quiet bed and stays down.
+	var at: Vector2 = friend_farm.call("_bed_centre", sneak)
+	var down := InputEventScreenTouch.new()
+	down.index = 0
+	down.pressed = true
+	down.position = _glass(at)
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(bool(friend_farm.get("_holding_sneak")),
+		"pressing the quiet bed starts the careful hold")
+
+	friend_farm.call("_advance_peek", 0.5)
+	var model: Node3D = friend_farm.get("_friend_model")
+	var mid := float(peek.get("progress"))
+	_ok(mid > 0.2 and mid < 1.0, "while %s looks away the ring fills" % who)
+	_ok(model != null and absf(model.rotation_degrees.y) > 90.0,
+		"%s really has its back turned while the ring fills" % who)
+
+	# It turns round: the ring waits, nothing is lost, nobody is scolded.
+	peek.set("elapsed", Peek.AWAY_SECONDS + Peek.TURNING_SECONDS + 0.1)
+	friend_farm.call("_advance_peek", 0.5)
+	_ok(is_equal_approx(float(peek.get("progress")), mid),
+		"while %s looks the ring waits -- it neither fills nor empties" % who)
+	_ok(friend_farm.get_node_or_null("FriendPeekFreeze") != null,
+		"being seen says 'freeze', the game's word, not a telling-off")
+	_ok(Barn.count(crop_id) == before, "nothing is picked while %s is looking" % who)
+
+	# Back turned again: finish.
+	peek.set("elapsed", 0.0)
+	for _i in range(4):
+		friend_farm.call("_advance_peek", 0.4)
+	_ok(Barn.count(crop_id) == before + 1 and Barn.total() == total_before + 1,
+		"the quiet pick stores exactly one %s" % crop_id)
+	_ok(not NpcFarm.can_sneak_friend(who, GameClock.now_unix())
+		and int(NpcFarm.friend_state(who).get("last_sneak_cycle", -1)) >= 0,
+		"the quiet bed is spent for this growth cycle and remembered in the save")
+	_ok(friend_farm.get_node_or_null("FriendPeekDone") != null,
+		"%s answers with a smile, not a complaint" % who)
+
+	var up := InputEventScreenTouch.new()
+	up.index = 0
+	up.pressed = false
+	up.position = _glass(at)
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+	friend_farm.call("_advance_peek", 2.0)
+	_ok(Barn.count(crop_id) == before + 1,
+		"holding on afterwards cannot pick a second one this cycle")
 
 func _capture_probe_screen(label: String) -> void:
 	# Same bounded path as FarmShot and FarmLifeProbe. frame_post_draw can stop

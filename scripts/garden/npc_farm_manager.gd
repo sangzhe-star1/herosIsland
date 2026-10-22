@@ -134,8 +134,8 @@ static func friendship() -> int:
 		.get("npc_friendship", {}).get("bear", 0))
 
 
-## The rabbit and puppy use the same gentle share-and-help loop as the bear,
-## but have no sneak crop or bear-specific return visit. Their farm layouts
+## The rabbit, puppy and robot use the same gentle share-and-help loop as the
+## bear, plus a quiet pick (below), but no bear-specific return visit. Their farm layouts
 ## and share crops are authored in npc_farms.json; only the child's promise
 ## and friendship live in the save.
 static func friend_state(npc_id: String) -> Dictionary:
@@ -191,6 +191,28 @@ static func record_friend_help(npc_id: String) -> bool:
 	return true
 
 
+## 悄悄摘一颗, for every friend. The bed with NO star ripens once per the
+## friend's share cycle. Unlike the share, it is never gated on help: grace is
+## unconditional, same as the bear's. Picking it needs the friend's back to be
+## turned (friend_peek_controller.gd) -- that is the game -- but nothing is
+## owed and nothing is taken from the friend: the crop is conjured, as all
+## friend produce is.
+static func can_sneak_friend(npc_id: String, now: int) -> bool:
+	if npc_id == "bear" or GameData.get_npc_farm(npc_id).is_empty():
+		return false
+	return friend_cycle(npc_id, now) > int(friend_state(npc_id).get("last_sneak_cycle", -1))
+
+
+static func record_friend_sneak(npc_id: String, now: int) -> bool:
+	if not can_sneak_friend(npc_id, now):
+		return false
+	var farm: Dictionary = SaveManager.data["farm"]
+	var npc: Dictionary = Farm.normalise_npc(farm.get("npc"))
+	npc[npc_id]["last_sneak_cycle"] = friend_cycle(npc_id, now)
+	farm["npc"] = npc
+	return true
+
+
 static func friend_friendship(npc_id: String) -> int:
 	return int(SaveManager.data.get("farm", {})
 		.get("npc_friendship", {}).get(npc_id, 0))
@@ -227,7 +249,15 @@ static func friend_beds(npc_id: String, now: int) -> Array:
 		plot["crop_id"] = crop_id
 		plot["share"] = is_share
 		plot["help_target"] = bool(def.get("help_target", false))
-		if is_share:
+		plot["sneak"] = bool(def.get("sneak", false))
+		if bool(plot["sneak"]):
+			if can_sneak_friend(npc_id, now):
+				plot["state"] = Farm.READY
+				plot["growth_stage"] = Farm.STAGES - 1
+			else:
+				var back := float(now % period) / float(period) if period > 0 else 0.0
+				_grow_to(plot, crop_id, back)
+		elif is_share:
 			if can_pick_friend_share(npc_id, now):
 				plot["state"] = Farm.READY
 				plot["growth_stage"] = Farm.STAGES - 1

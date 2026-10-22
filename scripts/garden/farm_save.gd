@@ -295,11 +295,11 @@ static func default_npc() -> Dictionary:
 		"last_sneak_cycle": -1, "sneak_owed": false,
 		"sneak_completed_cycle": -1},
 		"rabbit": {"last_share_cycle": -1, "help_owed": false,
-			"help_completed_cycle": -1},
+			"help_completed_cycle": -1, "last_sneak_cycle": -1},
 		"puppy": {"last_share_cycle": -1, "help_owed": false,
-			"help_completed_cycle": -1},
+			"help_completed_cycle": -1, "last_sneak_cycle": -1},
 		"robot": {"last_share_cycle": -1, "help_owed": false,
-			"help_completed_cycle": -1}}
+			"help_completed_cycle": -1, "last_sneak_cycle": -1}}
 
 
 ## The npc block sits three levels deep, which is one past what _migrate can
