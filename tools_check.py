@@ -2223,6 +2223,32 @@ print(f"playable now: {len(playable)}/{len(levels)}  -> {', '.join(playable)}")
 missing_templates = sorted({lv["game_type"] for lv in levels
                             if not os.path.exists(res(mapping.get(lv["game_type"], "")))})
 print(f"templates still to build: {', '.join(missing_templates) or 'none'}")
+# --- battle intros name the move that opens the shell
+#
+# The album cards and the duel hint are held to this by BattleFeelProbe; the
+# spoken intro is the instruction a six-year-old actually takes in, and for a
+# while two of them told him to use the shield on monsters it does nothing to.
+_MOVE_WORDS = {"dodge": ("躲",), "block": ("盾", "护罩", "挡"), "interrupt": ("打断",)}
+_script = open("docs/VOICE_SCRIPT.md", encoding="utf-8").read() \
+    if os.path.exists("docs/VOICE_SCRIPT.md") else ""
+for _lvl in json.load(open("data/levels.json")):
+    _armor = _lvl.get("config", {}).get("armor") or {}
+    if _lvl.get("game_type") != "monster_duel" or not _armor:
+        continue
+    _m = re.search(r"`%s_intro\.wav`[^\n]*\|\s*([^|\n]+?)\s*\|\s*$" % re.escape(_lvl["id"]),
+                   _script, re.M)
+    if not _m:
+        continue
+    _line = _m.group(1)
+    _opens = _armor.get("opens_on", ["dodge", "block", "interrupt"])
+    _said = {mv for mv, ws in _MOVE_WORDS.items() if any(w in _line for w in ws)}
+    if not (_said & set(_opens)):
+        errors.append(f"VOICE_SCRIPT.md: {_lvl['id']}_intro '{_line}' never names how "
+                      f"its shell opens ({', '.join(_opens)})")
+    for _wrong in sorted(_said - set(_opens)):
+        errors.append(f"VOICE_SCRIPT.md: {_lvl['id']}_intro '{_line}' says {_wrong}, "
+                      f"which does not open this monster")
+
 print("=" * 60)
 for w in warnings:
     print("WARN ", w)
