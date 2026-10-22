@@ -1236,7 +1236,7 @@
         "id": "drill_armor",
         "scale": 1.17
       },
-      "instruction_key": "duel.armored",
+      "instruction_key": "duel.armored_interrupt",
       "exit_to": "home",
       "armor": {
         "opens_on": [
@@ -1276,7 +1276,7 @@
         "id": "flame_tail",
         "scale": 1.215
       },
-      "instruction_key": "duel.armored",
+      "instruction_key": "duel.armored_interrupt",
       "exit_to": "home",
       "roar_interval": 8.5,
       "armor": {
@@ -1355,7 +1355,7 @@
         "id": "steel_spine",
         "scale": 1.305
       },
-      "instruction_key": "duel.armored",
+      "instruction_key": "duel.armored_block",
       "exit_to": "home",
       "roar_interval": 8.06,
       "armor": {
@@ -1395,7 +1395,7 @@
         "id": "crystal_armor",
         "scale": 1.35
       },
-      "instruction_key": "duel.armored",
+      "instruction_key": "duel.armored_block",
       "exit_to": "home",
       "roar_interval": 7.84,
       "armor": {
@@ -1437,7 +1437,7 @@
         "id": "blue_wing_armor",
         "scale": 1.395
       },
-      "instruction_key": "duel.armored",
+      "instruction_key": "duel.armored_interrupt",
       "exit_to": "home",
       "roar_interval": 7.62,
       "armor": {
@@ -1476,7 +1476,7 @@
         "id": "blaze_claw",
         "scale": 1.44
       },
-      "instruction_key": "duel.armored",
+      "instruction_key": "duel.armored_block",
       "exit_to": "home",
       "roar_interval": 7.4,
       "armor": {
@@ -1517,7 +1517,7 @@
         "id": "thunder_wyvern",
         "scale": 1.485
       },
-      "instruction_key": "duel.armored",
+      "instruction_key": "duel.armored_block",
       "exit_to": "home",
       "roar_interval": 7.18,
       "armor": {
@@ -1560,7 +1560,7 @@
         "id": "shadow_wing",
         "scale": 1.53
       },
-      "instruction_key": "duel.armored",
+      "instruction_key": "duel.armored_interrupt",
       "exit_to": "home",
       "roar_interval": 6.96,
       "armor": {

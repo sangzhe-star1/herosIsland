@@ -383,7 +383,8 @@ func _build_scene(config: Dictionary) -> void:
 	_play_area.add_child(back)
 
 	_instruction = Label.new()
-	_instruction.text = I18n.t(str(config.get("instruction_key", "duel.instruction")))
+	_base_instruction = str(config.get("instruction_key", "duel.instruction"))
+	_instruction.text = I18n.t(_base_instruction)
 	_instruction.add_theme_font_size_override("font_size", 36)
 	_instruction.add_theme_color_override("font_color", Palette.ON_COLOR)
 	UiKit.on_art(_instruction)
@@ -1302,7 +1303,7 @@ func _process(delta: float) -> void:
 	if _weak_spot != null and not wide_open():
 		_clear_weak_spot()
 		if not _won:
-			_instruction.text = I18n.t("duel.instruction")
+			_instruction.text = I18n.t(_base_instruction)
 
 	# The wind-up runs its own clock. Nothing else is scheduled while it does:
 	# two attacks announced at once is two warnings a six-year-old has to tell
@@ -2147,6 +2148,8 @@ func arena_tween() -> Tween:
 ## flag 由招式自己给（"swat" / "minions"），旗子存在这边 —— 招式是无状态的
 ## 单例，一场打完换下一场，教学该重新算，而招式自己记不住"这是新的一场"。
 var _taught: Dictionary = {}
+## The level's own hint, which teaching lines and closing windows return to.
+var _base_instruction := "duel.instruction"
 
 func arena_teach_once(flag: String, key: String) -> void:
 	if bool(_taught.get(flag, false)):
@@ -2158,7 +2161,7 @@ func arena_teach_once(flag: String, key: String) -> void:
 	var back := get_tree().create_timer(3.0)
 	back.timeout.connect(func():
 		if is_instance_valid(_instruction) and not _won and not _finished:
-			_instruction.text = I18n.t("duel.instruction"))
+			_instruction.text = I18n.t(_base_instruction))
 
 
 # --- the attacks themselves ---------------------------------------------

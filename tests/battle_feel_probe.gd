@@ -44,6 +44,7 @@ func _ready() -> void:
 	await _a_press_that_cannot_fire_still_answers()
 	await _one_event_makes_one_sound()
 	await _the_card_tells_the_truth()
+	_every_card_names_its_real_moves()
 	await _a_stroke_is_a_shortcut_not_a_toll()
 	await _the_monster_learned_new_moves()
 	_the_book_is_the_only_list()
@@ -181,6 +182,62 @@ func _threats(duel: Node) -> Array:
 func _threat_count(duel: Node) -> int:
 	return _threats(duel).size()
 
+
+## 图鉴卡上写的打法，必须是这只怪兽的壳真的认的那几招。
+##
+## For two months half the cards named moves the duel does not have -- steer it
+## into a glowing pillar, flip the magnet switch, collect three energy orbs --
+## while the fight only ever opened on dodge, block or interrupt (22 October).
+## Each armoured card must name at least one of its opens_on moves and none of
+## the others, in the words the fight itself uses. Read in Chinese, the
+## language the move words below are written in.
+const MOVE_WORDS := {"dodge": ["躲"], "block": ["盾", "护罩"], "interrupt": ["打断"]}
+
+
+func _names(text: String, move: String) -> bool:
+	for word in MOVE_WORDS[move]:
+		if text.contains(str(word)):
+			return true
+	return false
+
+func _every_card_names_its_real_moves() -> void:
+	var was: String = I18n.locale
+	I18n.locale = "zh"
+	var checked := 0
+	for level in GameData.levels:
+		if not str(level.get("id", "")).begins_with("battle_"):
+			continue
+		var config: Dictionary = level.get("config", {})
+		var armor: Dictionary = config.get("armor", {})
+		if armor.is_empty():
+			continue
+		var monster_id := str((config.get("monster", {}) as Dictionary).get("id", ""))
+		var card := ""
+		for entry in GameData.monsters:
+			if str(entry.get("id", "")) == monster_id:
+				card = I18n.t(str(entry.get("weakness_key", "")))
+		var opens: Array = armor.get("opens_on", ["dodge", "block", "interrupt"])
+		var named := 0
+		for move in MOVE_WORDS:
+			var says := _names(card, move)
+			if says and opens.has(move):
+				named += 1
+			_ok(not says or opens.has(move),
+				"%s 的图鉴卡写着「%s」，可它的壳不认 %s" % [monster_id, card, move])
+		_ok(named > 0, "%s 的图鉴卡「%s」没写出它真正的开壳方法 %s"
+			% [monster_id, card, str(opens)])
+		# The line on screen during the fight follows the same rule.
+		var shown := I18n.t(str(config.get("instruction_key", "duel.instruction")))
+		var hint_ok := false
+		for move in MOVE_WORDS:
+			if _names(shown, move):
+				hint_ok = hint_ok or opens.has(move)
+				_ok(opens.has(move), "%s 的战斗提示「%s」叫他用 %s，可壳不认"
+					% [str(level.get("id", "")), shown, move])
+		_ok(hint_ok, "%s 的战斗提示「%s」没说怎么开壳" % [str(level.get("id", "")), shown])
+		checked += 1
+	I18n.locale = was
+	_ok(checked >= 12, "only %d armoured duels were checked -- the card check stopped looking" % checked)
 
 ## 卡片上写的打法，战斗里得是真的。
 ##
