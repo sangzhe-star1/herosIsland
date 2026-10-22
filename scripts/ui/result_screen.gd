@@ -218,7 +218,7 @@ func _fly_coins_to_chip(from_node: Control, earned: int) -> void:
 	await get_tree().process_frame
 	if not is_instance_valid(chip):
 		return
-	chip.position = Vector2(1280.0 - chip.size.x - 28.0, 24)
+	chip.position = Vector2(get_viewport_rect().size.x - chip.size.x - 28.0, 24)
 	chip.pivot_offset = chip.size / 2.0
 
 	if not Juice.motion_enabled():

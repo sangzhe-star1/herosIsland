@@ -30,19 +30,19 @@ const Fit := preload("res://scripts/shared/screen_fit.gd")
 ## no sense to a six-year-old.
 const CASES := [
 	{"who": "paw", "trouble": "hurt", "tool": "plaster",
-	 "wrong": ["scissors", "carrot", "umbrella"], "say": "rescue.hurt"},
+		"wrong": ["scissors", "carrot", "umbrella"], "say": "rescue.hurt"},
 	{"who": "fish", "trouble": "thirsty", "tool": "potion",
-	 "wrong": ["blanket", "hat", "blocks"], "say": "rescue.thirsty"},
+		"wrong": ["blanket", "hat", "blocks"], "say": "rescue.thirsty"},
 	{"who": "teddy", "trouble": "cold", "tool": "blanket",
-	 "wrong": ["fish", "ball", "magnifier"], "say": "rescue.cold"},
+		"wrong": ["fish", "ball", "magnifier"], "say": "rescue.cold"},
 	{"who": "paw", "trouble": "hungry", "tool": "carrot",
-	 "wrong": ["socks", "crayon", "compass"], "say": "rescue.hungry"},
+		"wrong": ["socks", "crayon", "compass"], "say": "rescue.hungry"},
 	{"who": "teddy", "trouble": "rain", "tool": "umbrella",
-	 "wrong": ["comic", "berries", "medal"], "say": "rescue.rain"},
+		"wrong": ["comic", "berries", "medal"], "say": "rescue.rain"},
 	{"who": "fish", "trouble": "lost", "tool": "compass",
-	 "wrong": ["pillow", "matches", "coin"], "say": "rescue.lost"},
+		"wrong": ["pillow", "matches", "coin"], "say": "rescue.lost"},
 	{"who": "paw", "trouble": "dark", "tool": "spark",
-	 "wrong": ["scarf", "socket", "sort"], "say": "rescue.dark"},
+		"wrong": ["scarf", "socket", "sort"], "say": "rescue.dark"},
 ]
 
 var _hud: Control

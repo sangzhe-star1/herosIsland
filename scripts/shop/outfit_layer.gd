@@ -148,7 +148,7 @@ static func _hang(art: Node, tex: Texture2D, place: Dictionary, slot: String) ->
 		# Front limb gets the right-hand half, back limb the left-hand one, so
 		# the two are mirror images the way a real pair is.
 		bones = [["_leg_front" if slot == "feet" else "_arm_front", true, 1.0],
-				 ["_leg_back" if slot == "feet" else "_arm_back", false, -1.0]]
+			["_leg_back" if slot == "feet" else "_arm_back", false, -1.0]]
 	else:
 		bones = [[str(place.get("bone", "_root")), false, 1.0]]
 

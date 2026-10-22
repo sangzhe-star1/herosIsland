@@ -247,7 +247,8 @@ func _build_tray() -> void:
 	var shelf := Node2D.new()
 	shelf.position = Vector2(0, shelf_y())
 	_tray.add_child(shelf)
-	Shapes.fill(shelf, Shapes.rounded_rect(Vector2(16, 0), Vector2(1248, SHELF_H), 26.0),
+	Shapes.fill(shelf, Shapes.rounded_rect(Vector2(16, 0),
+		Vector2(get_viewport_rect().size.x - 32.0, SHELF_H), 26.0),
 		Color(0.05, 0.10, 0.22, 0.62), 0.0)
 
 	var owned: Array = []
