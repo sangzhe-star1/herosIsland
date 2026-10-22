@@ -429,11 +429,11 @@ smoke at 31/31 and does not change what the child sees unless stated.
    backdrops fill 4:3, checked by TabletProbe), C3 (indentation).
    **Fixed 21 October:** HomeProbe's parent-door flake — the hold now ends
    with the finger, not only with button_up.
-   **Open, highest C-track priority:** GardenTouchProbe/FarmWorldProbe lose
-   one real touch in roughly 1 run in 3 under load (pre-existing: 2/5 on
-   main's code). Different step each time; no rebuild was pending. Lead:
-   the world controller held finger 0 after a shelf tap it should not own.
-   Until fixed, a red farm probe needs one rerun before it counts.
+   **Fixed 22 October:** the farm probes' "one lost touch in three" was the
+   user's real mouse reaching the probe window mid-tap (macOS ignores
+   mouse_passthrough for motion). `tests/desktop_pointer_filter.gd` drops
+   untagged desktop mouse events; the full suite passes 31/31 with the cursor
+   moving throughout.
 5. **Save-version consolidation** (open decision 6) — only after A3.
 6. **Unused strings (172 warnings)** — mostly names for levels that were
    removed or never wired. Deleting them is cheap but is a content decision;
