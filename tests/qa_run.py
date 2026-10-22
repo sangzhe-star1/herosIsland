@@ -221,10 +221,16 @@ class RunResult:
 
 
 def terminate_own_group(process: subprocess.Popen) -> None:
-    """Only terminate the session this runner created, then reap its parent."""
+    """Only terminate the session this runner created, then reap its parent.
+
+    macOS answers killpg() with EPERM, not ESRCH, when the group's only member
+    left is an unreaped zombie. That used to escape as "Operation not permitted"
+    and turn one probe's timeout into an aborted suite, so it is treated as
+    "nothing left to signal".
+    """
     try:
         os.killpg(process.pid, signal.SIGTERM)
-    except ProcessLookupError:
+    except (ProcessLookupError, PermissionError):
         pass
     deadline = time.monotonic() + 3
     # The parent may exit before one of its children. Reap the parent while
@@ -233,13 +239,13 @@ def terminate_own_group(process: subprocess.Popen) -> None:
         process.poll()
         try:
             os.killpg(process.pid, 0)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             break
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             try:
                 os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
+            except (ProcessLookupError, PermissionError):
                 pass
             break
         time.sleep(min(remaining, 0.05))

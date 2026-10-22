@@ -188,6 +188,13 @@ class QARunnerTests(unittest.TestCase):
         # An already killed child may briefly wait for its new parent to reap it.
         self.assertTrue(state.returncode != 0 or state.stdout.strip().startswith("Z"), state.stdout)
 
+    def test_timeout_cleanup_tolerates_macos_zombie_group_eperm(self):
+        # macOS killpg() returns EPERM when only a zombie remains in the group.
+        process = mock.Mock(pid=424242)
+        with mock.patch.object(qa_run.os, "killpg", side_effect=PermissionError(1, "no")):
+            qa_run.terminate_own_group(process)
+        process.wait.assert_called_once()
+
     def test_suite_manifest_has_all_original_probes_in_order(self):
         suite = qa_run.load_suite(Path(__file__).with_name("smoke_suite.json"))
         self.assertEqual(len(suite), 31)

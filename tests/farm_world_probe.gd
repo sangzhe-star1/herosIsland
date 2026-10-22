@@ -2774,7 +2774,14 @@ func _a_visit_to_a_friends_farm(who: String) -> void:
 
 
 func _capture_probe_screen(label: String) -> void:
-	await RenderingServer.frame_post_draw
+	# Same bounded path as FarmShot and FarmLifeProbe. frame_post_draw can stop
+	# arriving for an occluded or sleeping macOS window while process_frame
+	# continues; awaiting it here hung the whole probe silently until the
+	# 400-second wall clock (21 October, and once on 10 October).
+	print("-- capture %s %s" % [label, _shape])
+	for _frame in range(3):
+		await get_tree().process_frame
+	RenderingServer.force_draw(false)
 	var image: Image = get_viewport().get_texture().get_image()
 	var folder := ProjectSettings.globalize_path("user://friend_farm_shots")
 	DirAccess.make_dir_recursive_absolute(folder)
