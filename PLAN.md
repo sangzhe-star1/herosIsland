@@ -427,8 +427,13 @@ smoke at 31/31 and does not change what the child sees unless stated.
    what is left is orchestration and probe seams. Paused here for review.
    **Done 21 October:** C1 (FarmWorldProbe bounded capture), C2 (six 3D
    backdrops fill 4:3, checked by TabletProbe), C3 (indentation).
-   **Observed once:** HomeProbe at 1024x768, parent door release did not
-   cancel the hold; not reproduced in 3 solo runs or the suite rerun.
+   **Fixed 21 October:** HomeProbe's parent-door flake — the hold now ends
+   with the finger, not only with button_up.
+   **Open, highest C-track priority:** GardenTouchProbe/FarmWorldProbe lose
+   one real touch in roughly 1 run in 3 under load (pre-existing: 2/5 on
+   main's code). Different step each time; no rebuild was pending. Lead:
+   the world controller held finger 0 after a shelf tap it should not own.
+   Until fixed, a red farm probe needs one rerun before it counts.
 5. **Save-version consolidation** (open decision 6) — only after A3.
 6. **Unused strings (172 warnings)** — mostly names for levels that were
    removed or never wired. Deleting them is cheap but is a content decision;
