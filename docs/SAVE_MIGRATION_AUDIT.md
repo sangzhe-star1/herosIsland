@@ -15,6 +15,21 @@ Export or copy the save from the iPad, then run:
 python3 tests/audit_garden_save.py --save /absolute/path/to/save_game.json
 ```
 
+Or let the Mac fetch it: connect the iPad by cable, unlock it, tap Trust, and
+double-click `tools/pull_ipad_save.command` (equivalent to
+`./tools/pull_ipad_save.command --audit`). It reads
+`Documents/save_game.json` and `.bak` from the `com.family.heroesisland` data
+container with `xcrun devicectl`, copies them read-only into
+`~/HeroesIsland-saves/<date>-ipad/` with their SHA-256 in `SOURCE.txt`, and
+runs this audit into an `audit/` folder beside them. It refuses an output
+folder inside the repository. Only a development-signed build (installed from
+Xcode or Godot) exposes its container; for an App Store or TestFlight build,
+take the file from a Finder backup instead. `--simulator` rehearses the same
+path against the booted iPad simulator: on 21 October it copied that
+simulator's save (an older build, with no robot friend) and the audit passed
+its basic checks, adding `npc.robot` and settlement timestamps only. The
+physical-device branch has not run yet, because no iPad has been connected.
+
 Godot is found in the usual application paths. If needed, add
 `--godot /path/to/Godot`. The report and normalized copy are written under a
 fresh `/tmp/heroes-save-audit-*` directory. To choose a persistent location,
