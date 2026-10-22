@@ -435,9 +435,22 @@ smoke at 31/31 and does not change what the child sees unless stated.
    untagged desktop mouse events; the full suite passes 31/31 with the cursor
    moving throughout.
 5. **Save-version consolidation** (open decision 6) — only after A3.
-6. **Unused strings (172 warnings)** — mostly names for levels that were
-   removed or never wired. Deleting them is cheap but is a content decision;
-   list them by group for review rather than delete.
+6. **Unused strings** — *22 October:* 40 of the 172 were false alarms.
+   `tools_check.py` only recognised one-dot keys in a fixed namespace list,
+   so in-use keys such as `garden.next.harvest`, `lesson.castle.1` and the
+   four `rest.*` break-reminder lines were reported dead. Any quoted literal
+   that exists in strings.json now counts; a namespaced literal that is
+   missing still errors (checked by breaking it once). The real 132, for
+   your decision — nothing has been deleted:
+
+   | Count | Group | What it is | Suggestion |
+   |---|---|---|---|
+   | 60 | `level.*` for levels not in levels.json | first-version levels (adventure_valley, bluey_park, …) | safe to delete |
+   | 9 | `world.*` for worlds not in worlds.json | first-version worlds | safe to delete |
+   | 20 + 8 + 5 + 2 + 1 | `item.*`, `bin.*`, `sorting.instruction_*`, `rescue.instruction_*`, `collect.*` | text for the seven idle templates | keep while open decision 1 stands |
+   | 9 | `shop.*` | shop categories and items not on sale | content call |
+   | 7 + 5 + 2 + 1 | `garden.*` (time of day, daily title), `house.*`, `facility.*`, `dog.dug_seed` | written for features that show icons instead | keep, or wire as captions |
+   | 3 | `album.empty`, `battle.all_met`, `map.completion` | end-state messages never reached yet | keep |
 
 What stays out of scope without asking: deleting levels, templates or asset
 folders; runtime 3D on the farm; any network, account or analytics feature.

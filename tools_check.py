@@ -276,12 +276,20 @@ for f in gd:
     # script counts, because templates increasingly keep their strings in
     # const tables (the defence's upgrade draft, for one) rather than
     # spelling out I18n.t() at the point of use.
+    #
+    # Any quoted literal that IS a key in strings.json counts. This used to be
+    # a list of namespaces with exactly one dot after them, which missed every
+    # two-level key ("garden.next.harvest", "lesson.castle.1") and every
+    # namespace added later ("rest", "lesson", "facility") -- 40-odd keys the
+    # game shows were reported as dead, inviting someone to delete them.
     used |= set(re.findall(
         r'"((?:app|common|boot|home|map|world|level|badge|growth|character'
         r'|traffic|result|parent|rewards|limit|sorting|bin|item|collect'
         r'|up|defense|battle|duel|expedition|keepy|shop|outfit|house|echo'
         r'|memory|rescue|platformer|blaster|colour|garden|crop|npc)'
-        r'\.[a-z0-9_]+)"', src))
+        r'\.[a-z0-9_]+)"', src))     # namespaced: a missing one is an error
+    used |= {k for k in re.findall(r'"([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)"', src)
+             if k in en}              # any depth: only counts if it exists
 # Not every field ending in _key is a translation key. `completion_transaction_key`
 # is an idempotency id -- the string a delivery is recorded against so it cannot
 # be paid for twice -- and asking strings.json for a Chinese translation of it
