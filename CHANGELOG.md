@@ -1,5 +1,14 @@
 # Changelog
 
+## 真人配音录音工具与后续流程 — 21 October 2026
+
+- 新增 `tools/record_voice.command`：在 Mac 上按配音稿一次显示一句，回车录、回车停，自动回放后保留或重录；去首尾静音、统一响度，写成游戏已在加载的 `assets/audio/voice/level/<id>.wav`（单声道 24 kHz 16-bit）。被替换的占位音移到 `.voice_backup/`，`--revert` 可原样换回；进度记在 `assets/audio/voice/human_recorded.txt`，可随时中断续录。
+- `tools_check.py` 新增规则：列为真人录制的台词必须有 `.wav`，且旁边不能残留 `.ogg`（游戏优先加载 `.ogg`，会盖住真人声）；三种情况各故意弄坏一次确认报错。
+- 在项目副本里替换一条 `.ogg`、一条 `.wav` 后 VoiceCheck 通过；替换、重复重录与还原后目录逐字节一致。本机终端没有麦克风权限，录到的是静音，真人录音与回放尚未实测。
+- QA 运行器：macOS 在进程组只剩僵尸进程时 `killpg()` 返回 EPERM，原先会把一次超时变成整套 smoke 中断（本次 FarmWorldProbe 首次运行即如此，原因未复现，单独重跑 957 项通过）。现在按"已无进程"处理，新增单测，旧代码下失败、修复后通过，单测 17/17。
+- FarmWorldProbe 那次卡住的原因：首个截图点 `_capture_probe_screen()` 无上限等待 `RenderingServer.frame_post_draw`；macOS 窗口被遮挡或休眠时这个信号可能不再到来（FarmShot 与 FarmLifeProbe 早已因此改用有界截图）。现改为同样的“三帧 + `force_draw`”路径，并在每次截图前打印位置，下次卡住能直接看到停在哪。单独运行 957 项通过，16:9 与 4:3 截图目视完整；遮挡状态下的卡住本身未能人为复现。
+- 完整隔离 smoke 31 passed、0 skipped（FarmWorldProbe 20.8 秒）；`tools_check.py` 0 errors、208 条既有 warnings。PLAN 增加 10 月 21 日后续顺序：真人录音 → 导出 iPad 存档审计 → iPad 试玩 → 删减决定。README 过时数字已更正。
+
 ## Blender 草莓株身接入正式收菜页 — 11 October 2026
 
 - 从现有 r5 rosette GLB 生成透明株身图，通过现有 `HarvestVisualArt` 元数据接入 `harvest_02`；果实、触控、成熟与送篮仍走原组件。单独校准果实与株身比例，避免放大株身时连采摘果实也一起膨胀。

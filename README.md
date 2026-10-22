@@ -21,7 +21,7 @@ Finish the first release before upgrading.
 
 Run the smoke suite to check scene startup, data consistency, progression and
 touch behavior. It copies the current project into a temporary directory with
-its own save directory, imports that copy and runs 29 probes serially:
+its own save directory, imports that copy and runs 31 probes serially:
 
 ```bash
 ./tests/run_smoke.sh
@@ -29,7 +29,7 @@ its own save directory, imports that copy and runs 29 probes serially:
 
 Eight probes need a window. On Linux without a display, install/use xvfb to
 include them; otherwise the summary explicitly reports skipped probes. A full
-run requires `Suite finished: 29 passed, 0 skipped`. Allow several minutes for
+run requires `Suite finished: 31 passed, 0 skipped`. Allow several minutes for
 the suite. See [QA runner usage](docs/QA_RUNNER.md) for individual probes,
 timeouts, screenshot output and saved logs.
 
@@ -94,20 +94,20 @@ back to the map, with progress saved.
 | 去冒险 · Adventure | Growth Island map, 34 levels across five worlds | `scripts/ui/world_map.gd`, `scripts/world/island_map.gd` |
 | 我的奖励 · My Rewards | badges, stars, the monster album | `scripts/reward/`, `scenes/reward/` |
 | 英雄小屋 · Hero House | dress-up room, furniture, the star-coin shop | `scripts/shop/`, `scripts/skin/` |
-| 星光菜园 · Star Garden | the farm (care gestures, daily jobs, the bear, the kitchen), plus the ten 丰收行动 harvest levels | `scripts/garden/`, `scripts/harvest/` |
+| 星光菜园 · Star Garden | the farm (care gestures, daily jobs, the bear, the kitchen), plus the sixteen 丰收行动 harvest levels | `scripts/garden/`, `scripts/harvest/` |
 | 光之战士 · Light Warrior | fifteen monster duels in a row, one door, always the next unbeaten one | `scripts/battle/`, `scripts/minigames/monster_duel.gd` |
 
 Behind them: boot, result screen, parent center, save, audio, scene flow,
 rewards and growth stats in `scripts/core/`, `scripts/ui/` and `scripts/reward/`.
 
-**61 levels, all data**, in `data/levels.json`. A level's `mode` decides which
+**67 levels, all data**, in `data/levels.json`. A level's `mode` decides which
 door it sits behind; a level with no `mode` is a pin on the island map.
 
 | `mode` | Levels | Lives behind |
 |---|---|---|
 | *(none)* | 34 | the island map, 5 worlds of 6 to 8 levels |
 | `battle` | 15 | 光之战士; every one is a Challenge level that grows a rank each time it is beaten |
-| `harvest` | 10 | the Star Garden |
+| `harvest` | 16 | the Star Garden |
 | `standalone` | 1 | the Star Garden itself |
 | `deco` | 1 | the garden's decoration room |
 
@@ -122,7 +122,7 @@ the whole design bet.
 | Template | Levels | What the child does |
 |---|---|---|
 | `monster_duel` | 21 | beam, shield and dodge a monster until it is tired and happy, never hurt; later monsters are opened by the move their album card names |
-| `harvest_action` | 10 | pull, dig, shake and sort crops with drawn gestures; the crops are 2.5D renders from `assets/harvest_3d/` |
+| `harvest_action` | 16 | pull, dig, shake and sort crops with drawn gestures; the crops are 2.5D renders from `assets/harvest_3d/` |
 | `platform_adventure` | 6 | run and jump through a side-scrolling level |
 | `build_repair` | 4 | put a broken thing back together in order |
 | `puzzle_mechanism` | 4 | work out how a machine opens |
@@ -251,7 +251,12 @@ every level finds a line that actually loads.
 A six-year-old may not read fluently — **voice is the real instruction
 channel**. Replacing a synthetic line with your own voice is the same file
 name in the same folder, and it is still the highest-value hour you can spend
-on this project.
+on this project. `tools/record_voice.command` does it on the Mac: one line on
+screen at a time, Enter to record, Enter to stop, automatic playback, keep or
+retake. It trims and levels the take, writes the file the game already loads,
+moves the placeholder to `.voice_backup/` (`--revert <id>` puts it back), and
+records progress in `assets/audio/voice/human_recorded.txt` so a session can
+stop at any line. Start with `--section 一`, the level intros.
 
 ---
 
@@ -401,15 +406,15 @@ folder for it to add another.
 
 ## 14. Where things stand
 
-Verified on 4 October 2026, on this branch rebased onto the 3D-art commit:
+Verified on 21 October 2026, on `main`:
 
 ```
-python3 tools_check.py     ->  0 errors, 203 warnings   (warnings are old debt)
-./tests/run_smoke.sh       ->  Suite finished: 30 passed, 0 skipped
+python3 tools_check.py     ->  0 errors, 208 warnings   (warnings are old debt)
+./tests/run_smoke.sh       ->  Suite finished: 31 passed, 0 skipped
 ```
 
 The suite copies the project to a temporary directory with its own save,
-imports it, then runs 30 probes in order (`tests/smoke_suite.json`). On Linux
+imports it, then runs 31 probes in order (`tests/smoke_suite.json`). On Linux
 without a display it needs `xvfb-run` for the eight windowed probes. Two
 engine notices at exit, "resources still in use" and "RID allocations
 leaked", are not failures and the runner ignores them; anything else that
