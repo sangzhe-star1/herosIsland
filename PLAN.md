@@ -423,6 +423,12 @@ smoke at 31/31 and does not change what the child sees unless stated.
 4. **`garden_screen.gd` toward ~1,500 lines**, one cohesive boundary per
    commit, GardenTouchProbe and FarmWorldProbe at both ratios each time.
    Stop when what remains is orchestration; splitting further is cost.
+   *21 October:* 1,994 lines, of which ~630 are comments and ~260 blank;
+   what is left is orchestration and probe seams. Paused here for review.
+   **Done 21 October:** C1 (FarmWorldProbe bounded capture), C2 (six 3D
+   backdrops fill 4:3, checked by TabletProbe), C3 (indentation).
+   **Observed once:** HomeProbe at 1024x768, parent door release did not
+   cancel the hold; not reproduced in 3 solo runs or the suite rerun.
 5. **Save-version consolidation** (open decision 6) — only after A3.
 6. **Unused strings (172 warnings)** — mostly names for levels that were
    removed or never wired. Deleting them is cheap but is a content decision;

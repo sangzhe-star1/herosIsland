@@ -1,5 +1,14 @@
 # Changelog
 
+## 4:3 三维背景铺满、iPad 存档拉取与长期计划 — 21 October 2026（夜间分支）
+
+- **iPad 上六个 3D 关卡底部 240 px 是灰的**：`build_repair`、`matching_sorting`、`observation_search`、`puzzle_mechanism`、`platformer`、`adventure` 把 3D 背景固定成 1280×720，而 iPad 的视口是 1280×960。`observation_search` 有一个要找的东西就落在灰带上。新增 `scripts/world/fit_3d.gd`：背景跟随实际视口，镜头改用离轴视锥，上面 720 行和 16:9 完全一致、2D 点击区不偏移，多出的高度只是往下多看到一段地面。TabletProbe 新增“3D 背景必须铺满屏幕”的检查：旧代码下五个模板全部报红，修复后通过；16:9 与 4:3 截图逐一目视。
+- 创作关的贴纸架与结算页金币牌改读视口宽度；八处 tab 后跟空格的缩进改正。`tools_check.py` warnings 从 208 降到 186，0 errors。
+- 新增 `tools/pull_ipad_save.command`：iPad 用线连上并信任后双击，用 `xcrun devicectl` 只读复制 `Documents/save_game.json` 与 `.bak` 到 `~/HeroesIsland-saves/<日期>-ipad/`，记录 SHA-256 并直接跑迁移审计；拒绝把存档写进仓库。`--simulator` 已在 iPad 模拟器上端到端跑通（源文件哈希前后一致、审计基础检查通过）；实体 iPad 分支因没有连接设备尚未实跑。
+- `garden_screen.gd`：教学台词查找移入 `FarmLessonSessionController`，成熟提示移入 `FarmProgressNoticeView`，2,013 → 1,994 行。剩下约 1,100 行代码、630 行注释，基本是编排与对外接口；继续拆分收益已很小，按计划在此停下等复核。
+- PLAN.md 新增“Long-term plan — written 21 October 2026”：A 家长（录音、拉存档）、B 孩子（iPad 试玩、删减决定）、C 无设备工程，三条线。
+- 验证：完整隔离 smoke 31 passed、0 skipped（本分支最后一次提交后）；GardenTouchProbe 2,057 项、FarmWorldProbe 957 项。中途有一次 HomeProbe 在 1024×768 下“松开家长门没有取消长按”失败，单独连跑 3 次、整套重跑均通过，原因未查明，记作偶发。
+
 ## 真人配音录音工具与后续流程 — 21 October 2026
 
 - 新增 `tools/record_voice.command`：在 Mac 上按配音稿一次显示一句，回车录、回车停，自动回放后保留或重录；去首尾静音、统一响度，写成游戏已在加载的 `assets/audio/voice/level/<id>.wav`（单声道 24 kHz 16-bit）。被替换的占位音移到 `.voice_backup/`，`--revert` 可原样换回；进度记在 `assets/audio/voice/human_recorded.txt`，可随时中断续录。
