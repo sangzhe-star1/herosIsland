@@ -1862,25 +1862,10 @@ func _an_order_he_can_fill() -> String:
 	return str(_first_fillable_order().get("id", ""))
 
 
-## Say one step's line, and point at the thing the line is about.
-##
-## The words live in garden_tutorial.json and not here, so that the line an
-## adult records and the moment it plays are described in the same file. A step
-## the data does not name is skipped in silence -- better than a finger
-## pointing at nothing while nobody speaks.
+## Say one step's line and point at its target; the words live in
+## garden_tutorial.json and the session controller resolves them.
 func _say_the_step(step_id: String) -> void:
-	var step := _step_data(step_id)
-	if step.is_empty():
-		return
-	AudioManager.say(str(step.get("voice", "")))
-	_point_at(str(step.get("point_at", "plot")))
-
-
-func _step_data(step_id: String) -> Dictionary:
-	for step in GameData.garden_tutorial.get("steps", []):
-		if step is Dictionary and str(step.get("id", "")) == step_id:
-			return step
-	return {}
+	_lesson_session.say_step(self, step_id)
 
 
 ## Keep the existing screen callback for hint directors; the lesson view
@@ -1931,14 +1916,10 @@ func _garden_tick_once() -> void:
 	if not bool(result.get("needs_rebuild", false)):
 		return
 	if _world != null and is_instance_valid(_world):
-		var celebrated := false
+		var centres: Array = []
 		for index_value in result.get("ripened_indices", []):
-			var index := int(index_value)
-			if not celebrated:
-				celebrated = true
-				AudioManager.play_sfx("res://assets/audio/pop.ogg")
-			Juice.shockwave(_play, _bed_centre(index), 140.0,
-				Color(1.0, 0.94, 0.62, 0.5))
+			centres.append(_bed_centre(int(index_value)))
+		FarmProgressNoticeView.new(self).ripened(centres)
 	_queue_rebuild()
 
 

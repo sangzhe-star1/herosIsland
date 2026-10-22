@@ -43,6 +43,27 @@ func advance(screen: Node) -> void:
 	screen.call("_say_the_step", step)
 
 
+## Say one step's line, and point at the thing the line is about.
+##
+## The words live in garden_tutorial.json and not in code, so that the line an
+## adult records and the moment it plays are described in the same file. A step
+## the data does not name is skipped in silence -- better than a finger
+## pointing at nothing while nobody speaks.
+func say_step(screen: Node, step_id: String) -> void:
+	var step := step_data(step_id)
+	if step.is_empty():
+		return
+	AudioManager.say(str(step.get("voice", "")))
+	screen.call("_point_at", str(step.get("point_at", "plot")))
+
+
+static func step_data(step_id: String) -> Dictionary:
+	for step in GameData.garden_tutorial.get("steps", []):
+		if step is Dictionary and str(step.get("id", "")) == step_id:
+			return step
+	return {}
+
+
 ## The tutorial crop settles in memory on a faster beat while the child watches.
 ## Growth still derives from the planted timestamp and is never saved here.
 func tick(screen: Node) -> void:

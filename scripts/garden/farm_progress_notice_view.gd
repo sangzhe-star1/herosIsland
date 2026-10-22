@@ -14,6 +14,16 @@ func level_up(layer: CanvasLayer, view: Vector2,
 		master_farmer(layer, view)
 
 
+
+## Beds that ripened while he watched: one pop for the beat, one soft ring per
+## bed. The tick controller has already decided which beds crossed the line.
+func ripened(centres: Array) -> void:
+	if centres.is_empty() or play == null or not is_instance_valid(play):
+		return
+	AudioManager.play_sfx("res://assets/audio/pop.ogg")
+	for centre in centres:
+		Juice.shockwave(play, centre, 140.0, Color(1.0, 0.94, 0.62, 0.5))
+
 ## Daily completion receipts are already gated by the progress controller; this
 ## view owns the matching chimes and the last-star praise line.
 func daily_progress(receipt: Dictionary) -> void:
