@@ -1,4 +1,5 @@
 extends Node
+const DesktopPointerFilter := preload("res://tests/desktop_pointer_filter.gd")
 ## 星光菜园, with thumbs. Everything here is driven through the real input
 ## pipeline in both screen shapes, because the two ways this screen can be
 ## broken -- a seed that lands in the wrong bed, and a garden that works on a
@@ -557,7 +558,7 @@ func _finger(from: Vector2, to: Vector2, after_press: Callable = Callable(),
 	down.index = 0
 	down.pressed = true
 	down.position = _glass(from)
-	Input.parse_input_event(down)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(down))
 	if not trace.is_empty():
 		trace["down_dispatch"] = _input_trace_snapshot(from)
 	await get_tree().process_frame
@@ -583,7 +584,7 @@ func _finger(from: Vector2, to: Vector2, after_press: Callable = Callable(),
 	up.index = 0
 	up.pressed = false
 	up.position = _glass(to)
-	Input.parse_input_event(up)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(up))
 	if not trace.is_empty():
 		trace["up_dispatch"] = _input_trace_snapshot(to)
 	await get_tree().process_frame
@@ -3596,7 +3597,7 @@ func _a_ripe_bed_comes_out_when_pulled() -> void:
 	down.index = 0
 	down.pressed = true
 	down.position = _glass(_bed(3))
-	Input.parse_input_event(down)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(down))
 	await get_tree().process_frame
 	var drag := InputEventScreenDrag.new()
 	drag.index = 0
@@ -3615,7 +3616,7 @@ func _a_ripe_bed_comes_out_when_pulled() -> void:
 	up.index = 0
 	up.pressed = false
 	up.position = _glass(_bed(3) + Vector2(130.0 * side, 0.0))
-	Input.parse_input_event(up)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(up))
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -3644,7 +3645,7 @@ func _a_ripe_bed_comes_out_when_pulled() -> void:
 	down.index = 0
 	down.pressed = true
 	down.position = _glass(_bed(2))
-	Input.parse_input_event(down)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(down))
 	await get_tree().process_frame
 	drag = InputEventScreenDrag.new()
 	drag.index = 0
@@ -3657,7 +3658,7 @@ func _a_ripe_bed_comes_out_when_pulled() -> void:
 	up.index = 0
 	up.pressed = false
 	up.position = _glass(_bed(2) + Vector2(130.0 * side, 0.0))
-	Input.parse_input_event(up)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(up))
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_ok(str(_plots()[2].get("state", "")) == Farm.GROWING,
@@ -5027,14 +5028,14 @@ func _care_has_moves_of_its_own() -> void:
 func _mouse_click(at: Vector2) -> void:
 	var motion := InputEventMouseMotion.new()
 	motion.position = _glass(at)
-	Input.parse_input_event(motion)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(motion))
 	await get_tree().process_frame
 	for down in [true, false]:
 		var event := InputEventMouseButton.new()
 		event.button_index = MOUSE_BUTTON_LEFT
 		event.pressed = down
 		event.position = _glass(at)
-		Input.parse_input_event(event)
+		Input.parse_input_event(DesktopPointerFilter.synthetic(event))
 		await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -5447,7 +5448,7 @@ func _dense_tools_do_not_pick_up_neighbouring_seeds(view: Vector2) -> void:
 	down.button_index = MOUSE_BUTTON_LEFT
 	down.pressed = true
 	down.position = _glass(at)
-	Input.parse_input_event(down)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(down))
 	await get_tree().process_frame
 	var field: DragField = _garden.get("_field")
 	_ok(field.held().is_empty() and not bool(_garden.get("_world").get("locked")),
@@ -5456,14 +5457,14 @@ func _dense_tools_do_not_pick_up_neighbouring_seeds(view: Vector2) -> void:
 	move.position = _glass(at + Vector2(14.0, 0.0))
 	move.relative = _glass(Vector2(14.0, 0.0))
 	move.button_mask = MOUSE_BUTTON_MASK_LEFT
-	Input.parse_input_event(move)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(move))
 	await get_tree().process_frame
 	_ok(field.held().is_empty(), "dragging the mouse within a tool still holds no seed")
 	var up := InputEventMouseButton.new()
 	up.button_index = MOUSE_BUTTON_LEFT
 	up.pressed = false
 	up.position = move.position
-	Input.parse_input_event(up)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(up))
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_ok(JSON.stringify(_plots()) == plots_before,
@@ -5712,7 +5713,7 @@ func _source_touch(at: Vector2, pressed: bool, touch_index: int = 0) -> void:
 	event.index = touch_index
 	event.position = _glass(at)
 	event.pressed = pressed
-	Input.parse_input_event(event)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(event))
 	await get_tree().process_frame
 
 
@@ -5724,7 +5725,7 @@ func _source_mouse_button(at: Vector2, pressed: bool) -> void:
 	event.button_index = MOUSE_BUTTON_LEFT
 	event.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
 	event.pressed = pressed
-	Input.parse_input_event(event)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(event))
 	await get_tree().process_frame
 
 
@@ -5735,5 +5736,5 @@ func _source_mouse_motion(from: Vector2, to: Vector2, mask: int) -> void:
 	event.global_position = _glass(to)
 	event.relative = _glass(to) - _glass(from)
 	event.button_mask = mask
-	Input.parse_input_event(event)
+	Input.parse_input_event(DesktopPointerFilter.synthetic(event))
 	await get_tree().process_frame

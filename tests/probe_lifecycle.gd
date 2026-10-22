@@ -10,6 +10,12 @@ extends RefCounted
 static func isolate_desktop_pointer(probe: Node) -> void:
 	probe.get_window().unfocusable = true
 	probe.get_window().mouse_passthrough = true
+	# Passthrough is not enough: macOS still delivers the user's mouse motion.
+	var root := probe.get_tree().root
+	if root.get_node_or_null("DesktopPointerFilter") == null:
+		var filter: Node = load("res://tests/desktop_pointer_filter.gd").new()
+		filter.name = "DesktopPointerFilter"
+		root.add_child.call_deferred(filter)
 
 
 ## Screenshot checks are explicit QA calls, never part of a product frame.
