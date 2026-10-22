@@ -13,6 +13,7 @@ extends LevelManager
 ## Nothing can be failed. A wrong drop floats back and the bin shakes its
 ## head; the item is still there, the child is still there, and the only
 ## record kept is whether they needed help, which is the third star.
+const FIT_3D := preload("res://scripts/world/fit_3d.gd")
 
 const Field := preload("res://scripts/shared/drag_field.gd")
 const Hints := preload("res://scripts/shared/hint_director.gd")
@@ -63,15 +64,12 @@ var _room_3d_world: Node3D
 func _build_3d_toy_room() -> void:
 	var vp_container := SubViewportContainer.new()
 	vp_container.name = "ToyRoom3DContainer"
-	vp_container.custom_minimum_size = Vector2(1280, 720)
-	vp_container.size = Vector2(1280, 720)
 	vp_container.stretch = true
 	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(vp_container)
 
 	_room_3d_vp = SubViewport.new()
 	_room_3d_vp.name = "ToyRoom3DViewport"
-	_room_3d_vp.size = Vector2i(1280, 720)
 	_room_3d_vp.own_world_3d = true
 	_room_3d_vp.transparent_bg = false
 	_room_3d_vp.handle_input_locally = false
@@ -116,6 +114,8 @@ func _build_3d_toy_room() -> void:
 	_room_3d_cam.rotation_degrees = Vector3(-16.0, 0.0, 0.0)
 	_room_3d_cam.fov = 48.0
 	world_root.add_child(_room_3d_cam)
+	# Fill the real viewport (1280x960 on a 4:3 iPad), same framing on top.
+	FIT_3D.fill(vp_container, _room_3d_vp, _room_3d_cam, 48.0, get_viewport_rect().size)
 
 	var glb_path := "res://assets/scenes_3d/toy_room_study.glb"
 	if ResourceLoader.exists(glb_path):

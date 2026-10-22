@@ -19,6 +19,7 @@ extends LevelManager
 ## Where things hide comes from a hand-written list per level, shuffled by
 ## `VariantPicker`. A second play hides them somewhere else; it never hides
 ## them somewhere impossible.
+const FIT_3D := preload("res://scripts/world/fit_3d.gd")
 
 const Hints := preload("res://scripts/shared/hint_director.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
@@ -377,8 +378,6 @@ func _setup_3d_stage() -> void:
 	var vp_container := SubViewportContainer.new()
 	vp_container.name = "ParkObservatory3DContainer"
 	vp_container.stretch = true
-	vp_container.custom_minimum_size = Vector2(1280, 720)
-	vp_container.size = Vector2(1280, 720)
 	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vp_container.z_index = -50
 
@@ -387,7 +386,6 @@ func _setup_3d_stage() -> void:
 	vp.own_world_3d = true
 	vp.transparent_bg = false
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	vp.size = Vector2i(1280, 720)
 	vp_container.add_child(vp)
 
 	var world_root := Node3D.new()
@@ -428,6 +426,8 @@ func _setup_3d_stage() -> void:
 	cam.fov = 38.0
 	cam.current = true
 	world_root.add_child(cam)
+	# Fill the real viewport (1280x960 on a 4:3 iPad), same framing on top.
+	FIT_3D.fill(vp_container, vp, cam, 38.0, get_viewport_rect().size)
 
 	add_child(vp_container)
 	move_child(vp_container, 0)

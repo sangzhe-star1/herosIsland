@@ -49,6 +49,7 @@ extends LevelManager
 ##   NOT the hazards. Jump Quests are famous for lasers, swinging axes and
 ##               knockback that drops you to the bottom. Falling here still
 ##               floats you back to the last safe ledge, and it always will.
+const FIT_3D := preload("res://scripts/world/fit_3d.gd")
 
 const Coins := preload("res://scripts/shop/currency_manager.gd")
 const Fit := preload("res://scripts/shared/screen_fit.gd")
@@ -1380,15 +1381,12 @@ var _course_3d_cam: Camera3D
 func _build_3d_course() -> void:
 	var vp_container := SubViewportContainer.new()
 	vp_container.name = "Course3DContainer"
-	vp_container.custom_minimum_size = Vector2(1280, 720)
-	vp_container.size = Vector2(1280, 720)
 	vp_container.stretch = true
 	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(vp_container)
 
 	_course_3d_vp = SubViewport.new()
 	_course_3d_vp.name = "Course3DViewport"
-	_course_3d_vp.size = Vector2i(1280, 720)
 	_course_3d_vp.own_world_3d = true
 	_course_3d_vp.transparent_bg = false
 	_course_3d_vp.handle_input_locally = false
@@ -1438,6 +1436,8 @@ func _build_3d_course() -> void:
 	_course_3d_cam.rotation_degrees = Vector3(-14.0, 0.0, 0.0)
 	_course_3d_cam.fov = 46.0
 	world_root.add_child(_course_3d_cam)
+	# Fill the real viewport (1280x960 on a 4:3 iPad), same framing on top.
+	FIT_3D.fill(vp_container, _course_3d_vp, _course_3d_cam, 46.0, get_viewport_rect().size)
 
 	var glb_path := "res://assets/scenes_3d/platformer_course.glb"
 	if ResourceLoader.exists(glb_path):

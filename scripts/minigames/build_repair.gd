@@ -13,6 +13,7 @@ extends LevelManager
 ## The parts are drawn from the level's data, the slots are outlines of
 ## exactly the part that belongs there, and the drag comes from `DragField`,
 ## so it feels the same as the sorting levels a child played an hour ago.
+const FIT_3D := preload("res://scripts/world/fit_3d.gd")
 
 const Field := preload("res://scripts/shared/drag_field.gd")
 const Fit := preload("res://scripts/shared/screen_fit.gd")
@@ -75,15 +76,12 @@ var _workshop_3d_cam: Camera3D
 func _build_3d_workshop() -> void:
 	var vp_container := SubViewportContainer.new()
 	vp_container.name = "Workshop3DContainer"
-	vp_container.custom_minimum_size = Vector2(1280, 720)
-	vp_container.size = Vector2(1280, 720)
 	vp_container.stretch = true
 	vp_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(vp_container)
 
 	_workshop_3d_vp = SubViewport.new()
 	_workshop_3d_vp.name = "Workshop3DViewport"
-	_workshop_3d_vp.size = Vector2i(1280, 720)
 	_workshop_3d_vp.own_world_3d = true
 	_workshop_3d_vp.transparent_bg = false
 	_workshop_3d_vp.handle_input_locally = false
@@ -134,6 +132,8 @@ func _build_3d_workshop() -> void:
 	_workshop_3d_cam.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
 	_workshop_3d_cam.fov = 46.0
 	world_root.add_child(_workshop_3d_cam)
+	# Fill the real viewport (1280x960 on a 4:3 iPad), same framing on top.
+	FIT_3D.fill(vp_container, _workshop_3d_vp, _workshop_3d_cam, 46.0, get_viewport_rect().size)
 
 	var glb_path := "res://assets/scenes_3d/build_workshop.glb"
 	if ResourceLoader.exists(glb_path):

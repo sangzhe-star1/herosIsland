@@ -175,6 +175,7 @@ func _measure(screen: Dictionary, seen: Dictionary) -> void:
 
 	var low := _lowest(node)
 	var key := str(screen.get("key", screen["id"]))
+	_the_3d_backdrop_fills_the_glass(node, key)
 
 	# The three templates whose targets are drawn shapes: ask the level itself
 	# where they are. If the member is gone, say so -- an assertion that has
@@ -455,6 +456,21 @@ func _the_thumb_controls_hug_the_corner(seen: Dictionary) -> void:
 	host.queue_free()
 	await get_tree().process_frame
 
+
+
+## A 3D-backed template draws its scene into a SubViewportContainer. Built at a
+## fixed 1280x720, it left the bottom 240 px of a 4:3 tablet bare grey, with one
+## of observation_search's findable items sitting on the grey (21 October).
+func _the_3d_backdrop_fills_the_glass(node: Node, key: String) -> void:
+	for found in _every_node(node):
+		var box := found as SubViewportContainer
+		if box == null or not box.visible:
+			continue
+		var rect := box.get_global_rect()
+		_ok(rect.position.x <= 0.5 and rect.position.y <= 0.5
+			and rect.end.x >= _view.x - 0.5 and rect.end.y >= _view.y - 0.5,
+			"%s at %s: 3D backdrop %s covers %s, not the %s screen"
+			% [key, _shape, box.name, str(rect), str(_view)])
 
 func _every_node(root: Node) -> Array:
 	var out: Array = [root]
