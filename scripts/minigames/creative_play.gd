@@ -256,9 +256,14 @@ func _build_tray() -> void:
 		if SaveManager.has_sticker(name) or SaveManager.has_outfit(name) \
 				or _sticker_set().find(name) < 8:
 			owned.append(name)          # the first eight are always available
+	# 74 px apart until the shelf runs out, then closer: friendship keepsakes
+	# can push a full collection past what one row held at the old spacing.
+	var step := 74.0
+	if owned.size() > 1:
+		step = minf(74.0, (get_viewport_rect().size.x - 176.0) / float(owned.size() - 1))
 	for i in range(owned.size()):
 		var node := Node2D.new()
-		node.position = Vector2(88.0 + float(i) * 74.0, shelf_y() + SHELF_H * 0.5)
+		node.position = Vector2(88.0 + float(i) * step, shelf_y() + SHELF_H * 0.5)
 		node.set_meta("icon", str(owned[i]))
 		_tray.add_child(node)
 		var art: Control = UiKit.picture(str(owned[i]), 56)

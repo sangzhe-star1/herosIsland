@@ -213,6 +213,40 @@ static func record_friend_sneak(npc_id: String, now: int) -> bool:
 	return true
 
 
+# --- 友情攒起来：纪念贴纸和好朋友 -------------------------------------------
+#
+# Friendship only ever rises, so both rewards are DERIVED from it rather than
+# stored: the keepsake is a sticker he keeps (granted once, by has_sticker),
+# and best-friend status simply makes every later share two instead of one.
+# Nothing here can be lost, and a dish given at home counts the same as
+# watering on the friend's farm -- the gift is claimed on the next visit.
+
+static func friendship_of(npc_id: String) -> int:
+	return friendship() if npc_id == "bear" else friend_friendship(npc_id)
+
+
+## The friend's portrait sticker for the decoration room, if it has been earned
+## and not yet given. Returns the sticker given now, or "".
+static func claim_keepsake(npc_id: String) -> String:
+	var keepsake: Dictionary = GameData.get_npc_farm(npc_id).get("keepsake", {})
+	var sticker := str(keepsake.get("sticker", ""))
+	if sticker == "" or SaveManager.has_sticker(sticker) \
+			or friendship_of(npc_id) < int(keepsake.get("at", 1 << 30)):
+		return ""
+	SaveManager.add_sticker(sticker)
+	return sticker
+
+
+static func is_best_friend(npc_id: String) -> bool:
+	var at := int(GameData.get_npc_farm(npc_id).get("best_friend_at", 0))
+	return at > 0 and friendship_of(npc_id) >= at
+
+
+## How many of the share crop one share gives: two once they are best friends.
+static func share_amount(npc_id: String) -> int:
+	return 2 if is_best_friend(npc_id) else 1
+
+
 static func friend_friendship(npc_id: String) -> int:
 	return int(SaveManager.data.get("farm", {})
 		.get("npc_friendship", {}).get(npc_id, 0))

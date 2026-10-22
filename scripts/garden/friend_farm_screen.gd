@@ -9,6 +9,7 @@ const Level := preload("res://scripts/garden/farm_level_manager.gd")
 const PlotView := preload("res://scripts/garden/plot_view.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const PeekView := preload("res://scripts/garden/friend_peek_view.gd")
+const Bond := preload("res://scripts/garden/friend_bond_view.gd")
 
 const BED_COLS := 3
 const BED_FIRST := Vector2(240, 310)
@@ -91,6 +92,8 @@ func _build() -> void:
 		basket.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(basket)
 	_top_bar(view)
+	# A keepsake earned elsewhere (a dish given at home) is handed over here.
+	Bond.show(self, view, npc_id, NpcFarm.claim_keepsake(npc_id), false)
 	if bool(NpcFarm.friend_state(npc_id).get("help_owed", false)):
 		_point_at_thirsty()
 
@@ -286,7 +289,8 @@ func _pick_share(index: int) -> void:
 		return
 	var farm_def: Dictionary = GameData.get_npc_farm(npc_id)
 	var crop_id := str(farm_def.get("share_crop", "carrot"))
-	Barn.store_harvest(crop_id, 1)
+	# Best friends share two.
+	Barn.store_harvest(crop_id, NpcFarm.share_amount(npc_id))
 	preload("res://scripts/garden/recipe_manager.gd").check_barn(false)
 	SaveManager.save_game()
 	AudioManager.play_sfx("res://assets/audio/pop.ogg")
@@ -323,6 +327,7 @@ func _fly_share_crop(crop_id: String, from: Vector2) -> void:
 func _water_for_friend(index: int) -> void:
 	if not bool(NpcFarm.friend_state(npc_id).get("help_owed", false)):
 		return
+	var best_before := NpcFarm.is_best_friend(npc_id)
 	if not NpcFarm.record_friend_help(npc_id):
 		return
 	var now := GameClock.now_unix()
@@ -339,6 +344,8 @@ func _water_for_friend(index: int) -> void:
 		cheer.tween_property(_friend_model, "position:y", 0.35, 0.12)
 		cheer.tween_property(_friend_model, "position:y", 0.0, 0.22) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	Bond.show(self, viewport_size(), npc_id, NpcFarm.claim_keepsake(npc_id),
+		not best_before and NpcFarm.is_best_friend(npc_id))
 	var thank_you := UiKit.title(I18n.t("garden.friend_farm_thanks"), 22,
 		Color(0.35, 0.52, 0.25))
 	thank_you.name = "FriendFarmThanks"

@@ -28,6 +28,7 @@ const PlotView := preload("res://scripts/garden/plot_view.gd")
 const HarvestArt := preload("res://scripts/harvest/harvest_visual_art.gd")
 const Tutorial := preload("res://scripts/shared/tutorial_director.gd")
 const PeekView := preload("res://scripts/garden/friend_peek_view.gd")
+const Bond := preload("res://scripts/garden/friend_bond_view.gd")
 
 const TOP_BAR := 96.0
 
@@ -162,6 +163,8 @@ func _build() -> void:
 		_peek_view.setup(_bear_model, _bed_centre(_sneak_index), _sneak_the_quiet_one.bind(_sneak_index))
 
 	_top_bar(view)
+	# A keepsake earned elsewhere (a dish given at home) is handed over here.
+	Bond.show(self, view, "bear", NpcFarm.claim_keepsake("bear"), false)
 
 	# Owed from last time: the bear points at the thirsty bed straight away.
 	if bool(NpcFarm.bear_state().get("help_owed", false)):
@@ -432,7 +435,9 @@ func _pick_the_shared_one(index: int) -> void:
 	# back knowing the strawberry was his and the watering is owed.
 	NpcFarm.record_pick(now)
 	var farm_def: Dictionary = GameData.get_npc_farm("bear")
-	Barn.store_harvest(str(farm_def.get("share_crop", "strawberry")), 1)
+	# Best friends share two.
+	Barn.store_harvest(str(farm_def.get("share_crop", "strawberry")),
+		NpcFarm.share_amount("bear"))
 	# The shared berry can be the last ingredient of something. Unlock the
 	# ledger quietly -- the celebration card belongs to the garden screen,
 	# and this screen is the bear's own moment.
@@ -548,6 +553,7 @@ func _water_for_the_bear(index: int) -> void:
 	_plots[index] = plot
 	(_bed_views[index] as Node2D).call("refresh", plot, true)
 
+	var best_before := NpcFarm.is_best_friend("bear")
 	if NpcFarm.record_help():
 		# The whole exchange, written on the board at home: went visiting,
 		# brought back the shared one, earned the star. Same board the bear's
@@ -563,6 +569,8 @@ func _water_for_the_bear(index: int) -> void:
 		SaveManager.save_game()
 		AudioManager.play_sfx("res://assets/audio/star.ogg")
 		AudioManager.say("bear_thanks")
+		Bond.show(self, get_viewport_rect().size, "bear", NpcFarm.claim_keepsake("bear"),
+			not best_before and NpcFarm.is_best_friend("bear"))
 		if Juice.motion_enabled():
 			Juice.burst(self, _bed_centre(index), 16)
 

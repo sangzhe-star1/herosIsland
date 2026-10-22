@@ -1007,7 +1007,11 @@
         "star",
         "heart",
         "lamp",
-        "cloud"
+        "cloud",
+        "res://assets/harvest_3d/props/bear.png",
+        "res://assets/harvest_3d/props/rabbit.png",
+        "res://assets/harvest_3d/props/dog.png",
+        "res://assets/harvest_3d/props/robot_friend.png"
       ],
       "exit_room": "star_garden"
     }

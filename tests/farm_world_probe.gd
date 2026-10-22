@@ -2797,11 +2797,75 @@ func _a_visit_to_a_friends_farm(who: String) -> void:
 	_ok(int(friend_farm.get("presses")) == 3,
 		"the %s farm dispatches three real taps exactly once each" % who)
 	await _the_friend_plays_statues(friend_farm, who)
+	await _friendship_pays_out(friend_farm, who, help_index)
 
 	friend_farm.queue_free()
 	await get_tree().process_frame
 	GameClock.clear_test_now()
 
+
+## Friendship only rises, and two moments pay out on the friend's own farm:
+## at 2 a portrait sticker for the decorating room, at 5 best friends, after
+## which every share gives two. Both are derived, granted once, and shown as a
+## card that blocks nothing.
+func _owe_help(who: String) -> void:
+	var farm: Dictionary = SaveManager.data["farm"]
+	var npc: Dictionary = preload("res://scripts/garden/farm_save.gd").normalise_npc(farm.get("npc"))
+	npc[who]["last_share_cycle"] = int(npc[who].get("help_completed_cycle", 0)) + 1
+	npc[who]["help_owed"] = true
+	farm["npc"] = npc
+
+
+func _friendship_pays_out(friend_farm: Node, who: String, help_index: int) -> void:
+	var keepsake: Dictionary = GameData.get_npc_farm(who).get("keepsake", {})
+	var sticker := str(keepsake.get("sticker", ""))
+	_ok(sticker != "" and ResourceLoader.exists(sticker),
+		"%s has a keepsake sticker that exists" % who)
+	var deco: Array = GameData.get_level("garden_deco").get("config", {}).get("stickers", [])
+	_ok(deco.has(sticker), "%s's keepsake can be put up in the decorating room" % who)
+	SaveManager.data["rewards"]["stickers"].erase(sticker)
+	_ok(NpcFarm.friendship_of(who) == 1 and NpcFarm.claim_keepsake(who) == "",
+		"one friendship star is not yet a keepsake")
+
+	_owe_help(who)
+	friend_farm.call("_water_for_friend", help_index)
+	_ok(NpcFarm.friendship_of(who) == 2 and SaveManager.has_sticker(sticker),
+		"the second kindness gives %s's portrait sticker" % who)
+	_ok(friend_farm.find_child("FriendBondCard", true, false) != null,
+		"the gift is shown on %s's farm as a card" % who)
+	var card := friend_farm.find_child("FriendBondCard", true, false) as Control
+	_ok(card != null and card.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"the gift card never blocks a touch")
+	var stickers_now: int = (SaveManager.data["rewards"]["stickers"] as Array).size()
+	_ok(NpcFarm.claim_keepsake(who) == ""
+		and (SaveManager.data["rewards"]["stickers"] as Array).size() == stickers_now,
+		"the keepsake is given once")
+
+	_ok(not NpcFarm.is_best_friend(who) and NpcFarm.share_amount(who) == 1,
+		"before best friends a share is one")
+	SaveManager.data["farm"]["npc_friendship"][who] = 4
+	_owe_help(who)
+	friend_farm.call("_water_for_friend", help_index)
+	_ok(NpcFarm.is_best_friend(who) and NpcFarm.share_amount(who) == 2,
+		"the fifth kindness makes %s a best friend who shares two" % who)
+	var texts: Array = []
+	for node in friend_farm.find_children("*", "Label", true, false):
+		texts.append(str((node as Label).text))
+	var friend_name := I18n.t(str(GameData.get_npc_farm(who).get("name_key", "")))
+	_ok(texts.has(I18n.t("garden.friend_best") % [friend_name])
+		or "\n".join(texts).contains(I18n.t("garden.friend_best") % [friend_name]),
+		"becoming best friends is said out loud on the card")
+	if who == "rabbit":
+		# The bear follows the same two steps through his own counter.
+		var bear_sticker := str(GameData.get_npc_farm("bear").get("keepsake", {}).get("sticker", ""))
+		SaveManager.data["rewards"]["stickers"].erase(bear_sticker)
+		SaveManager.data["farm"]["npc_friendship"]["bear"] = 2
+		_ok(NpcFarm.claim_keepsake("bear") == bear_sticker and SaveManager.has_sticker(bear_sticker)
+			and NpcFarm.share_amount("bear") == 1,
+			"the bear's second star gives his sticker, not yet a double share")
+		SaveManager.data["farm"]["npc_friendship"]["bear"] = 5
+		_ok(NpcFarm.share_amount("bear") == 2, "a best-friend bear shares two strawberries")
+		SaveManager.data["farm"]["npc_friendship"]["bear"] = 0
 
 ## 一二三木头人: the quiet bed fills only while the friend's back is turned,
 ## waits (never empties) while it looks, pays one conjured crop once per
