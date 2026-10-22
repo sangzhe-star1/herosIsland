@@ -452,6 +452,21 @@ smoke at 31/31 and does not change what the child sees unless stated.
    | 7 + 5 + 2 + 1 | `garden.*` (time of day, daily title), `house.*`, `facility.*`, `dog.dug_seed` | written for features that show icons instead | keep, or wire as captions |
    | 3 | `album.empty`, `battle.all_met`, `map.completion` | end-state messages never reached yet | keep |
 
+7. **Album cards vs the real fight (found 22 October, needs your call).**
+   The duel opens armour only by `dodge`, `block` or `interrupt` (a full
+   charge or the ↑ swipe), per `opens_on` in levels.json, and the code's
+   stated rule is "read the card, know the fight". About half the cards name
+   a move that does not exist: twin_horn "steer it into a glowing pillar",
+   drill_armor "flip the magnet switch", crystal_armor "collect three energy
+   orbs", thunder_wyvern "start the three lightning rods", stone_cub "bring it
+   the food it likes". Those that match: steel_spine and blaze_claw (shield),
+   rock_horn and red_wing (dodge). The spoken battle intros already name the
+   right move, so a child who listens is not misled; a parent reading the
+   card is. Proposal: rewrite the mismatching cards to name their
+   `opens_on` move, and add a BattleFeelProbe check that every armoured
+   card contains a word for one of its moves. Not done — card text came with
+   the art pack and is content.
+
 What stays out of scope without asking: deleting levels, templates or asset
 folders; runtime 3D on the farm; any network, account or analytics feature.
 
