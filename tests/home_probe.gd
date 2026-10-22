@@ -617,6 +617,24 @@ func _the_parent_door_is_not_a_one_tap_door(home: Control) -> void:
 			"the explanation should fall quiet again; it stuck at '%s'"
 			% str((hint as Label).text))
 
+	# A release can be swallowed (an iPad banner, the window losing focus). The
+	# hold must end with the finger, not with the signal, or the parent area
+	# opens three seconds later with nobody touching it.
+	home.call("_begin_hold")
+	for _frame in range(3):
+		await get_tree().process_frame
+	_ok(not bool(home.get("_holding")),
+		"a hold with no finger on the door kept counting -- a swallowed release "
+		+ "would open the parent area on its own")
+	_touch(at, true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	home.notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	_ok(not bool(home.get("_holding")),
+		"the app losing focus mid-hold did not cancel the parent door")
+	_touch(at, false)
+	await get_tree().process_frame
+
 
 # --- 10. reduce-motion means calm ---------------------------------------
 

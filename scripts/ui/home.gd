@@ -783,6 +783,13 @@ func _begin_hold() -> void:
 func _process(delta: float) -> void:
 	if not _holding:
 		return
+	# The hold lasts only while a finger is actually on the door. button_up is
+	# the normal way out, but a release can be swallowed -- an iPad banner, a
+	# window losing focus, a second finger -- and a hold that keeps counting
+	# with nobody touching it would open the parent area on its own.
+	if not is_instance_valid(_parent_pill) or not _parent_pill.is_pressed():
+		_reset_hold()
+		return
 	_hold_time += delta
 	_parent_fill.size.x = _parent_pill.size.x * clampf(_hold_time / PARENT_HOLD_SECONDS, 0.0, 1.0)
 	# The fill is the feedback; the number is for the adult who wants to know
@@ -794,6 +801,12 @@ func _process(delta: float) -> void:
 	if _hold_time >= PARENT_HOLD_SECONDS:
 		_reset_hold()
 		SceneManager.goto_scene("res://scenes/parent/ParentCenter.tscn")
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT \
+			or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
+		_reset_hold()
 
 
 func _cancel_hold() -> void:
