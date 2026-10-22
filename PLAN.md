@@ -382,6 +382,55 @@ These are yours to make. Nothing below has been changed without asking.
    Folding them into one is a small change, but it touches every existing save,
    so it wants a test on a real old save first.
 
+## Long-term plan — written 21 October 2026
+
+The game is built. What it lacks is evidence that a six-year-old wants it,
+and his parents' voices. So the plan is ordered by what can move without the
+child, what needs a parent, and what needs the child — and code work stays
+small, reversible and behind green probes until play-testing says otherwise.
+
+**Track A — needs a parent (highest value, short sessions)**
+
+| # | Step | Tool | Done when |
+|---|---|---|---|
+| A1 | Record the 64 level intros | `./tools/record_voice.command --section 一` | `human_recorded.txt` lists them; tools_check and VoiceCheck green |
+| A2 | Record the other 55 active lines | `./tools/record_voice.command` | 119/119 |
+| A3 | Pull and audit the iPad save | `tools/pull_ipad_save.command` (cable, unlock, Trust) | report reviewed, notes in the play-test sheet |
+| A4 | One drawing of his as a hero | drop-in folder, README §13 | he picks it in the Hero House |
+
+**Track B — needs the child (decides everything after it)**
+
+| # | Step | Done when |
+|---|---|---|
+| B1 | iPad session with the play-test sheet: timers, cloud/visitor/market discovery, fetch vs farming, strawberry readability | sheet filled, CHANGELOG round written |
+| B2 | Three short sessions on different days: which door he picks first, what he asks to replay | a ranked list of doors |
+| B3 | The cut: decide open decision 2 (21 duels) and the seven idle templates from B2 | decisions recorded here |
+
+**Track C — device-free engineering (what I do between sessions)**
+
+Ordered by risk removed per hour. Each item is one commit, keeps the full
+smoke at 31/31 and does not change what the child sees unless stated.
+
+1. **Probe reliability.** Every windowed probe captures through the bounded
+   path (FarmWorldProbe done 21 October). A hang must name its location.
+2. **Live-template layout debt.** The hard-coded 720-tall bottoms and 1280-wide
+   edges in templates that have levels (`build_repair`, `puzzle_mechanism`,
+   `matching_sorting`, `platformer`, `observation_search`, `creative_play`,
+   `adventure`, `result_screen`) are the ones a 4:3 iPad actually shows. Fix
+   those to read the viewport, verify with 4:3 shots. Leave the seven idle
+   templates' warnings (open decision 1).
+3. **Mechanical lint.** Space-after-tab indentation (8 warnings).
+4. **`garden_screen.gd` toward ~1,500 lines**, one cohesive boundary per
+   commit, GardenTouchProbe and FarmWorldProbe at both ratios each time.
+   Stop when what remains is orchestration; splitting further is cost.
+5. **Save-version consolidation** (open decision 6) — only after A3.
+6. **Unused strings (172 warnings)** — mostly names for levels that were
+   removed or never wired. Deleting them is cheap but is a content decision;
+   list them by group for review rather than delete.
+
+What stays out of scope without asking: deleting levels, templates or asset
+folders; runtime 3D on the farm; any network, account or analytics feature.
+
 ## Current follow-through — 21 October 2026
 
 What is waiting is now people, not code. In order, each one short:
@@ -391,7 +440,9 @@ What is waiting is now people, not code. In order, each one short:
    `./tools/record_voice.command` (119 active lines in all). Afterwards run
    `python3 tools_check.py` (it now fails if a recorded line is shadowed by a
    leftover `.ogg`) and `./tests/run_smoke.sh` (VoiceCheck loads every clip).
-2. **Export the iPad save and audit it** with
+2. **Export the iPad save and audit it**: connect the iPad and double-click
+   `tools/pull_ipad_save.command` (reads it read-only and runs the audit), or
+   copy it by hand and run
    `python3 tests/audit_garden_save.py --save /absolute/path/to/save_game.json`
    before touching the two save-version fields (open decision 6).
 3. **iPad play session** with the recorded voice in, using
