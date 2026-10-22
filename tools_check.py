@@ -1289,6 +1289,25 @@ for line_id, where in sorted(spoken.items()):
         warnings.append(f"{where}: says '{line_id}', which "
                         f"is neither recorded nor in docs/VOICE_SCRIPT.md")
 
+# A PERSON'S RECORDING MUST BE THE FILE THAT PLAYS
+#
+# tools/record_voice.py writes <id>.wav and lists the id in human_recorded.txt.
+# AudioManager.say() tries .ogg before .wav, so a placeholder .ogg left beside
+# the new take would win and the parent's voice would never be heard -- with
+# every other check still green.
+HUMAN_LIST = "assets/audio/voice/human_recorded.txt"
+if os.path.exists(HUMAN_LIST):
+    for raw_line in open(HUMAN_LIST, encoding="utf-8"):
+        line_id = raw_line.strip()
+        if not line_id or line_id.startswith("#"):
+            continue
+        if not os.path.exists(os.path.join(voice_dir, line_id + ".wav")):
+            errors.append(f"{HUMAN_LIST}: '{line_id}' is listed as recorded "
+                          f"but {voice_dir}/{line_id}.wav is missing")
+        elif os.path.exists(os.path.join(voice_dir, line_id + ".ogg")):
+            errors.append(f"{HUMAN_LIST}: '{line_id}' has a leftover .ogg that "
+                          f"the game plays instead of the recording")
+
 # --- 5t. every field in a data file is read by something
 #
 # THE SHAPE OF FAILURE THIS PROJECT KEEPS MEETING
